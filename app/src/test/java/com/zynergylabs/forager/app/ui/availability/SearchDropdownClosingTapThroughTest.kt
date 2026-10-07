@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.click
@@ -110,7 +111,12 @@ class SearchDropdownClosingTapThroughTest {
         }
 
         composeRule.mainClock.autoAdvance = false
-        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        // With the clock stopped, a state write outside composition reaches the next frame only once it is applied (as the fan's
+        // tests do it): Back, then the apply, then frames.
+        composeRule.activityRule.scenario.onActivity {
+            it.onBackPressedDispatcher.onBackPressed()
+            Snapshot.sendApplyNotifications()
+        }
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.advanceTimeByFrame()
         assertEquals("the panel is still on screen, closing", 1, dropdownShown())
@@ -118,6 +124,7 @@ class SearchDropdownClosingTapThroughTest {
 
         val before = mapTaps
         touch(at)
+        composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
         composeRule.mainClock.advanceTimeByFrame()
         assertEquals("the closing panel's button did not fire", 0, useCurrentLocation)
         assertEquals("the touch reached the map beneath (panel was ${panelBefore.describe()})", before + 1, mapTaps)
