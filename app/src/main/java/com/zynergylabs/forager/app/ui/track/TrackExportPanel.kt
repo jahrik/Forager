@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -16,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -187,7 +187,7 @@ internal fun TrackExportRow(
         // note) needs to find this by: a contentDescription proves TalkBack can reach it, not that
         // a sighted tester can find it visually — see this dispatch's item 2 for the bug that shape
         // of assertion hid for an entire release.
-        IconButton(
+        BouncingIconButton(
             onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
             modifier = Modifier.testTag("share-track-${track.id}"),
         ) {

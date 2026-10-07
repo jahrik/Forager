@@ -18,11 +18,31 @@ import androidx.compose.runtime.ReadOnlyComposable
 object MotionTokens {
 
     // §2 "Feedback motion": buttons, chips, FAB, icon stack. Press feedback wants the overshoot
-    // -- provisional pending Gate G question 1. No production caller yet; scaffolding, same as
-    // before ADR-0002.
+    // -- provisional pending Gate G question 1. First production caller: the press bounce
+    // (motion/PressFeedback.kt, dispatch 2026-09-28-652 item 4), and the slight grow of an icon swap.
     @Composable
     @ReadOnlyComposable
     fun <T> feedbackMotionSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.fastSpatialSpec()
+
+    // The press bounce's depth (the owner, RECORD -651: "Small press bounce"): the icon dips to this
+    // scale while pressed and springs back on [feedbackMotionSpec]. An amplitude, not a curve, so it
+    // stays a plain constant beside the spec, like the selection pulse's bounds below. Chosen, not
+    // measured; whether it reads as "slight" on the phone is a device check.
+    const val PRESS_BOUNCE_SCALE: Float = 0.88f
+
+    // §2 "Feedback motion", the icon-swap half (dispatch 2026-09-28-652 item 5; the owner, RECORD
+    // -651: "Quick crossfade", with a slight grow): an icon changing its picture, its tint, its
+    // badge or its disabled dimming. Effects rather than spatial (colour and alpha, not bounds),
+    // and fast, so the swap is short and can never overshoot: effects specs are critically damped
+    // (MotionTokensTest). The slight grow that comes with it is spatial and rides
+    // [feedbackMotionSpec].
+    @Composable
+    @ReadOnlyComposable
+    fun <T> iconSwapSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.fastEffectsSpec()
+
+    // Where the incoming icon of a swap starts its slight grow from (to 1). Not applied under
+    // reduced motion, where the swap is a plain crossfade (§4).
+    const val ICON_SWAP_ENTER_SCALE: Float = 0.85f
 
     // §2 "Panels and navigation" -- the panel half. The only category with a real production
     // caller (AddActionTile, AvailabilityScreen.kt). Accepts mild overshoot as a taste call, per

@@ -19,6 +19,7 @@ package com.zynergylabs.forager.app.ui.availability
 // with the standalone Photo Gallery panel (the owner's ruling 2, 2026-09-28: "the old Photo Gallery panel
 // is removed. Only the album remains, as on the phone"), and the list above records the move as it was.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -129,7 +130,7 @@ internal fun DrawerHeader(onClose: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onClose)
+            .clickableWithShapedPress(role = Role.Button, onClick = onClose)
             .semantics { contentDescription = "Close search options" },
     ) {}
 }
@@ -150,7 +151,7 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickableWithShapedPress(role = Role.Button, onClick = onClick)
             .navigationBarsPadding()
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

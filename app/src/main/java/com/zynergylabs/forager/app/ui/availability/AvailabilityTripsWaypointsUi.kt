@@ -8,6 +8,7 @@ package com.zynergylabs.forager.app.ui.availability
 // left behind is reached from here. Seam F (the wide layout) was released by the owner for this
 // split, as recorded in the Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
@@ -32,7 +33,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -147,10 +147,10 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            IconButton(onClick = { launchDirections(context, trip) }) {
+            BouncingIconButton(onClick = { launchDirections(context, trip) }) {
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${trip.name}")
             }
-            IconButton(onClick = onDelete) {
+            BouncingIconButton(onClick = onDelete) {
                 Icon(Icons.Filled.Delete, contentDescription = "Remove planned trip for ${trip.date}")
             }
         }
@@ -223,6 +223,8 @@ internal fun WaypointsSection(
                         group = swipeGroup,
                         onDelete = { onDeleteWaypoint(waypoint.id) },
                         onEdit = null,
+                        // The waypoint card's own shape, for the close tap's highlight (Amendment 1 to motion Part 1, RECORD -657).
+                        highlightShape = CardDefaults.shape,
                     ) {
                         WaypointRow(
                             waypoint = waypoint,
@@ -277,11 +279,11 @@ internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null, onNa
                 Text(decimalDegreesLabel(waypoint.lat, waypoint.lng), style = MaterialTheme.typography.bodySmall)
             }
             onNavigate?.let { navigate ->
-                IconButton(onClick = navigate, modifier = Modifier.testTag(waypointRowNavigateTag(waypoint.id))) {
+                BouncingIconButton(onClick = navigate, modifier = Modifier.testTag(waypointRowNavigateTag(waypoint.id))) {
                     Icon(Icons.Filled.Navigation, contentDescription = "Navigate to ${waypoint.name}")
                 }
             }
-            IconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
+            BouncingIconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${waypoint.name}")
             }
         }

@@ -16,6 +16,8 @@ package com.zynergylabs.forager.app.ui.availability
 // reached from here. Seam F (the wide layout) was released by the owner for this split, as recorded
 // in the Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -38,7 +40,6 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -311,7 +312,7 @@ internal fun ObservationBubble(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
-                    .clickable(onClick = onViewOnINaturalist)
+                    .clickableWithShapedPress(onClick = onViewOnINaturalist)
                     .testTag("observation-bubble-view-on-inaturalist"),
             )
         }
@@ -362,7 +363,7 @@ internal fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Mo
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            IconButton(
+            BouncingIconButton(
                 onClick = onClear,
                 modifier = Modifier.size(24.dp).testTag("map-taxon-filter-clear"),
             ) {

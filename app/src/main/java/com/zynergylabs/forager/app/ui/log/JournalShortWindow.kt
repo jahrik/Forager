@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -22,9 +23,11 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.IconSwap
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,11 +98,16 @@ internal fun ShortWindowJournalHeader(
         JournalSwitch(selected = selectedTopTab, onSelect = onSelectTopTab)
         Spacer(Modifier.weight(1f))
         if (showSearch) {
-            IconButton(onClick = onToggleSearch, modifier = Modifier.testTag(SHORT_SEARCH_TAG)) {
-                if (searchRevealed) {
-                    Icon(Icons.Filled.SearchOff, contentDescription = "Hide search")
-                } else {
-                    Icon(Icons.Filled.Search, contentDescription = "Search")
+            // Motion Part 1 (dispatch 2026-09-28-652, item 5, scout J19): Search and Search-off crossfade with a slight grow. The
+            // label is on the button, because both icons are composed for the length of the swap.
+            BouncingIconButton(
+                onClick = onToggleSearch,
+                modifier = Modifier
+                    .testTag(SHORT_SEARCH_TAG)
+                    .semantics { contentDescription = if (searchRevealed) "Hide search" else "Search" },
+            ) {
+                IconSwap(targetState = searchRevealed) { revealed ->
+                    Icon(if (revealed) Icons.Filled.SearchOff else Icons.Filled.Search, contentDescription = null)
                 }
             }
         }
@@ -110,7 +118,7 @@ internal fun ShortWindowJournalHeader(
 /** L2: the timeline's "✎ New" as an icon button in the L1 row, doing what the floating button did. */
 @Composable
 internal fun ShortWindowNewEntryButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.testTag(SHORT_NEW_TAG)) {
+    BouncingIconButton(onClick = onClick, modifier = Modifier.testTag(SHORT_NEW_TAG)) {
         Icon(Icons.Filled.Edit, contentDescription = "New entry")
     }
 }
@@ -126,7 +134,7 @@ internal fun ShortWindowNewEntryButton(onClick: () -> Unit) {
 internal fun ShortWindowAddPhotoButton(onTakePhoto: () -> Unit, onImport: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(SHORT_PHOTO_TAG)) {
+        BouncingIconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(SHORT_PHOTO_TAG)) {
             Icon(Icons.Filled.AddAPhoto, contentDescription = "Add photo")
         }
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {

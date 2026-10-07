@@ -12,6 +12,7 @@ package com.zynergylabs.forager.app.ui.availability
 // AvailabilityCompactMapUi.kt. No symbol left behind is reached from here. Seam F (the wide layout)
 // was released by the owner for this split, as recorded in the Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandIn
@@ -80,6 +81,7 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
+import com.zynergylabs.forager.app.ui.map.MapBarHighlight
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
@@ -229,6 +231,8 @@ private fun ControlPill(
                 filled = isRecording,
                 fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
                 fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
+                // Round whether or not recording: the control is the Record badge (RECORD -651), and the shape must not flip under the finger.
+                highlight = MapBarHighlight.BADGE,
                 modifier = Modifier.testTag("control-pill-record"),
             )
         }
@@ -555,7 +559,7 @@ private fun CompassElevationStripContent(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .weight(1f, fill = false)
-                                .clickable(onClick = onToggleCoordinateFormat),
+                                .clickableWithShapedPress(onClick = onToggleCoordinateFormat),
                         )
                     }
                 }
