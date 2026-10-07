@@ -1,6 +1,6 @@
 # Deleting your Forager data
 
-**Last updated: 2026-09-11.**
+**Last updated: 2026-10-07.**
 
 Forager stores everything on your own device. There is no account, no server, and no copy of your
 data anywhere except the phone in your hand. That shapes what deletion means here: there is nothing
@@ -12,7 +12,7 @@ Anything you create can be deleted from inside Forager, item by item, and the de
 immediately:
 
 - **Journal entries** — including any coordinate attached to a find.
-- **Photos** — whether taken with your camera app or imported from your gallery. Deleting a photo
+- **Photos** — whether taken with Forager's camera or imported from your gallery. Deleting a photo
   removes the stored file, not just the reference to it.
 - **Recorded tracks** — the track and every GPS point in it.
 - **Waypoints** — including vehicle and origin markers.
