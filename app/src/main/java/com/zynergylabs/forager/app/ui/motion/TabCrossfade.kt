@@ -36,6 +36,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.constrainWidth
@@ -111,7 +112,10 @@ fun <T> TabCrossfade(
                 Modifier
                     .holdWhileLeaving(leaving)
                     .leavingTakesNoTouches(leaving)
-                    .semantics { tabLeaving = leaving },
+                    // Amendment 2 (the planner, after the build): from its first leaving frame the outgoing tab is gone from the
+                    // semantics tree too, so a screen reader (or a test) finds one of each control, the arriving one, never the
+                    // one that takes no touch. Only the marker that it is leaving stays.
+                    .then(if (leaving) Modifier.clearAndSetSemantics { tabLeaving = true } else Modifier.semantics { tabLeaving = false }),
             ) { content(tab) }
         }
     }
@@ -201,11 +205,12 @@ fun TabChromeFade(
     val currentAlpha = alpha
     when {
         shown -> Box(Modifier.graphicsLayer { this.alpha = alpha }.semantics { tabChromeAlpha = currentAlpha }) { content() }
+        // Leaving: no room, no touch, and no semantics but its fade (Amendment 2), so a screen reader finds the arriving bar alone.
         state.currentState -> Box(
             zeroRoom
                 .leavingTakesNoTouches(true)
                 .graphicsLayer { this.alpha = alpha }
-                .semantics { tabChromeAlpha = currentAlpha },
+                .clearAndSetSemantics { tabChromeAlpha = currentAlpha },
         ) { content() }
         else -> Unit
     }

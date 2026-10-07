@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.Layout
@@ -17,6 +18,8 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -67,7 +70,14 @@ class TabCrossfadeTest {
     private val mapMeasures = mutableListOf<Constraints>()
     private var mapTaps = 0
 
+    /** How many map stand-ins are composed: the leaving tab's has no semantics any more, so it is counted from the inside. */
+    private var mapsComposed = 0
+
     private val mapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
+        DisposableEffect(Unit) {
+            mapsComposed++
+            onDispose { mapsComposed-- }
+        }
         val policy = remember {
             MeasurePolicy { _, constraints ->
                 mapMeasures += constraints
@@ -124,16 +134,21 @@ class TabCrossfadeTest {
         }
     }
 
-    private fun mapShown() = composeRule.onAllNodesWithTag(LAYOUT_FIXES_MAP_TAG).fetchSemanticsNodes().isNotEmpty()
+    /** A map stand-in is composed (arriving, settled or leaving). */
+    private fun mapShown() = mapsComposed > 0
 
-    private fun mapLeaving(): Boolean =
-        composeRule.onNode(SemanticsMatcher.keyIsDefined(TabLeavingKey) and hasAnyDescendant(hasTestTag(LAYOUT_FIXES_MAP_TAG)), useUnmergedTree = true)
-            .fetchSemanticsNode().config[TabLeavingKey]
+    /** How many tabs are marked as leaving: the leaving tab keeps that one property and nothing else. */
+    private fun tabsLeaving(): Int =
+        composeRule.onAllNodes(SemanticsMatcher.expectValue(TabLeavingKey, true), useUnmergedTree = true).fetchSemanticsNodes().size
 
-    /** The fade alphas of the solid bar (the one in the Scaffold's slot), leaving or arriving. */
+    /** The fade alphas of the solid bar (the one in the Scaffold's slot), leaving or arriving; portrait, so no rail. */
     private fun solidBarAlphas(): List<Float> =
-        composeRule.onAllNodes(SemanticsMatcher.keyIsDefined(TabChromeAlphaKey) and hasAnyDescendant(hasTestTag(COMPACT_BOTTOM_NAV_TAG)), useUnmergedTree = true)
+        composeRule.onAllNodes(SemanticsMatcher.keyIsDefined(TabChromeAlphaKey), useUnmergedTree = true)
             .fetchSemanticsNodes().map { it.config[TabChromeAlphaKey] }
+
+    /** What a screen reader finds: the selected tabs named [label]. */
+    private fun selectedTabsNamed(label: String): Int =
+        composeRule.onAllNodes(hasText(label) and isSelected()).fetchSemanticsNodes().size
 
     @Test
     fun `leaving Maps, the map fades out without being measured again, while the solid bar fades in`() {
@@ -144,7 +159,7 @@ class TabCrossfadeTest {
 
         tapTab("List", paused = true)
         assertTrue("the map is still on screen, fading out", mapShown())
-        assertTrue("and marked as the tab leaving", mapLeaving())
+        assertEquals("one tab marked as leaving", 1, tabsLeaving())
         val duringFade = mapMeasures.drop(measuredBefore.size)
         assertTrue(
             "while it fades the map is measured with nothing but its own constraints ($settledConstraints), saw $duringFade",
@@ -200,6 +215,26 @@ class TabCrossfadeTest {
         tapTab("List", paused = true)
         assertFalse("the map went at once", mapShown())
         assertEquals("the solid bar is in at once", listOf(1f), solidBarAlphas())
+    }
+
+    /**
+     * Amendment 2: mid-fade, a screen reader finds one selected tab of each name, the arriving bar's, never the leaving bar or
+     * the leaving tab's own bar. Both directions: to List (the Maps tab, with its own bar, leaving) and to Maps (the solid bar
+     * leaving).
+     */
+    @Test
+    fun `mid-fade a screen-reader query finds exactly one selected tab, the arriving one`() {
+        setScreen()
+        tapTab("List", paused = true)
+        assertTrue("the Maps tab is still composed, fading out", mapShown())
+        assertEquals("one selected List tab mid-fade", 1, selectedTabsNamed("List"))
+        assertEquals("and no selected Maps tab left behind", 0, selectedTabsNamed("Maps"))
+        settle()
+
+        tapTab("Maps", paused = true)
+        assertEquals("the solid bar is still drawn, leaving", 1, solidBarAlphas().count { it < 1f })
+        assertEquals("one selected Maps tab mid-fade", 1, selectedTabsNamed("Maps"))
+        assertEquals("and no selected List tab left behind", 0, selectedTabsNamed("List"))
     }
 
     private companion object {
