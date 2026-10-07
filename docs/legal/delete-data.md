@@ -1,6 +1,6 @@
 # Deleting your Forager data
 
-**Last updated: 2026-09-11.**
+**Last updated: 2026-10-07.**
 
 Forager stores everything on your own device. There is no account, no server, and no copy of your
 data anywhere except the phone in your hand. That shapes what deletion means here: there is nothing
