@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.EntryContents
 import com.zynergylabs.forager.app.domain.EntryFindItem
@@ -156,7 +158,7 @@ private fun GroupRow(
         Switch(
             checked = state == EntryGroupState.ALL_INCLUDED || state == EntryGroupState.SOME_INCLUDED,
             onCheckedChange = onSetIncluded,
-            modifier = Modifier.testTag(entryGroupSwitchTag(group)),
+            modifier = Modifier.testTag(entryGroupSwitchTag(group)).semantics { contentDescription = "Include all ${group.title.lowercase()}" },
         )
     }
 }
@@ -176,7 +178,11 @@ private fun ItemRow(item: EntryItem, distanceUnit: DistanceUnit, indent: Int, on
             Text(item.title(), style = MaterialTheme.typography.bodyMedium)
             item.detail(distanceUnit)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        Switch(checked = included, onCheckedChange = onSetIncluded, modifier = Modifier.testTag(entryItemSwitchTag(item.tagKey)))
+        Switch(
+            checked = included,
+            onCheckedChange = onSetIncluded,
+            modifier = Modifier.testTag(entryItemSwitchTag(item.tagKey)).semantics { contentDescription = "Include ${item.title()}" },
+        )
     }
 }
 
