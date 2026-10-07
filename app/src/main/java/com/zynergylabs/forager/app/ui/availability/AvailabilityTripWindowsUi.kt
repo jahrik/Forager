@@ -2,8 +2,9 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Data part C (dispatch -668), under the owner's "Piece by piece (Recommended)" (RECORD -655): the
 // trip windows card, moved out of AvailabilityResultsUi.kt before this part changed it. Same package,
-// so its caller (TripPlannerSection) and AvailabilityPureFunctions.kt's TRIP_WINDOW_DATE_FORMAT resolve
-// unchanged. The move itself changed no line of it.
+// so its caller (TripPlannerSection) and TRIP_WINDOW_DATE_FORMAT's other users (the planned-trips row,
+// its map bubble) resolve unchanged. The move itself changed no line of it; the later commits on branch data-c-seasonal then
+// changed TripWindowRow.
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -83,42 +84,46 @@ private fun TripWindowReportContent(report: TripWindowReport, unitSystem: UnitSy
     }
 }
 
+/**
+ * One trip window as a dated heading over a small labelled table (data part C, dispatch -668: the
+ * owner's "conditions are a small table", and dates as "Oct 7, 2026"). Each row is one measurement
+ * the window carries; a measurement the location's weather model did not serve has no row, as before.
+ * Soil moisture is the plain Dry / Moist / Wet scale with the figure under it
+ * ([SoilMoistureScaleValue]).
+ */
 @Composable
 private fun TripWindowRow(window: TripWindow, unitSystem: UnitSystem) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
-            "${TRIP_WINDOW_DATE_FORMAT.format(window.startDate)} – ${TRIP_WINDOW_DATE_FORMAT.format(window.endDate)}",
+            "${displayDate(window.startDate)} – ${displayDate(window.endDate)}",
             style = MaterialTheme.typography.bodyMedium,
         )
         val mostRecentRain = window.precedingRainEvents.first()
-        Text(
-            "${window.daysAfterMostRecentRainAtStart}–${window.daysAfterMostRecentRainAtEnd} days after " +
-                "${formatRainfall(mostRecentRain.totalMm, unitSystem, metricDecimals = 0)} of rain ending " +
-                TRIP_WINDOW_DATE_FORMAT.format(mostRecentRain.endDate) +
-                if (mostRecentRain.isForecast) " (forecast)" else "",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        if (window.precipitationDuringWindowMm > 0.0) {
-            Text(
-                "${formatRainfall(window.precipitationDuringWindowMm, unitSystem)} more rain forecast during the window",
-                style = MaterialTheme.typography.bodySmall,
+        val rows = buildList<TableRow> {
+            add(TableRow("Days after rain") { TableValue("${window.daysAfterMostRecentRainAtStart}–${window.daysAfterMostRecentRainAtEnd}") })
+            add(
+                TableRow("Last soaking rain") {
+                    TableValue(
+                        "${formatRainfall(mostRecentRain.totalMm, unitSystem, metricDecimals = 0)}, ended " +
+                            displayDate(mostRecentRain.endDate) +
+                            if (mostRecentRain.isForecast) " (forecast)" else "",
+                    )
+                },
             )
+            if (window.precipitationDuringWindowMm > 0.0) {
+                add(TableRow("More rain forecast") { TableValue(formatRainfall(window.precipitationDuringWindowMm, unitSystem)) })
+            }
+            window.meanShallowSoilMoistureM3M3?.let { moisture ->
+                add(TableRow("Soil moisture") { SoilMoistureScaleValue(moisture) })
+            }
+            window.meanSoilTemperatureC?.let { temp ->
+                add(TableRow("Soil temperature") { TableValue(formatSoilTemperature(temp, unitSystem)) })
+            }
+            window.evapotranspirationSinceRainMm?.let { et0 ->
+                add(TableRow("Evaporated since rain") { TableValue(formatRainfall(et0, unitSystem)) })
+            }
         }
-        window.meanShallowSoilMoistureM3M3?.let { moisture ->
-            Text(
-                "Shallow soil moisture: ${"%.2f".format(moisture)} m³/m³",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        window.meanSoilTemperatureC?.let { temp ->
-            Text("Soil temperature: ${formatSoilTemperature(temp, unitSystem)}", style = MaterialTheme.typography.bodySmall)
-        }
-        window.evapotranspirationSinceRainMm?.let { et0 ->
-            Text(
-                "${formatRainfall(et0, unitSystem)} evapotranspiration since the rain",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
+        LabelledTable(rows)
     }
 }
 

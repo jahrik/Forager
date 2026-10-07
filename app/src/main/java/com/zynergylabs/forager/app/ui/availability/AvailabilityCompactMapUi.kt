@@ -1064,7 +1064,7 @@ internal fun CompactMapTab(
                 } else {
                     Spacing.sm
                 }
-                mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown)?.let { legend ->
+                mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown, mapLayers.forecastZoomedOut)?.let { legend ->
                     DisposableEffect(Unit) { onDispose { legendChipTopPx = null } }
                     MapLegendChip(
                         legend = legend,
