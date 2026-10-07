@@ -278,7 +278,11 @@ private suspend fun exportAndShareTrack(
     }
     // Dispatch 2026-09-28-658 (R9): an export without the full record is partial, and the person
     // sharing it is told so before the share sheet opens, not left to believe it is complete.
-    if (fullRecordRead.isFailure) Toast.makeText(context, PARTIAL_GPX_EXPORT_MESSAGE, Toast.LENGTH_LONG).show()
+    // On the main thread explicitly: under the compose test harness this coroutine resumed from the
+    // IO hop on a thread with no Looper, and a Toast needs one (seen in TrackExportPartialTest).
+    if (fullRecordRead.isFailure) {
+        withContext(Dispatchers.Main) { Toast.makeText(context, PARTIAL_GPX_EXPORT_MESSAGE, Toast.LENGTH_LONG).show() }
+    }
     context.startActivity(Intent.createChooser(shareGpxIntent(context, file), "Share track"))
 }
 

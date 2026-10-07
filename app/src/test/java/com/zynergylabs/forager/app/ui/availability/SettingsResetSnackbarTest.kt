@@ -8,6 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -74,7 +75,10 @@ class SettingsResetSnackbarTest {
         composeRule.mainClock.advanceTimeBy(30_000L)
         assertEquals("still there after 30 s: it stays until dismissed", 1, composeRule.onAllNodesWithText(SETTINGS_RESET_MESSAGE).fetchSemanticsNodes().size)
 
-        composeRule.onNode(hasText(SETTINGS_RESET_ACTION_LABEL) and hasClickAction()).performTouchInput { click(center) }
+        // The closed Tools drawer stays composed off screen with its own "Settings" row, so the action is
+        // told apart by sitting beside the snackbar's message.
+        composeRule.onNode(hasText(SETTINGS_RESET_ACTION_LABEL) and hasClickAction() and hasAnySibling(hasText(SETTINGS_RESET_MESSAGE)))
+            .performTouchInput { click(center) }
         composeRule.waitForIdle()
 
         assertEquals("the snackbar is gone", 0, composeRule.onAllNodesWithText(SETTINGS_RESET_MESSAGE).fetchSemanticsNodes().size)
