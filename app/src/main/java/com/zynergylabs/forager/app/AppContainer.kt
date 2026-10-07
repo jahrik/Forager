@@ -53,6 +53,10 @@ import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.DeclinationProvider
 import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.alert.AndroidAlertAudibility
+import com.zynergylabs.forager.app.alert.AndroidBackgroundRunCheck
+import com.zynergylabs.forager.app.data.repository.DataStoreOffTrackReminderPreferenceRepository
+import com.zynergylabs.forager.app.domain.OffTrackReminderCheck
+import com.zynergylabs.forager.app.domain.OffTrackReminderPreferenceRepository
 import com.zynergylabs.forager.app.alert.AndroidAlertDelivery
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertDelivery
@@ -340,7 +344,11 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
     // Dispatch 2026-09-28-451: the lasting record of Returns and off-track decisions, a file in app storage.
     val returnRecord = FileReturnRecord(java.io.File(context.filesDir, RETURN_RECORD_FILE_NAME), currentTimeProvider)
-    val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery, returnRecord)
+    // Dispatch 2026-09-28-626 (plan T14): Settings' "Off-track reminder" and the check made when a
+    // recording starts. The watch reads the checkbox at the moment it decides to alert.
+    val offTrackReminderPreferences: OffTrackReminderPreferenceRepository = DataStoreOffTrackReminderPreferenceRepository(context)
+    val offTrackReminderCheck = OffTrackReminderCheck(AndroidBackgroundRunCheck(context.applicationContext), offTrackReminderPreferences, errorLog)
+    val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery, returnRecord, isReminderOn = offTrackReminderPreferences::enabledNow)
 
     // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
     // Amendment 3, Part 3b). The rule is the use case's; AbandonedTrackSweepOnce runs it once per
