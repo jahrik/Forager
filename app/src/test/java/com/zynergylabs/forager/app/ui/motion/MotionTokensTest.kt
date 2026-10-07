@@ -60,6 +60,12 @@ class MotionTokensTest {
     private lateinit var narrativeReveal: FiniteAnimationSpec<Float>
     private lateinit var routeMorph: FiniteAnimationSpec<Float>
     private lateinit var dataLayerOverlay: FiniteAnimationSpec<Float>
+    private lateinit var tabCrossfade: FiniteAnimationSpec<Float>
+    private lateinit var mapPopUpFade: FiniteAnimationSpec<Float>
+    private lateinit var mapPopUpGrow: FiniteAnimationSpec<Float>
+    private lateinit var navigationViewChrome: FiniteAnimationSpec<Float>
+    private lateinit var wordSwap: FiniteAnimationSpec<Float>
+    private lateinit var schemeFastEffects: FiniteAnimationSpec<Float>
 
     private lateinit var schemeDefaultSpatial: FiniteAnimationSpec<Float>
     private lateinit var schemeFastSpatial: FiniteAnimationSpec<Float>
@@ -79,6 +85,12 @@ class MotionTokensTest {
                 narrativeReveal = MotionTokens.narrativeRevealSpec()
                 routeMorph = MotionTokens.routeRecalculationMorphSpec()
                 dataLayerOverlay = MotionTokens.dataLayerOverlaySpec()
+                tabCrossfade = MotionTokens.tabCrossfadeSpec()
+                mapPopUpFade = MotionTokens.mapPopUpFadeSpec()
+                mapPopUpGrow = MotionTokens.mapPopUpGrowSpec()
+                navigationViewChrome = MotionTokens.navigationViewChromeSpec()
+                wordSwap = MotionTokens.wordSwapSpec()
+                schemeFastEffects = MaterialTheme.motionScheme.fastEffectsSpec()
 
                 schemeDefaultSpatial = MaterialTheme.motionScheme.defaultSpatialSpec()
                 schemeFastSpatial = MaterialTheme.motionScheme.fastSpatialSpec()
@@ -92,6 +104,7 @@ class MotionTokensTest {
 
     private fun allExposedSpecs() = listOf(
         feedback, panel, navigation, markerEntrance, selectionPulse, narrativeReveal, routeMorph, dataLayerOverlay,
+        tabCrossfade, mapPopUpFade, mapPopUpGrow, navigationViewChrome, wordSwap,
     )
 
     /** Every exposed spec must actually be a spring at runtime before its damping ratio means anything. */
@@ -156,7 +169,7 @@ class MotionTokensTest {
         // docs/adr/0002-motion-scheme-adoption.md, "R1": dampingRatio >= 1.0 is what makes the
         // interruption-safety proof hold. Guards against a future scheme substitution quietly
         // reintroducing overshoot on an alpha/colour animation.
-        for (spec in listOf(narrativeReveal, routeMorph, dataLayerOverlay)) {
+        for (spec in listOf(narrativeReveal, routeMorph, dataLayerOverlay, tabCrossfade, mapPopUpFade, wordSwap)) {
             val spring = spec.assertIsSpringAndReturnIt()
             assertTrue("$spring is not critically damped", spring.dampingRatio >= 1.0f)
         }
@@ -169,7 +182,7 @@ class MotionTokensTest {
         // exposed categories really are drawing from the scheme's spatial family rather than
         // something stricter -- not a claim about a specific ratio, which is provisional pending
         // Gate G.
-        for (spec in listOf(feedback, panel, navigation, markerEntrance, selectionPulse)) {
+        for (spec in listOf(feedback, panel, navigation, markerEntrance, selectionPulse, mapPopUpGrow, navigationViewChrome)) {
             val spring = spec.assertIsSpringAndReturnIt()
             assertTrue("$spring has an unexpectedly high damping ratio for a spatial spec", spring.dampingRatio <= 1.0f)
         }
@@ -181,5 +194,29 @@ class MotionTokensTest {
         // large, alarm-style scale swing.
         val amplitude = MotionTokens.SELECTION_PULSE_MAX_SCALE - MotionTokens.SELECTION_PULSE_MIN_SCALE
         assertTrue("selection pulse amplitude $amplitude is not low-amplitude", amplitude in 0.0f..0.15f)
+    }
+
+    // Motion Part 2 (dispatch 2026-09-28-666): the five categories it adds, each onto the scheme spec its comment names.
+
+    @Test
+    fun `the tab crossfade and the word swap map to fastEffectsSpec`() {
+        assertEquals(schemeFastEffects.assertIsSpringAndReturnIt(), tabCrossfade.assertIsSpringAndReturnIt())
+        assertEquals(schemeFastEffects.assertIsSpringAndReturnIt(), wordSwap.assertIsSpringAndReturnIt())
+    }
+
+    @Test
+    fun `a map pop-up fades on defaultEffectsSpec and grows on defaultSpatialSpec`() {
+        assertEquals(schemeDefaultEffects.assertIsSpringAndReturnIt(), mapPopUpFade.assertIsSpringAndReturnIt())
+        assertEquals(schemeDefaultSpatial.assertIsSpringAndReturnIt(), mapPopUpGrow.assertIsSpringAndReturnIt())
+    }
+
+    @Test
+    fun `the navigation view's chrome maps to slowSpatialSpec, the scheme's nearest to the map's tilt`() {
+        assertEquals(schemeSlowSpatial.assertIsSpringAndReturnIt(), navigationViewChrome.assertIsSpringAndReturnIt())
+    }
+
+    @Test
+    fun `a map pop-up's grow is slight`() {
+        assertTrue("grows from ${MotionTokens.MAP_POPUP_ENTER_SCALE}", MotionTokens.MAP_POPUP_ENTER_SCALE in 0.7f..0.95f)
     }
 }
