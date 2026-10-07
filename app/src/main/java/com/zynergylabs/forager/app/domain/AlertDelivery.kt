@@ -23,7 +23,20 @@ enum class AlertKind {
 
     /** The sun has set. Same override as [HEADS_UP]. */
     SUNSET,
+
+    /**
+     * The walker's "Back by" time has passed (dispatch 2026-09-28-645, plan task T15): "You planned
+     * to be back by 3:30 PM", with "I'm back" and "+30 min". Overrides silence, like the sunset alert
+     * (the owner: "Strong alert + two buttons (Recommended)"). See [BackByWatch].
+     */
+    BACK_BY,
 }
+
+/** What a back-by alert says and acts on: the time, and the recording its two buttons address. */
+data class BackByAlertDetail(
+    val trackId: String,
+    val backByAtEpochMillis: Long,
+)
 
 /**
  * The walk back as a sundown alert states it (dispatch 2026-09-28-516; the owner's copy rulings,
@@ -77,6 +90,8 @@ data class Alert(
     val overridesSilence: Boolean,
     /** The sundown alerts' content; `null` for off-track, which has none. */
     val sundown: SundownAlertDetail? = null,
+    /** The back-by alert's content ([AlertKind.BACK_BY]); `null` for every other kind. */
+    val backBy: BackByAlertDetail? = null,
 )
 
 /**

@@ -682,6 +682,16 @@ fun AvailabilityScreen(
      * recording, the navigation display once Return or Navigate is tapped. `null` with no recording.
      */
     recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine? = null,
+    /**
+     * This recording's Back by (dispatch 2026-09-28-645, plan task T15), from
+     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.backBy]: the quick menu's top line,
+     * the gear's dot, and the strip's line in its last hour. `null` with none set or no recording.
+     */
+    recordingBackBy: com.zynergylabs.forager.app.domain.BackByShown? = null,
+    /** The quick menu's "+1 h", "+2 h", "+3 h" and picked time: [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.setBackBy]. */
+    onBackByChoice: (com.zynergylabs.forager.app.domain.BackByChoice) -> Unit = {},
+    /** The quick menu's "Clear": [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.clearBackBy]. */
+    onClearBackBy: () -> Unit = {},
     onToggleReturning: () -> Unit = {},
     /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
@@ -1567,6 +1577,24 @@ fun AvailabilityScreen(
             isNavigating = isNavigating,
             isOffTrack = isOffTrack,
             recordingSundownLine = recordingSundownLine,
+            // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are
+            // Settings' own values and callbacks (the same two classes Settings is given below).
+            quickSettings = MapQuickSettings(
+                isRecording = isRecording,
+                backBy = recordingBackBy,
+                onBackByChoice = onBackByChoice,
+                onClearBackBy = onClearBackBy,
+                sundown = SundownSettings(
+                    alertsEnabled = uiState.sundownAlertsEnabled,
+                    darknessMarginMinutes = uiState.darknessMarginMinutes,
+                    onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
+                    onDarknessMarginChanged = onDarknessMarginChanged,
+                ),
+                offTrackReminder = OffTrackReminderSettings(
+                    enabled = uiState.offTrackReminderEnabled,
+                    onEnabledChanged = onOffTrackReminderChanged,
+                ),
+            ),
             compassProvider = compassProvider,
             computeTrueHeading = computeTrueHeading,
             navigationTarget = target,

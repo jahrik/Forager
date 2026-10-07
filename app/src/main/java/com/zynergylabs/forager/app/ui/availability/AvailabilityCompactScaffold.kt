@@ -238,6 +238,8 @@ internal fun CompactMainScaffold(
     isOffTrack: Boolean,
     /** See [AvailabilityScreen]'s own `recordingSundownLine` doc comment. */
     recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
+    /** See [CompactMapTab]'s own `quickSettings` doc comment (dispatch 2026-09-28-645). */
+    quickSettings: MapQuickSettings?,
     compassProvider: CompassProvider,
     computeTrueHeading: ComputeTrueHeadingUseCase,
     navigationTarget: Waypoint?,
@@ -1007,6 +1009,7 @@ internal fun CompactMainScaffold(
                                 isNavigating = isNavigating,
                                 isOffTrack = isOffTrack,
                                 recordingSundownLine = recordingSundownLine,
+                                quickSettings = quickSettings,
                                 onToggleReturning = onToggleReturning,
                                 compassProvider = compassProvider,
                                 computeTrueHeading = computeTrueHeading,
