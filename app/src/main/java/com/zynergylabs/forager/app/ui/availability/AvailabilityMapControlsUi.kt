@@ -353,12 +353,11 @@ internal fun CompassElevationStrip(
      */
     backByLine: String? = null,
     /**
-     * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 and 2): the gear at the strip's
-     * end, [MapQuickSettingsGear]. `null` draws no gear, and the strip is the height it was.
+     * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 to 3): the three-dot button at
+     * the strip's far right, [MapQuickSettingsButton]. `null` draws no button, and the strip is the
+     * height it was.
      */
     quickSettings: MapQuickSettings? = null,
-    /** Which end the gear sits at: the start in landscape with the rail on the right, the strip's inner end; the end otherwise. */
-    gearAtStart: Boolean = false,
 ) {
     val reading by heading
     CompassElevationStripContent(
@@ -374,7 +373,6 @@ internal fun CompassElevationStrip(
         sundownLine = sundownLine,
         backByLine = backByLine,
         quickSettings = quickSettings,
-        gearAtStart = gearAtStart,
     )
 }
 
@@ -409,7 +407,6 @@ private fun CompassElevationStripContent(
     sundownLine: String? = null,
     backByLine: String? = null,
     quickSettings: MapQuickSettings? = null,
-    gearAtStart: Boolean = false,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -442,15 +439,15 @@ private fun CompassElevationStripContent(
                 .testTag("compass-elevation-strip")
                 .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
-            // Dispatch 2026-09-28-645 (Amendment 2, the owner: "Taller strip (Recommended)"): a Row so the
-            // quick-settings gear sits at one end, inside the strip, its full 48 dp square within the
-            // strip's own height: the strip is at least that tall with a gear, and nothing hangs over
-            // the map. The Row draws nothing and takes no touches; the gear takes them in its own square.
+            // Dispatch 2026-09-28-645 (Amendment 2, the owner: "Taller strip (Recommended)"; Amendment 3,
+            // RECORD -648: "a 3 dot menu at the far right", 36 dp): a Row so the quick-settings button
+            // sits at the strip's far right, its whole QUICK_SETTINGS_TAP_TARGET square within the
+            // strip's own height: the strip is at least that tall, and nothing hangs over the map. The
+            // Row draws nothing and takes no touches; the button takes them in its own square.
             Row(
                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-            if (quickSettings != null && gearAtStart) MapQuickSettingsGear(quickSettings)
             // Dispatch 2026-09-28-592: a Column so the sundown line can sit under the readout. It draws
             // nothing and takes no touches of its own, like the Box around it.
             Column(modifier = if (contentWidth) Modifier else Modifier.weight(1f)) {
@@ -614,7 +611,7 @@ private fun CompassElevationStripContent(
                 )
             }
             }
-            if (quickSettings != null && !gearAtStart) MapQuickSettingsGear(quickSettings)
+            if (quickSettings != null) MapQuickSettingsButton(quickSettings)
             }
         }
     }

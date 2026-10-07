@@ -235,8 +235,9 @@ internal fun NavigationHud(
     backByLine: String? = null,
     /**
      * The map's quick settings (dispatch 2026-09-28-645, Amendment 2, the owner: "Gear in nav display
-     * too (Recommended)"): the strip's gear, here just before the exit, since the strip is hidden while
-     * navigating and the way back is when "+30 min" matters. `null` draws none.
+     * too (Recommended)"; Amendment 3, RECORD -648, made it the three-dot button at 36 dp): the strip's
+     * button, here just left of the exit, since the strip is hidden while navigating and the way back is
+     * when "+30 min" matters. `null` draws none.
      */
     quickSettings: MapQuickSettings? = null,
 ) {
@@ -328,7 +329,7 @@ internal fun NavigationHud(
                             modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
                         )
                     }
-                    if (quickSettings != null) MapQuickSettingsGear(quickSettings)
+                    if (quickSettings != null) MapQuickSettingsButton(quickSettings)
                     IconButton(
                         onClick = onExit,
                         modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),

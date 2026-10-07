@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -47,7 +47,6 @@ import com.zynergylabs.forager.app.domain.BackByChoice
 import com.zynergylabs.forager.app.domain.BackByShown
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
-import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.journalMenuColours
 import com.zynergylabs.forager.app.ui.map.journalMenuContainerColor
 import com.zynergylabs.forager.app.ui.map.journalMenuContentColor
@@ -60,12 +59,13 @@ import java.time.Instant
 import java.time.ZoneId
 
 /**
- * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 and 2, RECORD -646 and -647): a
- * gear at the end of the map's top strip, and in the navigation display while navigating, that opens
- * a small menu over the map at 80%. The owner, on where Back by goes: "a small settings (gear) icon at
- * the end of the map's top strip opens a quick menu", holding Back by, the sundown settings and
- * "other navigation settings that don't fit on the map"; the three sections as the coder laid them
- * out, "All three sections (Recommended)".
+ * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 to 3, RECORD -646 to -648): a
+ * three-dot button at the far right of the map's top strip, and in the navigation display while
+ * navigating, that opens a small menu over the map at 80%. The owner, on where Back by goes: "a small
+ * settings (gear) icon at the end of the map's top strip opens a quick menu", holding Back by, the
+ * sundown settings and "other navigation settings that don't fit on the map"; the three sections as
+ * the coder laid them out, "All three sections (Recommended)". Amendment 3 (RECORD -648) made the gear
+ * a three-dot menu: "Instead of a gear, have it be a 3 dot menu at the far right."
  *
  * Its sundown and off-track rows are Settings' own [SundownSettings] and [OffTrackReminderSettings],
  * the same values and the same callbacks, so the two places can never disagree; Settings is unchanged.
@@ -81,7 +81,16 @@ internal data class MapQuickSettings(
     val offTrackReminder: OffTrackReminderSettings,
 )
 
-internal const val MAP_QUICK_SETTINGS_GEAR_TAG = "map-quick-settings-gear"
+internal const val MAP_QUICK_SETTINGS_BUTTON_TAG = "map-quick-settings-button"
+/**
+ * The quick-settings button's tap target, which is also the strip's least height. The owner, Amendment
+ * 3 (RECORD -648), verbatim: "48 is a lot for the strip. It needs to be thin to keep the UI compact.
+ * This matters more for smaller phones. Let's start with 36dp on the gear tap." "Start with": the
+ * owner may change it after seeing it on a phone, so it is this one value. Below Material's 48 dp
+ * guideline by the owner's choice, for a thinner strip.
+ */
+internal val QUICK_SETTINGS_TAP_TARGET = 36.dp
+
 internal const val MAP_QUICK_SETTINGS_DOT_TAG = "map-quick-settings-dot"
 internal const val MAP_QUICK_SETTINGS_MENU_TAG = "map-quick-settings-menu"
 internal const val QUICK_BACK_BY_SET_TAG = "quick-back-by-set"
@@ -114,13 +123,14 @@ internal fun backByLineText(backBy: BackByShown?, clock: SundownClock): String? 
     backBy?.takeIf { it.lineShown }?.let { backBySetText(it.backByAtEpochMillis, clock) }
 
 /**
- * The gear: a finger-sized square (the owner, Q2: "Taller strip (Recommended)": the strip grows to fit
- * it, and nothing hangs over the map). A plain clickable [Box], not a `Surface`, so it takes touches in
- * its own square and nowhere else (CLAUDE.md, the `Surface` pitfall). A dot at its corner while a Back
- * by time is set (Q3: "Menu shows it + dot (Recommended)").
+ * The three-dot button (Amendment 3, RECORD -648): a [QUICK_SETTINGS_TAP_TARGET] square inside the
+ * strip, which grows to fit it and nothing hangs over the map (Q2, "Taller strip (Recommended)", with
+ * Amendment 3's 36 dp in place of 48). A plain clickable [Box], not a `Surface`, so it takes touches
+ * in its own square and nowhere else (CLAUDE.md, the `Surface` pitfall). A dot at its corner while a
+ * Back by time is set (Q3: "Menu shows it + dot (Recommended)"; kept by Amendment 3).
  */
 @Composable
-internal fun MapQuickSettingsGear(
+internal fun MapQuickSettingsButton(
     settings: MapQuickSettings,
     modifier: Modifier = Modifier,
     /** The clock "+1 h" and the time picker's starting time read; a test may pin it. */
@@ -131,13 +141,13 @@ internal fun MapQuickSettingsGear(
     val backBy = settings.backBy
     Box(
         modifier = modifier
-            .size(MIN_TOUCH_TARGET)
+            .size(QUICK_SETTINGS_TAP_TARGET)
             .clickable(role = Role.Button, onClickLabel = MAP_QUICK_SETTINGS_DESCRIPTION) { expanded = true }
-            .testTag(MAP_QUICK_SETTINGS_GEAR_TAG),
+            .testTag(MAP_QUICK_SETTINGS_BUTTON_TAG),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Filled.Settings,
+            imageVector = Icons.Filled.MoreVert,
             contentDescription = if (backBy != null) "$MAP_QUICK_SETTINGS_DESCRIPTION, Back by set" else MAP_QUICK_SETTINGS_DESCRIPTION,
             modifier = Modifier.size(20.dp),
         )
@@ -145,8 +155,8 @@ internal fun MapQuickSettingsGear(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .offset(x = 8.dp, y = (-8).dp)
-                    .size(8.dp)
+                    .offset(x = 6.dp, y = (-8).dp)
+                    .size(6.dp)
                     .background(MaterialTheme.colorScheme.primary, CircleShape)
                     .testTag(MAP_QUICK_SETTINGS_DOT_TAG),
             )

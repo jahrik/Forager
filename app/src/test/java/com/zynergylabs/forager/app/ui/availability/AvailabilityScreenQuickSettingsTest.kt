@@ -62,14 +62,14 @@ import org.robolectric.annotation.Config
 
 /**
  * The map's quick settings on the real [AvailabilityScreen] with the real [AvailabilityViewModel]
- * (dispatch 2026-09-28-645, Amendments 1 and 2, RECORD -646 and -647): the gear at the strip's end and
- * in the navigation display, opened by real touches across its square; the menu's three sections,
+ * (dispatch 2026-09-28-645, Amendments 1 to 3, RECORD -646 to -648): the three-dot button at the
+ * strip's far right and in the navigation display, opened by real touches across its 36 dp square; the menu's three sections,
  * driven by real touches; its sundown and off-track rows changing the same values Settings shows; Back
- * by's line in the strip's last hour; and map long-presses still reaching the map around the gear
+ * by's line in the strip's last hour; and map long-presses still reaching the map around the button
  * (CLAUDE.md, the `Surface` pitfall).
  *
  * Back by's choices are asserted as what the screen hands `MainActivity` ([BackByChoice]); what the
- * recording ViewModel does with one is `TrackRecordingBackByTest`'s. Where the gear sits against the
+ * recording ViewModel does with one is `TrackRecordingBackByTest`'s. Where the button sits against the
  * real top inset is device-only (CLAUDE.md: Robolectric reports zero insets).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -201,91 +201,91 @@ class AvailabilityScreenQuickSettingsTest {
         composeRule.waitForIdle()
     }
 
-    // ── Where the gear sits (Amendment 2) ──
+    // ── Where the button sits (Amendments 2 and 3) ──
 
-    /** Q2, "Taller strip (Recommended)": the gear's whole square is inside the strip, at its right end, and nothing hangs over the map. */
+    /**
+     * Amendment 3 (RECORD -648): "a 3 dot menu at the far right", a 36 dp tap target
+     * ([QUICK_SETTINGS_TAP_TARGET]); with Q2, "Taller strip", its whole square is inside the strip and
+     * nothing hangs over the map.
+     */
     @Test
-    fun `portrait, the gear sits at the strip's right end, its whole square inside the strip`() {
+    fun `portrait, the three-dot button sits at the strip's far right, its whole 36 dp square inside the strip`() {
         setScreen()
         val strip = bounds(STRIP_TAG)
-        val gear = bounds(MAP_QUICK_SETTINGS_GEAR_TAG)
-        assertEquals("a finger-sized square: $gear", 48f, (gear.bottom - gear.top).value, 0.5f)
-        assertEquals("a finger-sized square: $gear", 48f, (gear.right - gear.left).value, 0.5f)
-        assertTrue("inside the strip, top to bottom: $gear in $strip", gear.top >= strip.top - 0.5.dp && gear.bottom <= strip.bottom + 0.5.dp)
-        assertTrue("at the strip's right end: $gear in $strip", strip.right - gear.right < 1.dp)
+        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        assertEquals("36 dp is what the owner said, to start with", 36f, QUICK_SETTINGS_TAP_TARGET.value, 0f)
+        assertEquals("the owner's 36 dp: $button", 36f, (button.bottom - button.top).value, 0.5f)
+        assertEquals("the owner's 36 dp: $button", 36f, (button.right - button.left).value, 0.5f)
+        assertTrue("inside the strip, top to bottom: $button in $strip", button.top >= strip.top - 0.5.dp && button.bottom <= strip.bottom + 0.5.dp)
+        assertTrue("at the strip's far right: $button in $strip", strip.right - button.right < 1.dp)
     }
 
-    /** Landscape with the rail on the left: the strip is in the top-left corner, and its inner end is its right end. */
+    /** Landscape: the strip is content-width in a top corner; the button is at its far right there too. */
     @Test
     @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
-    fun `landscape, the gear sits at the strip's inner end, inside it`() {
+    fun `landscape, the three-dot button sits at the strip's far right, inside it`() {
         setScreen()
         val strip = bounds(STRIP_TAG)
-        val gear = bounds(MAP_QUICK_SETTINGS_GEAR_TAG)
-        val root = composeRule.onAllNodes(isRoot()).onFirst().getUnclippedBoundsInRoot()
-        val stripIsLeft = strip.left - root.left < root.right - strip.right
-        if (stripIsLeft) {
-            assertTrue("rail on the left: the gear at the strip's right, inner, end: $gear in $strip", strip.right - gear.right < 1.dp)
-        } else {
-            assertTrue("rail on the right: the gear at the strip's left, inner, end: $gear in $strip", gear.left - strip.left < 1.dp)
-        }
-        assertTrue("inside the strip, top to bottom: $gear in $strip", gear.top >= strip.top - 0.5.dp && gear.bottom <= strip.bottom + 0.5.dp)
+        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        assertTrue("at the strip's far right: $button in $strip", strip.right - button.right < 1.dp)
+        assertTrue("inside the strip, top to bottom: $button in $strip", button.top >= strip.top - 0.5.dp && button.bottom <= strip.bottom + 0.5.dp)
     }
 
-    // ── Real touches on the gear ──
+    // ── Real touches on the button ──
 
-    /** A finger is not a point (CLAUDE.md): touches sampled across the gear's square, corners included, each open the menu. */
+    /** A finger is not a point (CLAUDE.md): touches sampled across the 36 dp square, corners included, each open the menu. */
     @Test
-    fun `real touches across the gear's square each open the menu`() {
+    fun `real touches across the button's square each open the menu`() {
         setScreen()
-        val gear = bounds(MAP_QUICK_SETTINGS_GEAR_TAG)
-        val inset = 4.dp
+        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        val inset = 3.dp
         val points = listOf(
-            (gear.left + gear.right) / 2 to (gear.top + gear.bottom) / 2,
-            gear.left + inset to gear.top + inset,
-            gear.right - inset to gear.top + inset,
-            gear.left + inset to gear.bottom - inset,
-            gear.right - inset to gear.bottom - inset,
+            (button.left + button.right) / 2 to (button.top + button.bottom) / 2,
+            button.left + inset to button.top + inset,
+            button.right - inset to button.top + inset,
+            button.left + inset to button.bottom - inset,
+            button.right - inset to button.bottom - inset,
         )
         for ((x, y) in points) {
             touchAt(x, y)
-            assertTrue("a real touch at (${x.value}, ${y.value}) in $gear opened the menu", shown(MAP_QUICK_SETTINGS_MENU_TAG))
+            assertTrue("a real touch at (${x.value}, ${y.value}) in $button opened the menu", shown(MAP_QUICK_SETTINGS_MENU_TAG))
             closeMenu()
             assertFalse("closed before the next touch", shown(MAP_QUICK_SETTINGS_MENU_TAG))
         }
     }
 
     /**
-     * Around the gear the map still takes long-presses: points in the strip's own row beside the
-     * gear, and just under the strip below it, sampled and counted. The gear and the coordinates are
+     * Around the button the map still takes long-presses: points in the strip's own row beside the
+     * button, and just under the strip below it, sampled and counted. The button and the coordinates are
      * controls; everything else in the strip takes no touch.
      */
     @Test
-    fun `long-presses around the gear and just under the strip reach the map`() {
+    fun `long-presses around the button and just under the strip reach the map`() {
         setScreen()
         recordingWithBackBy(now + 30 * minute)
         val strip = bounds(STRIP_TAG)
-        val gear = bounds(MAP_QUICK_SETTINGS_GEAR_TAG)
+        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
         val controls = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes().map {
             with(composeRule.density) { DpRect(it.boundsInRoot.left.toDp(), it.boundsInRoot.top.toDp(), it.boundsInRoot.right.toDp(), it.boundsInRoot.bottom.toDp()) }
         }
         var sampled = 0
         val ys = listOf(strip.top + 3.dp, (strip.top + strip.bottom) / 2, strip.bottom - 3.dp, strip.bottom + 6.dp)
-        val xs = listOf(gear.left - 6.dp, gear.left - 30.dp, gear.left - 80.dp, (gear.left + gear.right) / 2, strip.left + 40.dp)
+        // Right around the 36 dp square: 3 dp and 10 dp to its left, and under it just below the strip.
+        val xs = listOf(button.left - 3.dp, button.left - 10.dp, button.left - 30.dp, button.left - 80.dp, (button.left + button.right) / 2, button.right - 3.dp, strip.left + 40.dp)
         for (y in ys) {
             for (x in xs) {
-                val inGear = x >= gear.left && x <= gear.right && y >= gear.top && y <= gear.bottom
-                if (inGear) continue
+                val inButton = x >= button.left && x <= button.right && y >= button.top && y <= button.bottom
+                if (inButton) continue
                 if (controls.any { x >= it.left && x <= it.right && y >= it.top && y <= it.bottom }) continue
                 val before = longPresses
                 val p = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
                 composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { longClick(p) }
                 composeRule.waitForIdle()
-                assertEquals("a long-press at (${x.value}, ${y.value}), gear $gear, strip $strip, must reach the map", before + 1, longPresses)
+                assertEquals("a long-press at (${x.value}, ${y.value}), button $button, strip $strip, must reach the map", before + 1, longPresses)
                 sampled++
             }
         }
-        assertTrue("the row under the gear, just below the strip, is sampled", sampled >= 4)
+        assertTrue("the row under the button, just below the strip, is sampled", sampled >= 4)
         assertTrue("at least $MIN_SAMPLED points sampled, not $sampled", sampled >= MIN_SAMPLED)
     }
 
@@ -294,7 +294,7 @@ class AvailabilityScreenQuickSettingsTest {
     @Test
     fun `the menu is at the map chrome's opacity, its content opaque`() {
         setScreen()
-        touchCentreOf(MAP_QUICK_SETTINGS_GEAR_TAG)
+        touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
         val node = composeRule.onNodeWithTag(MAP_QUICK_SETTINGS_MENU_TAG).fetchSemanticsNode()
         assertEquals("container alpha", MAP_CHROME_OVER_MAP_ALPHA, node.config[JournalMenuContainerColor].alpha, 0.001f)
         assertEquals("content alpha", 1f, node.config[JournalMenuContentColor].alpha, 0.001f)
@@ -303,7 +303,7 @@ class AvailabilityScreenQuickSettingsTest {
     @Test
     fun `not recording, Back by says how to get one and offers no choice`() {
         setScreen()
-        touchCentreOf(MAP_QUICK_SETTINGS_GEAR_TAG)
+        touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
         assertEquals(BACK_BY_NOT_RECORDING_TEXT, text(QUICK_BACK_BY_NOT_RECORDING_TAG))
         assertFalse(shown(quickBackByHoursTag(1)))
         assertFalse(shown(QUICK_BACK_BY_PICK_TAG))
@@ -315,7 +315,7 @@ class AvailabilityScreenQuickSettingsTest {
     fun `recording, real touches on +1 h, +2 h and +3 h hand those choices on, and the menu stays open`() {
         setScreen()
         recordingWithBackBy(null)
-        touchCentreOf(MAP_QUICK_SETTINGS_GEAR_TAG)
+        touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
         for (hours in listOf(1, 2, 3)) {
             touchCentreOf(quickBackByHoursTag(hours))
             assertTrue("the menu stays open after +$hours h (Q3)", shown(MAP_QUICK_SETTINGS_MENU_TAG))
@@ -327,7 +327,7 @@ class AvailabilityScreenQuickSettingsTest {
     fun `Pick a time opens the clock picker over the map at 80 percent, and Set hands on the picked time`() {
         setScreen()
         recordingWithBackBy(null)
-        touchCentreOf(MAP_QUICK_SETTINGS_GEAR_TAG)
+        touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
         touchCentreOf(QUICK_BACK_BY_PICK_TAG)
         assertTrue(shown(BACK_BY_TIME_PICKER_TAG))
         val dialog = composeRule.onNodeWithTag(BACK_BY_TIME_PICKER_TAG).fetchSemanticsNode()
@@ -338,15 +338,15 @@ class AvailabilityScreenQuickSettingsTest {
         assertTrue(choices.single() is BackByChoice.AtTime)
     }
 
-    /** Q3, "Menu shows it + dot (Recommended)": with a time set, the menu's top line says it, Clear clears, and the gear has its dot. */
+    /** Q3, "Menu shows it + dot (Recommended)", kept by Amendment 3: with a time set, the menu's top line says it, Clear clears, and the button has its dot. */
     @Test
-    fun `with a time set, the menu's top line shows it, Clear clears it, and the gear carries a dot`() {
+    fun `with a time set, the menu's top line shows it, Clear clears it, and the button carries a dot`() {
         setScreen()
         recordingWithBackBy(null)
         assertFalse("no dot with none set", shown(MAP_QUICK_SETTINGS_DOT_TAG))
         recordingWithBackBy(now + 2 * 60 * minute)
         assertTrue("a dot while set", shown(MAP_QUICK_SETTINGS_DOT_TAG))
-        touchCentreOf(MAP_QUICK_SETTINGS_GEAR_TAG)
+        touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
         assertEquals("Back by ${clock.full(now + 2 * 60 * minute)}", text(QUICK_BACK_BY_SET_TAG))
         touchCentreOf(QUICK_BACK_BY_CLEAR_TAG)
         assertEquals(1, clears)
@@ -358,7 +358,7 @@ class AvailabilityScreenQuickSettingsTest {
         setScreen()
         assertTrue(viewModel.uiState.value.sundownAlertsEnabled)
         assertTrue(viewModel.uiState.value.offTrackReminderEnabled)
-        touchCentreOf(MAP_QUICK_SETTINGS_GEAR_TAG)
+        touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
 
         touchCentreOf(QUICK_SUNDOWN_ALERTS_TAG)
         assertFalse("Sundown alerts off", viewModel.uiState.value.sundownAlertsEnabled)
@@ -383,9 +383,9 @@ class AvailabilityScreenQuickSettingsTest {
         assertFalse("cleared: no line", shown(STRIP_BACK_BY_LINE_TAG))
     }
 
-    /** Q1, "Gear in nav display too (Recommended)": navigating, the strip is hidden; the gear and the line are in the HUD, and a real touch opens the menu. */
+    /** Q1, "Gear in nav display too (Recommended)", the three-dot button since Amendment 3: navigating, the strip is hidden; the button and the line are in the HUD, left of the exit, and a real touch opens the menu. */
     @Test
-    fun `navigating, the gear and the line move into the navigation display`() {
+    fun `navigating, the button and the line move into the navigation display, left of the exit`() {
         setScreen()
         recordingWithBackBy(now + 20 * minute)
         composeRule.runOnIdle { returning = true }
@@ -393,9 +393,12 @@ class AvailabilityScreenQuickSettingsTest {
         assertFalse("the strip is hidden", shown(STRIP_TAG))
         assertEquals("Back by ${clock.full(now + 20 * minute)}", text(NAVIGATION_HUD_BACK_BY_LINE_TAG))
         val hud = bounds(NAVIGATION_HUD_TAG)
-        val gear = bounds(MAP_QUICK_SETTINGS_GEAR_TAG)
-        assertTrue("the gear is in the HUD: $gear in $hud", gear.top >= hud.top && gear.bottom <= hud.bottom && gear.left >= hud.left && gear.right <= hud.right)
-        touchAt((gear.left + gear.right) / 2, (gear.top + gear.bottom) / 2)
+        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        assertTrue("the button is in the HUD: $button in $hud", button.top >= hud.top && button.bottom <= hud.bottom && button.left >= hud.left && button.right <= hud.right)
+        val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
+        assertTrue("left of the exit: $button, exit $exit", button.right <= exit.left + 0.5.dp)
+        assertEquals("the same 36 dp", 36f, (button.right - button.left).value, 0.5f)
+        touchAt((button.left + button.right) / 2, (button.top + button.bottom) / 2)
         assertTrue(shown(MAP_QUICK_SETTINGS_MENU_TAG))
     }
 
