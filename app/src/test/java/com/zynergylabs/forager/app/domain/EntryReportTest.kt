@@ -93,9 +93,10 @@ class EntryReportTest {
         assertEquals(HeightProfile.PointsUnavailable, entryReportOf(entry(tracks = listOf(decision("a"))), emptyList(), emptyList(), stats).heightProfile)
     }
 
-    /** The limits: at least [MIN_PROFILE_HEIGHT_POINTS] points with a height, and at least [MIN_PROFILE_HEIGHT_SHARE] of all points. */
+    /** The limits as [PROVISIONAL_PROFILE_HEIGHT_LIMIT] sets them today: at least 10 points with a height, and at least half of all points. */
     @Test
     fun `too few heights draw no profile`() {
+        assertEquals("the figures these cases are built on", ProfileHeightLimit(minPointsWithHeight = 10, minShareWithHeight = 0.5), PROVISIONAL_PROFILE_HEIGHT_LIMIT)
         val nine = track("nine", List(9) { 100.0 })
         assertEquals(HeightProfile.TooFewHeights(pointsWithHeight = 9, totalPoints = 9), entryReportOf(entry(tracks = listOf(decision("nine"))), listOf(nine), emptyList(), stats).heightProfile)
 

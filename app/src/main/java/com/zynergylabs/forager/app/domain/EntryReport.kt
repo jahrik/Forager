@@ -37,7 +37,7 @@ sealed interface HeightProfile {
     /** An included track's points could not be read (deleted from Records, or the day's records did not load). */
     data object PointsUnavailable : HeightProfile
 
-    /** Too few of the included tracks' points carry a height to draw a profile that is not misleading; see [MIN_PROFILE_HEIGHT_POINTS]. */
+    /** Too few of the included tracks' points carry a height to draw a profile that is not misleading; see [PROVISIONAL_PROFILE_HEIGHT_LIMIT]. */
     data class TooFewHeights(val pointsWithHeight: Int, val totalPoints: Int) : HeightProfile
 
     /**
@@ -71,13 +71,19 @@ data class EntryReportWaypoint(
 )
 
 /**
- * The fewest points with a height, over all included tracks, for a profile to be drawn, and the
- * smallest share of all their points those must be. Below either the report shows no profile and one
- * plain line saying why (the owner: "Don't draw a misleading profile"). Both are a judgement, not a
- * measurement: real altitude coverage on the owner's walks has not been read (the data scout, section H).
+ * When a walk has enough heights for a profile: at least [minPointsWithHeight] of the included tracks'
+ * points carry one, and they are at least [minShareWithHeight] of all those points. Below either, the
+ * report shows no profile and one plain line saying why (the owner: "Don't draw a misleading profile").
  */
-const val MIN_PROFILE_HEIGHT_POINTS = 10
-const val MIN_PROFILE_HEIGHT_SHARE = 0.5
+data class ProfileHeightLimit(val minPointsWithHeight: Int, val minShareWithHeight: Double)
+
+/**
+ * **Provisional.** The owner, RECORD -671: "Keep it, check real walks (Recommended)". These figures are
+ * a judgement, not a measurement: real altitude coverage on the owner's walks has not been read (the
+ * data scout, section H). The device check in `docs/ui/2026-10-07-data-a-entry-report.md` reads it off
+ * real walks; change it here, in one place, from what that finds.
+ */
+val PROVISIONAL_PROFILE_HEIGHT_LIMIT = ProfileHeightLimit(minPointsWithHeight = 10, minShareWithHeight = 0.5)
 
 /**
  * Builds [EntryReport] for [entry] from the day's [liveTracks] and [liveWaypoints] (the editor's
@@ -135,7 +141,8 @@ fun entryReportOf(
 private fun heightProfileOf(tracks: List<Track>): HeightProfile {
     val totalPoints = tracks.sumOf { it.points.size }
     val withHeight = tracks.sumOf { track -> track.points.count { it.altitude != null } }
-    if (withHeight < MIN_PROFILE_HEIGHT_POINTS || withHeight < totalPoints * MIN_PROFILE_HEIGHT_SHARE) {
+    val limit = PROVISIONAL_PROFILE_HEIGHT_LIMIT
+    if (withHeight < limit.minPointsWithHeight || withHeight < totalPoints * limit.minShareWithHeight) {
         return HeightProfile.TooFewHeights(pointsWithHeight = withHeight, totalPoints = totalPoints)
     }
     var walked = 0.0

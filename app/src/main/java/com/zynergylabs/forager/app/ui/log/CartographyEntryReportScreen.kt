@@ -43,6 +43,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -303,7 +304,12 @@ internal fun CartographyEntryReportScreen(
      * a live record saying so; see [entryReportOf].
      */
     candidates: DerivedTrip? = null,
+    /** Which waypoint rows show their coordinates, by waypoint id: hoisted (RECORD -671) so it survives leaving the report; see [EntryWaypointTable]. */
+    openWaypointRowsState: MutableState<Set<String>> = remember { mutableStateOf(emptySet()) },
 ) {
+    var openWaypointRows by openWaypointRowsState
+    // RECORD -671: a track's name row opens its details here, over the report, as a bubble's Details does on a map.
+    var trackDetails by remember(entry.id) { mutableStateOf<RecordDetailsTarget?>(null) }
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
     var mapData by remember(entry.id) { mutableStateOf<CartographyEntryMapData?>(null) }
@@ -377,6 +383,10 @@ internal fun CartographyEntryReportScreen(
         coveringOfflineRegion = getCoveringOfflineRegion(entry, resolved.drawablePoints)
     }
 
+    // The tracks a name row can open: the day's, as the editor loaded them, and any the caller's bubbles know.
+    val liveTracks = remember(candidates, mapBubbleSources.tracks) {
+        (candidates?.tracks.orEmpty() + mapBubbleSources.tracks).distinctBy { it.id }
+    }
     val report = remember(entry, candidates) {
         entryReportOf(entry, candidates?.tracks.orEmpty(), candidates?.waypoints.orEmpty(), ComputeTrackStatisticsUseCase())
     }
@@ -666,16 +676,17 @@ internal fun CartographyEntryReportScreen(
                     // waypoints as a short table, in place of a line of loose values per item.
                     EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
                     EntryHeightProfile(profile = report.heightProfile, distanceUnit = distanceUnit)
-                    EntryWaypointTable(waypoints = report.waypoints, distanceUnit = distanceUnit)
-                    ReportItemsSection(
-                        title = "Tracks",
-                        items = entry.trackDecisions.filter { it.kept }.map {
-                            ReportItem(
-                                title = it.name ?: "Recorded track",
-                                // The snapshot's point count is what keeps an empty track from being a silent one (timestamp-filter dispatch, Item 3).
-                                subtitle = labelledTrackLine(it.distanceMeters, it.durationMillis, distanceUnit) + trackExclusionSuffix(liveTrack = null, snapshotPointCount = it.pointCount),
-                            )
-                        },
+                    EntryWaypointTable(
+                        waypoints = report.waypoints,
+                        distanceUnit = distanceUnit,
+                        openRows = openWaypointRows,
+                        onToggleRow = { id -> openWaypointRows = if (id in openWaypointRows) openWaypointRows - id else openWaypointRows + id },
+                    )
+                    EntryTrackRows(
+                        tracks = entry.trackDecisions.filter { it.kept },
+                        liveTrackIds = liveTracks.map { it.id }.toSet(),
+                        dayLoaded = candidates != null,
+                        onOpenTrack = { id -> trackDetails = RecordDetailsTarget.TrackDetails(id) },
                     )
                     ReportItemsSection(
                         title = "Finds",
@@ -692,6 +703,24 @@ internal fun CartographyEntryReportScreen(
                 Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
             }
         }
+    }
+
+    trackDetails?.let { target ->
+        RecordDetailsSheet(
+            target = target,
+            waypoints = (candidates?.waypoints.orEmpty() + mapBubbleSources.waypoints).distinctBy { it.id },
+            tracks = liveTracks,
+            offlineRegions = mapBubbleSources.offlineRegions,
+            waypointEntryReferenceCounts = mapBubbleSources.waypointEntryReferenceCounts,
+            distanceUnit = distanceUnit,
+            nowEpochMillis = mapBubbleSources.nowEpochMillis(),
+            staleThresholdDays = mapBubbleSources.staleThresholdDays,
+            getFullRecord = mapBubbleSources.getFullRecord,
+            onDismiss = { trackDetails = null },
+            // The sheet covers the entry's map preview when it has one (map chrome at 80%).
+            overMap = entryMapShown,
+            onOpenDetails = { next -> trackDetails = next },
+        )
     }
 
     if (confirmingDelete) {

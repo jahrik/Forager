@@ -200,3 +200,87 @@ profile's line is unseen by any test; only its data and labels are tested.
   `EntryLabelsTest` pins it.
 - The dispatch's citations from the scout that were not re-read are listed as the scout's. The ones
   read here held at `340bdc4a`.
+
+## Amendment 1 (RECORD -671): the owner's answers, applied
+
+The owner answered the stops above. The stops are left as they were asked, and this section records
+what changed. The code is still not compiled and the tests are still not run.
+
+**As built, confirmed by the owner:**
+- Stop 2: a mixed group's switch is on, with "Some left out".
+- Stop 3: dropped waypoints sit under their track.
+- Stop 5: "From start" is the distance walked to the waypoint.
+- Stop 6: Time out is the walking times added up.
+- Stop 8: the strings above are approved.
+
+**Changed:**
+
+1. **"Kept" outside this part (stop 1).**
+   - "Kept in N journal entries" is now "In N journal entries" (`ui/map/MapBubbles.kt`,
+     `ui/map/JournalEntriesOnMap.kt`).
+   - "Nothing kept" is now "Nothing included" (`ui/log/CartographyEntryCard.kt`,
+     `ui/log/SidewaysEntryCard.kt`).
+   - Observation, not a gate: a photo in a find and in entries now reads "In Chanterelle · In 2
+     journal entries", with "In" twice. This is the owner's chosen wording applied as given.
+2. **The profile threshold (stop 4).**
+   - It is now one named constant, `PROVISIONAL_PROFILE_HEIGHT_LIMIT` in `domain/EntryReport.kt`,
+     marked provisional. Its values are unchanged: 10 points with a height and half of all points.
+   - The device step below reads real walks against it.
+3. **Lists below the table (stop 7).**
+   - Finds and Offline maps stay as lists.
+   - Each track is now one name row with no distance or time line, since those are in the tiles.
+   - A touch on the row opens the track's details sheet (`RecordDetailsSheet`) over the report.
+   - A track known to be gone from Records (the day loaded and the track is not in it) cannot be
+     opened, and its row says "No longer in Records". This is a **new string**.
+   - If the day did not load, a missing track gets no note, because it is not known to be gone.
+4. **Open coordinate rows (planner's call under the UX defaults).** Which waypoint rows show their
+   coordinates is now held in `AvailabilityScreen`, as the editor panel's open groups are. It survives
+   leaving the report for another tab and coming back.
+
+### Tests changed in this amendment
+
+**Assertions changed to the owner's new words:**
+- `ui/map/JournalEntriesChipTest.kt`: "In 4 journal entries".
+- `ui/map/JournalEntriesOnMapTest.kt`: "In 4 journal entries".
+- `ui/map/MapBubblesTest.kt`: "In Chanterelle · In 2 journal entries".
+- `ui/availability/JournalEntriesOnMapScreenTest.kt`: four lines.
+  - The "one line" check used to filter the bubble's texts on `"Kept in" in it`. It now filters on
+    `"journal entr" in it`, because "In" alone would also match the find line.
+- `ui/log/JournalEntryCardsTest.kt`: "Nothing included".
+- `domain/EntryReportTest.kt`: the sparse-limit test now first asserts the constant's values, so a
+  change to the threshold fails there by name rather than through a case built on old figures.
+
+**New tests:**
+- `EntryDataScreensTest`: a track row is its name alone, and a coordinate touch on the empty part of
+  the row opens its details sheet.
+- `CartographyEntryReportScreenTest`: a track gone from a loaded day says "No longer in Records" and
+  has no click action. The existing deleted-track test now also asserts no such note when the day did
+  not load.
+- `LeavingTheJournalFixesTest`: an entry report's waypoint row, opened to its coordinates with a
+  coordinate touch, is still open after Maps and back to Journal.
+
+### Device check: altitude coverage on real walks (for `PROVISIONAL_PROFILE_HEIGHT_LIMIT`)
+
+Run on the S22 Ultra, after the build, on at least three real walks recorded on it. Use walks already
+in Records; no new walk is needed.
+
+**Step D1.** For each walk:
+- Start a journal entry for its day (or open the existing one) and open the entry's report.
+- Note which of three things shows under the tiles: a drawn height profile; "No height profile: the
+  phone recorded too few heights on this walk."; or "No height profile: this walk's recorded points
+  couldn't be read."
+- Then open the same walk in Records, share its GPX full record, and count the `<trkpt>` elements
+  and how many of them carry an `<ele>`.
+
+**Pass condition.** Every walk with at least 10 points with a height, and with those points at least
+half of all its points, shows a drawn profile. Every walk below either figure shows the "too few
+heights" line. A mismatch is a bug.
+
+**What D1 is for (an observation, not a gate).** It records the share of points with a height on each
+walk. If real walks sit near or below one half, the limit needs the owner's decision, and the figures
+from D1 go to the owner as a list.
+
+**Evidence:**
+- Per walk: the report's profile area in words (no screenshot committed).
+- The two counts from its GPX.
+- The share, computed as points with a height divided by all points.

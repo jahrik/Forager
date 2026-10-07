@@ -361,6 +361,8 @@ internal fun CompactMainScaffold(
     cartographyEntryModeState: MutableState<CartographyEntryMode>,
     /** Data part A (dispatch 2026-09-28-667): which groups of the entry editor's "In this entry" panel are open, held in `AvailabilityScreen` beside [cartographyEntryModeState] for the same reason. */
     cartographyOpenEntryGroupsState: MutableState<Set<EntryGroup>>,
+    /** RECORD -671: which waypoint rows in an entry report show their coordinates, held beside it for the same reason. */
+    cartographyOpenWaypointRowsState: MutableState<Set<String>>,
     /** Intent 2026-09-28-44, F3: an open find's mode and M1's find over the view, handed to [JournalTab]; see its parameters. Not among the 109. */
     findEntryModeState: MutableState<JournalEntryMode>,
     findOverViewState: MutableState<FindOverView?>,
@@ -1280,6 +1282,7 @@ internal fun CompactMainScaffold(
                                 backEnabled = !isDrawerOpen(),
                                 cartographyEntryModeState = cartographyEntryModeState,
                                 cartographyOpenEntryGroupsState = cartographyOpenEntryGroupsState,
+                                cartographyOpenWaypointRowsState = cartographyOpenWaypointRowsState,
                                 onSetCartographyEntryGroupIncluded = onSetEntryGroupIncluded,
                                 findEntryModeState = findEntryModeState,
                                 findOverViewState = findOverViewState,

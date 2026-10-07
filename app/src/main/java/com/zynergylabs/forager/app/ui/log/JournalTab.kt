@@ -301,6 +301,7 @@ internal fun JournalTab(
     /** Data part A (dispatch 2026-09-28-667): see [CartographyScreen]'s parameters of the same names. Defaulted for callers that host this tab on its own (tests). */
     onSetCartographyEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
     cartographyOpenEntryGroupsState: MutableState<Set<EntryGroup>> = remember { mutableStateOf(emptySet()) },
+    cartographyOpenWaypointRowsState: MutableState<Set<String>> = remember { mutableStateOf(emptySet()) },
     /**
      * Intent 2026-09-28-44, F3 (the owner: "Keep finds open too (Recommended)"): an open find's
      * report-or-editor mode ([mode]) and M1's find over the view ([FindOverView]), held by the caller.
@@ -722,6 +723,7 @@ internal fun JournalTab(
                 entryModeState = cartographyEntryModeState,
                 onSetEntryGroupIncluded = onSetCartographyEntryGroupIncluded,
                 openEntryGroupsState = cartographyOpenEntryGroupsState,
+                openEntryWaypointRowsState = cartographyOpenWaypointRowsState,
                 openEntryRequest = entryOpenRequest,
                 onOpenEntryRequestConsumed = { entryOpenRequest = null },
                 onSetShownOnMap = onSetCartographyEntryShownOnMap,
