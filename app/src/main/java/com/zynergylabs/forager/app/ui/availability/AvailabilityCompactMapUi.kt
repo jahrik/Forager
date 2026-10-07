@@ -922,7 +922,8 @@ internal fun CompactMapTab(
                         // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
                         sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
                         backByLine = backByLineText(quickSettings?.backBy, sundownClock),
-                        // Amendment 3 (RECORD -648): "a 3 dot menu at the far right", in every orientation.
+                        // Amendment 3 (RECORD -648): "a 3 dot menu at the far right", placed by the strip,
+                        // not the screen (RECORD -649): the strip's own right end in every orientation.
                         quickSettings = quickSettings,
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }

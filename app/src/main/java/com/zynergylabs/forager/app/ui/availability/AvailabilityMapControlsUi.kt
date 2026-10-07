@@ -443,7 +443,8 @@ private fun CompassElevationStripContent(
             // RECORD -648: "a 3 dot menu at the far right", 36 dp): a Row so the quick-settings button
             // sits at the strip's far right, its whole QUICK_SETTINGS_TAP_TARGET square within the
             // strip's own height: the strip is at least that tall, and nothing hangs over the map. The
-            // Row draws nothing and takes no touches; the button takes them in its own square.
+            // Row draws nothing and takes no touches; the button takes them in its own square. Its place
+            // follows the strip, not the screen (RECORD -649, the owner: "far right in the strip").
             Row(
                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
