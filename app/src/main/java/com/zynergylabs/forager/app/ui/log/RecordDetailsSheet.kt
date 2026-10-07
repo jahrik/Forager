@@ -376,7 +376,7 @@ private fun TrackDetails(
     // (CartographyEntryEditScreen's TracksSection), from the points already in memory.
     val stats = ComputeTrackStatisticsUseCase()(track.points)
     // Plan T16: an imported track wears "Imported" beside its title, as a stale region wears "Stale".
-    DetailsTitle(trackTitle(track), label = null)
+    DetailsTitle(trackTitle(track), label = IMPORTED_LABEL.takeIf { track.importedAtEpochMillis != null })
     // Dispatch -616 as amended by -618: the drawing carries start, end and dropped-waypoint dots, and the
     // list of those waypoints sits under it.
     WalkThumbnail(
@@ -387,9 +387,10 @@ private fun TrackDetails(
     WalkWaypointsSection(waypointsDroppedOn(track, waypoints), onOpenWaypoint)
     // Plan T16, "Import, show "No times"" (-636): a file with no times has none to show; its stored times are
     // only an ordering, so each place a time or a duration would be says so instead.
-    val noTimes = false
+    val noTimes = track.importedWithoutTimes
     DetailField(FIELD_STARTED, "Started", if (noTimes) NO_TIMES_IN_FILE else formatRecordTimestamp(track.startedAtEpochMillis))
     DetailField(FIELD_ENDED, "Ended", if (noTimes) NO_TIMES_IN_FILE else track.endedAtEpochMillis?.let(::formatRecordTimestamp) ?: "Still recording")
+    track.importedAtEpochMillis?.let { DetailField(FIELD_IMPORTED, IMPORTED_LABEL, formatRecordTimestamp(it)) }
     DetailField(FIELD_DISTANCE, "Distance", formatDistanceMeters(stats.distanceMeters, distanceUnit))
     DetailField(FIELD_DURATION, "Duration", trackDurationLabel(track, stats.durationMillis))
     DetailField(FIELD_POINTS, "Points", track.points.size.toString())
@@ -536,7 +537,7 @@ internal fun journalEntryCountLabel(count: Int): String = when (count) {
  */
 /** Plan T16: a track's duration, or "No times in file" for an imported track whose file had none (its sheet and its map bubble). */
 internal fun trackDurationLabel(track: Track, durationMillis: Long): String =
-    formatTrackDuration(durationMillis)
+    if (track.importedWithoutTimes) NO_TIMES_IN_FILE else formatTrackDuration(durationMillis)
 
 internal fun formatTrackDuration(durationMillis: Long): String {
     val totalMinutes = durationMillis / 60_000

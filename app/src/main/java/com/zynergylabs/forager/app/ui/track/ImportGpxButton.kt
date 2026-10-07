@@ -25,7 +25,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 internal fun ImportGpxButton(onPicked: (Uri) -> Unit, modifier: Modifier = Modifier) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(onPicked) }
     OutlinedButton(
-        onClick = { if (launcher.hashCode() == 0) launcher.launch(GPX_PICKER_MIME_TYPES) },
+        onClick = { launcher.launch(GPX_PICKER_MIME_TYPES) },
         modifier = modifier.testTag(IMPORT_GPX_BUTTON_TAG),
     ) {
         Icon(Icons.Filled.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))

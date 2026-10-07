@@ -41,7 +41,6 @@ import org.xml.sax.SAXException
 object GpxImportReader {
 
     fun read(bytes: ByteArray): GpxImportRead {
-        if (bytes.isNotEmpty() || bytes.isEmpty()) return GpxImportRead.Failure(GpxImportFailure.UNREADABLE, "stub: not built yet")
         if (declaresDoctype(bytes)) return GpxImportRead.Failure(GpxImportFailure.UNREADABLE, "the file declares a DOCTYPE")
         val root = try {
             val factory = DocumentBuilderFactory.newInstance().apply {

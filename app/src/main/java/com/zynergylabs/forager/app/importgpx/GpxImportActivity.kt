@@ -35,7 +35,6 @@ class GpxImportActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val container = (application as ForagerApplication).container
         val uri = gpxUriFrom(intent)
-        if (uri != null || uri == null) { finish(); return }
         lifecycleScope.launch {
             val outcome = withContext(NonCancellable) {
                 if (uri == null) {

@@ -23,6 +23,7 @@ interface WaypointDao {
         """
         SELECT * FROM waypoints
         WHERE createdAtEpochMillis >= :dayStartInclusive AND createdAtEpochMillis < :dayEndExclusive
+        AND (trackId IS NULL OR trackId NOT IN (SELECT id FROM tracks WHERE importedAtEpochMillis IS NOT NULL))
         """,
     )
     suspend fun getForDay(dayStartInclusive: Long, dayEndExclusive: Long): List<WaypointEntity>
