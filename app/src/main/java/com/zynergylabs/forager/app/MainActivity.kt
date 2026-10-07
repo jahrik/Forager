@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app
 
 import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -41,6 +40,7 @@ import com.zynergylabs.forager.app.importgpx.GpxImportViewModel
 import com.zynergylabs.forager.app.importgpx.clearGpxImportOutcome
 import com.zynergylabs.forager.app.importgpx.gpxImportOutcomeFrom
 import com.zynergylabs.forager.app.data.backup.opensBackupSection
+import com.zynergylabs.forager.app.location.hasLocationPermission
 import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
 import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
@@ -228,6 +228,7 @@ class MainActivity : ComponentActivity() {
                     abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
                     sundownShown = container.sundownWatch.shown,
                     shouldPromptBackgroundRun = container.offTrackReminderCheck::atRecordingStart,
+                    recordingHalts = container.recordingHalts.latest,
                 )
             }
         }
@@ -285,26 +286,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Same check, same two permissions, as
-     * [com.zynergylabs.forager.app.location.AndroidLocationProvider.hasLocationPermission] — not shared code
-     * across an Activity/domain-layer boundary that owns neither Context nor Manifest, matching
-     * that class's own doc comment on why (see also [TrackRecordingService]'s own copy, and
-     * `com.zynergylabs.forager.app.ui.map.SightingsMap.kt`'s).
-     *
-     * Two call sites below both gate on this rather than trusting a single check: this one, right
-     * before [TrackRecordingViewModel.startRecording] is called at all (the confirmed crash's
-     * fix — recording never begins without permission, so [TrackRecordingUiState.activeTrack]
-     * never gets set), and a second inside the `LaunchedEffect` that actually issues
-     * `startForegroundService` (defence against permission being revoked in the narrow window
-     * between the two — that path also rolls the ViewModel's state back if it fires, so
-     * `isRecording` can never report true for a service that didn't actually start).
-     */
-    private fun hasLocationPermission(): Boolean {
-        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
-    }
+    // Location permission is checked through the shared [hasLocationPermission] (dispatch
+    // 2026-09-28-658, R5: this file had its own copy). Two call sites below both gate on it rather
+    // than trusting a single check: `onToggleRecording`, right before
+    // [TrackRecordingViewModel.startRecording] is called at all (the confirmed crash's fix:
+    // recording never begins without permission, so [TrackRecordingUiState.activeTrack] never gets
+    // set), and a second inside the `LaunchedEffect` that actually issues
+    // `startForegroundService` (defence against permission being revoked in the narrow window
+    // between the two; that path also rolls the ViewModel's state back if it fires, so
+    // `isRecording` can never report true for a service that didn't actually start). The helper's
+    // own doc comment gives the crash.
 
     /**
      * Counts up each time a backup notification's tap reaches the app (dispatch 2026-09-28-153): the screen opens Tools, then
@@ -398,6 +389,8 @@ class MainActivity : ComponentActivity() {
             // ForagerTheme needs the resolved boolean below rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
             val backupUiState by backupViewModel.uiState.collectAsState()
+            // RECORD -660/-661: a corrupt settings file was reset; the screen shows the one-time snackbar.
+            val settingsResetPending by container.settingsResetNotice.pending.collectAsState()
             // AppThemeMode.SYSTEM_DEFAULT is the one choice this app doesn't store as an explicit
             // light/dark value — it means "follow the device" — and isSystemInDarkTheme() is a
             // @Composable-only signal (backed by LocalConfiguration), so this resolution has to
@@ -477,11 +470,11 @@ class MainActivity : ComponentActivity() {
                         // Re-checked here, not just in onToggleRecording below: this is the exact
                         // call that would otherwise reproduce the confirmed FGS-location-type
                         // crash, and it runs asynchronously after that first check — see
-                        // hasLocationPermission()'s own doc comment on why both exist. Rolling
+                        // the location-permission comment in this class on why both exist. Rolling
                         // back through the ViewModel (rather than only skipping the service start)
                         // is what keeps isRecording from reporting true for a service that never
                         // actually started.
-                        if (hasLocationPermission()) {
+                        if (hasLocationPermission(this@MainActivity)) {
                             hasStartedRecordingOnce = true
                             intent.action = TrackRecordingService.ACTION_START
                             intent.putExtra(TrackRecordingService.EXTRA_TRACK_ID, active.trackId)
@@ -558,6 +551,8 @@ class MainActivity : ComponentActivity() {
                     backup = backupViewModel.controls(backupUiState),
                     returnToMapRequest = backupUiState.returnToMapRequest,
                     openBackupRequest = openBackupRequest,
+                    settingsResetNoticePending = settingsResetPending,
+                    onSettingsResetNoticeShown = container.settingsResetNotice::shown,
                     gpxImportNotice = gpxImportNotice,
                     onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
                     onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
@@ -648,11 +643,11 @@ class MainActivity : ComponentActivity() {
                     onToggleRecording = {
                         if (trackUiState.isRecording) {
                             trackRecordingViewModel.stopRecording()
-                        } else if (!hasLocationPermission()) {
+                        } else if (!hasLocationPermission(this@MainActivity)) {
                             // Confirmed crash's primary fix: never even ask the ViewModel to start
                             // (never creates the Track row, never sets activeTrack) when the
                             // foreground service could not possibly start without crashing — see
-                            // hasLocationPermission()'s own doc comment.
+                            // the location-permission comment in this class.
                             trackRecordingViewModel.onStartRecordingPermissionDenied(
                                 getString(R.string.track_recording_needs_location),
                             )
@@ -747,69 +742,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
-
-/**
- * How many journal (Cartography) entries keep photo [photoId], for the album's entry badge and the
- * photo delete dialog (`MushroomLogViewModel.loadGalleryPhotos`).
- *
- * A failed count still shows as 0, as it always has, but the fallback is now logged when it fires
- * (journal redesign J3, C6; CLAUDE.md, "no default fallback that isn't logged when it fires"),
- * through the same [ErrorLog] seam and `getOrElse { log; fallback }` shape the photo-location
- * preference read uses in `MainActivity`'s ViewModel factory. Shown as 0, a failed read means no
- * entry badge and no "appears in N journal entries" warning in the delete dialog; the log is what
- * tells that apart from a real 0.
- */
-internal suspend fun photoEntryReferenceCountOrZero(
-    photoId: String,
-    countEntriesReferencingPhoto: suspend (String) -> Result<Int>,
-    errorLog: ErrorLog,
-): Int = countEntriesReferencingPhoto(photoId).getOrElse { error ->
-    errorLog.w("PhotoReferenceCount", "Couldn't count journal entries keeping photo $photoId; showing 0.", error)
-    0
-}
-
-/**
- * How many journal entries keep waypoint [waypointId], for the Records Undo snackbar's warning
- * (`TrackRecordingViewModel.loadWaypoints`, read by `requestRemoveWaypoint`). A failed count still
- * shows as 0, as it always has, but the fallback is now logged when it fires (journal redesign J4,
- * D6; owner ruling "Fix in J4 (Recommended)"), the same way [photoEntryReferenceCountOrZero] was fixed
- * in J3. Shown as 0, a failed read means the snackbar says only "Waypoint deleted" for a waypoint
- * entries do use; the log is what tells that apart from a real 0.
- */
-internal suspend fun waypointEntryReferenceCountOrZero(
-    waypointId: String,
-    countEntriesReferencingWaypoint: suspend (String) -> Result<Int>,
-    errorLog: ErrorLog,
-): Int = countEntriesReferencingWaypoint(waypointId).getOrElse { error ->
-    errorLog.w("WaypointReferenceCount", "Couldn't count journal entries keeping waypoint $waypointId; showing 0.", error)
-    0
-}
-
-/**
- * How many journal entries keep track [trackId], for the Records Undo snackbar's warning
- * (`TrackRecordingViewModel.loadTracks`, read by `requestRemoveTrack`). Logged when the 0 fallback
- * fires, as [waypointEntryReferenceCountOrZero] (Part 2 follow-ups F1 item 5).
- */
-internal suspend fun trackEntryReferenceCountOrZero(
-    trackId: String,
-    countEntriesReferencingTrack: suspend (String) -> Result<Int>,
-    errorLog: ErrorLog,
-): Int = countEntriesReferencingTrack(trackId).getOrElse { error ->
-    errorLog.w("TrackReferenceCount", "Couldn't count journal entries keeping track $trackId; showing 0.", error)
-    0
-}
-
-/**
- * How many journal entries keep offline region [offlineRegionId], for the Records Undo snackbar's
- * warning (`AvailabilityViewModel.loadOfflineRegions`, read by `requestDeleteOfflineRegion`). Logged
- * when the 0 fallback fires, as [waypointEntryReferenceCountOrZero] (J4, D6).
- */
-internal suspend fun offlineRegionEntryReferenceCountOrZero(
-    offlineRegionId: Long,
-    countEntriesReferencingOfflineRegion: suspend (Long) -> Result<Int>,
-    errorLog: ErrorLog,
-): Int = countEntriesReferencingOfflineRegion(offlineRegionId).getOrElse { error ->
-    errorLog.w("OfflineRegionReferenceCount", "Couldn't count journal entries keeping offline region $offlineRegionId; showing 0.", error)
-    0
 }

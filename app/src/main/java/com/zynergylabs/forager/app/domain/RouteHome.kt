@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.domain
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.Waypoint
-import kotlin.math.cos
 import kotlin.math.hypot
 
 /**
@@ -192,8 +191,7 @@ fun routeHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand:
  * below the fixes' own.
  */
 private fun offLineMeters(point: LatLng, from: LatLng, to: LatLng): Double {
-    val metersPerDegreeLat = Math.PI * GeoDistance.EARTH_MEAN_RADIUS_METERS / 180.0
-    val metersPerDegreeLng = metersPerDegreeLat * cos(Math.toRadians(from.lat))
+    val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(from.lat)
     val bx = (to.lng - from.lng) * metersPerDegreeLng
     val by = (to.lat - from.lat) * metersPerDegreeLat
     val px = (point.lng - from.lng) * metersPerDegreeLng
