@@ -104,7 +104,7 @@ class MotionTokensTest {
 
     private fun allExposedSpecs() = listOf(
         feedback, panel, navigation, markerEntrance, selectionPulse, narrativeReveal, routeMorph, dataLayerOverlay,
-        tabCrossfade, mapPopUpFade, mapPopUpGrow, navigationViewChrome, wordSwap,
+        tabCrossfade, mapPopUpFade, mapPopUpGrow, wordSwap,
     )
 
     /** Every exposed spec must actually be a spring at runtime before its damping ratio means anything. */
@@ -182,7 +182,7 @@ class MotionTokensTest {
         // exposed categories really are drawing from the scheme's spatial family rather than
         // something stricter -- not a claim about a specific ratio, which is provisional pending
         // Gate G.
-        for (spec in listOf(feedback, panel, navigation, markerEntrance, selectionPulse, mapPopUpGrow, navigationViewChrome)) {
+        for (spec in listOf(feedback, panel, navigation, markerEntrance, selectionPulse, mapPopUpGrow)) {
             val spring = spec.assertIsSpringAndReturnIt()
             assertTrue("$spring has an unexpectedly high damping ratio for a spatial spec", spring.dampingRatio <= 1.0f)
         }
@@ -210,9 +210,18 @@ class MotionTokensTest {
         assertEquals(schemeDefaultSpatial.assertIsSpringAndReturnIt(), mapPopUpGrow.assertIsSpringAndReturnIt())
     }
 
+    /**
+     * The one exception to ADR-0002 (Amendment 1 to motion Part 2, RECORD -672; the owner: "Allow one exception"): a tween exactly
+     * as long as the map's navigation tilt, read from the constant the map's camera uses. Left out of [allExposedSpecs], which
+     * holds every other category to "no TweenSpec".
+     */
     @Test
-    fun `the navigation view's chrome maps to slowSpatialSpec, the scheme's nearest to the map's tilt`() {
-        assertEquals(schemeSlowSpatial.assertIsSpringAndReturnIt(), navigationViewChrome.assertIsSpringAndReturnIt())
+    fun `the navigation view's chrome is the one tween, exactly as long as the map's tilt`() {
+        assertTrue("$navigationViewChrome is the timed exception", navigationViewChrome is TweenSpec<Float>)
+        assertEquals(
+            com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(),
+            (navigationViewChrome as TweenSpec<Float>).durationMillis,
+        )
     }
 
     @Test

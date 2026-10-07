@@ -1,6 +1,9 @@
 package com.zynergylabs.forager.app.ui.motion
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.tween
+import com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TRANSITION_MILLIS
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -87,15 +90,16 @@ object MotionTokens {
 
     // §2 "Navigation chrome", start and stop (item 3; the owner, RECORD -651: "Move with the map"): the
     // compass strip slides up and out while the navigation display slides down and in, timed to the
-    // map's tilt, and the reverse on stop. The map's own change takes 750 ms (MapLibre's camera,
-    // NAVIGATION_VIEW_TRANSITION_MILLIS in map/NavigationView.kt). A spring has no duration, and a
-    // tween is what ADR-0002 and check 3 of scripts/verify-design-tokens.sh rule out, so this is the
-    // scheme's slowest spatial spring, the closest it has to the tilt's length: an approximation,
-    // raised with the owner in the Part 2 report rather than settled here. Whether the two read as one
-    // movement is a device check.
+    // map's tilt, and the reverse on stop; each fades on the same animation. **The one timed animation
+    // in this object, an exception to ADR-0002** (the owner, Amendment 1, RECORD -672: "Allow one
+    // exception"): the map's tilt is a MapLibre camera change of fixed length,
+    // NAVIGATION_VIEW_TRANSITION_MILLIS in map/NavigationView.kt, read from there so the two cannot
+    // drift; a spring has no duration and could only approximate it. The easing is Material's
+    // standard one, chosen: MapLibre's own camera curve was not read. Allowed by check 3 of
+    // scripts/verify-design-tokens.sh at this line alone.
     @Composable
     @ReadOnlyComposable
-    fun <T> navigationViewChromeSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.slowSpatialSpec()
+    fun <T> navigationViewChromeSpec(): FiniteAnimationSpec<T> = tween(durationMillis = NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(), easing = FastOutSlowInEasing)
 
     // §2 "Words that change" (item 6; the owner, RECORD -651: "Numbers instant, words fade"): a line
     // whose words change crossfades quickly; a change in its numbers alone is drawn at once

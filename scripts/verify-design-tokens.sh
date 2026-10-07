@@ -57,8 +57,18 @@ report "no palette constant imported outside the theme package" "$hits"
 
 # 3. Motion comes from MaterialTheme.motionScheme. A tween at a call site is the tween-only rule
 #    growing back, one animation at a time (ADR-0002).
-hits=$(grep -rn "tween(" $UI --include=*.kt || true)
-report "no tween( in ui/" "$hits"
+#    One exception, and only one call site (motion Part 2, Amendment 1, RECORD -672; the owner: "Allow one
+#    exception"): MotionTokens.navigationViewChromeSpec, a tween exactly as long as the map's navigation tilt
+#    (NAVIGATION_VIEW_TRANSITION_MILLIS), which a spring cannot match. Excluded by its file and its exact
+#    text, so a second tween in that file, or this one copied anywhere else, still fails. ADR-0002 records it.
+hits=$(grep -rn "tween(" $UI --include=*.kt \
+       | grep -vF "$UI/motion/MotionTokens.kt:" \
+       || true)
+allowed=$(grep -Hn "tween(" $UI/motion/MotionTokens.kt \
+       | grep -vF "fun <T> navigationViewChromeSpec(): FiniteAnimationSpec<T> = tween(durationMillis = NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(), easing = FastOutSlowInEasing)" \
+       || true)
+hits=$(printf '%s\n%s' "$hits" "$allowed" | sed '/^$/d')
+report "no tween( in ui/ (one allowed: navigationViewChromeSpec)" "$hits"
 
 # 4. R1 in the design plan: a critically damped effects spring cannot overshoot on its own path,
 #    so interruption is safe -- but RETARGETING to an intermediate value is not, and alpha is only
