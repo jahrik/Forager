@@ -199,6 +199,8 @@ private fun CompactSettingsTab(
     showBackupRequest: Int = 0,
     modifier: Modifier = Modifier,
     sundown: SundownSettings = SundownSettings(),
+    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626, plan T14). */
+    offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
 ) {
     var showCrashLogs by remember { mutableStateOf(false) }
     // Debug builds only — the row that sets this composes nothing in release. Same drill-in shape
@@ -249,6 +251,7 @@ private fun CompactSettingsTab(
                     backup = backup,
                     showBackupRequest = showBackupRequest,
                     sundown = sundown,
+                    offTrackReminder = offTrackReminder,
                 )
                 BuildIdentityFooter()
             }
@@ -294,6 +297,8 @@ internal fun SettingsContent(
     showBackupRequest: Int = 0,
     /** The Sundown section's two settings (dispatch 2026-09-28-592, plan task T4). */
     sundown: SundownSettings = SundownSettings(),
+    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626, plan T14). */
+    offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
 ) {
     // Scrolls to the Backup section when a notification's tap asks (dispatch 2026-09-28-153): its top is measured as it is
     // laid out, and the scroll waits for that measurement, so a section that is not yet laid out (the drawer still opening)
@@ -318,6 +323,7 @@ internal fun SettingsContent(
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
         SundownSection(sundown)
+        OffTrackReminderSection(offTrackReminder)
         HorizontalDivider()
         PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
         CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
@@ -388,6 +394,35 @@ private fun SundownSection(sundown: SundownSettings) {
                 Text(label, style = MaterialTheme.typography.bodyLarge)
             }
         }
+    }
+}
+
+/** Settings' "Off-track reminder" checkbox (dispatch 2026-09-28-626, plan T14; Amendment 1, RECORD -627), from [com.zynergylabs.forager.app.domain.OffTrackReminderPreferenceRepository]. */
+internal data class OffTrackReminderSettings(
+    val enabled: Boolean = true,
+    val onEnabledChanged: (Boolean) -> Unit = {},
+)
+
+/** The owner's words, verbatim (dispatch 2026-09-28-626): one line, no hedging. */
+internal const val OFF_TRACK_REMINDER_LABEL = "Off-track reminder: your phone buzzes if you head away from your start."
+internal const val OFF_TRACK_REMINDER_TAG = "settings-off-track-reminder"
+
+/**
+ * One checkbox row, the shape of "Sundown alerts" above it, the other walk alert. Unticked, the
+ * off-track alert does not fire; nothing else changes.
+ */
+@Composable
+private fun OffTrackReminderSection(reminder: OffTrackReminderSettings) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Checkbox) { reminder.onEnabledChanged(!reminder.enabled) }
+            .testTag(OFF_TRACK_REMINDER_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Checkbox(checked = reminder.enabled, onCheckedChange = reminder.onEnabledChanged)
+        Text(OFF_TRACK_REMINDER_LABEL, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -590,6 +625,8 @@ internal fun CompactToolsDrawerContent(
     /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
     openSettingsRequest: Int = 0,
     sundown: SundownSettings = SundownSettings(),
+    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626, plan T14). */
+    offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
 ) {
     // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
     // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
@@ -622,6 +659,7 @@ internal fun CompactToolsDrawerContent(
             showBackupRequest = openSettingsRequest,
             modifier = Modifier.fillMaxSize(),
             sundown = sundown,
+            offTrackReminder = offTrackReminder,
         )
         return
     }

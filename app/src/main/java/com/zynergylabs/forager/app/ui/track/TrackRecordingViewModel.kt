@@ -7,6 +7,7 @@ import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.NETWORK_FIXES_RECORDING_NOTICE
 import com.zynergylabs.forager.app.domain.alertAudibilityWarning
+import com.zynergylabs.forager.app.domain.BACKGROUND_RUN_PROMPT
 import com.zynergylabs.forager.app.domain.isMostlyNetworkFixes
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.SundownShown
@@ -196,6 +197,13 @@ class TrackRecordingViewModel(
      * can count the searches: "one route search per tick" (dispatch 2026-09-28-423) is a number.
      */
     private val findRouteHome: (track: Track, current: LatLng, origin: Waypoint?, previousHopBand: HopBand) -> RouteHome = ::routeHome,
+    /**
+     * Dispatch 2026-09-28-626 (plan T14; Amendment 1, RECORD -627): whether the recording that has
+     * just started should show [BACKGROUND_RUN_PROMPT], asked once per [startRecording] beside the
+     * silenced-phone read. `MainActivity` wires [com.zynergylabs.forager.app.domain.OffTrackReminderCheck.atRecordingStart].
+     * Defaults to never, like the optional dependencies above.
+     */
+    private val shouldPromptBackgroundRun: suspend () -> Boolean = { false },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -381,11 +389,20 @@ class TrackRecordingViewModel(
                             routeLine = null,
                             tripStartWarning = warning?.let { message -> RecordingNotice(++recordingNoticeIds, message) },
                             networkFixesNotice = null,
+                            backgroundRunPrompt = null,
                         )
                     }
                     copyFromWatch()
                     beginPolling(track.id)
                     beginLocationTracking()
+                    // Dispatch 2026-09-28-626: "the first time a recording starts with the reminder
+                    // on", read once here, as the silenced-phone warning is. Its own launch, so a
+                    // slow settings read never holds up the recording.
+                    viewModelScope.launch {
+                        if (shouldPromptBackgroundRun()) {
+                            _uiState.update { it.copy(backgroundRunPrompt = RecordingNotice(++recordingNoticeIds, BACKGROUND_RUN_PROMPT)) }
+                        }
+                    }
                 }
                 .onFailure { error ->
                     errorLog.w(TAG, "Couldn't start recording.", error)

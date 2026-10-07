@@ -95,6 +95,8 @@ class MainActivity : ComponentActivity() {
                     getDarknessMarginMinutes = container.sundownPreferencesRepository::getDarknessMarginMinutes,
                     setDarknessMarginMinutes = container.sundownPreferencesRepository::setDarknessMarginMinutes,
                     onDarknessMarginStored = container.sundownWatch::onMarginChanged,
+                    getOffTrackReminderEnabled = container.offTrackReminderPreferences::getEnabled,
+                    setOffTrackReminderEnabled = container.offTrackReminderPreferences::setEnabled,
                     getMapRecords = { container.getMapRecordsUseCase() },
                     mapLayerPreferencesRepository = container.mapLayerPreferencesRepository,
                     forecastCellStore = container.forecastCellStore,
@@ -220,6 +222,7 @@ class MainActivity : ComponentActivity() {
                     alreadyRecordingMessage = getString(R.string.track_recording_already_recording),
                     abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
                     sundownShown = container.sundownWatch.shown,
+                    shouldPromptBackgroundRun = container.offTrackReminderCheck::atRecordingStart,
                 )
             }
         }
@@ -512,6 +515,7 @@ class MainActivity : ComponentActivity() {
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
                     onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
                     onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
+                    onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
                     backup = backupViewModel.controls(backupUiState),
                     returnToMapRequest = backupUiState.returnToMapRequest,
                     openBackupRequest = openBackupRequest,
@@ -626,6 +630,7 @@ class MainActivity : ComponentActivity() {
                     },
                     startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
                     tripStartWarning = trackUiState.tripStartWarning,
+                    backgroundRunPrompt = trackUiState.backgroundRunPrompt,
                     networkFixesNotice = trackUiState.networkFixesNotice,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
                     // Journal redesign J4: the visible list leaves out a waypoint whose delete is

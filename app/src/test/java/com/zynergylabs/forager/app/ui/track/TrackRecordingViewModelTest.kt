@@ -137,6 +137,7 @@ class TrackRecordingViewModelTest {
         getWaypointReferenceCount: suspend (String) -> Int = { 0 },
         pendingDeleteCommitScope: CoroutineScope? = null,
         findRouteHome: (Track, LatLng, Waypoint?, HopBand) -> RouteHome = ::routeHome,
+        shouldPromptBackgroundRun: suspend () -> Boolean = { false },
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
@@ -159,6 +160,7 @@ class TrackRecordingViewModelTest {
         zone = ZoneOffset.UTC,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
         findRouteHome = findRouteHome,
+        shouldPromptBackgroundRun = shouldPromptBackgroundRun,
     ).also(createdViewModels::add)
 
     @Test
@@ -1044,6 +1046,51 @@ class TrackRecordingViewModelTest {
         runCurrent()
         assertNull(vibrate.uiState.value.tripStartWarning)
         vibrate.stopRecording()
+    }
+
+    /**
+     * Dispatch 2026-09-28-626 (plan T14; Amendment 1, RECORD -627): the background prompt, through
+     * startRecording and the real [com.zynergylabs.forager.app.domain.OffTrackReminderCheck]. Blocked
+     * prompts with the owner's words, pinned as a literal; three recordings while blocked prompt once;
+     * allowed, then blocked again, prompts again.
+     */
+    @Test
+    fun `a phone blocking the reminder at record start prompts once per block`() = runRecordingTest {
+        var phone = com.zynergylabs.forager.app.domain.BackgroundRun.BLOCKED
+        val check = com.zynergylabs.forager.app.domain.OffTrackReminderCheck(
+            { phone },
+            com.zynergylabs.forager.app.domain.InMemoryOffTrackReminderPreferences(),
+        ) { _, _, _ -> }
+        val vm = viewModel(shouldPromptBackgroundRun = check::atRecordingStart)
+
+        fun record(): String? {
+            vm.startRecording()
+            runCurrent()
+            val prompt = vm.uiState.value.backgroundRunPrompt?.message
+            vm.stopRecording()
+            runCurrent()
+            return prompt
+        }
+
+        val words = "To make sure your off-track reminder can buzz, let Forager run in the background"
+        assertEquals(listOf(words, null, null), List(3) { record() })
+        phone = com.zynergylabs.forager.app.domain.BackgroundRun.ALLOWED
+        assertEquals(null, record())
+        phone = com.zynergylabs.forager.app.domain.BackgroundRun.BLOCKED
+        assertEquals("blocked again after being allowed prompts again", words, record())
+    }
+
+    @Test
+    fun `an allowed phone at record start shows no background prompt`() = runRecordingTest {
+        val check = com.zynergylabs.forager.app.domain.OffTrackReminderCheck(
+            { com.zynergylabs.forager.app.domain.BackgroundRun.ALLOWED },
+            com.zynergylabs.forager.app.domain.InMemoryOffTrackReminderPreferences(),
+        ) { _, _, _ -> }
+        val vm = viewModel(shouldPromptBackgroundRun = check::atRecordingStart)
+        vm.startRecording()
+        runCurrent()
+        assertNull(vm.uiState.value.backgroundRunPrompt)
+        vm.stopRecording()
     }
 
     /** The same text on a later trip must re-show, so each recording's warning carries a new id (the Snackbar effect is keyed on it). */
