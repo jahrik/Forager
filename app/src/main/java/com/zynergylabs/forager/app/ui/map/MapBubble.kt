@@ -352,6 +352,8 @@ internal fun MapBubbleLayer(
             staleThresholdDays = sources.staleThresholdDays,
             getFullRecord = sources.getFullRecord,
             onDismiss = { detailsTarget = null },
+            // Dispatch -616: a walk's waypoint opens in the sheet's place, and Back from it returns to the walk.
+            onOpenDetails = { next -> detailsTarget = next },
             // Opened from a bubble, which only a map's own Box composes: always over a map.
             overMap = true,
             // Dispatch -502: the sheet closes, and Back opens it again (Amendment 1).

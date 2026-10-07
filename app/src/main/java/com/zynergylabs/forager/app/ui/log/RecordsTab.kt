@@ -356,6 +356,8 @@ internal fun RecordsTab(
             getFullRecord = getFullRecord,
             onDeleteTrack = onDeleteTrack,
             onDismiss = { detailsTarget = null },
+            // Dispatch -616: a walk's waypoint opens in the sheet's place, and Back from it returns to the walk.
+            onOpenDetails = { next -> detailsTarget = next },
             // Owner "1 A" (dispatch 2026-09-28-104, superseding planner message -77's Q1 (b)): over a map
             // only from the Offline maps sub-tab AND only in a landscape window, where that panel's
             // picker map is beside the list (`OfflineMapsPanel`'s own test, AvailabilityOfflineMapsUi.kt:264,
