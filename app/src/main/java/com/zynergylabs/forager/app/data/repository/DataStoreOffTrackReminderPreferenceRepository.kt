@@ -10,6 +10,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * [OffTrackReminderPreferenceRepository] backed by Jetpack DataStore (dispatch 2026-09-28-626).
@@ -43,13 +45,21 @@ class DataStoreOffTrackReminderPreferenceRepository(
      */
     @Volatile private var cached: Boolean = DEFAULT_ENABLED
 
+    /**
+     * Serialises a read-and-cache against a store-and-cache, so a read that started before a
+     * change cannot overwrite the cache with the value from before it.
+     */
+    private val cacheLock = Mutex()
+
     override suspend fun getEnabled(): Result<Boolean> = runCatchingCancellable {
-        (dataStore.data.first()[KEY_ENABLED] ?: DEFAULT_ENABLED).also { cached = it }
+        cacheLock.withLock { (dataStore.data.first()[KEY_ENABLED] ?: DEFAULT_ENABLED).also { cached = it } }
     }
 
     override suspend fun setEnabled(enabled: Boolean): Result<Unit> = runCatchingCancellable {
-        dataStore.edit { prefs -> prefs[KEY_ENABLED] = enabled }
-        cached = enabled
+        cacheLock.withLock {
+            dataStore.edit { prefs -> prefs[KEY_ENABLED] = enabled }
+            cached = enabled
+        }
     }
 
     override fun enabledNow(): Boolean = cached
