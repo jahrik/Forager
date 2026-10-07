@@ -155,13 +155,15 @@ fun TabChromeFade(
     val transition = rememberTransition(state, label = "tabChromeFade")
     val fadeSpec = MotionTokens.tabCrossfadeSpec<Float>()
     val alpha by transition.animateFloat(transitionSpec = { fadeSpec }, label = "tabChromeAlpha") { on -> if (on) 1f else 0f }
+    // Read in composition for the semantics (tests read the live value); the layer reads it in the draw phase.
+    val currentAlpha = alpha
     when {
-        shown -> Box(Modifier.graphicsLayer { this.alpha = alpha }.semantics { tabChromeAlpha = alpha }) { content() }
+        shown -> Box(Modifier.graphicsLayer { this.alpha = alpha }.semantics { tabChromeAlpha = currentAlpha }) { content() }
         state.currentState -> Box(
             zeroRoom
                 .leavingTakesNoTouches(true)
                 .graphicsLayer { this.alpha = alpha }
-                .semantics { tabChromeAlpha = alpha },
+                .semantics { tabChromeAlpha = currentAlpha },
         ) { content() }
         else -> Unit
     }

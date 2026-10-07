@@ -858,8 +858,9 @@ internal fun CompactMainScaffold(
             Row(modifier = Modifier.fillMaxSize().padding(padding)) {
                 // Motion Part 2, item 2 (scout S4; the owner, RECORD -651: "Fade with the tab"): the opaque rail beside the
                 // content fades in and out with the tab change, as the bottom bar does in portrait. Its room comes and goes at
-                // once, as before; leaving for Maps it takes no width and is drawn where it was (over the incoming tab: zIndex, since it comes first in the Row), taking no touch.
-                // Turning the phone, or turning it over (the port edge changes side), plays no fade.
+                // once, as before; leaving for Maps it takes no width and is drawn where it was, taking no touch, and over the
+                // incoming tab (zIndex: it comes first in the Row, so it would otherwise be drawn under it). Turning the phone,
+                // or turning it over (the port edge changes side), plays no fade.
                 TabChromeFade(
                     shown = railBeside && portEdge == ScreenEdge.Left,
                     windowKey = showRail to portEdge,
@@ -996,9 +997,10 @@ internal fun CompactMainScaffold(
                         // Motion Part 2, item 1 (dispatch 2026-09-28-666, scouts S1 and S2; the owner, RECORD -651: "Quick crossfade"): one tab
                         // fades into the next, every route between tabs included (they all change compactTab). The outgoing tab is held at its
                         // size and place and takes no touch while it fades (TabCrossfade's doc comment), so the live map is not re-measured when
-                        // the bottom bar or the landscape rail comes back as Maps leaves. Each branch reads the tab it is handed, never
-                        // compactTab(), so the outgoing tab goes on drawing itself. Instant under reduced motion. The cost of keeping the map
-                        // alive through the fade is the S22's to judge (RECORD -651).
+                        // the bottom bar or the landscape rail comes back as Maps leaves. The `when` reads the tab it is handed, not
+                        // compactTab(), so the outgoing tab goes on drawing itself; the one exception is the Maps search bar, which leaves
+                        // at once (its slot's comment). Instant under reduced motion. The cost of keeping the map alive through the fade is
+                        // the S22's to judge (RECORD -651).
                         TabCrossfade(targetState = compactTab(), modifier = Modifier.fillMaxSize()) { tab ->
                         when (tab) {
                             CompactTab.LIST -> ListTab(
@@ -1158,10 +1160,13 @@ internal fun CompactMainScaffold(
                                 // Journal tab is the one showing"; on Maps the bar shows normally. This
                                 // slot composes only in this MAP branch, where the second half is false,
                                 // so here the conjunction always resolves to the bar; it is written out
-                                // so that the rule reads as the owner decided it, not as its consequence. It reads `tab`, the tab
-                                // this branch draws, not compactTab(): while Maps fades out to the Journal (motion Part 2, item 1)
-                                // compactTab() is already the Journal, and the fading map would lose its bar a frame early.
-                                searchBarSlot = if (isEditingJournalEntry && tab == CompactTab.JOURNAL) {
+                                // so that the rule reads as the owner decided it, not as its consequence.
+                                // Motion Part 2, item 1: since the tabs crossfade, this branch is also drawn while Maps fades out,
+                                // when compactTab() is already the next tab. The bar is then not composed at all (`tab !=
+                                // compactTab()`), so it still leaves at once and no field stays focusable through the fade: the
+                                // scout's recorded "appears and vanishes on purpose" item stays instant, and the gate above still
+                                // reads compactTab(), so leaving Maps for an open entry unmounts the bar at once, as before.
+                                searchBarSlot = if ((isEditingJournalEntry && compactTab() == CompactTab.JOURNAL) || tab != compactTab()) {
                                     { _ -> }
                                 } else {
                                     { compassStripHeight ->

@@ -85,10 +85,13 @@ fun MapPopUp(
         val scale by transition.animateFloat(transitionSpec = { grow }, label = "mapPopUpGrow") { phase ->
             if (phase == EnterExitState.Visible || reduceMotion) 1f else MotionTokens.MAP_POPUP_ENTER_SCALE
         }
+        // Read in composition too, as the press bounce's is, so the semantics below carry the live value for tests: this pop-up
+        // recomposes on the frames of its own grow, and nothing else does. The drawing reads it in the draw phase.
+        val current = scale
         Box(
             Modifier
-                .drawGrow(scale = { scale }, pivot = pivot)
-                .semantics { mapPopUpScale = scale },
+                .drawGrow(scaleNow = { scale }, pivot = pivot)
+                .semantics { mapPopUpScale = current },
         ) { content() }
     }
 }
@@ -121,10 +124,10 @@ fun <T : Any> rememberLastShown(value: T?): T? {
 
 /**
  * A scale applied to the drawing alone, about [pivot] (in this node's pixels, given its size): the layout, and so where the node
- * and its children take touches, is untouched. [scale] is read in the draw phase, so a running grow redraws without recomposing.
+ * and its children take touches, is untouched. [scaleNow] is read in the draw phase, so a running grow redraws without recomposing.
  */
-fun Modifier.drawGrow(scale: () -> Float, pivot: (Size) -> Offset): Modifier = drawWithContent {
-    val s = scale()
+fun Modifier.drawGrow(scaleNow: () -> Float, pivot: (Size) -> Offset): Modifier = drawWithContent {
+    val s = scaleNow()
     if (s == 1f) {
         drawContent()
     } else {
