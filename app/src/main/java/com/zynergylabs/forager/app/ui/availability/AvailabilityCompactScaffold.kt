@@ -53,6 +53,7 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
@@ -306,6 +307,8 @@ internal fun CompactMainScaffold(
     onSetTrackDecision: (String, Boolean) -> Unit,
     onSetWaypointDecision: (String, Boolean) -> Unit,
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
+    /** Data part A (dispatch 2026-09-28-667): a group switch in the entry editor's "In this entry" panel. */
+    onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
     onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit,
     onFinishCartographyEntry: () -> Unit,
@@ -356,6 +359,8 @@ internal fun CompactMainScaffold(
      * `CartographyScreen`, so it outlives the Journal branch. Not among the 109 either.
      */
     cartographyEntryModeState: MutableState<CartographyEntryMode>,
+    /** Data part A (dispatch 2026-09-28-667): which groups of the entry editor's "In this entry" panel are open, held in `AvailabilityScreen` beside [cartographyEntryModeState] for the same reason. */
+    cartographyOpenEntryGroupsState: MutableState<Set<EntryGroup>>,
     /** Intent 2026-09-28-44, F3: an open find's mode and M1's find over the view, handed to [JournalTab]; see its parameters. Not among the 109. */
     findEntryModeState: MutableState<JournalEntryMode>,
     findOverViewState: MutableState<FindOverView?>,
@@ -1274,6 +1279,8 @@ internal fun CompactMainScaffold(
                                 // off. See JournalTab's backEnabled for why off rather than outranked.
                                 backEnabled = !isDrawerOpen(),
                                 cartographyEntryModeState = cartographyEntryModeState,
+                                cartographyOpenEntryGroupsState = cartographyOpenEntryGroupsState,
+                                onSetCartographyEntryGroupIncluded = onSetEntryGroupIncluded,
                                 findEntryModeState = findEntryModeState,
                                 findOverViewState = findOverViewState,
                                 modifier = Modifier.fillMaxSize(),

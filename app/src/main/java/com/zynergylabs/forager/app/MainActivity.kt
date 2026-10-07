@@ -608,6 +608,7 @@ class MainActivity : ComponentActivity() {
                     onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
                     onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
                     onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                    onSetEntryGroupIncluded = cartographyViewModel::onSetEntryGroupIncluded,
                     onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
                     // Entry-photo-acquisition dispatch, Item 2: composed here, the one place both
                     // ViewModels are already visible, rather than giving CartographyViewModel its

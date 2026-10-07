@@ -56,6 +56,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
+import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
+import com.zynergylabs.forager.app.domain.entryReportOf
+import com.zynergylabs.forager.app.domain.model.DerivedTrip
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.entryMapFrame
 import com.zynergylabs.forager.app.domain.LocationResult
@@ -292,6 +295,14 @@ internal fun CartographyEntryReportScreen(
      * caller that passes `null` (the default).
      */
     onSetShownOnMap: ((shown: Boolean) -> Unit)? = null,
+    /**
+     * Data part A (dispatch 2026-09-28-667): the entry's day as the editor loads it
+     * ([CartographyUiState.candidatesForEditingEntry], already loaded by the time a report opens), so
+     * the tiles, the height profile and the waypoint table can read the included tracks' and waypoints'
+     * live records. `null` (the default, and when the day did not load) leaves every figure that needs
+     * a live record saying so; see [entryReportOf].
+     */
+    candidates: DerivedTrip? = null,
 ) {
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
@@ -366,6 +377,10 @@ internal fun CartographyEntryReportScreen(
         coveringOfflineRegion = getCoveringOfflineRegion(entry, resolved.drawablePoints)
     }
 
+    val report = remember(entry, candidates) {
+        entryReportOf(entry, candidates?.tracks.orEmpty(), candidates?.waypoints.orEmpty(), ComputeTrackStatisticsUseCase())
+    }
+
     val isEntirelyEmpty = entry.text.isBlank() &&
         entry.tags.isEmpty() &&
         entry.photos.isEmpty() &&
@@ -401,7 +416,7 @@ internal fun CartographyEntryReportScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Cartography")
                     }
-                    Text(entry.date.toString(), style = MaterialTheme.typography.titleMedium)
+                    Text(formatEntryDate(entry.date), style = MaterialTheme.typography.titleMedium)
                 }
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
@@ -646,30 +661,30 @@ internal fun CartographyEntryReportScreen(
                         HorizontalDivider()
                     }
 
-                    ReportItemsSection(
-                        title = "Finds",
-                        items = entry.findDecisions.filter { it.kept }.map { ReportItem(title = "Find on ${it.foundOn}", subtitle = it.ownIdentification) },
-                    )
+                    // Data part A (dispatch 2026-09-28-667; the owner in RECORD -656, "Summary tiles +
+                    // height profile (Recommended)"): labelled tiles, the height profile, then the
+                    // waypoints as a short table, in place of a line of loose values per item.
+                    EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
+                    EntryHeightProfile(profile = report.heightProfile, distanceUnit = distanceUnit)
+                    EntryWaypointTable(waypoints = report.waypoints, distanceUnit = distanceUnit)
                     ReportItemsSection(
                         title = "Tracks",
                         items = entry.trackDecisions.filter { it.kept }.map {
                             ReportItem(
                                 title = it.name ?: "Recorded track",
-                                // The report has no live track to hand; the snapshot's point count is what keeps an empty track from being a silent one (timestamp-filter dispatch, Item 3).
-                                subtitle = trackSubtitle(it.distanceMeters, it.durationMillis, distanceUnit) + trackExclusionSuffix(liveTrack = null, snapshotPointCount = it.pointCount),
+                                // The snapshot's point count is what keeps an empty track from being a silent one (timestamp-filter dispatch, Item 3).
+                                subtitle = labelledTrackLine(it.distanceMeters, it.durationMillis, distanceUnit) + trackExclusionSuffix(liveTrack = null, snapshotPointCount = it.pointCount),
                             )
                         },
                     )
                     ReportItemsSection(
-                        title = "Waypoints",
-                        items = entry.waypointDecisions.filter { it.kept }.map {
-                            ReportItem(title = it.name, subtitle = "${"%.4f".format(it.lat)}, ${"%.4f".format(it.lng)}")
-                        },
+                        title = "Finds",
+                        items = entry.findDecisions.filter { it.kept }.map { ReportItem(title = "Find on ${formatEntryDate(it.foundOn)}", subtitle = it.ownIdentification) },
                     )
                     ReportItemsSection(
-                        title = "Offline Regions",
+                        title = "Offline maps",
                         items = entry.offlineRegionDecisions.filter { it.kept }.map {
-                            ReportItem(title = it.name, subtitle = formatDistanceKm(it.radiusKm, distanceUnit))
+                            ReportItem(title = it.name, subtitle = "${formatDistanceKm(it.radiusKm, distanceUnit)} radius")
                         },
                     )
                 }
@@ -686,7 +701,7 @@ internal fun CartographyEntryReportScreen(
             title = { Text("Delete this entry?") },
             text = {
                 Text(
-                    "This removes the entry and its kept selections. The finds, tracks, waypoints, and regions it kept stay in Records.",
+                    DELETE_ENTRY_DIALOG_TEXT,
                     modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
                 )
             },
@@ -707,6 +722,9 @@ internal const val ENTRY_OVERFLOW_MENU_TAG = "entry-overflow-menu"
 internal const val ENTRY_DELETE_DIALOG_TAG = "entry-delete-dialog"
 
 /**
+ * Data part A (dispatch 2026-09-28-667) put it in the owner's word, "include" for "keep" (RECORD
+ * -656), and "offline maps" for "offline regions", as the editor's panel names them.
+ *
  * Reported verbatim per the Stage 2d dispatch's own instruction ("write the wording yourself... and
  * report the exact string you used, so the owner can adjust it") — a `const val` so the exact text
  * is visible in code, not buried in a chained string-builder call. Deliberately not a copy of
@@ -716,8 +734,8 @@ internal const val ENTRY_DELETE_DIALOG_TAG = "entry-delete-dialog"
  * echoing the find screen's wording.
  */
 private const val EMPTY_ENTRY_MESSAGE =
-    "This entry has nothing kept yet. An entry can hold the finds, tracks, waypoints, offline " +
-        "regions, and photos you choose to keep from a day's records, plus anything you write. " +
+    "This entry has nothing included yet. An entry can hold the finds, tracks, waypoints, offline " +
+        "maps, and photos you choose to include from a day's records, plus anything you write. " +
         "Tap the three-dot menu, then Edit, to add something."
 
 /** Reported verbatim, same reasoning as [EMPTY_ENTRY_MESSAGE] — the toggle's own label, Journal Stage 2e-i. */
