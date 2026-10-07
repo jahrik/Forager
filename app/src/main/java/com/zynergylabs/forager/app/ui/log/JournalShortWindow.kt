@@ -25,6 +25,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.IconSwap
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,11 +98,16 @@ internal fun ShortWindowJournalHeader(
         JournalSwitch(selected = selectedTopTab, onSelect = onSelectTopTab)
         Spacer(Modifier.weight(1f))
         if (showSearch) {
-            IconButton(onClick = onToggleSearch, modifier = Modifier.testTag(SHORT_SEARCH_TAG)) {
-                if (searchRevealed) {
-                    Icon(Icons.Filled.SearchOff, contentDescription = "Hide search")
-                } else {
-                    Icon(Icons.Filled.Search, contentDescription = "Search")
+            // Motion Part 1 (dispatch 2026-09-28-652, item 5, scout J19): Search and Search-off crossfade with a slight grow. The
+            // label is on the button, because both icons are composed for the length of the swap.
+            IconButton(
+                onClick = onToggleSearch,
+                modifier = Modifier
+                    .testTag(SHORT_SEARCH_TAG)
+                    .semantics { contentDescription = if (searchRevealed) "Hide search" else "Search" },
+            ) {
+                IconSwap(targetState = searchRevealed) { revealed ->
+                    Icon(if (revealed) Icons.Filled.SearchOff else Icons.Filled.Search, contentDescription = null)
                 }
             }
         }

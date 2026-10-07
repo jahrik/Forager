@@ -2,6 +2,10 @@ package com.zynergylabs.forager.app.ui.log
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import com.zynergylabs.forager.app.ui.motion.PressHighlight
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
@@ -172,6 +176,12 @@ internal fun TwoStageSwipeRow(
     onDelete: () -> Unit,
     onEdit: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    /**
+     * The shape of what [content] draws, for the press highlight of the tap that closes an open row (motion Part 1, dispatch
+     * 2026-09-28-652 item 3, scout J16; the owner, RECORD -651: "Yes, round them all"). A rectangle, as before, for a list row;
+     * the entry list passes its cards' rounded shape. Drawing only: the close tap still covers the whole row.
+     */
+    highlightShape: Shape = RectangleShape,
     content: @Composable () -> Unit,
 ) {
     val currentOnDelete by rememberUpdatedState(onDelete)
@@ -295,12 +305,15 @@ internal fun TwoStageSwipeRow(
         ) {
             content()
             if (state.settledValue == SwipeRevealValue.Open || state.targetValue == SwipeRevealValue.Open) {
-                // A tap on the revealed row's own body closes it and goes no further.
+                // A tap on the revealed row's own body closes it and goes no further. Its press is drawn in the row's own
+                // shape ([highlightShape]); the tap box is the whole row, as before.
+                val closeInteraction = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .clickable(onClickLabel = CLOSE_ACTIONS_LABEL, onClick = ::close),
+                        .clickable(interactionSource = closeInteraction, indication = null, onClickLabel = CLOSE_ACTIONS_LABEL, onClick = ::close),
                 )
+                PressHighlight(interactionSource = closeInteraction, shape = highlightShape)
             }
         }
     }

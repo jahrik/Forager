@@ -70,7 +70,8 @@ a duration). No magic numbers or raw `tween`/`spring` calls at call sites.
 
 | Category | Behavior |
 |---|---|
-| Feedback motion | Spring-driven; press feedback wants the overshoot (`fastSpatialSpec`, provisional pending the device gate) |
+| Feedback motion | Spring-driven; press feedback wants the overshoot (`fastSpatialSpec`, provisional pending the device gate). The press bounce dips to `PRESS_BOUNCE_SCALE` and springs back on it; an icon swap's slight grow rides it too |
+| Icon swap | A short crossfade of an icon's picture, tint, badge or disabled dimming (`iconSwapSpec`, `fastEffectsSpec`), with the incoming picture growing from `ICON_SWAP_ENTER_SCALE` on the feedback spec. Added 2026-10-07 for motion Part 1 (dispatch 2026-09-28-652; the owner's choice in RECORD -651, "Quick crossfade") |
 | Narrative reveals | Up to 800–1200 ms, interruptible; spring-driven (`slowEffectsSpec`) |
 | Map markers | Soft scale + fade entrance when density and performance allow; otherwise cross-fade or instant. Clustering fans out with staggered timing (`MARKER_CLUSTER_STAGGER_STEP_MS`), not uniform snaps |
 | Selection emphasis | Low-amplitude breathing pulse (`SELECTION_PULSE_MIN_SCALE`–`SELECTION_PULSE_MAX_SCALE`), stops once the detail panel opens. Selection emphasis only — this spec defines no other kind of emphasis |
@@ -114,6 +115,13 @@ motion tokens consult. This is a mapping layer, not a global kill switch
 | Marker entrance | Alpha cross-fade or instant |
 | Selection pulse | Static emphasis |
 | Panel motion | Fade or instant |
+| Press bounce | None: the press highlight alone shows the press |
+| Icon swap | Crossfade without the grow |
+| Icon cluster glide after a drag | Instant, as before the glide |
+
+The last three rows were added with motion Part 1 (dispatch 2026-09-28-652). The value is provided app-wide by
+`ProvideReduceMotion`, which `ForagerTheme` calls, and kept current while the app runs; the marker fan and the restore
+page read it there instead of reading the settings themselves.
 
 This table is a statement about what a Reduce-Motion user sees, not about
 which `AnimationSpec` drives the full-motion version — it needed no change

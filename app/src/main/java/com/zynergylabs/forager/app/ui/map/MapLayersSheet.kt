@@ -4,6 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -467,6 +470,11 @@ internal fun MapLegendChip(
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = if (isDarkTheme) Color.White else Bark
+    // Motion Part 1 (dispatch 2026-09-28-652, item 3, scout M4; the owner, RECORD -651: "Yes, round them all"): the tap stays on
+    // the Surface's modifier, where it was (outside the Surface's clip, so its touch area is the whole box as before), but no
+    // longer draws its own square ripple; the Column inside, which fills the Surface and is clipped to its rounded shape, draws
+    // the same press instead.
+    val tapInteraction = remember { MutableInteractionSource() }
     Surface(
         shape = RoundedCornerShape(Spacing.md),
         color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
@@ -478,10 +486,15 @@ internal fun MapLegendChip(
             .heightIn(max = LEGEND_MAX_HEIGHT)
             .testTag(MAP_LEGEND_CHIP_TAG)
             .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
-            .clickable(onClickLabel = if (expanded) "Hide legend" else "Show legend") { onExpandedChange(!expanded) },
+            .clickable(
+                interactionSource = tapInteraction,
+                indication = null,
+                onClickLabel = if (expanded) "Hide legend" else "Show legend",
+            ) { onExpandedChange(!expanded) },
     ) {
         Column(
             modifier = Modifier
+                .indication(tapInteraction, LocalIndication.current)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),

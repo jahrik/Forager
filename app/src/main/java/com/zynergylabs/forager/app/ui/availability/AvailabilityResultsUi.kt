@@ -18,6 +18,10 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -642,14 +646,21 @@ private fun ForagingWeatherGuidanceSection(selection: ForagingSelection, unitSys
  */
 @Composable
 private fun SpeciesRow(entry: AvailabilityEntry, onViewOnMap: (Long) -> Unit) {
+    // Motion Part 1 (dispatch 2026-09-28-652, item 3, scout L1; the owner, RECORD -651: "Yes, round them all"): the card's tap
+    // stays where it was, on the Card's modifier and outside its clip (so it takes touches across the whole box, corners
+    // included, as before), but its press is drawn by the Column inside, which fills the card and is clipped to its rounded
+    // shape, instead of as a square over the corners.
+    val tapInteraction = remember { MutableInteractionSource() }
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("species-row")
-            .clickable { onViewOnMap(entry.species.taxonId) },
+            .clickable(interactionSource = tapInteraction, indication = null) { onViewOnMap(entry.species.taxonId) },
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.md),
+            modifier = Modifier
+                .indication(tapInteraction, LocalIndication.current)
+                .padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Text(
