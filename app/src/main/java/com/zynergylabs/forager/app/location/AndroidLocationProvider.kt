@@ -1,15 +1,12 @@
 package com.zynergylabs.forager.app.location
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
-import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -21,7 +18,7 @@ class AndroidLocationProvider(
 
     @SuppressLint("MissingPermission")
     override suspend fun getCurrentLocation(): LocationResult {
-        if (!hasLocationPermission()) return LocationResult.PermissionDenied
+        if (!hasLocationPermission(context)) return LocationResult.PermissionDenied
 
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val providers = enabledProviders(locationManager)
@@ -38,12 +35,6 @@ class AndroidLocationProvider(
                 altitude = if (it.hasAltitude()) it.altitude else null,
             )
         } ?: LocationResult.LocationUnavailable
-    }
-
-    private fun hasLocationPermission(): Boolean {
-        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
     }
 
     private fun enabledProviders(locationManager: LocationManager): List<String> =
