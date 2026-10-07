@@ -1002,3 +1002,48 @@ val MIGRATION_16_17: Migration = object : Migration(16, 17) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entry_track_paths_trackId` ON `cartography_entry_track_paths` (`trackId`)")
     }
 }
+
+/**
+ * Adds `importedAtEpochMillis` (nullable) and `importedWithoutTimes` (`NOT NULL DEFAULT 0`) to `tracks` —
+ * plan T16, GPX import (dispatch 2026-09-28-634, the owner's answers in -636). The first says a track came
+ * from a GPX file and when (the "Imported" label; kept out of the Journal's derived trips); the second
+ * says the file gave it no times ("No times in file"). Every existing row is a recorded walk: `NULL` and
+ * `0`, written explicitly in the copy rather than left to the default, as [MIGRATION_15_16] writes
+ * `shownOnMap`. Version 18 was checked against every branch on both remotes (none above 17, no
+ * `MIGRATION_17_*`) before being claimed.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_12_13] records:
+ * [TrackEntity] is declared directly by every `LegacyForagerDatabaseVn` fixture, so their generated
+ * `tracks` tables already carry both columns and an `ADD COLUMN` would fail against them; the explicit
+ * source column list below never names either, so a leaked one is ignored. `track_points.trackId` and
+ * `waypoints.trackId` are plain columns with no constraint on this table, so rebuilding it needs no
+ * cascade handling, and both indexes are recreated because `DROP TABLE` takes them with it. The table's
+ * SQL is `18.json`'s `createSql`; [SchemaMigrationTest] validates the result against that file.
+ */
+val MIGRATION_17_18: Migration = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `tracks_new` (
+            `id` TEXT NOT NULL,
+            `name` TEXT,
+            `startedAtEpochMillis` INTEGER NOT NULL,
+            `endedAtEpochMillis` INTEGER,
+            `originWaypointId` TEXT,
+            `importedAtEpochMillis` INTEGER,
+            `importedWithoutTimes` INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `tracks_new` (`id`, `name`, `startedAtEpochMillis`, `endedAtEpochMillis`, `originWaypointId`, `importedAtEpochMillis`, `importedWithoutTimes`)
+            SELECT `id`, `name`, `startedAtEpochMillis`, `endedAtEpochMillis`, `originWaypointId`, NULL, 0 FROM `tracks`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `tracks`")
+        db.execSQL("ALTER TABLE `tracks_new` RENAME TO `tracks`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tracks_startedAtEpochMillis` ON `tracks` (`startedAtEpochMillis`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tracks_endedAtEpochMillis` ON `tracks` (`endedAtEpochMillis`)")
+    }
+}

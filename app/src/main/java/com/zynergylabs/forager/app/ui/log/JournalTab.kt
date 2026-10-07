@@ -314,6 +314,10 @@ internal fun JournalTab(
     /** Dispatch 2026-09-28-502, Amendment 1: a waypoint details sheet for [RecordsTab] to open again, once; see its parameters. */
     reopenWaypointDetails: String? = null,
     onReopenWaypointDetailsConsumed: () -> Unit = {},
+    /** Plan T16: Records > Tracks > "Import GPX", handed to [RecordsTab]; `null` (the default) shows no button. */
+    onGpxFilePicked: ((android.net.Uri) -> Unit)? = null,
+    /** Plan T16: the imported track a [PendingJournalDestination.VIEW_IMPORTED_TRACK] request opens, or `null` for the Tracks list alone. */
+    pendingTrackId: String? = null,
 ) {
     // The Toast below both shows the field and immediately clears it.
     val context = LocalContext.current
@@ -370,6 +374,10 @@ internal fun JournalTab(
     // only exists in the composition once selectedTopTab has already become RECORDS.
     var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
 
+    // Plan T16: the same kind of latch for the imported track whose details RecordsTab opens once the
+    // track has reached its list.
+    var recordsOpenTrackId by remember { mutableStateOf<String?>(null) }
+
     // J8-4: the same kind of local latch for a VIEW_ENTRY request: CartographyScreen only exists in the
     // composition once selectedTopTab is CARTOGRAPHY, so the entry is staged here and handed to it.
     var entryOpenRequest by remember { mutableStateOf<String?>(null) }
@@ -402,6 +410,14 @@ internal fun JournalTab(
             PendingJournalDestination.VIEW_ENTRY -> {
                 selectedTopTab = JournalTopTab.CARTOGRAPHY
                 entryOpenRequest = pendingEntryId
+                onPendingDestinationConsumed()
+            }
+            // Plan T16: after a GPX import, Records on the Tracks chip, with the first new track's
+            // details open (or the list alone when the file was not imported).
+            PendingJournalDestination.VIEW_IMPORTED_TRACK -> {
+                selectedTopTab = JournalTopTab.RECORDS
+                recordsPendingSubTab = RecordsSubTab.RECORDED_TRACKS
+                recordsOpenTrackId = pendingTrackId
                 onPendingDestinationConsumed()
             }
             null -> Unit
@@ -763,6 +779,9 @@ internal fun JournalTab(
                     onNavigateToWaypoint = onNavigateToWaypoint,
                     reopenWaypointDetails = reopenWaypointDetails,
                     onReopenWaypointDetailsConsumed = onReopenWaypointDetailsConsumed,
+                    onGpxFilePicked = onGpxFilePicked,
+                    openTrackDetails = recordsOpenTrackId,
+                    onOpenTrackDetailsConsumed = { recordsOpenTrackId = null },
                     )
             }
         }
@@ -876,6 +895,12 @@ internal enum class PendingJournalDestination {
      * `openEntryRequest` asks first when another entry is open in its editor with unsaved changes.
      */
     VIEW_ENTRY,
+
+    /**
+     * Plan T16: after a GPX import, Records on the Tracks chip with the first new track's details open
+     * (its id passed beside this), or the Tracks list alone when the file was not imported.
+     */
+    VIEW_IMPORTED_TRACK,
 }
 
 /** The find shown over the Journal ([FindOverView]). */

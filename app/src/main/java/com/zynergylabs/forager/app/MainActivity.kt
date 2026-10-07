@@ -35,6 +35,11 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
+import com.zynergylabs.forager.app.domain.GpxImportOutcome
+import com.zynergylabs.forager.app.importgpx.ContentUriGpxFileSource
+import com.zynergylabs.forager.app.importgpx.GpxImportViewModel
+import com.zynergylabs.forager.app.importgpx.clearGpxImportOutcome
+import com.zynergylabs.forager.app.importgpx.gpxImportOutcomeFrom
 import com.zynergylabs.forager.app.data.backup.opensBackupSection
 import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
 import com.zynergylabs.forager.app.ui.backup.BackupViewModel
@@ -229,6 +234,17 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * Plan T16, GPX import: the in-app "Import GPX" saves through this, and an Open with or Share import
+     * that GpxImportActivity already saved is shown through it. Apart from [trackRecordingViewModel] on
+     * purpose: an import touches no recording state.
+     */
+    private val gpxImportViewModel: GpxImportViewModel by viewModels {
+        viewModelFactory {
+            initializer { GpxImportViewModel(importGpx = { source -> container.importGpxUseCase(source) }) }
+        }
+    }
+
+    /**
      * Android 13+ only shows a foreground service's notification with this permission granted;
      * without it the service still runs (recording isn't blocked), it just runs silently. Requested
      * once, right when a recording actually starts, rather than at app launch — there's nothing to
@@ -304,15 +320,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Plan T16: GpxImportActivity opens this Activity with the outcome of an Open with or Share import on
+     * the Intent (`mainActivityIntentAfterImport`). Read from the launching intent and every later one, as
+     * [noteBackupIntent] is, and removed once read so a recreation does not show it again.
+     */
+    private fun noteGpxImportIntent(intent: Intent?) {
+        gpxImportOutcomeFrom(intent)?.let { outcome ->
+            gpxImportViewModel.onImportedElsewhere(outcome)
+            clearGpxImportOutcome(intent)
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         noteBackupIntent(intent)
+        noteGpxImportIntent(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) noteBackupIntent(intent)
+        if (savedInstanceState == null) noteGpxImportIntent(intent)
         // The off-track alert's channel is created by AndroidAlertDelivery when AppContainer
         // builds it (alert-delivery dispatch) — nothing alert-related lives in this Activity now.
         // Release the live-fix OS subscription whenever this Activity is not started, and
@@ -423,6 +453,15 @@ class MainActivity : ComponentActivity() {
                 }
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
                 val cartographyUiState by cartographyViewModel.uiState.collectAsState()
+                val gpxImportNotice by gpxImportViewModel.notice.collectAsState()
+                // Plan T16: Records reads its tracks and waypoints from TrackRecordingViewModel's lists, which
+                // load on open; an import refreshes both so the new track is there to open. Reads only.
+                LaunchedEffect(gpxImportNotice?.seq) {
+                    if (gpxImportNotice?.outcome is GpxImportOutcome.Imported) {
+                        trackRecordingViewModel.loadTracks()
+                        trackRecordingViewModel.loadWaypoints()
+                    }
+                }
 
                 // Starts/stops the actual foreground service as a side effect of
                 // TrackRecordingViewModel's own state, mirroring the locateMeStatus LaunchedEffect
@@ -519,6 +558,9 @@ class MainActivity : ComponentActivity() {
                     backup = backupViewModel.controls(backupUiState),
                     returnToMapRequest = backupUiState.returnToMapRequest,
                     openBackupRequest = openBackupRequest,
+                    gpxImportNotice = gpxImportNotice,
+                    onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
+                    onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
                     onDownloadAgain = viewModel::onDownloadAgain,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
