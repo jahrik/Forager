@@ -894,10 +894,6 @@ internal fun CompactMainScaffold(
                         SearchEntryBar(
                             uiState = uiState,
                             distanceUnit = distanceUnit,
-                            onUseCurrentLocation = {
-                                showSearchDropdown = false
-                                onUseCurrentLocation()
-                            },
                             onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                             onTaxonSearchResultSelected = { result ->
                                 onTaxonSearchResultSelected(result)
@@ -1154,10 +1150,6 @@ internal fun CompactMainScaffold(
                                             SearchEntryBar(
                                                 uiState = uiState,
                                                 distanceUnit = distanceUnit,
-                                                onUseCurrentLocation = {
-                                                    showSearchDropdown = false
-                                                    onUseCurrentLocation()
-                                                },
                                                 onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                                                 onTaxonSearchResultSelected = { result ->
                                                     onTaxonSearchResultSelected(result)

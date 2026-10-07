@@ -170,6 +170,9 @@ import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
 import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableIntStateOf
+import com.zynergylabs.forager.app.domain.SETTINGS_RESET_ACTION_LABEL
+import com.zynergylabs.forager.app.domain.SETTINGS_RESET_MESSAGE
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -338,8 +341,6 @@ import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
-import com.zynergylabs.forager.app.ui.theme.Bark
-import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.RecordingNotice
@@ -371,7 +372,9 @@ private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
  * less than once per search — location, radius, month, the foraging-areas layer, and trip
  * planning — lives in a navigation drawer behind the app bar's tune icon, as two independently
  * collapsible sections; see [SearchControls]. Species/category, the one control used on nearly
- * every search, lives in the app bar itself; see [AvailabilitySearchTopBar].
+ * every search, lives in the top bar itself; see [SearchEntryBar], which replaced the old
+ * `AvailabilitySearchTopBar` (dispatch 2026-09-28-658, scout item F4: this linked a composable that
+ * no longer exists).
  *
  * **Why the rest is still in a drawer.** The controls used to be stacked above the results in one
  * unscrolled [Column]. A Column measures its non-weighted children in order against the height
@@ -389,9 +392,10 @@ private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
  * bounded height rather than a remainder.
  *
  * **The app bar is the one exception**, and the one place a change here can still reintroduce the
- * squeeze this file's whole layout exists to avoid — see [AvailabilitySearchTopBar]'s own doc
- * comment for why it's a fixed two-row bar rather than a single Material3 row, and
- * [AvailabilityScreenLayoutTest] for the measurement that verifies it hasn't.
+ * squeeze this file's whole layout exists to avoid. The fixed two-row bar this paragraph was
+ * written about, `AvailabilitySearchTopBar`, is gone; [SearchEntryBar] pins its field to a short,
+ * fixed height for the same reason (see its doc comment), and [AvailabilityScreenLayoutTest] holds
+ * the measurement that verifies the squeeze has not come back.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -457,6 +461,13 @@ fun AvailabilityScreen(
     returnToMapRequest: Int = 0,
     /** Counts up when a backup notification is tapped: open the Backup section in Tools, then Settings. */
     openBackupRequest: Int = 0,
+    /**
+     * RECORD -660/-661: a settings file was found corrupt and reset, and the one-time message is owed.
+     * Shown as a snackbar that stays until dismissed, with a "Settings" action that opens Settings;
+     * [onSettingsResetNoticeShown] is called as it is shown, so it is shown once. Defaulted to nothing owed.
+     */
+    settingsResetNoticePending: Boolean = false,
+    onSettingsResetNoticeShown: () -> Unit = {},
     /**
      * Plan T16: a finished GPX import to show, from the in-app "Import GPX" or from Open with or Share.
      * The screen goes to Journal > Records > Tracks with the first new track's details open, and says the
@@ -1121,6 +1132,8 @@ fun AvailabilityScreen(
     // A one-element array, not snapshot state: nothing draws from it (TwoStageSwipe's holder is the precedent).
     val appClearFocusInProgress = remember { booleanArrayOf(false) }
     var isDrawerOpen by remember { mutableStateOf(false) }
+    // Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): the Tools drawer opens at Settings.
+    var openSettingsOnlyRequest by remember { mutableIntStateOf(0) }
 
     // Stage 2d's routing fix: a one-shot request into JournalTab, set alongside the compactTab
     // switch — see JournalTab's own doc comment, "The map '+' routing bug," for why this exists and
@@ -1345,6 +1358,26 @@ fun AvailabilityScreen(
     // wrapper, since there is no window left to show a Snackbar in by the time that fires.
     val logDraftSnackbarHostState = remember { SnackbarHostState() }
     val logDraftSnackbarScope = rememberCoroutineScope()
+    // RECORD -660/-661 (the owner: "Snackbar with 'Settings' button"): a corrupt settings file was reset.
+    // Cleared before it is shown, and shown on the host's own scope, as the backup launch notice below
+    // is, so clearing it (which changes this effect's key) cannot cancel it. It stays until dismissed;
+    // "Settings" opens Tools, then Settings, as a backup notification's tap does, without the Backup scroll.
+    LaunchedEffect(settingsResetNoticePending) {
+        if (!settingsResetNoticePending) return@LaunchedEffect
+        onSettingsResetNoticeShown()
+        logDraftSnackbarScope.launch {
+            val result = logDraftSnackbarHostState.showSnackbar(
+                message = SETTINGS_RESET_MESSAGE,
+                actionLabel = SETTINGS_RESET_ACTION_LABEL,
+                withDismissAction = true,
+                duration = SnackbarDuration.Indefinite,
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                openSettingsOnlyRequest++
+                isDrawerOpen = true
+            }
+        }
+    }
     // Journal redesign J4: the pending deletes' Undo snackbars share this host too.
     PendingDeleteSnackbarEffects(pendingDeleteNotices, logDraftSnackbarHostState)
     // A scheduled-backup notice that could not be a notification is shown here once, at launch (dispatch 2026-09-28-153,
@@ -1793,6 +1826,7 @@ fun AvailabilityScreen(
                     crashFileStore = crashFileStore,
                     backup = backup,
                     openSettingsRequest = openBackupRequest,
+                    openSettingsOnlyRequest = openSettingsOnlyRequest,
                     sundown = SundownSettings(
                         alertsEnabled = uiState.sundownAlertsEnabled,
                         darknessMarginMinutes = uiState.darknessMarginMinutes,
