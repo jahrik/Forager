@@ -226,6 +226,8 @@ data class AvailabilityUiState(
     val lockCameraToPortrait: Boolean = false,
     /** Settings' "Sundown alerts" (dispatch 2026-09-28-592): on until the stored value loads, the repository's default. */
     val sundownAlertsEnabled: Boolean = true,
+    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626): on until the stored value loads, the repository's default. */
+    val offTrackReminderEnabled: Boolean = true,
     /** Settings' "Dark under trees", in minutes (dispatch 2026-09-28-592): one hour until the stored value loads, the repository's default. */
     val darknessMarginMinutes: Int = com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES,
     /**

@@ -443,6 +443,8 @@ fun AvailabilityScreen(
     onSundownAlertsEnabledChanged: (Boolean) -> Unit = {},
     /** Settings' "Dark under trees" (dispatch 2026-09-28-592) — see [AvailabilityUiState.darknessMarginMinutes]. */
     onDarknessMarginChanged: (Int) -> Unit = {},
+    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626) — see [AvailabilityUiState.offTrackReminderEnabled]. */
+    onOffTrackReminderChanged: (Boolean) -> Unit = {},
     /**
      * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127): its state and callbacks.
      * Defaulted, so a caller with no backup still composes the section, inert.
@@ -622,6 +624,12 @@ fun AvailabilityScreen(
      * [tripStartWarning]. See [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.networkFixesNotice].
      */
     networkFixesNotice: RecordingNotice? = null,
+    /**
+     * Dispatch 2026-09-28-626 (plan T14): the off-track reminder's background prompt, shown once in
+     * the same host as [tripStartWarning]; a tap anywhere on it opens Forager's App info page. See
+     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.backgroundRunPrompt].
+     */
+    backgroundRunPrompt: RecordingNotice? = null,
     /**
      * The active track's recorded points, oldest first — see [com.zynergylabs.forager.app.ui.map.MapSlot]'s own
      * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
@@ -1324,6 +1332,13 @@ fun AvailabilityScreen(
             logDraftSnackbarHostState.showSnackbar(message = warning.message, duration = SnackbarDuration.Long)
         }
     }
+    val promptContext = LocalContext.current
+    LaunchedEffect(backgroundRunPrompt?.id) {
+        backgroundRunPrompt?.let { prompt ->
+            val result = logDraftSnackbarHostState.showSnackbar(TappableNoticeVisuals(prompt.message))
+            if (result == SnackbarResult.ActionPerformed) launchAppDetailsSettings(promptContext)
+        }
+    }
     LaunchedEffect(networkFixesNotice?.id) {
         networkFixesNotice?.let { notice ->
             logDraftSnackbarHostState.showSnackbar(message = notice.message, duration = SnackbarDuration.Long)
@@ -1746,6 +1761,10 @@ fun AvailabilityScreen(
                         darknessMarginMinutes = uiState.darknessMarginMinutes,
                         onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
                         onDarknessMarginChanged = onDarknessMarginChanged,
+                    ),
+                    offTrackReminder = OffTrackReminderSettings(
+                        enabled = uiState.offTrackReminderEnabled,
+                        onEnabledChanged = onOffTrackReminderChanged,
                     ),
                 )
                 }

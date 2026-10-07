@@ -112,6 +112,13 @@ data class TrackRecordingUiState(
      */
     val tripStartWarning: RecordingNotice? = null,
     /**
+     * Dispatch 2026-09-28-626 (plan T14): [com.zynergylabs.forager.app.domain.BACKGROUND_RUN_PROMPT]
+     * for the recording that just started, when the phone would block the off-track reminder and
+     * had not already been seen blocking it; `null` otherwise. Shown once in the map's Snackbar
+     * host; a tap opens Forager's App info page. Same one-shot shape as [tripStartWarning].
+     */
+    val backgroundRunPrompt: RecordingNotice? = null,
+    /**
      * Timestamp-filter dispatch, Item 3: the once-per-recording notice that the read seam is
      * excluding most of the active track as network-provider fixes
      * ([com.zynergylabs.forager.app.domain.isMostlyNetworkFixes]) — the case where a device's GPS clock is not

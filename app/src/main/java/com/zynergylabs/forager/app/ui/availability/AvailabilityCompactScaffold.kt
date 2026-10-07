@@ -59,6 +59,8 @@ import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
@@ -720,6 +722,14 @@ internal fun CompactMainScaffold(
                             // Dispatch 2026-09-28-430: above "Return to Route" while it shows, not over it.
                             .padding(bottom = if (compactTab() == CompactTab.MAP && isNavigating && !navigationFollowing) RETURN_TO_ROUTE_SNACKBAR_LIFT else 0.dp)
                             .testTag(COMPACT_SNACKBAR_TAG)
+                            // Dispatch 2026-09-28-626: a prompt whose whole surface is its tap (TappableNoticeVisuals).
+                            .then(
+                                if (data.visuals is TappableNoticeVisuals) {
+                                    Modifier.clickable(role = Role.Button) { data.performAction() }
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .mapChromeContainerColor(snackbarColor)
                             .mapChromeContentColor(snackbarContentColor),
                         containerColor = snackbarColor,

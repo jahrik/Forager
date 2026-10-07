@@ -167,6 +167,9 @@ internal fun mapLayersViewModel(
     getDarknessMarginMinutes: suspend () -> Result<Int> = { Result.success(60) },
     setDarknessMarginMinutes: suspend (Int) -> Result<Unit> = { Result.success(Unit) },
     onDarknessMarginStored: (Int) -> Unit = {},
+    // Dispatch 2026-09-28-626: Settings' "Off-track reminder". Defaulted to the repository's default, on.
+    getOffTrackReminderEnabled: suspend () -> Result<Boolean> = { Result.success(true) },
+    setOffTrackReminderEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -205,6 +208,8 @@ internal fun mapLayersViewModel(
         getDarknessMarginMinutes = getDarknessMarginMinutes,
         setDarknessMarginMinutes = setDarknessMarginMinutes,
         onDarknessMarginStored = onDarknessMarginStored,
+        getOffTrackReminderEnabled = getOffTrackReminderEnabled,
+        setOffTrackReminderEnabled = setOffTrackReminderEnabled,
     )
 }
 

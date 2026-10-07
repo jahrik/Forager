@@ -100,6 +100,14 @@ class ReturnWatch(
      * the lock is released, as the delivery is, so no file is touched while a fix waits.
      */
     private val returnRecord: ReturnRecord = NoReturnRecord,
+    /**
+     * Settings' "Off-track reminder" checkbox (dispatch 2026-09-28-626; Amendment 1, RECORD -627):
+     * off, a decision to alert is recorded and not delivered. Read at the moment of the decision, so
+     * a change mid-walk applies to the next stray. Only the delivery is gated: the judge still runs
+     * and [ReturnWatchState.isOffTrack] still colours the Return button. Defaults to on, the
+     * setting's own default.
+     */
+    private val isReminderOn: () -> Boolean = { true },
 ) {
     private val _state = MutableStateFlow(ReturnWatchState())
     val state: StateFlow<ReturnWatchState> = _state.asStateFlow()
@@ -259,6 +267,10 @@ class ReturnWatch(
         }
         recorded?.let(returnRecord::write)
         val alertedTrack = (recorded as? ReturnRecordEvent.WentOffTrack)?.trackId
+        if (alert && !isReminderOn()) {
+            if (alertedTrack != null) returnRecord.write(ReturnRecordEvent.AlertWithheld(alertedTrack))
+            return
+        }
         if (alert) {
             // overridesSilence = false: owner ruling, 2026-09-11, reversing the original. Straying
             // is often deliberate, so off-track respects a phone the user silenced. See
