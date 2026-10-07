@@ -115,7 +115,7 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
-import com.zynergylabs.forager.app.ui.theme.Bark
+import com.zynergylabs.forager.app.ui.theme.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Month
@@ -178,7 +178,7 @@ internal fun SearchEntryBar(
     overMap: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
-    val contentColor = if (isDarkTheme) Color.White else Bark
+    val contentColor = mapChromeContentColor(isDarkTheme)
     // Same "Mg" / labelMedium measurement compactMainScaffold's own compassStripClearance uses
     // for the compass strip's own real text-row height (CompassElevationStripContent wraps
     // content with no extra vertical padding of its own) — the owner's own direct ask is this
@@ -354,7 +354,7 @@ internal fun SearchDropdown(
     overMap: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
-    CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
+    CompositionLocalProvider(LocalContentColor provides mapChromeContentColor(isDarkTheme)) {
         Box(
             modifier = modifier
                 .fillMaxWidth()

@@ -15,8 +15,8 @@
 # the current root, and fails: Spacing is imported broadly by design (step 3 of the plan), and
 # palette and type tokens are imported from feature packages (the list went to the owner with
 # that dispatch's report; nothing was changed to make it pass). Check 1 fails on one colour
-# literal in ui/log, and check 3 fails, partly on real tween( calls and partly because its pattern
-# also matches "metersBetween(". Check 4 passes. A check that passes the moment it is introduced
+# literal in ui/log, and check 3 fails on real tween( calls (its pattern also matched
+# "metersBetween(" until RECORD -660 anchored it to a word boundary). Check 4 passes. A check that passes the moment it is introduced
 # never demonstrated it could fail; check 2 was shown failing on a planted import before this
 # header was written. Run it, read which checks fail, and expect the list to shrink as the steps
 # land.
@@ -53,14 +53,18 @@ report "no Color(0x literal outside ui/theme/" "$hits"
 #    ambient ColorScheme (see that type's own doc comment) is an owned type in ui/theme/, not raw
 #    palette literals reaching into a feature package. LocalForagerDarkTheme is excluded for the
 #    same reason ForagerTheme already is: it is the theme-resolution primitive itself (see its own
-#    doc comment for why it exists), not a colour or a palette constant.
+#    doc comment for why it exists), not a colour or a palette constant. mapChromeContentColor is
+#    excluded for MapIconBarAccent's reason: an owned accessor in ui/theme/ for chrome keyed off the
+#    map's night/day, added (RECORD -660) so feature files stop importing Bark for it.
 hits=$(grep -rn "^import com\.zynergylabs\.forager\.app\.ui\.theme\." app/src/main --include=*.kt \
-       | grep -vE "\.(ForagerTheme|LocalForagerDarkTheme|MapPalette|MapIconBarAccent)$" || true)
+       | grep -vE "\.(ForagerTheme|LocalForagerDarkTheme|MapPalette|MapIconBarAccent|mapChromeContentColor)$" || true)
 report "no palette constant imported outside the theme package" "$hits"
 
 # 3. Motion comes from MaterialTheme.motionScheme. A tween at a call site is the tween-only rule
-#    growing back, one animation at a time (ADR-0002).
-hits=$(grep -rn "tween(" $UI --include=*.kt || true)
+#    growing back, one animation at a time (ADR-0002). The name must start at a word boundary:
+#    the bare "tween(" also matched "metersBetween(" (RECORD -660 fixed that; shown before and after
+#    on a planted file holding one of each).
+hits=$(grep -rnE "(^|[^[:alnum:]_])tween\(" $UI --include=*.kt || true)
 report "no tween( in ui/" "$hits"
 
 # 4. R1 in the design plan: a critically damped effects spring cannot overshoot on its own path,
