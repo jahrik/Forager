@@ -220,7 +220,11 @@ class AvailabilityScreenQuickSettingsTest {
         assertTrue("at the strip's far right: $button in $strip", strip.right - button.right < 1.dp)
     }
 
-    /** Landscape: the strip is content-width in a top corner; the button is at its far right there too. */
+    /**
+     * Landscape: the strip is content-width in a top corner; the button is at the strip's own far right
+     * there too, whichever corner, because its place follows the strip, not the screen (RECORD -649,
+     * the owner: "Not because it's on the far right on the screen, but because it's far right in the strip").
+     */
     @Test
     @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
     fun `landscape, the three-dot button sits at the strip's far right, inside it`() {

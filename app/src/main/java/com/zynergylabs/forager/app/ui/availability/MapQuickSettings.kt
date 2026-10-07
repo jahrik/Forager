@@ -65,7 +65,10 @@ import java.time.ZoneId
  * settings (gear) icon at the end of the map's top strip opens a quick menu", holding Back by, the
  * sundown settings and "other navigation settings that don't fit on the map"; the three sections as
  * the coder laid them out, "All three sections (Recommended)". Amendment 3 (RECORD -648) made the gear
- * a three-dot menu: "Instead of a gear, have it be a 3 dot menu at the far right."
+ * a three-dot menu: "Instead of a gear, have it be a 3 dot menu at the far right." Far right **in the
+ * strip**, in every orientation, not on the screen (RECORD -649; the owner: "Far right in the strip
+ * (Recommended)", and "Not because it's on the far right on the screen, but because it's far right in
+ * the strip"): in landscape, with the strip in a top corner, it is at the strip's own right end.
  *
  * Its sundown and off-track rows are Settings' own [SundownSettings] and [OffTrackReminderSettings],
  * the same values and the same callbacks, so the two places can never disagree; Settings is unchanged.
