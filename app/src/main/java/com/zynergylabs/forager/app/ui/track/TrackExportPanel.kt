@@ -175,7 +175,10 @@ internal fun TrackExportRow(
                 modifier = Modifier.size(TRACK_ROW_THUMBNAIL_SIZE).testTag("track-thumbnail-${track.id}"),
             )
             Column {
-                Text(formatTrackTimestamp(track), style = MaterialTheme.typography.bodyLarge)
+                // Plan T16: the track's name where it has one (an imported track always does), its start
+                // time otherwise, as the details sheet's title already reads (trackTitle). A recorded walk has
+                // no name, so its row reads as before.
+                Text(trackTitle(track), style = MaterialTheme.typography.bodyLarge)
                 Text(trackSubtitle(track), style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -206,8 +209,17 @@ internal fun trackSubtitle(track: Track): String {
         note != null -> "$pointsText · $note"
         else -> pointsText
     }
+    // Plan T16: an imported track says so first ("Imported" label, the owner's answer in -636), then the
+    // date it carries, since its title is its name rather than its time.
+    if (track.importedAtEpochMillis != null) return "$IMPORTED_LABEL · ${formatTrackTimestamp(track)} · $body"
     return if (track.endedAtEpochMillis == null) "$body · recording" else body
 }
+
+/** Plan T16: the label an imported track wears in Records' rows and its details. */
+internal const val IMPORTED_LABEL = "Imported"
+
+/** Plan T16, "Import, show "No times"" (-636): what stands where a duration or a time would be for a track whose file had none. */
+internal const val NO_TIMES_IN_FILE = "No times in file"
 
 private fun formatTrackTimestamp(track: Track): String = formatRecordTimestamp(track.startedAtEpochMillis)
 

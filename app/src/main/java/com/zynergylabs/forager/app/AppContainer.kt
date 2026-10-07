@@ -92,6 +92,7 @@ import com.zynergylabs.forager.app.domain.GetCartographyEntryOfflineRegionUseCas
 import com.zynergylabs.forager.app.domain.GetCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
 import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
+import com.zynergylabs.forager.app.domain.ImportGpxUseCase
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetEntryReferenceCountUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
@@ -397,6 +398,10 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // Journal Stage 2e-i: the same screen's manual offline-map toggle — see
     // GetCartographyEntryOfflineRegionUseCase's own doc comment.
     val getCartographyEntryOfflineRegionUseCase = GetCartographyEntryOfflineRegionUseCase(offlineMapRepository)
+
+    // Plan T16, GPX import: Records > Tracks > "Import GPX" and Open with or Share (GpxImportActivity) both
+    // save through this one use case. It writes ended tracks and their waypoints, nothing else.
+    val importGpxUseCase = ImportGpxUseCase(trackRepository, waypointRepository, currentTimeProvider, errorLog)
 
     // Journal Stage 2a's derived-trip read, consumed by 2b's trip-report surface — data-layer-only
     // when 2a landed, so never wired here until now.

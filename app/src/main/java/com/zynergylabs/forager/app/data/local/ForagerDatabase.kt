@@ -127,6 +127,11 @@ import com.zynergylabs.forager.app.BuildConfig
  * against every branch on both remotes (none above 15, no `MIGRATION_15_*`) before being claimed,
  * and again at the final push.
  *
+ * [version] 18 adds `importedAtEpochMillis` and `importedWithoutTimes` to `tracks` via a real
+ * [MIGRATION_17_18] — plan T16, GPX import (the owner's answers in RECORD -636). A rebuild, like 12 to 13,
+ * because the legacy fixtures declare [TrackEntity] directly. Version 18 was checked against every branch
+ * on both remotes (none above 17, no `MIGRATION_17_*`) on 2026-10-07 before being claimed.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -165,7 +170,7 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryPhotoRefEntity::class,
         CartographyEntryTrackPathEntity::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -222,10 +227,10 @@ abstract class ForagerDatabase : RoomDatabase() {
         private val ALL_MIGRATIONS = arrayOf(
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
-            MIGRATION_15_16, MIGRATION_16_17,
+            MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 17
+        const val SCHEMA_VERSION = 18
     }
 }

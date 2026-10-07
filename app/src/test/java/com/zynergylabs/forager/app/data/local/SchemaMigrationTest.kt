@@ -28,12 +28,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 16→17, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 17→18, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→17.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→18.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -142,15 +142,34 @@ class SchemaMigrationTest {
             assertEquals("the trackId index the delete-time copy and any 'who keeps this track' lookup use", 1L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_cartography_entry_track_paths_trackId'"))
         }
 
+    // Plan T16 (GPX import, RECORD -636): the tracks rebuild. Every seeded column is carried
+    // (assertEverySeededValueSurvived compares them all by name, originWaypointId included), both indexes
+    // come back (Room validates them against 18.json), and the pre-existing row reads as a recorded walk:
+    // importedAtEpochMillis NULL and importedWithoutTimes 0. The new columns then take an imported track's
+    // values, and a row inserted without importedWithoutTimes gets the column's default 0.
+    @Test fun `17 to 18 - the tracks rebuild adds importedAtEpochMillis null and importedWithoutTimes 0, every value carried`() =
+        migrate(17, 18, MIGRATION_17_18, overrides = mapOf("tracks" to mapOf("name" to "Morning loop", "endedAtEpochMillis" to 1_758_000_000_000L, "originWaypointId" to "w-1"))) { db ->
+            assertEquals("Morning loop", db.scalar("SELECT name FROM tracks"))
+            assertEquals("w-1", db.scalar("SELECT originWaypointId FROM tracks"))
+            assertNull("a recorded walk is not imported", db.scalar("SELECT importedAtEpochMillis FROM tracks"))
+            assertEquals("a recorded walk has its times", 0L, db.scalar("SELECT importedWithoutTimes FROM tracks"))
+            db.execSQL("INSERT INTO tracks (id, name, startedAtEpochMillis, endedAtEpochMillis, importedAtEpochMillis, importedWithoutTimes) VALUES ('t-imp', 'Gaia', 1, 2, 1759800000000, 1)")
+            assertEquals(1_759_800_000_000L, db.scalar("SELECT importedAtEpochMillis FROM tracks WHERE id = 't-imp'"))
+            assertEquals(1L, db.scalar("SELECT importedWithoutTimes FROM tracks WHERE id = 't-imp'"))
+            db.execSQL("INSERT INTO tracks (id, name, startedAtEpochMillis) VALUES ('t-default', NULL, 3)")
+            assertEquals("the column's own default", 0L, db.scalar("SELECT importedWithoutTimes FROM tracks WHERE id = 't-default'"))
+            assertEquals("both time indexes are back", 2L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'tracks' AND name IN ('index_tracks_startedAtEpochMillis', 'index_tracks_endedAtEpochMillis')"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // F3: the chain now ends at 17, the current version (it ended at 16 before MIGRATION_16_17).
-    @Test fun `4 to 17 - the full chain, validated against 17_json, every seeded value survives`() {
+    // T16: the chain now ends at 18, the current version (it ended at 17 before MIGRATION_17_18).
+    @Test fun `4 to 18 - the full chain, validated against 18_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 17, true, *ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 18, true, *ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 17)
+            assertEverySeededValueSurvived(db, seeded, 4, 18)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }
@@ -190,7 +209,9 @@ class SchemaMigrationTest {
             val columns = columnsAt[table] ?: throw AssertionError("table $table exists at v$from and not at v$to")
             assertEquals("rows in $table after $from->$to", 1L, db.scalar("SELECT COUNT(*) FROM `$table`"))
             for (col in row.keys intersect columns) {
-                assertEquals("$table.$col after $from->$to", row.getValue(col), db.scalar("SELECT `$col` FROM `$table`"))
+                val expected = row.getValue(col).let { if (it is ByteArray) it.toList() else it }
+                val actual = db.scalar("SELECT `$col` FROM `$table`").let { if (it is ByteArray) it.toList() else it }
+                assertEquals("$table.$col after $from->$to", expected, actual)
             }
         }
     }
@@ -213,11 +234,13 @@ class SchemaMigrationTest {
                     col == "id" -> "$table-1"
                     affinity == "REAL" -> 1.5
                     affinity == "TEXT" -> "$col-1"
+                    // T16: 17.json is the first starting point with a BLOB column (cartography_entry_track_paths.path).
+                    affinity == "BLOB" -> byteArrayOf(1, 2, 3)
                     else -> error("no seed rule for affinity $affinity at $table.$col in $version.json")
                 }
                 when (v) {
                     null -> cv.putNull(col)
-                    is String -> cv.put(col, v); is Long -> cv.put(col, v); is Int -> cv.put(col, v); is Double -> cv.put(col, v)
+                    is String -> cv.put(col, v); is Long -> cv.put(col, v); is Int -> cv.put(col, v); is Double -> cv.put(col, v); is ByteArray -> cv.put(col, v)
                     else -> error("unsupported seed value for $table.$col: $v")
                 }
                 col to v
@@ -228,11 +251,11 @@ class SchemaMigrationTest {
 
     private fun SupportSQLiteDatabase.scalar(sql: String): Any? = query(sql).use { c ->
         check(c.moveToFirst()) { "no row for: $sql" }
-        when (c.getType(0)) { android.database.Cursor.FIELD_TYPE_NULL -> null; android.database.Cursor.FIELD_TYPE_INTEGER -> c.getLong(0); android.database.Cursor.FIELD_TYPE_FLOAT -> c.getDouble(0); else -> c.getString(0) }
+        when (c.getType(0)) { android.database.Cursor.FIELD_TYPE_NULL -> null; android.database.Cursor.FIELD_TYPE_INTEGER -> c.getLong(0); android.database.Cursor.FIELD_TYPE_FLOAT -> c.getDouble(0); android.database.Cursor.FIELD_TYPE_BLOB -> c.getBlob(0); else -> c.getString(0) }
     }
 
     private companion object {
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
     }
 }
 
