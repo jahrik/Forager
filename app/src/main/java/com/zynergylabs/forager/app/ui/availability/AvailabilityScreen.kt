@@ -371,7 +371,9 @@ private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
  * less than once per search — location, radius, month, the foraging-areas layer, and trip
  * planning — lives in a navigation drawer behind the app bar's tune icon, as two independently
  * collapsible sections; see [SearchControls]. Species/category, the one control used on nearly
- * every search, lives in the app bar itself; see [AvailabilitySearchTopBar].
+ * every search, lives in the top bar itself; see [SearchEntryBar], which replaced the old
+ * `AvailabilitySearchTopBar` (dispatch 2026-09-28-658, scout item F4: this linked a composable that
+ * no longer exists).
  *
  * **Why the rest is still in a drawer.** The controls used to be stacked above the results in one
  * unscrolled [Column]. A Column measures its non-weighted children in order against the height
@@ -389,9 +391,10 @@ private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
  * bounded height rather than a remainder.
  *
  * **The app bar is the one exception**, and the one place a change here can still reintroduce the
- * squeeze this file's whole layout exists to avoid — see [AvailabilitySearchTopBar]'s own doc
- * comment for why it's a fixed two-row bar rather than a single Material3 row, and
- * [AvailabilityScreenLayoutTest] for the measurement that verifies it hasn't.
+ * squeeze this file's whole layout exists to avoid. The fixed two-row bar this paragraph was
+ * written about, `AvailabilitySearchTopBar`, is gone; [SearchEntryBar] pins its field to a short,
+ * fixed height for the same reason (see its doc comment), and [AvailabilityScreenLayoutTest] holds
+ * the measurement that verifies the squeeze has not come back.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
