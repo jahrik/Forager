@@ -139,6 +139,13 @@ class AvailabilityViewModel(
      */
     private val onDarknessMarginStored: (Int) -> Unit = {},
     /**
+     * Settings' "Off-track reminder" (dispatch 2026-09-28-626, plan T14), from
+     * [com.zynergylabs.forager.app.domain.OffTrackReminderPreferenceRepository]: the same
+     * borrowed-capability shape as the Sundown pair, defaulted to that repository's default, on.
+     */
+    private val getOffTrackReminderEnabled: suspend () -> Result<Boolean> = { Result.success(true) },
+    private val setOffTrackReminderEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
+    /**
      * Where an offline-region delete still pending when this ViewModel is cleared is committed
      * (journal redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
@@ -201,6 +208,7 @@ class AvailabilityViewModel(
         loadAutoSaveLocationToPhotos()
         loadLockCameraToPortrait()
         loadSundownPreferences()
+        loadOffTrackReminder()
         loadMapFullscreenPreference()
         loadThemeModePreference()
         loadMapLayerPreferences()
@@ -1199,6 +1207,27 @@ class AvailabilityViewModel(
                 onSuccess = { minutes -> _uiState.update { it.copy(darknessMarginMinutes = minutes) } },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the darkness margin; the default is shown.", error) },
             )
+        }
+    }
+
+    /** Restores "Off-track reminder"; a failed read is logged and leaves the default, on, showing. */
+    private fun loadOffTrackReminder() {
+        viewModelScope.launch {
+            getOffTrackReminderEnabled().fold(
+                onSuccess = { enabled -> _uiState.update { it.copy(offTrackReminderEnabled = enabled) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether the off-track reminder is on; the default, on, is shown.", error) },
+            )
+        }
+    }
+
+    /**
+     * Settings' "Off-track reminder" checkbox (dispatch 2026-09-28-626). Shown at once and stored in
+     * the background; the off-track rule reads the stored value when it next decides to alert.
+     */
+    fun onOffTrackReminderChanged(enabled: Boolean) {
+        _uiState.update { it.copy(offTrackReminderEnabled = enabled) }
+        viewModelScope.launch {
+            setOffTrackReminderEnabled(enabled).onFailure { error -> errorLog.w(TAG, "Couldn't store whether the off-track reminder is on.", error) }
         }
     }
 
