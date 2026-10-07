@@ -78,6 +78,11 @@ class OffTrackJudge(path: List<TrackPoint>) {
         val counts = provider?.mayAct ?: !reading.isNetworkProviderFix()
         if (line.isEmpty() || !counts) return OffTrackVerdict(offTrack, alert = false)
         val t = reading.timestampEpochMillis
+        // A reading with no accuracy (null, not reported) widens the line by nothing: it is judged
+        // as if it were exact, at OFF_TRACK_LINE_METERS alone. That is the rule today, stated here
+        // (dispatch 2026-09-28-658, scout item R8), not decided here: the sampler and the live-fix
+        // gate let a null through as "not reported", and this treats it as 0 m. Changing it changes
+        // when the off-track alert fires, which is the owner's call, and was taken to them.
         val limit = OFF_TRACK_LINE_METERS + (reading.accuracyMeters?.toDouble() ?: 0.0)
         var alert = false
         if (metersToLine(LatLng(reading.lat, reading.lng)) > limit) {
