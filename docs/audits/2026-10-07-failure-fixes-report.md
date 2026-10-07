@@ -413,3 +413,72 @@ Still nothing compiled or run apart from the design-token script.
    `AvailabilityMapControlsUi.kt`, `AvailabilityMapOverlaysUi.kt`; `Cream` in `MapChrome.kt` and
    `AvailabilityMapControlsUi.kt`; `SurfaceContainerDark`/`Light` in `MapChrome.kt`. None is in a file
    this sweep changes. Checks 1 and 3 unchanged (1 and 5 findings).
+
+## Build and test (RECORD -664), 2026-10-07; supersedes "What is unverified because nothing was compiled"
+
+Branch merged with `origin/main` at `340bdc4a` (a CLAUDE.md note) first; back-by not merged. Every
+Gradle run under `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0`, Gradle heap
+1536m, Kotlin daemon 2g, Java temp `~/.cache/forager-test-tmp`; free space checked before each run
+(lowest 5.8 GB); `./gradlew --stop` at the end, no daemon left running.
+
+**Compile.** Main sources compiled first time. Test sources had one error,
+`BackupViewModelTest.kt:656` (a fully qualified `initializer`, which is an extension and needs an
+import); fixed (`b4582a2f`).
+
+**New and changed tests, targeted run:** 137 tests in 15 classes, 2 failures, both mine, both fixed
+(`ef5c5882`), then green:
+- `TrackExportPartialTest`: "Can't toast on a thread that has not called Looper.prepare()". Under
+  the compose test harness the share coroutine resumed from its IO hop on a thread with no Looper.
+  The Toast now posts through `withContext(Dispatchers.Main)`. On a phone the scope is the main
+  thread already (inferred); the explicit hop costs nothing there.
+- `SettingsResetSnackbarTest`: two nodes matched "Settings" with a click action; the closed Tools
+  drawer stays composed off screen with its own Settings row. The test now picks the action beside
+  the snackbar's message.
+
+**Revert checks: 15, all bit, each with a failure specific to its edit.** Run by a script that edits
+one line, runs only the affected classes, checks the build log for compile errors (none in any of
+the 15), reads the JUnit XML, and restores the file from a copy saved before the edit (never git),
+then confirms the restored file equals the forward version (true for all 15; `git status` clean after).
+
+| Revert | Failing test, and its message |
+|---|---|
+| R1 return-watch guard removed | WatchFailure "a return watch that throws on every fix": expected 20 points, was 0 |
+| R1 sundown guard removed | WatchFailure "a sundown watch…": expected 20, was 0 |
+| R1 kept-point guard removed | WatchFailure "…every kept point": expected 20, was 0 |
+| D1 backup rethrow removed | BackupViewModelTest: "the file is not removed as a failed write: [content://docs/new.zip]" |
+| D1 restore rethrow removed | BackupViewModelTest: "never shown as failed: RESTORE_FAILED" |
+| J1 back to `file.readText()` | CrashLogPanelTest: `FileNotFoundException` for the deleted report |
+| M1 warning removed | OfflineRegionReconciliationTest: "one warning, naming the region and the missing key: []" |
+| M2 message back to null | AvailabilityViewModelOfflineMapsTest: expected the partial message, was null |
+| R9 Toast skipped | TrackExportPartialTest: expected the message, was null |
+| D6 log call removed | ObservationMappingTest: expected the one count line, was [] |
+| Thumbnails back to a fixed 4 | DecodedPhotoTest (10 px cell: expected 10×20, was 5×10) and four ThumbnailSampleSizeTest cases (expected 8, 2, 32, 1; was 4) |
+| D10 handler removed | SettingsResetAndDecodeTest: the read failed with `CorruptionException: Unable to parse preferences proto` |
+| D3 unknown name throws | Grid test and three SettingsResetAndDecodeTest cases: "unknown camera grid mode 'Crosshair'", "unknown backup frequency 'FORTNIGHTLY'", "unknown unit system 'NAUTICAL'" |
+| R7 halt ignored | TrackRecordingHaltTest, both halt cases: "the screen shows not recording" expected true, was false |
+| Snackbar never shown | SettingsResetSnackbarTest, both showing cases: timed out waiting for the message |
+
+Not revert-checked: the merged copies (no behaviour to revert; their callers' tests are the evidence),
+`SettingsRowsTouchTest` (a structure test), R7's foreground refusal inside the service (Robolectric
+cannot refuse), the R2/R3/J4/J5/L4 log lines (no tests), and the capture size (device-only).
+
+**Full suite.** The first run was killed by the 5 GB cap (systemd: "oom-kill", 5G peak): the Gradle
+daemon started by the first compile kept running, with a Kotlin daemon that the revert runs had
+started again, in the same scope. The JUnit folder then held only the last revert run's XML; it was
+recognised as stale (one suite, a revert's failure), deleted, and not cited. Rerun with no Kotlin
+daemon alive: **495 suites, 4,004 tests, 24 skipped, 11 failures**.
+
+**All 11 are existing tests, broken by the thumbnail change, one cause, not touched:**
+`PhotoDecodeThreadTest` (2), `DecodedPhotoGestureTest` (5), `DecodedPhotoSemanticsTest` (4). Each
+symptom is the photo never appearing ("Condition still not satisfied after 5000 ms", "the swap to the
+image did not apply within 8 frames"). The reason: these classes install test shadows of
+`BitmapFactory.decodeFile` (`ThreadRecordingBitmapFactoryShadow`, `GatedBitmapFactoryShadow`) that
+return an 8×8 bitmap for every call and never fill in `outWidth`/`outHeight`. The new decode reads
+the file's dimensions first (`inJustDecodeBounds`, as the viewer's `decodeBoundedPhoto` does), sees
+0×0 from the shadow, and stops with "could not read the dimensions", so the placeholder stays. The
+real `BitmapFactory`, and Robolectric's default shadow (`DecodedPhotoTest` passes), fill them in. Also,
+`PhotoDecodeThreadTest` asserts the photo is "decoded exactly once", counting `decodeFile` calls,
+and the new decode makes two (bounds, then pixels). Proposed fix, test-only: both shadows answer a
+bounds-only call the way the platform does (set `outWidth`/`outHeight`, return null, and neither
+record nor gate it), so they count and gate only the pixel decode. Waiting for the planner's word
+before touching them.
