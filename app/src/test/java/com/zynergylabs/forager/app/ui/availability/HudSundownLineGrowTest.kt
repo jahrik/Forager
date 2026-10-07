@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import android.app.Application
+import androidx.compose.runtime.snapshots.Snapshot
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -95,7 +96,7 @@ class HudSundownLineGrowTest {
 
     private fun changeLine(next: String?) {
         composeRule.mainClock.autoAdvance = false
-        composeRule.runOnUiThread { line = next }
+        composeRule.runOnUiThread { line = next; Snapshot.sendApplyNotifications() }
         repeat(3) { composeRule.mainClock.advanceTimeByFrame() }
     }
 

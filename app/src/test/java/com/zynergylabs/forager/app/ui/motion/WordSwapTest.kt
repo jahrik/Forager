@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.motion
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,7 +71,7 @@ class WordSwapTest {
 
     private fun changeTo(next: String) {
         composeRule.mainClock.autoAdvance = false
-        composeRule.runOnUiThread { text = next }
+        composeRule.runOnUiThread { text = next; Snapshot.sendApplyNotifications() }
         repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
     }
 

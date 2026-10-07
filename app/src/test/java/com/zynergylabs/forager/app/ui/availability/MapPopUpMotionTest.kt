@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import android.app.Application
+import androidx.compose.runtime.snapshots.Snapshot
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -173,6 +174,9 @@ class MapPopUpMotionTest {
     private fun pauseAfter(frames: Int = 2, action: () -> Unit) {
         composeRule.mainClock.autoAdvance = false
         action()
+        // With the clock stopped, a state write outside composition reaches the next frame only once applied (motion Part 1's
+        // report, the fan's tests): the action, then the apply, then frames.
+        composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
         repeat(frames) { composeRule.mainClock.advanceTimeByFrame() }
     }
 
