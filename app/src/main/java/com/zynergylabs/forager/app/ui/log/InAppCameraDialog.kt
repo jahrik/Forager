@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.LocalIndication
+import com.zynergylabs.forager.app.ui.motion.pressBounce
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -460,22 +463,32 @@ private fun ShutterCluster(
  */
 @Composable
 private fun ShutterButton(enabled: Boolean, description: String, onClick: () -> Unit) {
+    // Amendment 2 to motion Part 1 (RECORD -659, the owner: "Shutter yes, rows no"): the disc dips on a press and springs back,
+    // not under reduced motion. The touch box, its circular clip, the ripple, the tag and the description stay on the outer node,
+    // as they were; only the drawn disc, on the inner node, bounces.
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .size(SHUTTER_SIZE_DP.dp)
             .clip(CircleShape)
-            .background(if (enabled) OverlayFill else OverlayFill.copy(alpha = DISABLED_SHUTTER_ALPHA))
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = LocalIndication.current, enabled = enabled, onClick = onClick)
             .semantics { contentDescription = description }
-            .testTag(CAMERA_SHUTTER_TAG)
-            // Drawing only, after the node is sized, tagged and clickable at its full 72 dp: the
-            // black ring at the outer edge, then the white ring inset by it. The first cut put the
-            // padding before the tag and the tagged node shrank 1.5 dp — the shutter had not moved
-            // and the tests said it had, which is the spec's "lead worth checking" in miniature.
-            .overlayRing()
-            .padding(OVERLAY_OUTLINE_WIDTH / 2)
-            .border(SHUTTER_RING_DP.dp, OverlayFill.copy(alpha = SHUTTER_RING_ALPHA), CircleShape),
-    )
+            .testTag(CAMERA_SHUTTER_TAG),
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .pressBounce(interactionSource)
+                .clip(CircleShape)
+                .background(if (enabled) OverlayFill else OverlayFill.copy(alpha = DISABLED_SHUTTER_ALPHA))
+                // Drawing only, at the full 72 dp: the black ring at the outer edge, then the white ring inset by it. The first
+                // cut put the padding before the tag and the tagged node shrank 1.5 dp; the tag is on the outer node now, which
+                // the padding here cannot touch.
+                .overlayRing()
+                .padding(OVERLAY_OUTLINE_WIDTH / 2)
+                .border(SHUTTER_RING_DP.dp, OverlayFill.copy(alpha = SHUTTER_RING_ALPHA), CircleShape),
+        )
+    }
 }
 
 /**

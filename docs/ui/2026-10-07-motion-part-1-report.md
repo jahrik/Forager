@@ -175,3 +175,11 @@ The owner's answers to the stops above, and what changed for each. Still code an
     touches too. The taps stay where they were.
 - **Stop 3**, a finger already held on a dropdown button when the close begins: left as it is.
 - **`MarkerFanOutHostTest`:** its content is now composed inside `ProvideReduceMotion`. Its assertion is unchanged.
+
+## Amendment 2 (RECORD -659), applied 2026-10-07, also not compiled
+
+- **"Shutter yes, rows no".** The camera shutter's drawn disc bounces on a press, and not under reduced motion. The touch box,
+  its circular clip, the ripple, the tag and the description stay on the outer node, so its touch is unchanged.
+  `ShutterButton` is in `ui/log/InAppCameraDialog.kt`. Test: `log/InAppCameraShutterBounceTest`, through `InAppCameraDialog`
+  with a real finger, run with animations on and off. Rows that pair an icon with words stay without a bounce.
+- **"Rounded shade".** `clickableWithShapedPress` is kept as it is, to be judged on the S22.
