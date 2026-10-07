@@ -16,6 +16,7 @@ package com.zynergylabs.forager.app.ui.availability
 // call sites; TripWindowsCard, called by TripPlannerSection). No symbol left behind is reached
 // from here.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.remember
@@ -689,7 +690,7 @@ private fun SpeciesRow(entry: AvailabilityEntry, onViewOnMap: (Long) -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
-                        .clickable { onViewOnMap(entry.species.taxonId) }
+                        .clickableWithShapedPress { onViewOnMap(entry.species.taxonId) }
                         .testTag("species-row-view-on-map"),
                 )
             }

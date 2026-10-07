@@ -2,6 +2,14 @@ package com.zynergylabs.forager.app.ui.motion
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.semantics.Role
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -87,4 +95,54 @@ fun Modifier.pressBounce(interactionSource: InteractionSource): Modifier {
             scaleY = current
         }
         .semantics { pressBounceScale = current }
+}
+
+/** Material 3's pressed state-layer opacity, applied to the content colour. */
+private const val PRESSED_STATE_LAYER_ALPHA = 0.1f
+
+/**
+ * The shape a list row's or a text link's press is drawn in, where the control itself has no shape of its own (Amendment 1 to
+ * dispatch 2026-09-28-652, RECORD -657: the other hard-cornered highlights are rounded too, "Yes, round them all").
+ */
+val ShapedPressDefaultShape: Shape = RoundedCornerShape(Spacing.sm)
+
+/**
+ * A press drawn as a shaped state layer over this node: the content colour at Material's pressed opacity, filled in [shape],
+ * fading in while [interactionSource] reports a press and out after. Drawing only, with no clip and no layer, so it moves no
+ * touch and clips none of the node's content or children; used on rows and links whose `clickable` (or `selectable`,
+ * `toggleable`) is given `indication = null`. A state layer rather than a clipped ripple: a ripple can only be clipped to a
+ * shape by clipping the node it draws in, which would clip the row's own content and its children's touches with it.
+ */
+@Composable
+fun Modifier.shapedPressLayer(interactionSource: InteractionSource, shape: Shape = ShapedPressDefaultShape): Modifier {
+    val pressed by interactionSource.collectIsPressedAsState()
+    val color = LocalContentColor.current
+    val alpha by animateFloatAsState(
+        targetValue = if (pressed) PRESSED_STATE_LAYER_ALPHA else 0f,
+        animationSpec = MotionTokens.iconSwapSpec(),
+        label = "shapedPress",
+    )
+    return drawWithContent {
+        drawContent()
+        val a = alpha
+        if (a > 0f) drawOutline(outline = shape.createOutline(size, layoutDirection, this), color = color, alpha = a)
+    }
+}
+
+/**
+ * `clickable` with its press drawn by [shapedPressLayer] in [shape] instead of a square ripple. The touch area is the
+ * `clickable`'s, exactly as a plain `clickable` in the same place; same parameters as the app's calls use.
+ */
+@Composable
+fun Modifier.clickableWithShapedPress(
+    shape: Shape = ShapedPressDefaultShape,
+    enabled: Boolean = true,
+    onClickLabel: String? = null,
+    role: Role? = null,
+    onClick: () -> Unit,
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return this
+        .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClickLabel = onClickLabel, role = role, onClick = onClick)
+        .shapedPressLayer(interactionSource, shape)
 }

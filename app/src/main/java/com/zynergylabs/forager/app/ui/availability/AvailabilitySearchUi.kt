@@ -11,6 +11,8 @@ package com.zynergylabs.forager.app.ui.availability
 // three symbols that stayed there (TripPlannerSection, CompassStripBackgroundColorDark/Light) went
 // internal because code here composes them.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,7 +58,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -685,7 +686,7 @@ internal fun CollapsibleSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = !expanded },
+                .clickableWithShapedPress { expanded = !expanded },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -908,7 +909,7 @@ private fun SpeciesSearchControls(
                                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                                 }
                                 if (showLocationTrailingIcon) {
-                                    IconButton(onClick = onUseCurrentLocation) {
+                                    BouncingIconButton(onClick = onUseCurrentLocation) {
                                         Icon(Icons.Filled.MyLocation, contentDescription = "Use current location")
                                     }
                                 }

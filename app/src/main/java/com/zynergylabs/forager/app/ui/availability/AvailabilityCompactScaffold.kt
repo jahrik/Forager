@@ -699,11 +699,13 @@ internal fun CompactMainScaffold(
                     // bar's own content colour, onSurfaceVariant, and the action `primary`.
                     val snackbarColor = mapChromeFill(navigationBarContainerColor(), compactTab() == CompactTab.MAP)
                     val snackbarContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    // Motion Part 1 (dispatch 2026-09-28-652, item 3, scout S7; the owner, RECORD -651: "Yes, round them all"):
-                    // a tappable notice's press highlight follows the snackbar's rounded shape. The placement (the padding
-                    // below) moved onto this Box so that the highlight, a sibling drawn over the snackbar, has exactly the
-                    // snackbar's bounds; the snackbar's own tag and tap stay on the snackbar, so where it takes touches is
-                    // unchanged. Not a clip on the snackbar itself, which would also cut off its shadow.
+                    // Motion Part 1 (dispatch 2026-09-28-652, item 3, scout S7; the owner, RECORD -651: "Yes, round them all";
+                    // Amendment 1, RECORD -657: "Trim to its visible edge"). Material's Snackbar(snackbarData) draws its surface
+                    // 12 dp inside the modifier it is given (SNACKBAR_SURFACE_MARGIN), so a tap on that modifier also took touches
+                    // in a 12 dp band around the drawn snackbar, over the map. The tap, the test tag and the chrome-colour
+                    // semantics now sit on a box laid exactly over the drawn surface instead, so a touch beside the snackbar
+                    // reaches the map, and the press highlight is that surface's rounded shape. A deliberate touch-area change,
+                    // the owner's; pinned by SnackbarTrimmedTouchTest.
                     val tapInteraction = remember { MutableInteractionSource() }
                     Box(
                         modifier = Modifier
@@ -736,7 +738,17 @@ internal fun CompactMainScaffold(
                     ) {
                         Snackbar(
                             snackbarData = data,
+                            containerColor = snackbarColor,
+                            contentColor = snackbarContentColor,
+                            actionContentColor = MaterialTheme.colorScheme.primary,
+                            dismissActionContentColor = snackbarContentColor,
+                        )
+                        // The drawn surface's own box. No pointer input unless the notice is tappable, so an ordinary notice's
+                        // action and dismiss buttons, under it, keep their touches.
+                        Box(
                             modifier = Modifier
+                                .matchParentSize()
+                                .padding(SNACKBAR_SURFACE_MARGIN)
                                 .testTag(COMPACT_SNACKBAR_TAG)
                                 // Dispatch 2026-09-28-626: a prompt whose whole surface is its tap (TappableNoticeVisuals).
                                 .then(
@@ -748,16 +760,8 @@ internal fun CompactMainScaffold(
                                 )
                                 .mapChromeContainerColor(snackbarColor)
                                 .mapChromeContentColor(snackbarContentColor),
-                            containerColor = snackbarColor,
-                            contentColor = snackbarContentColor,
-                            actionContentColor = MaterialTheme.colorScheme.primary,
-                            dismissActionContentColor = snackbarContentColor,
                         )
                         if (data.visuals is TappableNoticeVisuals) {
-                            // Inset by the margin Material's Snackbar(snackbarData) puts around its own surface (padding(12.dp) on
-                            // the modifier it is given; read from the material3 1.5.0-alpha26 bytecode, Snackbar.kt:280). The
-                            // tap, on the modifier, still reaches that margin as it always has; the drawn highlight is the
-                            // rounded surface only.
                             PressHighlight(interactionSource = tapInteraction, shape = SnackbarDefaults.shape, modifier = Modifier.padding(SNACKBAR_SURFACE_MARGIN))
                         }
                     }
@@ -1505,7 +1509,7 @@ internal const val COMPACT_SNACKBAR_TAG = "compact-snackbar"
 
 /**
  * The margin Material3's `Snackbar(snackbarData, modifier)` adds inside the modifier it is given, around its own surface: 12 dp,
- * read from the material3 1.5.0-alpha26 bytecode (`modifier.padding(12.dp)` before the surface). Used to draw a tappable
- * notice's press highlight on the surface alone (motion Part 1, scout S7).
+ * read from the material3 1.5.0-alpha26 bytecode (`modifier.padding(12.dp)` before the surface). The snackbar's tap, tag and
+ * press highlight sit this far in, on the drawn surface (motion Part 1, scout S7; Amendment 1, RECORD -657).
  */
 private val SNACKBAR_SURFACE_MARGIN = 12.dp
