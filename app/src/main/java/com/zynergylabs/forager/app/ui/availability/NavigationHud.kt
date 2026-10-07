@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.WordSwap
 import com.zynergylabs.forager.app.domain.hasArrived
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -278,12 +279,16 @@ internal fun NavigationHud(
                                 .size(COMPASS_ICON_SIZE)
                                 .rotate(readout.northArrowDegrees ?: 0f),
                         )
-                        Text(
-                            text = readout.headingText,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
-                        )
+                        // Motion Part 2, item 6 (dispatch 2026-09-28-666; the owner, RECORD -651: "Numbers instant, words fade"):
+                        // each line here crossfades when its words change and changes at once when only its numbers do (WordSwap).
+                        WordSwap(text = readout.headingText, contentAlignment = Alignment.Center) { shown ->
+                            Text(
+                                text = shown,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
+                            )
+                        }
                     }
                     // Target compass.
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -295,31 +300,39 @@ internal fun NavigationHud(
                                 .size(COMPASS_ICON_SIZE)
                                 .rotate(readout.targetArrowDegrees ?: 0f),
                         )
-                        Text(
-                            text = readout.targetText,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG),
-                        )
+                        WordSwap(text = readout.targetText, contentAlignment = Alignment.Center) { shown ->
+                            Text(
+                                text = shown,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG),
+                            )
+                        }
                     }
                     // Distance and status.
                     Column(modifier = Modifier.weight(1f)) {
                         val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
                         val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
-                        Text(
-                            text = readout.distanceText,
-                            style = distanceStyle,
-                            color = distanceColor,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
-                        )
+                        // The distance itself stays instant; "Arrived" and "Unable to calculate route" are words, and fade in.
+                        WordSwap(text = readout.distanceText) { shown ->
+                            Text(
+                                text = shown,
+                                style = distanceStyle,
+                                color = distanceColor,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+                            )
+                        }
                         if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
-                        Text(
-                            text = readout.statusText,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
-                        )
+                        // The fix age ticks every second: numbers, so it changes at once.
+                        WordSwap(text = readout.statusText) { shown ->
+                            Text(
+                                text = shown,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
+                            )
+                        }
                     }
                     BouncingIconButton(
                         onClick = onExit,
@@ -358,14 +371,18 @@ internal fun NavigationHud(
                         )
                     }
                 }
+                // Its words crossfade (item 6). Its coming and going is still at once: the HUD's sundown line (scout N6) is not
+                // among the pop-ups the owner chose to fade and grow, so it is left for the owner.
                 if (sundownLine != null) {
-                    Text(
-                        text = sundownLine,
-                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
-                    )
+                    WordSwap(text = sundownLine) { shown ->
+                        Text(
+                            text = shown,
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
+                        )
+                    }
                 }
             }
         }

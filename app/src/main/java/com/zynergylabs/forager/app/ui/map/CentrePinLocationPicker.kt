@@ -42,6 +42,8 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.motion.MapPopUp
+import com.zynergylabs.forager.app.ui.motion.PopUpPivot
 
 /**
  * Every site in this app that places something on the map — the offline-region picker, log-entry
@@ -297,32 +299,82 @@ fun CentrePinLocationPickerOverlay(
      */
     night: Boolean = false,
 ) {
-    // The row's fill, at the map chrome's alpha: this overlay sits only inside a map's own Box, so it
-    // is always over a map. Its content colour is pinned to the fill's own role (`contentColorFor`
-    // matches a colour-scheme role exactly; see `MapLayersSheet`).
-    val rowColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
-    val rowContentColor = contentColorFor(navigationBarContainerColor())
+    // The row's fill and content colour: CentrePinConfirmSurface's comment (moved there with motion Part 2).
     Box(modifier = modifier.fillMaxSize()) {
         CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
-        Surface(
+        CentrePinConfirmSurface(
+            onConfirm = onConfirm,
+            onCancel = onCancel,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = bottomInset)
                 .padding(rowPadding)
-                .fillMaxWidth()
-                .testTag(CENTRE_PIN_CONFIRM_ROW_TAG)
-                .mapChromeContainerColor(rowColor),
-            color = rowColor,
-            contentColor = rowContentColor,
-            shadowElevation = 4.dp,
-        ) {
-            CentrePinConfirmRow(
-                selectedText = null,
-                onConfirm = onConfirm,
-                onCancel = onCancel,
-                modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
-            )
+                .fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * [CentrePinLocationPickerOverlay] coming and going over the Maps tab's map (motion Part 2, item 4, dispatch 2026-09-28-666;
+ * scout M9; the owner, RECORD -651: "Fade and grow", each from where it belongs): composed whether or not it shows, with
+ * [visible] deciding. The pin grows from its tip, which marks the map's centre, and the OK/Cancel row up from its bottom edge;
+ * each shrinks back as it leaves, and from that moment takes no touch (item 5, "Let taps through at once"). Laid out exactly as
+ * the overlay is, from the same pieces, so the pin marks the same point and the row takes the same touches; the other screens'
+ * pickers keep the overlay, which appears and goes at once as before.
+ */
+@Composable
+internal fun CentrePinLocationPickerPopUp(
+    visible: Boolean,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+    bottomInset: Dp = 0.dp,
+    rowPadding: PaddingValues = PaddingValues(0.dp),
+    night: Boolean = false,
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        MapPopUp(visible = visible, pivot = PopUpPivot.Centre, modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
+            }
         }
+        MapPopUp(
+            visible = visible,
+            pivot = PopUpPivot.BottomCentre,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = bottomInset)
+                .padding(rowPadding)
+                .fillMaxWidth(),
+        ) {
+            CentrePinConfirmSurface(onConfirm = onConfirm, onCancel = onCancel, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+/**
+ * The OK/Cancel row's surface, at the map chrome's alpha: this sits only inside a map's own Box, so it is always over a map.
+ * Its content colour is pinned to the fill's own role (`contentColorFor` matches a colour-scheme role exactly; see
+ * `MapLayersSheet`). [modifier] places it.
+ */
+@Composable
+private fun CentrePinConfirmSurface(onConfirm: () -> Unit, onCancel: () -> Unit, modifier: Modifier) {
+    val rowColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
+    val rowContentColor = contentColorFor(navigationBarContainerColor())
+    Surface(
+        modifier = modifier
+            .testTag(CENTRE_PIN_CONFIRM_ROW_TAG)
+            .mapChromeContainerColor(rowColor),
+        color = rowColor,
+        contentColor = rowContentColor,
+        shadowElevation = 4.dp,
+    ) {
+        CentrePinConfirmRow(
+            selectedText = null,
+            onConfirm = onConfirm,
+            onCancel = onCancel,
+            modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
+        )
     }
 }
 
