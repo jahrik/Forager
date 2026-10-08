@@ -73,8 +73,8 @@ class NavigationHudReadoutTest {
         assertEquals("1148 ft", readout(route = ReturnRoute.Ahead(east, 350.0)).distanceText)
         assertEquals("350 m", readout(route = ReturnRoute.Ahead(east, 350.0), unit = DistanceUnit.KILOMETERS).distanceText)
         // The straight line to the start, with the accuracy-aware formatting it had in the large slot.
-        assertEquals("Straight line 0.7 mi", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
-        assertEquals("Straight line 1.1 km", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
+        assertEquals("0.7 mi straight", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
+        assertEquals("1.1 km straight", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
     }
 
     @Test
@@ -103,7 +103,7 @@ class NavigationHudReadoutTest {
     fun `navigating to a waypoint with no route keeps the straight line in the large slot and aims at the waypoint`() {
         val r = readout(route = null)
         assertEquals("0.7 mi", r.distanceText)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("Left · 45°", r.targetText)
         assertEquals("", r.statusText)
         assertFalse(r.routeRetryOffered)
     }
@@ -112,9 +112,9 @@ class NavigationHudReadoutTest {
     fun `the needle aims at the route's lookahead, not at the start`() {
         // The start is due north (a 315° turn from 45°); the lookahead due east (a 45° turn).
         val r = readout(route = ReturnRoute.Ahead(east, 1_500.0))
-        assertEquals("Turn 45°", r.targetText)
+        assertEquals("Right · 45°", r.targetText)
         assertEquals(45f, r.targetArrowDegrees!!, 0.5f)
-        assertEquals("Turn 315°", readout(route = null).targetText)
+        assertEquals("Left · 45°", readout(route = null).targetText)
     }
 
     @Test
@@ -123,7 +123,7 @@ class NavigationHudReadoutTest {
         assertEquals("—", r.distanceText)
         assertNull(r.targetArrowDegrees)
         assertEquals("", r.targetText)
-        assertEquals("Straight line 0.7 mi", r.statusText)
+        assertEquals("0.7 mi straight", r.statusText)
         assertFalse(r.routeRetryOffered)
     }
 
@@ -133,7 +133,7 @@ class NavigationHudReadoutTest {
         assertEquals("Unable to calculate route", r.distanceText)
         assertNull(r.targetArrowDegrees)
         assertEquals("", r.targetText)
-        assertEquals("Straight line 0.7 mi", r.statusText)
+        assertEquals("0.7 mi straight", r.statusText)
         assertTrue(r.routeRetryOffered)
     }
 
@@ -189,7 +189,7 @@ class NavigationHudReadoutTest {
 
         assertEquals("45° NE", r.headingText)
         assertEquals(-45f, r.northArrowDegrees)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("Left · 45°", r.targetText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
         assertEquals("0.7 mi", r.distanceText)
         assertFalse(r.distanceDeEmphasised)
@@ -202,7 +202,7 @@ class NavigationHudReadoutTest {
 
         val r = readout(target = west)
 
-        assertEquals("Turn 225°", r.targetText)
+        assertEquals("Sharp left · 135°", r.targetText)
         assertEquals(225f, r.targetArrowDegrees!!, 0.05f)
     }
 
@@ -273,7 +273,7 @@ class NavigationHudReadoutTest {
         assertNotNull("a needle at 16.46 m with 8 m accuracy", r2.targetArrowDegrees)
         assertEquals(315f, r2.targetArrowDegrees!!, 1e-3f)
         assertEquals("Approaching", r2.statusText)
-        assertEquals("Turn 315°", r2.targetText)
+        assertEquals("Left · 45°", r2.targetText)
     }
 
     // ── Dispatch 2026-09-28-578, Amendment 1 (-579): "Approaching" has its own zone ─────────────
@@ -290,7 +290,7 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("≈ 50 m", r.distanceText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("Left · 45°", r.targetText)
         assertFalse(r.distanceDeEmphasised)
     }
 
@@ -303,7 +303,7 @@ class NavigationHudReadoutTest {
         assertEquals("", readout(target = outside).statusText)
         // Under a route the line past the zone is the straight line, as far away.
         assertEquals("Approaching", readout(target = inside, route = ReturnRoute.Ahead(east, 120.0)).statusText)
-        assertTrue(readout(target = outside, route = ReturnRoute.Ahead(east, 120.0)).statusText.startsWith("Straight line"))
+        assertTrue(readout(target = outside, route = ReturnRoute.Ahead(east, 120.0)).statusText.endsWith(" straight"))
     }
 
     /**
@@ -333,7 +333,7 @@ class NavigationHudReadoutTest {
 
         assertNotNull(r.targetArrowDegrees)
         assertEquals("", r.statusText)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("Left · 45°", r.targetText)
         // Dispatch -502 changed this (Amendment 2). Before: the large slot was asserted to read "33 ft" (no
         // accuracy, no rounding, no marker). After: arrival applies to any target, and with no accuracy its
         // radius is 15 m, so 10 m reads "Arrived". The needle, drawn with no basis for approaching, is unchanged.
@@ -358,7 +358,7 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("164 ft", r.distanceText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("Left · 45°", r.targetText)
     }
 
     @Test
@@ -402,7 +402,7 @@ class NavigationHudReadoutTest {
         assertEquals("≈ 50 m", r.distanceText)
         assertTrue(r.distanceDeEmphasised)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("Left · 45°", r.targetText)
     }
 
     @Test
@@ -546,7 +546,52 @@ class NavigationHudReadoutTest {
         // Dispatch 2026-09-28-549: under metric the elevation reads exactly as before.
         assertEquals("50 m", readout(unit = DistanceUnit.KILOMETERS).elevationText)
         assertEquals("Elevation unavailable", readout(liveFix = portland, unit = DistanceUnit.KILOMETERS).elevationText)
-        assertEquals("Lat. 45.5152 Long. -122.6784", readout(liveFix = portland, showDecimalDegrees = true).coordinatesText)
+        assertEquals("45.5152, -122.6784", readout(liveFix = portland, showDecimalDegrees = true).coordinatesText)
+    }
+
+    // ── Dispatch 2026-09-28-677 (data part B): words, kinds and labels ──────────────────────────
+
+    @Test
+    fun `the large figure says what it measures - straight with no route, by trail on the route, nothing for words or a dash`() {
+        assertEquals("straight", readout(route = null).distanceKindText)
+        assertEquals("by trail", readout(route = ReturnRoute.Ahead(east, 1_500.0)).distanceKindText)
+        assertNull("a dash before the first route", readout(route = ReturnRoute.Pending).distanceKindText)
+        assertNull("words, not a figure", readout(route = ReturnRoute.Unavailable(canRetry = true)).distanceKindText)
+        assertNull("a lost fix shows a dash", readout(now = t + 6L * 60L * 1_000L, route = null).distanceKindText)
+        // 10 m off, arrived (radius max(2 x 12.5, 15) = 25 m): "Arrived" alone.
+        val close = north.copy(lat = 45.52009)
+        assertEquals("Arrived", readout(target = close).distanceText)
+        assertNull(readout(target = close).distanceKindText)
+        // A stale fix still shows its figure, dimmed, so it still says what it is.
+        assertEquals("straight", readout(now = t + 45_000L, route = null).distanceKindText)
+    }
+
+    @Test
+    fun `a heading reading wears the label, a status does not`() {
+        assertTrue(readout().headingIsReading)
+        assertTrue("the dash while waiting is a reading too", readout(heading = TrueHeadingReading.NeedsFix).headingIsReading)
+        assertFalse(readout(heading = TrueHeadingReading.NoSensor).headingIsReading)
+        assertFalse(readout(heading = TrueHeadingReading.Unreliable).headingIsReading)
+        val calibrating = navigationReadout(TrueHeadingReading.Available(45f), fix, north, DistanceUnit.MILES, t + 1_000L, facing = NavigationFacing.CALIBRATING)
+        assertFalse("a facing notice names itself", calibrating.headingIsReading)
+    }
+
+    @Test
+    fun `the second row shows with a fix, and with none only when the heading has more than a dash to say`() {
+        assertTrue(readout().secondRowShown)
+        assertFalse("no fix and the dash: the status line says it once", readout(heading = TrueHeadingReading.NeedsFix, liveFix = null).secondRowShown)
+        assertTrue("no fix, no sensor: the row says Compass unavailable", readout(heading = TrueHeadingReading.NoSensor, liveFix = null).secondRowShown)
+        assertNull(readout(heading = TrueHeadingReading.NoSensor, liveFix = null).coordinatesText)
+    }
+
+    @Test
+    fun `the turn is in words from the needle's own angle`() {
+        // Facing 45°, the start due north: 315° clockwise, 45° to the left; the arrow's rotation is unchanged.
+        val r = readout(route = null)
+        assertEquals("Left · 45°", r.targetText)
+        assertEquals(315f, r.targetArrowDegrees!!, 0.5f)
+        // Facing 350°, the start due north: 10° clockwise, a slight right.
+        assertEquals("Slight right · 10°", readout(heading = TrueHeadingReading.Available(350f), route = null).targetText)
     }
 
     @Test
