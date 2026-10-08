@@ -170,6 +170,43 @@ internal fun readoutsKeptBeside(availablePx: Int, coordinatesPx: Int, readoutsPx
     return List(readoutsPx.size) { false }
 }
 
+/** What [readoutsFitBeside] keeps: whether the readouts' labels are drawn, and which readouts are. */
+internal data class ReadoutsFit(val labels: Boolean, val shown: List<Boolean>)
+
+/**
+ * RECORD -713 (the owner: "Drop labels, then values (Recommended)"), for the strip and the navigation display's second row
+ * alike. Replaces [readoutsKeptBeside]'s shortening with "…" in both places. The coordinates are measured first and stay
+ * whole. Then, in order, the first arrangement that fits whole is kept:
+ * every readout with its label; every readout without labels ("315° NW · 9843 ft · grid ref"); then readouts dropped from
+ * the front (facing first, then altitude), still without labels; then none. A readout is never cut and never ends in "…".
+ *
+ * [labelsPx] is each readout's label with its gap (0 for one that names itself, "Compass unavailable"); [valuesPx] its
+ * value. Each readout kept costs one [separatorPx] (the dot and its gaps): one before the coordinates when there are any
+ * ([withCoordinates]), else one between readouts. [coordinatesPx] is 0 with no coordinates.
+ */
+internal fun readoutsFitBeside(
+    availablePx: Int,
+    coordinatesPx: Int,
+    labelsPx: List<Int>,
+    valuesPx: List<Int>,
+    separatorPx: Int,
+    withCoordinates: Boolean = true,
+): ReadoutsFit {
+    val n = valuesPx.size
+    fun fits(labels: Boolean, dropped: Int): Boolean {
+        val kept = (dropped until n)
+        val separators = if (withCoordinates) kept.count() else (kept.count() - 1).coerceAtLeast(0)
+        val needed = coordinatesPx.toLong() + separators.toLong() * separatorPx +
+            kept.sumOf { valuesPx[it].toLong() + if (labels) labelsPx[it].toLong() else 0L }
+        return needed <= availablePx
+    }
+    if (fits(labels = true, dropped = 0)) return ReadoutsFit(labels = true, shown = List(n) { true })
+    for (dropped in 0..n) {
+        if (fits(labels = false, dropped = dropped)) return ReadoutsFit(labels = false, shown = List(n) { it >= dropped })
+    }
+    return ReadoutsFit(labels = false, shown = List(n) { false })
+}
+
 /**
  * The two Trailhead/Return controls — record start/stop and return-to-vehicle — anchored together
  * below [MapIconBar], per this dispatch's own Part B: they used to be split across a
@@ -674,26 +711,20 @@ private fun CompassElevationStripContent(
                             BoxWithConstraints(contentAlignment = Alignment.Center) {
                                 val density = LocalDensity.current
                                 fun widthOf(text: String, style: TextStyle) = readoutMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
-                                fun labelled(label: String?, text: String) =
-                                    (label?.let { widthOf(it, readoutLabelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0) + widthOf(text, readoutStyle)
-                                val headingPx = labelled(headingLabel, headingText)
-                                val elevationPx = labelled(elevationLabel, elevationText)
+                                fun labelPx(label: String?) = label?.let { widthOf(it, readoutLabelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0
                                 val availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE
                                 val coordinatesPx = widthOf(coordinatesText, readoutStyle)
                                 val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.sm.roundToPx() }
-                                val shown = stripReadoutsShown(
+                                // RECORD -713 (the owner: "Drop labels, then values (Recommended)"): labels go first, then facing,
+                                // then altitude; whatever is shown is whole. See readoutsFitBeside.
+                                val fit = readoutsFitBeside(
                                     availablePx = availablePx,
                                     coordinatesPx = coordinatesPx,
-                                    headingPx = headingPx,
-                                    elevationPx = elevationPx,
+                                    labelsPx = listOf(labelPx(headingLabel), labelPx(elevationLabel)),
+                                    valuesPx = listOf(widthOf(headingText, readoutStyle), widthOf(elevationText, readoutStyle)),
                                     separatorPx = separatorPx,
-                                    minimumPx = with(density) { STRIP_READOUT_MIN_WIDTH.roundToPx() },
                                 )
-                                // Everything whole: no weights at all, so a rounded share can never cut a readout that fits.
-                                val allWhole = availablePx.toLong() - coordinatesPx - 2L * separatorPx >= headingPx.toLong() + elevationPx
-                                // Weighted by their own widths, so the room left after the coordinates is shared in proportion:
-                                // whole when it is enough, each shortened alike when it is not (equal weights would cut the
-                                // longer one while the shorter left part of its half unused).
+                                val shown = StripReadoutsShown(heading = fit.shown[0], elevation = fit.shown[1])
                             Row(
                                 // Landscape B2 (S4): no weight when content-width.
                                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
@@ -711,8 +742,8 @@ private fun CompassElevationStripContent(
                                 // reading after its short label, as on the navigation display (LabelledReadout); a status
                                 // ("Compass unavailable", "Elevation unavailable") names itself and has none.
                                 if (shown.heading) {
-                                    Box(modifier = if (allWhole) Modifier else Modifier.weight(headingPx.coerceAtLeast(1).toFloat(), fill = false)) {
-                                        LabelledReadout(label = headingLabel) {
+                                    Box {
+                                        LabelledReadout(label = headingLabel.takeIf { fit.labels }) {
                                             WordSwap(text = headingText) { shownText ->
                                                 Text(
                                                     text = shownText,
@@ -731,8 +762,8 @@ private fun CompassElevationStripContent(
                                 }
                                 // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
                                 if (shown.elevation) {
-                                    Box(modifier = if (allWhole) Modifier else Modifier.weight(elevationPx.coerceAtLeast(1).toFloat(), fill = false)) {
-                                        LabelledReadout(label = elevationLabel) {
+                                    Box {
+                                        LabelledReadout(label = elevationLabel.takeIf { fit.labels }) {
                                             WordSwap(text = elevationText) { shownText ->
                                                 Text(
                                                     text = shownText,
