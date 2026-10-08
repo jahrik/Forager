@@ -136,7 +136,7 @@ class NetworkFixExclusionPerConsumerTest {
         val track = GetTracksUseCase(trackRepository)().getOrThrow().single()
         assertEquals(3, track.points.size)
         // 2 of 5 is the rule working, not a large exclusion: the row reads exactly as it always has.
-        assertEquals("3 points · recording", trackSubtitle(track))
+        assertEquals("3 points · recording", trackSubtitle(track, is24HourClock = false))
         assertDiskUnchanged()
     }
 
