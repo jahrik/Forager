@@ -320,7 +320,7 @@ class JournalTabTest {
      * itself was invoked with `null`, not just that some form appeared.
      */
     @Test
-    fun `starting a brand-new entry from the gallery's plus tile goes straight to the edit form with no location`() {
+    fun `starting a brand-new entry from the gallery's New find button goes straight to the edit form with no location`() {
         setScreen(MushroomLogUiState())
 
         composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
