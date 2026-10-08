@@ -177,7 +177,7 @@ class DrawerPushSlideTest {
     }
 
     @Test
-    fun `Back reverses it: Settings goes out to the left while Tools comes back from the right`() {
+    fun `Back reverses it, Settings going out to the left while Tools comes back from the right`() {
         setScreen()
         val area = openTools()
         tap(composeRule.onNodeWithText("Settings"))
