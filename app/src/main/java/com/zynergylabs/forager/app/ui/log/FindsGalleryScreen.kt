@@ -41,6 +41,7 @@ import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.ListRowShape
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.IntOffset
@@ -101,14 +102,18 @@ internal fun FindsGalleryScreen(
 ) {
     var selectedTab by remember { mutableStateOf(FindsGalleryTab.LOG) }
 
-    if (isLoading && entries.isEmpty() && draftEntries.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    // Motion Part 3, Amendment 2 (RECORD -682; scout F5): the spinner and the gallery crossfade instead of swapping in one frame
+    // (motion/StateCrossfade.kt).
+    StateCrossfade(
+        targetState = isLoading && entries.isEmpty() && draftEntries.isEmpty(),
+        modifier = modifier.fillMaxSize(),
+    ) { loading ->
+    if (loading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        return
-    }
-
-    Column(modifier = modifier.fillMaxSize()) {
+    } else {
+    Column(modifier = Modifier.fillMaxSize()) {
         SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(selected = selectedTab == FindsGalleryTab.LOG, onClick = { selectedTab = FindsGalleryTab.LOG }, text = { Text("Log") })
             Tab(
@@ -167,6 +172,8 @@ internal fun FindsGalleryScreen(
         }
         }
         }
+    }
+    }
     }
 }
 

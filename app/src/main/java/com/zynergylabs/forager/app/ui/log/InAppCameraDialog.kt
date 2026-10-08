@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import androidx.compose.foundation.LocalIndication
 import com.zynergylabs.forager.app.ui.motion.pressBounce
 import android.content.res.Configuration
@@ -250,7 +251,16 @@ internal fun InAppCameraDialog(
             .background(Color.Black)
             .testTag(IN_APP_CAMERA_TAG),
     ) {
-        when (val state = session.state) {
+        // Motion Part 3, Amendment 2 (RECORD -682; scout K2): the opening spinner, the viewfinder and the unavailable message
+        // crossfade instead of swapping in one frame (motion/StateCrossfade.kt), keyed on which of the three, so a reason that
+        // changes updates in place. The camera's own rotation stays the system's, untouched (the owner's exception, RECORD -681).
+        StateCrossfade(
+            targetState = session.state,
+            modifier = Modifier.fillMaxSize(),
+            contentKey = { it::class },
+        ) { shownState ->
+        Box(modifier = Modifier.fillMaxSize()) {
+        when (val state = shownState) {
             is CameraSessionState.Unavailable -> OverlayText(
                 state.reason,
                 style = MaterialTheme.typography.bodyLarge,
@@ -263,6 +273,8 @@ internal fun InAppCameraDialog(
             CameraSessionState.Opening -> OverlayProgress(modifier = Modifier.align(Alignment.Center).testTag(CAMERA_OPENING_TAG))
 
             CameraSessionState.Ready -> viewfinder(Modifier.fillMaxSize())
+        }
+        }
         }
         // Over the preview, under the bands: composed after the viewfinder and before the strip
         // and the shutter band, so both draw above them. Only once there is a preview to divide.

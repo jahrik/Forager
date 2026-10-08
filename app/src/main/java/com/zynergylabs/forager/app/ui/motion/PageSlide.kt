@@ -83,6 +83,7 @@ fun <T> PageSlide(
     modifier: Modifier = Modifier,
     contentKey: (T) -> Any? = { it },
     pageColor: Color = MaterialTheme.colorScheme.background,
+    style: PageSlideStyle = PageSlideStyle.OVER,
     content: @Composable (T) -> Unit,
 ) {
     val reduceMotion = LocalReduceMotion.current
@@ -92,7 +93,12 @@ fun <T> PageSlide(
     AnimatedContent(
         targetState = targetState,
         modifier = modifier.clipToBounds(),
-        transitionSpec = { pageSlideTransform(reduceMotion, depthOf(initialState), depthOf(targetState), slide) },
+        transitionSpec = {
+            when (style) {
+                PageSlideStyle.OVER -> pageSlideTransform(reduceMotion, depthOf(initialState), depthOf(targetState), slide)
+                PageSlideStyle.PUSH_FROM_LEFT -> pagePushTransform(reduceMotion, depthOf(initialState), depthOf(targetState), slide)
+            }
+        },
         contentAlignment = Alignment.TopStart,
         contentKey = contentKey,
         label = "pageSlide",
@@ -125,6 +131,41 @@ internal fun pageSlideTransform(
         targetContentEnter = EnterTransition.None,
         initialContentExit = slideOutHorizontally(animationSpec = slide) { fullWidth -> fullWidth },
         targetContentZIndex = PAGE_UNDERNEATH,
+        sizeTransform = null,
+    )
+}
+
+/**
+ * How [PageSlide] moves its pages. [OVER] is the Journal's: a page slides in from the right over the one beneath, which stays
+ * still. [PUSH_FROM_LEFT] is the Tools drawer's (motion Part 3, Amendment 2, RECORD -682; the owner: "Push slide from the left
+ * (Recommended)"): the opened page slides in from the drawer's left edge while the current page slides out to the right, side by
+ * side, never overlapping, and Back reverses it. Since the two never overlap, the pages need no fill of their own, which is what
+ * lets the drawer's own fill stay the single 80% layer over the map.
+ */
+enum class PageSlideStyle { OVER, PUSH_FROM_LEFT }
+
+/**
+ * [PageSlideStyle.PUSH_FROM_LEFT]'s transform: going deeper, the new page enters from the left edge while the current one leaves by
+ * the right; going back, the page leaves by the left while the one it covered returns from the right. Both move on the same spec
+ * by a full width, so their edges meet and they never overlap. `internal` for its own test.
+ */
+internal fun pagePushTransform(
+    reduceMotion: Boolean,
+    fromDepth: Int,
+    toDepth: Int,
+    slide: FiniteAnimationSpec<IntOffset>,
+): ContentTransform = when {
+    reduceMotion -> ContentTransform(EnterTransition.None, ExitTransition.None, targetContentZIndex = 0f, sizeTransform = null)
+    toDepth >= fromDepth -> ContentTransform(
+        targetContentEnter = slideInHorizontally(animationSpec = slide) { fullWidth -> -fullWidth },
+        initialContentExit = slideOutHorizontally(animationSpec = slide) { fullWidth -> fullWidth },
+        targetContentZIndex = 0f,
+        sizeTransform = null,
+    )
+    else -> ContentTransform(
+        targetContentEnter = slideInHorizontally(animationSpec = slide) { fullWidth -> fullWidth },
+        initialContentExit = slideOutHorizontally(animationSpec = slide) { fullWidth -> -fullWidth },
+        targetContentZIndex = 0f,
         sizeTransform = null,
     )
 }

@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -154,9 +155,13 @@ internal fun LogEntryReportScreen(
                 .padding(horizontal = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            if (isEntirelyEmpty) {
+            // Motion Part 3, Amendment 2 (RECORD -682; scout F8): the empty message and the report crossfade instead of swapping in
+            // one frame (motion/StateCrossfade.kt). The report keeps this column's spacing inside its own column.
+            StateCrossfade(targetState = isEntirelyEmpty, modifier = Modifier.fillMaxWidth()) { empty ->
+            if (empty) {
                 Text(EMPTY_FIND_MESSAGE, style = MaterialTheme.typography.bodyMedium)
             } else {
+              Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 Text(
                     entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
                         ?: stringResource(R.string.log_entry_no_location),
@@ -188,6 +193,8 @@ internal fun LogEntryReportScreen(
                 if (entry.notes.isNotBlank()) {
                     ReportSection("Description Notes", listOf(entry.notes))
                 }
+              }
+            }
             }
 
             Spacer(modifier = Modifier.heightIn(min = Spacing.lg))

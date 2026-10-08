@@ -2,6 +2,10 @@ package com.zynergylabs.forager.app.ui.crash
 
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.PageSlideStyle
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.fillMaxSize
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -58,13 +62,24 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun CrashLogPanel(files: List<File>, onBack: () -> Unit, modifier: Modifier = Modifier) {
     var viewing by remember { mutableStateOf<File?>(null) }
-    val file = viewing
-    if (file != null) {
-        CrashLogDetail(file = file, onBack = { viewing = null }, modifier = modifier)
-    } else {
-        Column(modifier = modifier.fillMaxWidth()) {
-            CrashLogHeader(onBack = onBack)
-            CrashLogList(files = files, onOpen = { viewing = it }, modifier = Modifier.weight(1f))
+    // Motion Part 3, Amendment 2 (RECORD -682; the owner: "Push slide from the left (Recommended)"; scout T3): a crash's detail
+    // slides in from the drawer's left edge while the list slides out to the right, and back reverses it. The detail is drawn
+    // from the file it was opened on, so it still draws while it leaves. No fill of its own: the drawer's is the one layer.
+    PageSlide(
+        targetState = viewing,
+        depthOf = { if (it == null) 0 else 1 },
+        modifier = modifier.fillMaxWidth(),
+        contentKey = { it?.path },
+        pageColor = Color.Transparent,
+        style = PageSlideStyle.PUSH_FROM_LEFT,
+    ) { file ->
+        if (file != null) {
+            CrashLogDetail(file = file, onBack = { viewing = null }, modifier = Modifier.fillMaxSize())
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                CrashLogHeader(onBack = onBack)
+                CrashLogList(files = files, onOpen = { viewing = it }, modifier = Modifier.weight(1f))
+            }
         }
     }
 }
