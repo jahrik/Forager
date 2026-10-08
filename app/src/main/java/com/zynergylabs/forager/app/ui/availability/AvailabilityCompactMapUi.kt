@@ -169,8 +169,9 @@ import kotlin.reflect.KProperty
  * and out of maps." That reversed the icon-bar-position-memory dispatch's working rule that
  * nothing survives a tab change, and the owner then made the general principle explicit —
  * CLAUDE.md, "UX defaults": user-set state survives navigating away and back by default, and an
- * unrequested reset is a bug unless the exception is stated for the case. Still session-only —
- * nothing here is persisted across app restarts, which is a separate per-case decision.
+ * unrequested reset is a bug unless the exception is stated for the case. Persisting across app
+ * restarts was a separate per-case decision; since RECORD -711 the side and height persist (below),
+ * and the minimised flags do not.
  *
  * Holds the cluster's user-set state: [userChosenOffsetPx] (the single source of truth, written
  * only by drags), [displayedOffsetPx] (the Animatable that is always the clamp of it under the
@@ -202,7 +203,7 @@ internal class MapIconClusterPositionState(awaitingPlacement: Boolean = false) {
     // nor loses it on the way back. The side is stored as port or punch-hole, not left or right,
     // and translated to a window side from the current port edge where the cluster is anchored,
     // so turning between ROTATION_90 and ROTATION_270 keeps the cluster on the same device edge.
-    // Defaults to the punch-hole side. Session only, like the portrait fields.
+    // Defaults to the punch-hole side. Side and height persist like the portrait ones (RECORD -711); minimised does not.
     var landscapeOnPortSide by mutableStateOf(false)
     var landscapeUserChosenOffsetPx by mutableStateOf(0f)
     val landscapeDisplayedOffsetPx = Animatable(0f)

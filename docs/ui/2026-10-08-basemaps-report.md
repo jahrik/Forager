@@ -145,3 +145,109 @@ the forward change is back afterwards (CLAUDE.md, Testing).
   initialiser). Device item: set Street, swipe the app away, reopen, watch the first tiles.
 - That the blank before the read is short on a phone. A DataStore first read is the same one the Night Maps gate already
   waits on, and both reads start together, so it should add little; not measured.
+
+## Amendment: RECORD -710 (one branch with settings-moves) and -711 (the icon cluster persists)
+
+Both from the planner, 2026-10-08. **Status unchanged: written, not compiled, not run.**
+
+### -710: settings-moves merged in
+
+`origin/settings-moves` at `2b4afab3` (RECORD -707) merged into `basemaps` (merge commit `196bbc60`). It had the same base
+(`d223728b`). Two conflicts, both resolved by keeping both sides:
+
+1. `docs/audits/README.md`: the -707 and -708 index rows. Both kept, -707 first.
+2. `app/src/test/.../ui/availability/AvailabilityScreenSettingsPanelTest.kt`. **settings-moves deleted 26 tests here that its
+   report does not mention.** Its report (`docs/ui/2026-10-08-settings-moves-report.md`, line 103) lists one change to this file:
+   the two camera-checkbox tests replaced by `Settings no longer shows the two camera settings`. Its commit `e78b6a5c` actually took
+   the file from 28 tests to 2 (+15/-603 lines). The tests it removed include the basemap default, Night Maps, the cold-launch
+   gate, the theme radio group, the Layers sheet chip test, the Records and track-export tests, and the offline-picker tests.
+   I resolved it as basemaps' version (base plus the -708 edits) with **only** the two camera tests replaced by settings-moves'
+   new test. That leaves 27 tests (28 - 2 + 1). I think the extra deletions were accidental, because they do not match the
+   report. If they were intended, the -707 coder should say why; restoring them is the conservative choice.
+
+Auto-merged without conflict: `AvailabilityScreen.kt` (the two camera callbacks, which do not overlap with the basemap or
+cluster edits) and `AvailabilitySettingsUi.kt`.
+
+### -711: the icon cluster's side and height persist across restarts
+
+The owner: "have the map icon bar persist between restarts so left handed users don't need to change it every time they open
+the app", then "Side and height (Recommended)".
+
+- `domain/MapIconClusterPlacementRepository.kt` (new): `MapIconClusterPlacement` (portrait side and height, landscape side and
+  height, heights in dp from the centred position) and its repository. `DataStoreMapPreferencesRepository` implements it in
+  `map_preferences`, beside `map.basemap`, under `map.icon_cluster.portrait_left`, `.portrait_offset_dp`, `.landscape_port_side`
+  and `.landscape_offset_dp`. `AppContainer` and `MainActivity` wire it.
+- `AvailabilityViewModel`: reads the placement at start. Nothing stored gives the default (right side, centred). A failed read
+  is logged, gives the default, and writes nothing. `onMapIconClusterPlacementChanged` stores the placement, keeps it in state,
+  and logs a failed write. A drag that ends before the read lands wins over the read.
+- `MapIconClusterPositionState` (`AvailabilityCompactMapUi.kt`): `applyPlacement` (once), `placement`, `settledCount` and
+  `placementApplied`. `MapIconCluster` draws nothing until a placement has been applied, so there is no frame on the default
+  side. It counts each drag that ends. The first fit of a restored height to the window's limits is a snap, not a glide.
+  `AvailabilityScreen` creates the holder waiting for a placement, applies `uiState.mapIconClusterPlacement` when it arrives,
+  and stores on each ended drag. That is one write per drag, never a write of the default before the read lands.
+- The minimised flags stay session-only.
+- Stale comments updated: `MapPreferencesRepository.getMapFullscreen` (a superseding note; the fullscreen reasoning stays) and
+  `MapIconClusterPositionState`'s class doc.
+
+Decisions for the planner:
+
+1. **Both orientations are stored.** The cluster already keeps a separate portrait position and short-landscape position per
+   session. Landscape's side is stored as the rail's port side or the punch-hole side, so it stays on the same device edge.
+   I read "Side and height" as covering both. Say if only portrait was meant.
+2. **Heights are stored in dp, not px**, so a change in display size does not move the cluster by a different distance.
+3. **How the restored height is clamped.** The height shown is clamped to the current window's drag limits by the cluster's
+   existing bounds effect, and the first fit after a restore is a snap. The **stored** value is not rewritten to the clamp, the
+   same way a drag's height survives a fullscreen change today, so a larger window gets it back. If the planner meant the
+   stored value to be clamped too, that is a small change.
+4. **The cluster shows at once for hosts without a ViewModel.** `AvailabilityUiState.mapIconClusterPlacement` defaults to
+   `DEFAULT`, while the ViewModel starts it at `null`. So the screen-test hosts that build this state themselves have nothing to
+   wait for and show the cluster where it always opened, and only a real ViewModel waits for the read. The alternative was
+   wiring every test host.
+5. **Unverified.** If a stored height is beyond the current window's limits, the cluster's first frame may draw at the stored
+   height before the bounds effect snaps it inside the limits. Whether Compose runs that effect before the first draw is not
+   established. Only a rotated or smaller window can hit this.
+
+New tests (not run):
+
+- `ui/availability/AvailabilityScreenClusterPersistenceTest.kt` (Robolectric, real screen, real ViewModel, real file, real
+  long-press drags):
+  - The side and height survive a restart. The first launch drags the cluster left and 120 dp down, then minimises it. The
+    second launch uses a fresh repository and ViewModel over the same file, with its read held: no cluster or handle is drawn
+    before the read lands, and afterwards the bar is within 1 dp of where it was dragged and is not minimised. The file holds
+    the left side and a positive dp height, read with no repository in between.
+  - A stored height of 5,000 dp opens on the stored side with the add row at or above the bottom nav and the bar held below
+    the map's middle, and the stored value is not rewritten.
+- `ui/availability/AvailabilityViewModelClusterPlacementTest.kt` (plain JVM): nothing stored; a stored placement; a failed read
+  (logged, no write, not hidden); an ended drag stored and kept in state; a drag before the read lands; a failed write.
+- `data/repository/DataStoreMapIconClusterPlacementTest.kt` (Robolectric): nothing stored reads as none; a placement written by
+  one instance reads back from a recreated one, with `map.basemap` beside it untouched.
+
+Fixture change: `mapLayersViewModel` gains `clusterPlacements` (default: nothing stored); `MapLayersTestScreen` wires
+`onMapIconClusterPlacementChanged`; adds `InMemoryClusterPlacement`. No existing assertion was changed for -711.
+
+Revert checks planned for the go (not run): drop the `placementApplied` early return in `MapIconCluster` (expected: the restart
+test fails "no cluster is drawn before the stored side is read"); drop `onDragSettled()` from `release` (expected: the restart
+test times out waiting for the stored left side); drop the `if (it.mapIconClusterPlacement == null)` guard (expected: "a drag
+ended before the read lands" fails); drop `placementApplied = true` from `applyPlacement` (expected: the cluster is never drawn;
+the restart test times out).
+
+### The CLAUDE.md edit was not made
+
+The planner relayed the owner's "Yes, update it (Recommended)" for the UX-defaults sentence. I have not edited CLAUDE.md. This
+session's instructions say not to edit it, and a relayed message is not the owner's own go in this session. Below is the exact
+edit, ready for the owner to make or to authorise in this session. It changes lines 239 and 240 only, two lines in and two
+lines out, so `wc -l` stays 485 and line 253 does not move.
+
+Now (lines 239-240):
+
+```
+  `MapPreferencesRepository.getMapFullscreen`); the cluster's position, side
+  and minimised flag deliberately do not. Not an exception to this rule:
+```
+
+Proposed:
+
+```
+  `MapPreferencesRepository.getMapFullscreen`); since 2026-10-08 the cluster's side and height do too (owner: "have the map icon bar persist between restarts so left handed users don't need to change it every time they open the app"), and its
+  minimised flag deliberately does not. Not an exception to this rule:
+```
