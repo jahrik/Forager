@@ -189,3 +189,97 @@ fields tests must fail. (7) Restore either old banner string: the matching `Avai
   the screen tests wire `onUseCurrentLocation` to a recorder, and on the phone the path goes through `MainActivity`'s permission
   launcher, which no Robolectric test here drives.
 - Whether "Search coordinates" fits under the fields in short landscape without scrolling (above).
+
+## Amendment 3 (RECORD -702): data part D folded in
+
+The owner: "All of data part D, with search (Recommended)", carrying RECORD -656's dates, Finds and times. Written on top of
+`72dfa4e4`; base still `origin/main` `b71c1569` (fetched again first, unchanged; data parts A, B and C are all on it). Code and
+tests only, **nothing compiled or run**.
+
+### What changed
+
+One shared formatter, `app/src/main/java/com/zynergylabs/forager/app/ui/format/DisplayDates.kt`: `displayDate` ("Oct 7, 2026"),
+`displayTime` ("2:14 PM" / "14:14"), `displayDateTime`, and the composable `is24HourClock()` reading the phone's setting.
+`ui/availability/DisplayDates.kt` (part C) and `ui/log/EntryDates.kt` (part A) are deleted and their callers moved to it.
+
+Every ISO date and hard-coded format found by grep in `ui/` (`ofPattern`, `toString()` on a date, `"h:mm a"`), and what became of it:
+
+| Where | Was | Now |
+|---|---|---|
+| `ui/map/JournalEntriesOnMap.kt` `journalEntryDateLabel` (the map's journal menu, bubble date lines, their "Open entry …" labels) | `2026-09-12` | `Sep 12, 2026` |
+| `ui/map/MapBubbles.kt` find bubble | `Find on 2026-09-12` | `Find on Sep 12, 2026` |
+| `ui/map/MapBubbles.kt` planned-trip bubble; `AvailabilityTripsWaypointsUi.kt` trip row and its "Remove planned trip for …" label | `Oct 3` (`TRIP_WINDOW_DATE_FORMAT`, removed) / ISO in the label | `Oct 3, 2026` |
+| `ui/map/layers/MapLegend.kt` `legendDatesLine` (legend and forecast cell bubble) | `Week of 2026-09-28, weather to 2026-09-26` | `Week of Sep 28, 2026, weather to Sep 26, 2026` |
+| `AvailabilityMapOverlaysUi.kt` sighting date | its own `MMM d, yyyy` copy | the shared `displayDate` (same text) |
+| `ui/log/LogEntryDetailScreen.kt`, `LogEntryReportScreen.kt` find titles | `Find on 2026-08-01` | `Find on Aug 1, 2026` |
+| `ui/log/CartographyEntryListScreen.kt` long-click label | `Options for entry on 2026-09-20` | `Options for entry on Sep 20, 2026` |
+| `ui/track/TrackExportPanel.kt` `trackTitle`/`formatRecordTimestamp` (Records rows, track bubble, waypoint "Created", region "Downloaded", photo bubble) | always `h:mm a` | follows the phone; `formatRecordTimestamp` removed |
+| `ui/log/RecordDetailsSheet.kt` `formatSheetTimestamp` (part B) | its own copy | removed; the shared `displayDateTime`. The unnamed walk's sheet title and Records row now agree on a 24-hour phone (part B's item 8) |
+| `ui/crash/CrashLogPanel.kt` crash list times | always `h:mm a` | follows the phone |
+| `ui/log/FindsGalleryScreen.kt` Finds grid | flat grid, tiles "Find on 2026-10-07" | a heading per day ("Oct 7, 2026"), newest day first; each tile shows the find's given name, else "Found 2:14 PM" (phone's 12/24-hour), else the placeholder below. The Records logbook's find tiles are the same tile, so they change too |
+
+Already following the phone, unchanged: `SundownLineText.kt`, `EntryReportSummary.kt` and the alert notifications
+(`DateFormat.getTimeFormat`). Not display, unchanged: stored keys, file names, GPX, crash-file and API dates.
+
+The name on a tile is `MushroomLogEntry.ownIdentification`, the one name a user gives a find (inferred: the model has no other
+name field; it is user-entered, never app-generated). A tile therefore never names a species the user did not pick.
+
+### Stops
+
+1. **A find stores no time of day.** `MushroomLogEntry.foundOn` is a date (`domain/model/MushroomLogEntry.kt`); the entity has
+   no time column. "Found 2:14 PM" is built from the earliest of the find's photos taken on its own day
+   (`LogPhoto.createdAtEpochMillis`); a photo from another day (an import) is not used. A find with no such photo shows
+   **"Unnamed find", a placeholder I chose**, to be replaced. Options: (a) keep the photo time, with copy the owner picks for
+   the rest; (b) also record a found-at time on new finds (a new Room column and migration; existing finds would still have none);
+   (c) something else the owner prefers.
+2. **Dates with a weekday.** The Records logbook's day headers and the Album's day headers read "Sat, Sep 26, 2026"
+   (`RecordsLogbookList.kt` `DAY_HEADER_FORMAT`, `EntriesAlbum.kt` `ALBUM_DAY_FORMAT`). Left unchanged: keep the weekday, or drop
+   it to "Sep 26, 2026"?
+3. **Automatic waypoint names**, "Start · Sep 5, 9:41 AM" (`domain/AutoWaypointName.kt`), are stored as the waypoint's name when
+   a recording starts and ends: no year, always 12-hour, and in the domain layer, with no phone setting there. Left unchanged.
+   Change them for new waypoints (old names stay as stored), or leave them?
+4. **The find's own pages and its map bubble** still title an unnamed find "Find on Oct 7, 2026" (only the date format changed).
+   -656 speaks of the tile; should the bubble and the report title follow the tile's rule?
+5. **Decided by me, flagged:** the Drafts tab is grouped by day too; days are ordered newest first, as the Records logbook
+   orders them (the finds table has no order of its own, `MushroomLogDao.kt:28`), so the Finds tab's tile order changes from
+   storage order to by-day. The "+" tile stays first, alone on its row, above the first heading.
+
+Not changed and not display: the `snippet` properties in `ui/map/SightingsMap.kt` (`trip.date.toString()`,
+`observedOn?.toString()`) are written but no code reads them (grep for `"snippet"`).
+
+### Tests changed by Amendment 3
+
+| File | Was | Now | Why |
+|---|---|---|---|
+| `FindsGalleryScreenTest` (six lookups) | tile text `Find on 2026-08-01` / `-02` | the day heading `Aug 1, 2026` / `Aug 2, 2026` | the date moved from the tile to the heading |
+| same, the bare-find test | the date alone on the tile | the heading, plus the tile's title (the placeholder) | as above |
+| `JournalTabTest` (six lookups) | `Find on ${foundOn}` | `UNNAMED_FIND_NO_TIME` (the fixture has no name and no photo) | tile title |
+| same, Cancel on a new entry | no "Find on" text anywhere | no placeholder tile and no heading for today | "Find on" no longer appears on any tile, so its absence would pass whatever happened |
+| `JournalPageSlideTest` `findTile` | `Find on ${foundOn}` | `UNNAMED_FIND_NO_TIME` | tile title |
+| `JournalPendingDeleteTest` | tiles told apart by `Find on <date>`; long-press label `Options for Find on 2026-09-20` | fixtures named "Morel" and "Oyster", tiles told apart by name; label `Options for Morel` | two unnamed finds would have the same title. **Fixture change**, not only an assertion |
+| `RecordsFilterChipsTest` | `Find on ${CHIPS_FIND.foundOn}` exists; `Find on $d1` count 2 | the placeholder tile and the day heading exist; the placeholder inside each of F1's and F2's rows | tile title; the per-row check keeps the old "d1's two tiles" claim |
+| `LeavingTheJournalFixesTest`, `DrawerBackOverJournalTest` `FIND_TILE_TEXT` | `Find on 2026-08-02` | `Chanterelle`, the fixture's own name | tile title |
+| `MapBubblesTest` | `Find on 2026-09-12`; trip `Oct 3`; cell `Week of 2026-09-28, …`; photo date through `formatRecordTimestamp` | `Find on Sep 12, 2026`; `Oct 3, 2026`; `Week of Sep 28, 2026, weather to Sep 26, 2026`; `displayDateTime(…, false)`; every call passes `is24HourClock = false` | date format; the new required parameter |
+| `MapLegendTest`, `AvailabilityScreenMapLayersTest`, `AvailabilityScreenMapBubblesTest` | `Week of 2026-09-28, weather to 2026-09-2x`; trip `Oct 3` | the same in "Sep 28, 2026" form; `Oct 3, 2026` | date format |
+| `JournalEntriesOnMapTest`, `JournalEntriesChipTest`, `JournalEntriesOnMapScreenTest` | `2026-09-12`, `Open entry 2026-09-12` and the like | `Sep 12, 2026`, `Open entry Sep 12, 2026` | the journal menu and bubble dates; -656 supersedes Q3 |
+| `AvailabilityScreenLayoutTest` | `Remove planned trip for ${trip.date}` (ISO) | `… ${displayDate(trip.date)}` | date format |
+| `TrackSheetTilesTest` | `formatSheetTimestamp(…, is24Hour = …)` | `displayDateTime(…, is24HourClock = …)`, same expected text | the formatter moved |
+| `TrackSheetDataTest`, 24-hour test | the sheet's title and Started in 24-hour time | also: the Records row for the same unnamed walk reads the same 24-hour text | part B's item 8, the mismatch this part closes |
+| `ImportedTrackBubbleTest`, `EntryLabelsTest`, `SeasonalChartModelsTest` | — | the new parameter / the shared import | mechanical |
+
+New: `FindsGroupedByDayTest`: headings newest first with each tile under its own day, by laid-out bounds; a named tile shows
+its name and an unnamed one no species; "Found 2:14 PM" on a 12-hour phone and "Found 14:14" on a 24-hour one
+(`Settings.System.TIME_12_24`); the earlier of two same-day photos is the time; a photo from another day gives the placeholder;
+real touches at five points across each of two grouped tiles open that find through `onOpenEntry`; and headless checks of the
+title rule and the grouping.
+
+### Unverified, added by Amendment 3
+
+- Nothing compiled; Kotlin errors are possible, especially at the new `is24HourClock` parameter's call sites.
+- Under Robolectric the 12-hour default is assumed for every existing test that reads a 12-hour time (as part B's tests did).
+- The Finds grid's heading row is a full-width lazy-grid item; whether a deleted find's heading disappears smoothly when its day
+  empties is not checked (it goes at once; the tile fades).
+- Revert checks planned, not run: (8) restore `"Find on ${entry.foundOn}"` as the tile title: `FindsGroupedByDayTest`'s name and
+  "Found" tests fail; (9) drop the grouping (one flat `items`): the heading-position test fails; (10) hard-code `is24HourClock =
+  false` in `trackTitle`'s caller: `TrackSheetDataTest`'s new row assertion fails; (11) restore `journalEntryDateLabel` to
+  `toString()`: `JournalEntriesOnMapTest` fails on "Sep 12, 2026".
