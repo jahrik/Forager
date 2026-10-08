@@ -294,4 +294,30 @@ class BackByWatchTest {
         runBlocking { partial.tick() }
         assertTrue(logged.toString(), logged.any { it.contains("only partly delivered") && it.contains("POST_NOTIFICATIONS denied") })
     }
+
+    /**
+     * Merged with dispatch 2026-09-28-685 (RECORD -687): a buzz Android drops is logged as skipped with its reason, as the
+     * sundown alerts log theirs, and never as issued.
+     */
+    @Test
+    fun `a skipped buzz is logged as skipped, with its reason, not as issued`() {
+        val skipped = BackByWatch(
+            alertDelivery = object : AlertDelivery {
+                override fun deliver(alert: Alert) = Unit
+                override fun deliverReporting(alert: Alert) = AlertDeliveryOutcome(true, null, false, null, VIBRATION_SKIPPED_DO_NOT_DISTURB)
+            },
+            clock = clock,
+            readTrack = { Result.success(null) },
+            readWaypoint = { Result.success(null) },
+            isReturning = { false },
+            errorLog = { _, message, _ -> logged += message },
+        )
+        skipped.begin("t1")
+        skipped.set("t1", start)
+        runBlocking { skipped.tick() }
+        assertEquals(
+            listOf("The back-by alert was only partly delivered: notification posted, vibration skipped: Do Not Disturb."),
+            logged,
+        )
+    }
 }
