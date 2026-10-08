@@ -153,7 +153,7 @@ internal fun FindsGalleryScreen(
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag(FINDS_GRID_TAG),
             contentPadding = PaddingValues(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -215,6 +215,12 @@ private fun FindsDayHeader(day: LocalDate, modifier: Modifier = Modifier) {
         modifier = modifier.padding(top = Spacing.sm).testTag(findsDayHeaderTag(day)),
     )
 }
+
+/**
+ * The Finds grid, for tests (RECORD -717): the grid is lazy, so a tile below the window is not composed, and a test scrolls the
+ * grid to a tile ([androidx.compose.ui.test.performScrollToNode]) before touching or counting it.
+ */
+internal const val FINDS_GRID_TAG = "finds-grid"
 
 /** A Finds grid day heading, for tests. */
 internal fun findsDayHeaderTag(day: LocalDate): String = "finds-day-header-$day"

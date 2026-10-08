@@ -161,6 +161,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.performScrollToNode
+import com.zynergylabs.forager.app.ui.log.FINDS_GRID_TAG
 
 /**
  * The Leaving-the-Journal fixes, intent 2026-09-28-44 (`prompts/preserved/2026-09-28-44.md`; the
@@ -408,6 +410,11 @@ class LeavingTheJournalFixesTest {
 
     private fun openFindReport() {
         openFindsGallery()
+        // RECORD -717: the Finds grid is lazy, and with the day heading above it (data part D) the tile sits below a short
+        // landscape window and is not composed (measured at the build, on JournalPendingDeleteTest's window: the second day's
+        // heading at 1240-1280 px of 1280). Scroll the grid to it first; the assertions are unchanged.
+        composeRule.onNodeWithTag(FINDS_GRID_TAG).performScrollToNode(hasText(FIND_TILE_TEXT))
+        composeRule.waitForIdle()
         // The merged tile, whose centre is on screen in both windows: the tile's own text sits at its
         // foot, below the edge of a short landscape window, so a click there reaches nothing.
         composeRule.onNodeWithText(FIND_TILE_TEXT).performClick()

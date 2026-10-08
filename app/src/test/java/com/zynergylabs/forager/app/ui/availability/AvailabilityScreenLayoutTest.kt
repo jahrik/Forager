@@ -977,10 +977,10 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.waitForIdle()
     }
 
-    // One touch per test, each on a fresh screen. A button in the dropdown closes it and, under Robolectric, the search field
-    // keeps its focus afterwards (measured at the build: focused before the second touch, and the touch opened nothing), so a
-    // second touch on the field in the same test does not reopen the dropdown. Whether that happens on a phone is reported as a
-    // finding (search-order report, the build section), not worked around here.
+    // One touch per test, each on a fresh screen. This class's window is out of touch mode (Robolectric's start; it sets no
+    // touch mode), where the close's clearFocus hands focus straight back to the search field, so a second tap on the field
+    // in the same test opens nothing (measured at the build, RECORD -717; it is the window's mode, not the button: Back does
+    // the same there). In touch mode, as with a finger, the bar reopens after every button: SearchDropdownReopenTest.
 
     /**
      * RECORD -700, the owner: "Search is the same as "Use current location" just renamed and relocated."
