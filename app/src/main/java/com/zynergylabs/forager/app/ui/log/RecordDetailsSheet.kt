@@ -69,6 +69,26 @@ import com.zynergylabs.forager.app.ui.track.trackTitle
 import com.zynergylabs.forager.app.ui.track.IMPORTED_LABEL
 import com.zynergylabs.forager.app.ui.track.NO_TIMES_IN_FILE
 import kotlinx.coroutines.launch
+import android.text.format.DateFormat
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.semantics.Role
+import com.zynergylabs.forager.app.domain.HeightProfile
+import com.zynergylabs.forager.app.domain.heightProfileOf
+import com.zynergylabs.forager.app.domain.model.TrackStatistics
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatSpeed
+import com.zynergylabs.forager.app.domain.model.formatTimeSpan
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * Which Records row's details sheet is open (journal redesign J5c; the owner: "have them display info
@@ -288,6 +308,7 @@ private fun RecordDetailsSheetFor(
                 onDeleteTrack = onDeleteTrack,
                 onNavigateToWaypoint = onNavigateToWaypoint,
                 onOpenDetails = onOpenDetails,
+                overMap = overMap,
             )
         }
     }
@@ -309,6 +330,7 @@ private fun RecordDetailsBody(
     onDeleteTrack: ((String) -> Unit)?,
     onNavigateToWaypoint: ((String) -> Unit)?,
     onOpenDetails: ((RecordDetailsTarget) -> Unit)?,
+    overMap: Boolean,
 ) {
     when {
         waypoint != null -> WaypointDetails(waypoint, tracks, waypointEntryReferenceCounts, onNavigateToWaypoint)
@@ -319,6 +341,7 @@ private fun RecordDetailsBody(
             getFullRecord,
             onDeleteTrack,
             onOpenWaypoint = onOpenDetails?.let { open -> { id: String -> open(RecordDetailsTarget.WaypointDetails(id, fromTrackId = track.id)) } },
+            overMap = overMap,
         )
         region != null -> OfflineRegionDetails(region, distanceUnit, nowEpochMillis, staleThresholdDays)
     }
@@ -372,14 +395,18 @@ private fun TrackDetails(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteTrack: ((String) -> Unit)?,
     onOpenWaypoint: ((String) -> Unit)?,
+    overMap: Boolean,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     // The same derivation the entry editor's candidate rows use for a live track
     // (CartographyEntryEditScreen's TracksSection), from the points already in memory.
     val stats = ComputeTrackStatisticsUseCase()(track.points)
+    // Dispatch 2026-09-28-677 (data part B): times follow the phone's 12- or 24-hour setting on this sheet.
+    val is24Hour = DateFormat.is24HourFormat(context)
+    val stamp = { epochMillis: Long -> formatSheetTimestamp(epochMillis, is24Hour) }
     // Plan T16: an imported track wears "Imported" beside its title, as a stale region wears "Stale".
-    DetailsTitle(trackTitle(track), label = IMPORTED_LABEL.takeIf { track.importedAtEpochMillis != null })
+    DetailsTitle(track.name ?: stamp(track.startedAtEpochMillis), label = IMPORTED_LABEL.takeIf { track.importedAtEpochMillis != null })
     // Dispatch -616 as amended by -618: the drawing carries start, end and dropped-waypoint dots, and the
     // list of those waypoints sits under it.
     WalkThumbnail(
@@ -387,19 +414,31 @@ private fun TrackDetails(
         waypoints = waypoints,
         modifier = Modifier.size(TRACK_THUMBNAIL_SIZE).testTag(RECORD_DETAILS_THUMBNAIL_TAG),
     )
-    WalkWaypointsSection(waypointsDroppedOn(track, waypoints), onOpenWaypoint)
+    // Dispatch 2026-09-28-677 (data part B; the owner, RECORD -656: "Tiles + profile, raw tucked away (Recommended)"): the
+    // figures as labelled tiles, then the height profile, both data part A's own (LabelledTiles, EntryHeightProfile), so the
+    // track sheet and the entry report read alike. Over a map the tiles are outlined, not filled: the sheet's container
+    // already carries the map chrome's alpha, and a fill on top would composite past it.
+    LabelledTiles(
+        tiles = trackSheetTiles(track, stats, distanceUnit),
+        tagOf = ::trackTileTag,
+        overMap = overMap,
+    )
+    EntryHeightProfile(profile = trackHeightProfile(track), distanceUnit = distanceUnit)
     // Plan T16, "Import, show "No times"" (-636): a file with no times has none to show; its stored times are
     // only an ordering, so each place a time or a duration would be says so instead.
     val noTimes = track.importedWithoutTimes
-    DetailField(FIELD_STARTED, "Started", if (noTimes) NO_TIMES_IN_FILE else formatRecordTimestamp(track.startedAtEpochMillis))
-    DetailField(FIELD_ENDED, "Ended", if (noTimes) NO_TIMES_IN_FILE else track.endedAtEpochMillis?.let(::formatRecordTimestamp) ?: "Still recording")
-    track.importedAtEpochMillis?.let { DetailField(FIELD_IMPORTED, IMPORTED_LABEL, formatRecordTimestamp(it)) }
-    DetailField(FIELD_DISTANCE, "Distance", formatDistanceMeters(stats.distanceMeters, distanceUnit))
-    DetailField(FIELD_DURATION, "Duration", trackDurationLabel(track, stats.durationMillis))
-    DetailField(FIELD_POINTS, "Points", track.points.size.toString())
+    DetailField(FIELD_STARTED, "Started", if (noTimes) NO_TIMES_IN_FILE else stamp(track.startedAtEpochMillis))
+    DetailField(FIELD_ENDED, "Ended", if (noTimes) NO_TIMES_IN_FILE else track.endedAtEpochMillis?.let(stamp) ?: "Still recording")
+    track.importedAtEpochMillis?.let { DetailField(FIELD_IMPORTED, IMPORTED_LABEL, stamp(it)) }
     networkFixExclusionNote(track)?.let { note ->
         Text(note, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(RECORD_DETAILS_NOTE_TAG))
     }
+    // The raw figures, folded (the owner: "Points and other raw figures go in a "Details" fold").
+    DetailsFold {
+        DetailField(FIELD_POINTS, "Points", track.points.size.toString())
+        DetailField(FIELD_HEIGHTS, HEIGHTS_FIELD_LABEL, heightsRecordedLabel(stats.pointsWithAltitude, stats.totalPoints))
+    }
+    WalkWaypointsSection(waypointsDroppedOn(track, waypoints), onOpenWaypoint, stamp)
     DetailsActions {
         OutlinedButton(
             onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
@@ -432,7 +471,7 @@ private fun TrackDetails(
  * a map the sheet's container already carries the map chrome's alpha.
  */
 @Composable
-private fun WalkWaypointsSection(dropped: List<Waypoint>, onOpen: ((String) -> Unit)?) {
+private fun WalkWaypointsSection(dropped: List<Waypoint>, onOpen: ((String) -> Unit)?, stamp: (Long) -> String) {
     if (dropped.isEmpty()) return
     Text(
         WALK_WAYPOINTS_HEADING,
@@ -453,7 +492,7 @@ private fun WalkWaypointsSection(dropped: List<Waypoint>, onOpen: ((String) -> U
         ) {
             Text(waypoint.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Text(
-                formatRecordTimestamp(waypoint.createdAtEpochMillis),
+                stamp(waypoint.createdAtEpochMillis),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -520,6 +559,46 @@ private fun DetailField(key: String, label: String, value: String) {
     }
 }
 
+/**
+ * "Details", a fold for the raw figures (dispatch 2026-09-28-677; the owner, RECORD -656: "Points and other raw figures go
+ * in a "Details" fold"). Closed at first. A tap anywhere on its 48 dp header row opens or closes it, and a screen reader
+ * hears it as a button that says which it will do. Whether it is open is [LocalTrackDetailsFold]'s, held by
+ * `AvailabilityScreen` above every place this sheet opens, so it survives closing the sheet, opening another walk, a
+ * waypoint and Back, and leaving the tab, within a session (CLAUDE.md, UX defaults); with no holder it is this sheet's own.
+ */
+@Composable
+private fun DetailsFold(content: @Composable () -> Unit) {
+    val state = LocalTrackDetailsFold.current ?: remember { mutableStateOf(false) }
+    var open by state
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = DETAILS_FOLD_MIN_HEIGHT)
+            .clickableWithShapedPress(
+                role = Role.Button,
+                onClickLabel = if (open) DETAILS_FOLD_HIDE_LABEL else DETAILS_FOLD_SHOW_LABEL,
+                onClick = { open = !open },
+            )
+            .testTag(RECORD_DETAILS_FOLD_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(DETAILS_FOLD_TITLE, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            contentDescription = null,
+        )
+    }
+    if (open) content()
+}
+
+/**
+ * Whether the track sheet's "Details" fold is open ([DetailsFold]): one flag for every track sheet, provided by
+ * `AvailabilityScreen` in `rememberSaveable` state. `null` (no holder, as in a test that composes the sheet alone) keeps the
+ * flag in the sheet.
+ */
+internal val LocalTrackDetailsFold = staticCompositionLocalOf<MutableState<Boolean>?> { null }
+
 @Composable
 private fun DetailsActions(content: @Composable () -> Unit) {
     Row(modifier = Modifier.padding(top = Spacing.sm), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
@@ -549,13 +628,68 @@ internal fun formatTrackDuration(durationMillis: Long): String {
     return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
 }
 
+/**
+ * The track sheet's tiles (dispatch 2026-09-28-677; the owner, RECORD -656: "Distance, Time, Climb, Descent, Avg speed"), as
+ * label and value, in order. Separate from the layout so a test reads every figure exactly.
+ *
+ * - **Time** is first point to last, moving or not, as Duration was, in data part A's words ("1 h 10 min", [formatTimeSpan]).
+ * - **Climb** and **Descent** are the hysteresis-filtered gain and loss ([ComputeTrackStatisticsUseCase]); a track with no
+ *   two heights in a row has neither, and says "Not recorded", as the entry report's Climb does.
+ * - **Avg speed** is distance over that same time, so stops count against it.
+ * - A file with no times has no Time and no Avg speed: each says [NO_TIMES_IN_FILE], as the times above them do (-636).
+ *   A track whose first and last points share a time has no speed to give: a dash ([MISSING_FIGURE]).
+ */
+internal fun trackSheetTiles(track: Track, stats: TrackStatistics, distanceUnit: DistanceUnit): List<Pair<String, String>> {
+    val unitSystem = UnitSystem.forDistanceUnit(distanceUnit)
+    val noTimes = track.importedWithoutTimes
+    return listOf(
+        TILE_DISTANCE to formatDistanceMeters(stats.distanceMeters, distanceUnit),
+        TRACK_TILE_TIME to if (noTimes) NO_TIMES_IN_FILE else formatTimeSpan(stats.durationMillis),
+        TILE_CLIMB to (stats.elevationGainMeters?.let { formatWholeLength(it, unitSystem) } ?: CLIMB_NOT_RECORDED),
+        TRACK_TILE_DESCENT to (stats.elevationLossMeters?.let { formatWholeLength(it, unitSystem) } ?: CLIMB_NOT_RECORDED),
+        TRACK_TILE_AVG_SPEED to when {
+            noTimes -> NO_TIMES_IN_FILE
+            else -> stats.averageSpeedMetersPerSecond?.let { formatSpeed(it, distanceUnit) } ?: MISSING_FIGURE
+        },
+    )
+}
+
+/** One track's height profile, by the entry report's rule ([heightProfileOf]); a track with no points has none to draw. */
+internal fun trackHeightProfile(track: Track): HeightProfile =
+    if (track.points.isEmpty()) HeightProfile.TooFewHeights(pointsWithHeight = 0, totalPoints = 0) else heightProfileOf(listOf(track))
+
+/** "45 of 120 points": how many of the walk's points carry a height, the figure the Climb and the profile rest on. */
+internal fun heightsRecordedLabel(pointsWithHeight: Int, totalPoints: Int): String = "$pointsWithHeight of $totalPoints points"
+
+/**
+ * A moment on the track sheet, "Oct 7, 2026, 2:14 PM", or "Oct 7, 2026, 14:14" when the phone is set to 24-hour time
+ * (dispatch 2026-09-28-677; the owner, RECORD -656: dates read "Oct 7, 2026" and times follow the phone's setting). The
+ * 12-hour form is the Records rows' own ([formatRecordTimestamp]), so on a 12-hour phone the two agree exactly; the rows
+ * themselves are data part D's. The phone's language names the month, as there.
+ */
+internal fun formatSheetTimestamp(epochMillis: Long, is24Hour: Boolean, zone: ZoneId = ZoneId.systemDefault()): String =
+    DateTimeFormatter.ofPattern(if (is24Hour) "MMM d, yyyy, HH:mm" else "MMM d, yyyy, h:mm a")
+        .format(Instant.ofEpochMilli(epochMillis).atZone(zone))
+
 private val FIELD_LABEL_WIDTH = 112.dp
+private val DETAILS_FOLD_MIN_HEIGHT = 48.dp
 private val TRACK_THUMBNAIL_SIZE = 96.dp
 
 /** The Material minimum touch target, so a row is easy to hit with a thumb. */
 private val WALK_WAYPOINT_ROW_MIN_HEIGHT = 48.dp
 
 internal const val WALK_WAYPOINTS_HEADING = "Waypoints on this track"
+
+/** Dispatch -677: the track sheet's new words. **New strings, a stop for the owner** (Distance and Climb are data part A's). */
+internal const val TRACK_TILE_TIME = "Time"
+internal const val TRACK_TILE_DESCENT = "Descent"
+internal const val TRACK_TILE_AVG_SPEED = "Avg speed"
+internal const val DETAILS_FOLD_TITLE = "Details"
+internal const val DETAILS_FOLD_SHOW_LABEL = "Show details"
+internal const val DETAILS_FOLD_HIDE_LABEL = "Hide details"
+internal const val HEIGHTS_FIELD_LABEL = "With height"
+internal fun trackTileTag(label: String) = "track-tile-$label"
+internal const val RECORD_DETAILS_FOLD_TAG = "record-details-fold"
 internal const val RECORD_DETAILS_WALK_WAYPOINTS_HEADING_TAG = "record-details-walk-waypoints-heading"
 internal fun recordDetailsWalkWaypointTag(waypointId: String): String = "record-details-walk-waypoint-$waypointId"
 
@@ -585,6 +719,7 @@ internal const val FIELD_DISTANCE = "distance"
 internal const val FIELD_DURATION = "duration"
 internal const val FIELD_IMPORTED = "imported"
 internal const val FIELD_POINTS = "points"
+internal const val FIELD_HEIGHTS = "heights"
 internal const val FIELD_RADIUS = "radius"
 internal const val FIELD_CENTRE = "centre"
 internal const val FIELD_TILES = "tiles"
