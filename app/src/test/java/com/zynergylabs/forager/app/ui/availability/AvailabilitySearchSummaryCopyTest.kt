@@ -110,8 +110,9 @@ class CompactSearchBarCopyTest {
  * the compact search bar shows. The coordinates show at once and first, with no "Advanced search" or
  * "Enter coordinates manually" fold (owner: "remove the drop down functions for the advanced
  * search"), and the dropdown opens at its top, not scrolled: the Latitude field's top is the panel's
- * own padding below the panel's top. "Use current location" and "Search this location" are gone; Set
- * on map and Search are in the panel.
+ * own padding below the panel's top. "Search coordinates" shows under the fields (RECORD -700). "Use
+ * current location" (renamed Search) and "Search this location" are gone as labels; Set on map and
+ * Search are in the panel.
  */
 private fun ComposeContentTestRule.assertCompactBarTapShowsCoordinatesFirst() {
     setUnsearchedScreen()
@@ -124,6 +125,7 @@ private fun ComposeContentTestRule.assertCompactBarTapShowsCoordinatesFirst() {
     val panelTop = onNodeWithTag(SEARCH_DROPDOWN_TAG).getUnclippedBoundsInRoot().top
     val latitudeTop = onNodeWithTag(SEARCH_DROPDOWN_LATITUDE_TAG).getUnclippedBoundsInRoot().top
     assertEquals("the dropdown opened at its top, not scrolled", Spacing.lg.value, (latitudeTop - panelTop).value, 0.5f)
+    onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).assertIsDisplayed()
     onNodeWithTag(SEARCH_DROPDOWN_SET_ON_MAP_TAG).assertExists()
     onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).assertExists()
     for (removed in listOf("Advanced search", "Enter coordinates manually", "Use current location", "Search this location")) {

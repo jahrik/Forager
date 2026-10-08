@@ -65,6 +65,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
@@ -306,7 +307,8 @@ internal fun SearchEntryBar(
  *
  * Item 3 — manual coordinates: once collapsed by default under "Enter coordinates manually" inside
  * "Advanced search"; since dispatch 2026-09-28-697 both folds are gone and Latitude and Longitude
- * are this panel's first row, searched by the Search button at the bottom (see the body's comment).
+ * are this panel's first row, searched by the "Search coordinates" button under them (RECORD -700).
+ * The bottom row's Search is "Use current location" renamed and moved (see the body's comment).
  *
  * Item 4 — the "redundant list" this dispatch asks to confirm and remove: none exists. The only
  * list this drawer's advanced-search content has ever shown is [ResultsSection]'s ranked species
@@ -318,13 +320,8 @@ internal fun SearchEntryBar(
 internal fun SearchDropdown(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
-    /**
-     * Not drawn by any control since dispatch 2026-09-28-697 removed "Use current location" from this
-     * panel. Kept, and still wired by the caller, while the owner decides how Search reaches the
-     * current position (that dispatch's stop: today the fields are not prefilled with it, see the
-     * dispatch's report, docs/ui/2026-10-07-search-order-report.md). Remove it once that is decided.
-     */
-    @Suppress("UNUSED_PARAMETER") onUseCurrentLocation: () -> Unit,
+    /** The bottom row's Search: "Use current location", renamed and moved (RECORD -700). */
+    onUseCurrentLocation: () -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
     onManualLatChanged: (String) -> Unit,
@@ -362,8 +359,8 @@ internal fun SearchDropdown(
                 if (scrollState.isScrollInProgress) focusManager.clearFocus()
             }
             // Dispatch 2026-09-28-697 (RECORD intent -697) reordered this panel, top to bottom:
-            // coordinates, Month, Search radius, Recent searches, then Set on map and Search side by
-            // side at the bottom. The owner, verbatim: "the search menu is a bit unorganized. The
+            // coordinates with "Search coordinates" under them (RECORD -700), Month, Search radius,
+            // Recent searches, then Set on map and Search side by side at the bottom. The owner, verbatim: "the search menu is a bit unorganized. The
             // search button is all the way at the top, tucked away, while manual search is at the
             // bottom. That's a bit backwards"; "The set on map and search button where the "Search
             // this location" button is now. Manual can go at the top, tucked away where the current
@@ -402,6 +399,15 @@ internal fun SearchDropdown(
                         singleLine = true,
                     )
                 }
+                // RECORD -700, the owner on typed coordinates: "Small button under the fields". A text
+                // button, so it reads as smaller than the bottom row's two; it runs the manual-coordinates
+                // search "Search this location" ran, its validation and error text unchanged.
+                TextButton(
+                    onClick = onSearchManualCoordinates,
+                    modifier = Modifier.testTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG),
+                ) {
+                    Text("Search coordinates")
+                }
                 MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected, overMap = overMap)
                 Text(
                     "Search radius: ${formatDistanceKm(uiState.radiusKm, distanceUnit)}",
@@ -427,8 +433,10 @@ internal fun SearchDropdown(
                 HorizontalDivider()
                 // The bottom row, near the thumb: Set on map on the left, Search on the right (owner,
                 // "Search on the right, set on map on the left"). Actions, not selections:
-                // OutlinedButton/Button, not FilterChip. Search is the filled one, as "Use current
-                // location" was in this same place in the row before it.
+                // OutlinedButton/Button, not FilterChip. Search is "Use current location" renamed and
+                // moved, the same path unchanged (permission, one fix, the fields written, a search),
+                // and reads no field. RECORD -700, the owner: "There are no fields to fill in. Search is
+                // the same as "Use current location" just renamed and relocated."
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     OutlinedButton(
                         onClick = onSetOnMap,
@@ -439,7 +447,7 @@ internal fun SearchDropdown(
                         Text("Set on map")
                     }
                     Button(
-                        onClick = onSearchManualCoordinates,
+                        onClick = onUseCurrentLocation,
                         modifier = Modifier.weight(1f).testTag(SEARCH_DROPDOWN_SEARCH_TAG),
                     ) {
                         Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -457,6 +465,9 @@ internal const val SEARCH_DROPDOWN_LATITUDE_TAG = "search-dropdown-latitude"
 
 /** [SearchDropdown]'s Longitude field, for tests. */
 internal const val SEARCH_DROPDOWN_LONGITUDE_TAG = "search-dropdown-longitude"
+
+/** [SearchDropdown]'s "Search coordinates" text button, under Latitude and Longitude, for tests. */
+internal const val SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG = "search-dropdown-search-coordinates"
 
 /** [SearchDropdown]'s Set on map button, the left of its bottom row, for tests. */
 internal const val SEARCH_DROPDOWN_SET_ON_MAP_TAG = "search-dropdown-set-on-map"
@@ -562,10 +573,14 @@ internal fun searchNoticeMessage(uiState: AvailabilityUiState): String? =
         ?: uiState.taxonSearchErrorMessage
         ?: uiState.plannedTripsErrorMessage
         ?: if (uiState.locationPermissionDenied) {
-            "Location permission was denied. Open search options and enter coordinates manually."
+            // RECORD -700, the owner: "Option 1, but only refer to "Set on map" since that is right there."
+            LOCATION_PERMISSION_DENIED_MESSAGE
         } else {
             null
         }
+
+/** The banner when location permission is denied; the owner's wording, RECORD -700. */
+internal const val LOCATION_PERMISSION_DENIED_MESSAGE = "Location permission was denied. Tap Set on map to choose a place."
 
 /** [SearchNotice]'s banner, for tests. */
 internal const val SEARCH_NOTICE_TAG = "search-notice"

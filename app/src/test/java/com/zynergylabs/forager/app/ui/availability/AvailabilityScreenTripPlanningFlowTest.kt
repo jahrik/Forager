@@ -199,7 +199,7 @@ class AvailabilityScreenTripPlanningFlowTest {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 

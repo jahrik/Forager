@@ -99,6 +99,8 @@ class SearchDropdownKeyboardTest {
 
         composeRule.onNodeWithText("Latitude").assertIsDisplayed()
         composeRule.onNodeWithText("Longitude").assertIsDisplayed()
+        // RECORD -700: the button that searches them sits under them, so it stays in view with them.
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).assertIsDisplayed()
     }
 
     @Test

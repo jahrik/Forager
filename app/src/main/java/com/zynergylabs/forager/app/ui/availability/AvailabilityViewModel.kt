@@ -492,7 +492,7 @@ class AvailabilityViewModel(
                     it.copy(isLoading = false, locationPermissionDenied = true)
                 }
                 LocationResult.LocationUnavailable -> _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Couldn't determine your location. Enter coordinates manually instead.")
+                    it.copy(isLoading = false, errorMessage = COULD_NOT_FIND_LOCATION_MESSAGE)
                 }
             }
         }
@@ -1728,3 +1728,9 @@ private object NoStoredMapLayerPreferences : MapLayerPreferencesRepository {
  */
 internal const val RESTORED_REGIONS_UNREADABLE_MESSAGE =
     "Couldn't read the regions from your backup. Showing downloaded regions only. Reopen Offline maps to try again."
+
+/**
+ * The banner when "Use current location", now the search panel's Search button, gets no fix. The owner's wording (RECORD -700:
+ * "Option 1, but only refer to "Set on map" since that is right there."): Set on map sits beside Search in that panel.
+ */
+internal const val COULD_NOT_FIND_LOCATION_MESSAGE = "Couldn't find your location. Tap Set on map to choose a place."

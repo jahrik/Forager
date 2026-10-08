@@ -972,14 +972,14 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        // performScrollTo(): Search sits in the dropdown's bottom row (dispatch 2026-09-28-697), below
-        // month, radius and Recent searches, which can put it below the dropdown's own bounded,
-        // scrolled viewport on this suite's w360dp-h640dp config — without
+        // performScrollTo(): "Search coordinates" sits under the fields (RECORD -700); kept in case it
+        // is ever below the dropdown's own bounded, scrolled viewport on this suite's w360dp-h640dp
+        // config — without
         // this, performClick() reports the tap against this node's own (correct, but currently
         // off-screen) semantic bounds, which lands on nothing actually rendered there, so the
         // region never gets set and every downstream assertion in this file that depends on
         // searchAReferenceRegion having actually run a search fails silently.
-        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
