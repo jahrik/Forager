@@ -1,3 +1,3 @@
-# Baseline for scripts/verify-dex-register-budget.sh: "<registers> <class>.<method>" per line.
-# Empty placeholder (RECORD -739, work in progress): see the script's header for why no methods are
-# recorded yet.
+# Baseline for scripts/verify-dex-register-budget.sh (report only, not a guard): "<registers> <class>.<method>".
+# Recorded 2026-10-08 (RECORD -741) from the launch-verifyerror branch's debug APK, D8/R8 9.3.31. Every method here
+# launches on the S22 at that commit (scripts/s22-launch-check.sh PASS).
