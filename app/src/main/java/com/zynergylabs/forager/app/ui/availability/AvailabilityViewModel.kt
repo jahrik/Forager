@@ -194,6 +194,14 @@ class AvailabilityViewModel(
      * as when each was launched on the scope directly.
      */
     private var searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
+
+    /**
+     * RECORD -725: the region, month and filter of the search last run ([refresh]), which the map's sightings and
+     * the seasonal pattern are fetched for. Read instead of the UI state's current values because picking a species
+     * suggestion now selects it without searching ("no search yet"); the map must go on showing the search that ran,
+     * not fetch the newly picked species for the old region. Null before any search and after [clearSearch].
+     */
+    private var activeSearch: Triple<Region, Int, TaxonFilter>? = null
     private var taxonSearchJob: Job? = null
 
     /**
@@ -787,14 +795,13 @@ class AvailabilityViewModel(
      * map view the user never opens shouldn't cost an extra API call.
      */
     fun onMapTabSelected() {
-        val state = _uiState.value
-        val region = state.region ?: return
-        val query = Triple(region, state.selectedMonth, state.taxonFilter)
+        val query = activeSearch ?: return
+        val (region, month, filter) = query
         if (loadedSightingsQuery == query) return
 
         viewModelScope.launch(searchJobs) {
             _uiState.update { it.copy(isLoadingSightings = true, sightingsErrorMessage = null) }
-            getSightings(region, state.selectedMonth, state.taxonFilter).fold(
+            getSightings(region, month, filter).fold(
                 onSuccess = { page ->
                     loadedSightingsQuery = query
                     _uiState.update {
@@ -822,14 +829,13 @@ class AvailabilityViewModel(
      * repeat on every tab switch.
      */
     fun onSeasonalTabSelected() {
-        val state = _uiState.value
-        val region = state.region ?: return
-        val query = Triple(region, state.selectedMonth, state.taxonFilter)
+        val query = activeSearch ?: return
+        val (region, month, filter) = query
         if (loadedSeasonalPatternQuery == query) return
 
         viewModelScope.launch(searchJobs) {
             _uiState.update { it.copy(isLoadingSeasonalPattern = true, seasonalPatternErrorMessage = null) }
-            getSeasonalPattern(region, state.selectedMonth, state.taxonFilter).fold(
+            getSeasonalPattern(region, month, filter).fold(
                 onSuccess = { distribution ->
                     loadedSeasonalPatternQuery = query
                     _uiState.update { it.copy(isLoadingSeasonalPattern = false, seasonalPattern = distribution) }
@@ -849,6 +855,7 @@ class AvailabilityViewModel(
     }
 
     private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
+        activeSearch = Triple(region, month, filter)
         // A new search invalidates any sightings loaded for a previous region/month/filter.
         loadedSightingsQuery = null
         _uiState.update {
@@ -1029,6 +1036,7 @@ class AvailabilityViewModel(
     fun clearSearch() {
         searchJobs.cancel()
         searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
+        activeSearch = null
         loadedSightingsQuery = null
         loadedSeasonalPatternQuery = null
         _uiState.update {
