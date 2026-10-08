@@ -292,3 +292,42 @@ coordinates only. Not changed here.
 
 `t6b-night` inactive before every run, not touched; `./gradlew --stop` after every scope; no Gradle process left; free disk
 3.1 GB.
+
+## S5's fixed compass, and RECORD -736: the strip keeps its portrait height
+
+**S5** (the planner's choice, citing -735), commit `3c984eb2`: the landscape half of `AvailabilityScreenLandscapeB2Test` S5
+gets a fixed 315° compass, so it still checks the heading value's tabular figures; its claim is unchanged. **Wrong premise in
+that instruction:** the portrait half (`AvailabilityScreenPortraitStripTnumTest`) has no fixed compass; it passes because in
+portrait the heading reads "Compass unavailable", text in the same style. Left as it is. Full suite then 4,444, 24 skipped,
+0 failures.
+
+**-736**, the owner verbatim: "Yes for landscape I'm willing to accept a shorter search bar. The compass strip must remain the
+same height as portrait though and that's important". Commit `8904d8ff`. -729's decided-beyond-scope floor, which grew the
+landscape strip to the bar's field height at large fonts, is removed; the strip is now exactly as tall as in portrait. The bar
+takes the strip's height; in landscape its field and Clear are at most the height above its divider (`rowFieldHeight`), so at a
+large font they are shorter than twice the line instead.
+
+**Measured** (native graphics, xxhdpi, a search showing so Clear shows; `StripHeight*Test` prints them):
+
+| | Strip, portrait | Strip, landscape | Bar | Field | Resting text | Clear |
+|---|---|---|---|---|---|---|
+| font 1.0 | 36 | 36 | 36 | 32 tall | 16.33 dp line, 14 of 14 shown | 58 x 32 |
+| font 2.0 | 37.33 | 37.33 | 37.33 | 36.33 tall (was 64 at -729's floor) | 30.33 dp line, 14 of 14 shown | 86 x 36.33 |
+
+At font 2.0, in both windows and rotations, nothing in the bar is cut: the field's text line (30.33 dp) fits its 36.33 dp, the
+summary "October · 9 mi" shows whole, and "Clear" shows whole (its text box fills the button's 36.33 dp height). Clear's touch
+target is 86 x 36.33 dp at font 2.0 (58 x 32 at font 1.0), under Material's 48 dp in height in both, as already reported for
+-723. The strip at font 2.0 is 37.33 dp, not 36: its readout line is taller than the three-dot button there. Bar widths at font
+2.0: 343.67 dp (780 and 823, rotation 90; 823 / 270 likewise), the strip 330.33 dp at 780 and 373.33 at 823.
+
+**Tests** (`StripHeightTest`, file `LandscapeStripPortraitHeightTest.kt`, 10 tests): portrait at fonts 1.0 and 2.0 (the positive
+control) and landscape at 780 and 823, both rotations, fonts 1.0 and 2.0: the strip equals its laid-out content height (the
+larger of its button and its readout line), and in landscape the bar equals the strip. A first draft computed the expected
+line from the 20 sp line height, 36 dp at font 2.0; the portrait control measured 37.33 and failed, which caught it. **Revert
+R10** (the strip held at the field's height, `height(max(field + divider, 36 dp))`): 4 failures, font 2.0 only, "the strip is
+its portrait height expected 37.33 but was 65.0"; font 1.0 passes, as it should (the floor is under 36 there). Compiled, fresh,
+restored byte-identical.
+
+**Full suite at `8904d8ff`: 4,454 tests in 576 classes, 24 skipped, 0 failures, 0 errors** (JUnit XML; Gradle "BUILD
+SUCCESSFUL"), S5 with its fixed compass included. `t6b-night` inactive before every run, not touched; `./gradlew --stop` after
+every scope; no Gradle process left; free disk 3.0 GB.
