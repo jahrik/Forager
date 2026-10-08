@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -43,7 +42,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -73,10 +71,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.runtime.snapshotFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -288,8 +282,8 @@ internal fun SearchEntryBar(
  *    [background] (at the map chrome's alpha, so the map shows through it) already blocks every touch within its bounds from reaching the map
  *    underneath, so once opened it behaves like the drawer's own [SearchControls] sheet, not like
  *    the compass strip — and on the smallest
- *    supported phone (`w360dp-h640dp-xhdpi`), fully expanding Advanced search *and* Enter
- *    coordinates manually genuinely doesn't fit in the space [compactMainScaffold] hands this
+ *    supported phone (`w360dp-h640dp-xhdpi`), the panel as it stood before dispatch
+ *    2026-09-28-697 (both coordinate folds expanded) genuinely didn't fit in the space [compactMainScaffold] hands this
  *    surface (`Modifier.weight(1f)`'s remaining height below the summary bar and above the bottom
  *    nav), which is exactly the "starved children, nothing scrolled, simply unreachable" failure
  *    this file's own `Column`-without-`verticalScroll` doc comment already describes for the old
@@ -308,11 +302,11 @@ internal fun SearchEntryBar(
  * pan-to-centre-pin-plus-confirm flow every other pin placement in this app already uses
  * ([CentrePinLocationPickerOverlay], surfaced over [CompactMapTab]'s own real map — see
  * `compactMainScaffold`'s `pickingSearchLocationOnMap` state for the plumbing), not a second
- * picker. "Use current location" is the existing behaviour, unchanged.
+ * picker. Since dispatch 2026-09-28-697 it sits on the left of the bottom row, beside Search.
  *
- * Item 3 — manual coordinates, kept, collapsed by default: "Enter coordinates manually" is the
- * label chosen for [CollapsibleSection]'s own header row, reused unmodified rather than a bare
- * chevron nobody would find on a first look, per that item's own explicit ask.
+ * Item 3 — manual coordinates: once collapsed by default under "Enter coordinates manually" inside
+ * "Advanced search"; since dispatch 2026-09-28-697 both folds are gone and Latitude and Longitude
+ * are this panel's first row, searched by the Search button at the bottom (see the body's comment).
  *
  * Item 4 — the "redundant list" this dispatch asks to confirm and remove: none exists. The only
  * list this drawer's advanced-search content has ever shown is [ResultsSection]'s ranked species
@@ -324,7 +318,13 @@ internal fun SearchEntryBar(
 internal fun SearchDropdown(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
-    onUseCurrentLocation: () -> Unit,
+    /**
+     * Not drawn by any control since dispatch 2026-09-28-697 removed "Use current location" from this
+     * panel. Kept, and still wired by the caller, while the owner decides how Search reaches the
+     * current position (that dispatch's stop: today the fields are not prefilled with it, see the
+     * dispatch's report, docs/ui/2026-10-07-search-order-report.md). Remove it once that is decided.
+     */
+    @Suppress("UNUSED_PARAMETER") onUseCurrentLocation: () -> Unit,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     currentTime: CurrentTimeProvider,
     onManualLatChanged: (String) -> Unit,
@@ -334,16 +334,6 @@ internal fun SearchDropdown(
     onMonthSelected: (Int) -> Unit,
     onSetOnMap: () -> Unit,
     modifier: Modifier = Modifier,
-    /**
-     * A one-shot request to open "Advanced search" and its "Enter coordinates manually" expanded, so
-     * Latitude, Longitude and "Search this location" show at once (owner, 2026-09-28, continuation
-     * 2026-09-28-40: "Also open manual coordinates"). `true` after the compact search bar's tap. The
-     * outer section expands without consuming it, since the inner one is composed only once the outer
-     * is open; the inner one expands and calls [onManualCoordinatesExpandConsumed]. Each section's own
-     * expanded state stays its own afterwards, so a collapse the user makes stands.
-     */
-    expandManualCoordinatesRequested: Boolean = false,
-    onManualCoordinatesExpandConsumed: () -> Unit = {},
     /** Whether this panel opens over the Maps tab's map; its Month menu is then at the map chrome's alpha (owner, "1 A"). */
     overMap: Boolean = false,
 ) {
@@ -371,37 +361,21 @@ internal fun SearchDropdown(
             LaunchedEffect(scrollState.isScrollInProgress) {
                 if (scrollState.isScrollInProgress) focusManager.clearFocus()
             }
-            // Continuation 2026-09-28-41 (owner, short landscape: "Expand and auto-scroll"): once the
-            // bar's tap has opened the manual coordinates, the dropdown scrolls once to its end.
-            // "Search this location" is its last control, so the end is the least scroll that shows
-            // it with Latitude and Longitude just above; where everything fits (portrait) the end is
-            // 0 and nothing moves. Not measured from positions: the dropdown opens with an animation,
-            // and positions read mid-animation were stale (btn 0 px, viewport 150 px, instrumented
-            // run). ScrollState clamps its value as the viewport grows, so the view stays at the end.
-            // Instant, not animated: nothing in this dropdown scrolled programmatically before, so
-            // there was no animation to match. The user can scroll back up. A programmatic scroll
-            // counts as a scroll in progress, so the effect above also lowers the keyboard, which in
-            // a short window is what lets the fields be seen at all.
-            var scrollToCoordinatesPending by remember { mutableStateOf(false) }
-            // Part 1 layout fixes, item 3 (Part 1's device check, check 8; planner message
-            // 2026-09-28-98): in portrait the one scroll above lands while everything still fits, and
-            // the keyboard coming up afterwards shrinks this panel (its cap follows the keyboard, see
-            // compactMainScaffold), which would leave the fields scrolled off the bottom. So after that
-            // scroll the end stays in view each time the viewport's size changes, until the user drags
-            // the panel: their scroll stands from then on. Keyed on the viewport, not the content, so a
-            // section the user opens does not pull the view to the end. The device check found the
-            // programmatic scroll does not lower the keyboard (the comment above says it does); this
-            // keeps the fields in view above it either way.
-            var coordinatesKeptInView by remember { mutableStateOf(false) }
-            if (coordinatesKeptInView) {
-                LaunchedEffect(Unit) {
-                    launch {
-                        scrollState.interactionSource.interactions.first { it is DragInteraction.Start }
-                        coordinatesKeptInView = false
-                    }
-                    snapshotFlow { scrollState.viewportSize }.collect { scrollState.scrollTo(scrollState.maxValue) }
-                }
-            }
+            // Dispatch 2026-09-28-697 (RECORD intent -697) reordered this panel, top to bottom:
+            // coordinates, Month, Search radius, Recent searches, then Set on map and Search side by
+            // side at the bottom. The owner, verbatim: "the search menu is a bit unorganized. The
+            // search button is all the way at the top, tucked away, while manual search is at the
+            // bottom. That's a bit backwards"; "The set on map and search button where the "Search
+            // this location" button is now. Manual can go at the top, tucked away where the current
+            // search is"; "remove the drop down functions for the advanced search"; and "Search on
+            // the right, set on map on the left". So the "Advanced search" and "Enter coordinates
+            // manually" folds are gone and Latitude and Longitude show at once, which is what the
+            // earlier "Also open manual coordinates" (continuation 2026-09-28-40) asked for and what
+            // the one-shot expand request used to arrange. The scroll-to-the-end on open, and the
+            // keep-in-view that followed it (continuation 2026-09-28-41, Part 1 layout fixes item 3),
+            // are gone with it: they existed to bring the coordinates into view from the bottom of
+            // the panel, and the coordinates are now its first row, so the panel opens at its top.
+            // Recent searches keeps its own fold, as the dispatch says.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -412,32 +386,23 @@ internal fun SearchDropdown(
                     .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                // Location row — map/navigation search-UI redo dispatch: "Set on map" and "Use
-                // current location" promoted out of "Advanced search" up to the drawer's own top
-                // level, same reasoning radius/month already got (a control reached for on nearly
-                // every search doesn't belong a tap deeper). Removed from Advanced search entirely,
-                // not duplicated — Advanced search now holds only "Enter coordinates manually".
-                // That redo kept the manual coordinates a tap deeper, as "the one location path most
-                // searches don't need to override"; the owner reversed that on 2026-09-28
-                // (continuation 2026-09-28-40): "Also open manual coordinates". The search bar's tap
-                // now opens both sections below once (expandManualCoordinatesRequested), so the
-                // coordinates show at once; the user's own collapse afterwards stands. These are actions, not
-                // selections: OutlinedButton/Button, not FilterChip, so they never read as members
-                // of the category-chip row (now in SearchEntryBar, above this drawer entirely).
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    OutlinedButton(onClick = onSetOnMap, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Filled.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(Spacing.sm))
-                        Text("Set on map")
-                    }
-                    Button(onClick = onUseCurrentLocation, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Filled.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(Spacing.sm))
-                        Text("Use current location")
-                    }
+                    OutlinedTextField(
+                        value = uiState.manualLatText,
+                        onValueChange = onManualLatChanged,
+                        label = { Text("Latitude") },
+                        modifier = Modifier.weight(1f).testTag(SEARCH_DROPDOWN_LATITUDE_TAG),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = uiState.manualLngText,
+                        onValueChange = onManualLngChanged,
+                        label = { Text("Longitude") },
+                        modifier = Modifier.weight(1f).testTag(SEARCH_DROPDOWN_LONGITUDE_TAG),
+                        singleLine = true,
+                    )
                 }
-
-                HorizontalDivider()
+                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected, overMap = overMap)
                 Text(
                     "Search radius: ${formatDistanceKm(uiState.radiusKm, distanceUnit)}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -448,7 +413,6 @@ internal fun SearchDropdown(
                     valueRange = 1f..50f,
                     steps = 48,
                 )
-                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected, overMap = overMap)
 
                 HorizontalDivider()
                 CollapsibleSection(title = "Recent searches") {
@@ -461,52 +425,44 @@ internal fun SearchDropdown(
                 }
 
                 HorizontalDivider()
-                CollapsibleSection(title = "Advanced search", expandRequested = expandManualCoordinatesRequested) {
-                    CollapsibleSection(
-                        title = "Enter coordinates manually",
-                        expandRequested = expandManualCoordinatesRequested,
-                        onExpandRequestConsumed = {
-                            onManualCoordinatesExpandConsumed()
-                            scrollToCoordinatesPending = true
-                        },
+                // The bottom row, near the thumb: Set on map on the left, Search on the right (owner,
+                // "Search on the right, set on map on the left"). Actions, not selections:
+                // OutlinedButton/Button, not FilterChip. Search is the filled one, as "Use current
+                // location" was in this same place in the row before it.
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    OutlinedButton(
+                        onClick = onSetOnMap,
+                        modifier = Modifier.weight(1f).testTag(SEARCH_DROPDOWN_SET_ON_MAP_TAG),
                     ) {
-                        if (scrollToCoordinatesPending) {
-                            LaunchedEffect(Unit) {
-                                // One frame, so these fields have been laid out and measured.
-                                withFrameNanos { }
-                                scrollState.scrollTo(scrollState.maxValue)
-                                scrollToCoordinatesPending = false
-                                coordinatesKeptInView = true
-                            }
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            OutlinedTextField(
-                                value = uiState.manualLatText,
-                                onValueChange = onManualLatChanged,
-                                label = { Text("Latitude") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = uiState.manualLngText,
-                                onValueChange = onManualLngChanged,
-                                label = { Text("Longitude") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = onSearchManualCoordinates,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Search this location")
-                        }
+                        Icon(Icons.Filled.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(Spacing.sm))
+                        Text("Set on map")
+                    }
+                    Button(
+                        onClick = onSearchManualCoordinates,
+                        modifier = Modifier.weight(1f).testTag(SEARCH_DROPDOWN_SEARCH_TAG),
+                    ) {
+                        Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(Spacing.sm))
+                        Text("Search")
                     }
                 }
             }
         }
     }
 }
+
+/** [SearchDropdown]'s Latitude field, for tests. */
+internal const val SEARCH_DROPDOWN_LATITUDE_TAG = "search-dropdown-latitude"
+
+/** [SearchDropdown]'s Longitude field, for tests. */
+internal const val SEARCH_DROPDOWN_LONGITUDE_TAG = "search-dropdown-longitude"
+
+/** [SearchDropdown]'s Set on map button, the left of its bottom row, for tests. */
+internal const val SEARCH_DROPDOWN_SET_ON_MAP_TAG = "search-dropdown-set-on-map"
+
+/** [SearchDropdown]'s Search button, the right of its bottom row, for tests. */
+internal const val SEARCH_DROPDOWN_SEARCH_TAG = "search-dropdown-search"
 
 /** See [SearchDropdown]'s own doc comment. */
 internal const val SEARCH_DROPDOWN_TAG = "search-dropdown"
@@ -662,22 +618,11 @@ internal fun SearchControls(
 // molecule a second time.
 internal fun CollapsibleSection(
     title: String,
-    /**
-     * When `true`, the section expands once and [onExpandRequestConsumed] is called, so the request
-     * is gone before the user can touch the section again; the expanded state itself stays this
-     * section's own, as before. See [AdvancedSearchDropdown]'s `expandManualCoordinatesRequested`.
-     */
-    expandRequested: Boolean = false,
-    onExpandRequestConsumed: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    // The one-shot expandRequested/onExpandRequestConsumed pair that was here had one caller, the
+    // search panel's two coordinate folds, which dispatch 2026-09-28-697 removed; so did it.
     var expanded by remember { mutableStateOf(false) }
-    LaunchedEffect(expandRequested) {
-        if (expandRequested) {
-            expanded = true
-            onExpandRequestConsumed()
-        }
-    }
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
