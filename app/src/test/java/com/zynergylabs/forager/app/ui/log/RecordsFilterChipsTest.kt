@@ -69,7 +69,7 @@ import com.zynergylabs.forager.app.ui.format.displayDate
  * only thing that can settle which `BackHandler` takes a press. Chip selection that stands for "a
  * finger chose this chip" is a coordinate touch at several points across the chip's own bounds
  * (CLAUDE.md, "A semantic `performClick` asserts wiring, not routing"); a semantic click is used only
- * where a test is getting somewhere, not testing the chip (opening Records, the "+" tile).
+ * where a test is getting somewhere, not testing the chip (opening Records, the "New find" button, the "+" tile until RECORD -751).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
