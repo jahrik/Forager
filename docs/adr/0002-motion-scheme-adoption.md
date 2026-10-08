@@ -420,4 +420,6 @@ rewriting: the table and reasoning above are left as they were written.
   and bounces every row below, the overshoot on a primary surface that ADR-0001 was written against. Rejected: the spatial specs
   under `expressive()` (all underdamped). `nightModeFadeSpec` is read from the motion scheme the theme is about to provide,
   because what it fades is the theme's own colours.
-
+- **Also removed (Amendment 1, RECORD -681):** `MotionTreatment`, `ReducedMotionTreatment` and `reducedMotionEquivalent` from
+  `ReduceMotion.kt`, which the reduced-motion section above discusses; none had a production caller. `docs/motion-spec.md` §4's
+  table is the rule they encoded.

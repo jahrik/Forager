@@ -234,3 +234,66 @@ maps (two maps for a moment); the short window's L1 row sliding with its page; l
 Tracks, waypoints and regions, and a List tab results update; the night-mode blend from Settings, whether it is quick and smooth
 with the whole app recomposing each frame, and whether the map chrome and system bars changing at the start read as a flash; all
 of it again with the phone's animations off.
+
+## Amendment 1 (RECORD -681), applied 2026-10-08, also not compiled
+
+The owner, verbatim: "Same rule everywhere (Recommended)" and, for the short window, "Keep it still (Recommended)". The planner's
+calls: R2 slides in as well as out; word items beside tappable controls stay instant; an arriving page taking touches where it is
+drawn is accepted; reduced motion stays instant; the three `ReduceMotion.kt` declarations are removed. `origin/main` (bc85fd29,
+Parts 1 and 2) was merged in first (131f698c, no conflicts). `data-a-entry` was not yet on `main` and is not merged here.
+
+**Built** (171dd53f, then the tests and this section):
+- **Pages are opaque.** `PageSlide` draws every page on the screen's background (`pageColor`, default the Scaffold's
+  `colorScheme.background`). Found while applying the rule more widely: the Journal's pages draw no background of their own, so
+  without this a page sliding in would have shown the one beneath through it. This applies to everything in the first part too.
+- **The short window's L1 row stays still.** `JournalTab` draws the row (switch, search, action) above the pages; Entries hands
+  up the action for its last slot through a new `shortWindowHeaderAbove` state (`log/CartographyScreen.kt`), remembered per view
+  so it changes only when the view does; Records no longer draws the row. Only the page below slides.
+- **R1, R2**: a Records chip's list slides in over All, Back (which steps to All) or the All chip slides it out; chip to chip
+  slides in. A find tapped in All brings its report in with the Finds list (`log/RecordsTab.kt`). The chip row stays still.
+- **J5**: the album slides in over the timeline; Back or the toggle slides it out. The toolbar stays still
+  (`log/CartographyScreen.kt`).
+- **F4**: Drafts slides in over Log, and Log slides it out; each tab's grid is its own page with its own rows
+  (`log/FindsGalleryScreen.kt`; the `resetKey` from the first part is no longer used there).
+- **Lists**: the Entries album (`log/EntriesAlbum.kt`, tiles kept with their day header while they leave), planned trips (P1,
+  `availability/AvailabilityTripsWaypointsUi.kt`), the find editor's photos (F7, `log/LogEntryDetailScreen.kt`) and the logbook's
+  find tiles (R5, `log/RecordsLogbookList.kt`).
+- **Pruned**: `MotionTreatment`, `ReducedMotionTreatment` and `reducedMotionEquivalent` from `motion/ReduceMotion.kt`, with the two
+  `ReduceMotionTest` tests that exercised only them.
+
+**New stops** (the rule cannot cover these cleanly):
+1. **J6, J10, F5, F8, V4, K2**: a spinner, an empty message or an error giving way to content. No page is opened on top and there
+   is no Back to retrace, so "slide in from the right" has nothing to mean. Option: a quick crossfade, or leave instant.
+2. **E1** (entry map to fullscreen): the map is one `View` that must not be torn down, so fullscreen cannot be a second page; the
+   only motion is growing its container, which re-measures the live map every frame and moves its touch area. Leave instant?
+3. **E2, E3** (the entry map and the offline row arriving late): content appearing, not a page. Grow in like a list row, or leave?
+4. **R11, R12** (one details sheet replacing another): each is its own `ModalBottomSheet` with Material's motion; a slide between
+   them needs one sheet holding both pages, which changes the sheet's height (and touch area) mid-change. Leave as is?
+5. **T1 to T3** (the Tools drawer's pages): over the Maps tab the drawer is 80% (`AvailabilityScreen.kt`, `drawerContainerColor`).
+   An opaque page breaks "nothing fully obstructs the map"; a page at 80% doubles up over the drawer's own 80% (the rule says layered
+   fills composite to 0.8, `MapChromeAlphaTest`); a transparent page shows both pages through each other mid-slide. Slide only
+   where the drawer is solid (off Maps), or leave instant everywhere?
+6. **K1** (the in-app camera): it is its own full-screen window, tied to status-bar hiding and the rotation that stays the
+   system's, with two touch-through bugs on record; a leaving camera window cannot let touches through while it slides away.
+7. **V1** (the photo viewer opening): also its own window, with the same limit on its way out. **V2** (next and previous) moves
+   sideways between photos, not on top; **V3** (double-tap zoom) and **V5** (Save's state) are not pages. Which, if any?
+8. **F7 and R5 still jump at the end**: the removed tile fades and shrinks in place, but the find editor's photos (a `FlowRow`) and
+   the logbook's find pairs (a plain column) then reflow at once; neither layout has a placement glide. A glide there needs a
+   placement animation this app does not have yet.
+
+**Tests written (not run):**
+- `log/JournalPageSlideTest.kt` gains two: a Records chip's list slides in over All with the chip row still and slides out on
+  Back with All in place; and in a short window (`w823dp-h384dp-land`) the switch does not move while Records slides in, with
+  exactly one switch on screen. Before this amendment the switch was inside each page, so both of those reads would fail.
+- **Assertions changed in existing tests:** none. **Tests removed:** `ReduceMotionTest`'s two mapping tests, with the code they
+  tested. `MotionTokensTest` was already changed in the first part, for the first prune.
+- **Not covered by a test:** J5, F4, the album, trips, the find editor's photos and the find pairs (the same `PageSlide` and
+  `ListRowMotion` as the tested ones); the opaque page background (no test reads colour mid-slide).
+- **Revert checks added to the plan:** R11, the L1 row drawn back inside the pages (`shortWindowHeaderAbove` ignored): the short
+  window test fails on "exactly one switch"; R12, the chip lists without their `PageSlide`: "the Waypoints list part-way in" is
+  never seen.
+
+**Existing tests now also at risk, untouched:** the short-window Journal tests (`AvailabilityScreenJournalShortWindowTest`), which
+may read the L1 row as part of Entries' or Records' content, or read the Entries action in the row before Entries has handed it up
+(it arrives one frame after the view changes, after composition).
+
