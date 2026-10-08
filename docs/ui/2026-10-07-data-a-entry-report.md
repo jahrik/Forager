@@ -298,3 +298,115 @@ from D1 go to the owner as a list.
 - The track-row touch test now samples three touches across the row's bounds: near the left edge,
   at the centre, and near the right edge beside the name, each at a different height. Each sample is
   a fresh composition, one test each, in `EntryDataScreensTest`. Still not run.
+
+## The build (RECORD -664's go), 2026-10-07
+
+### Merge
+`origin/main` at `1317369f`, which carries failure-fixes and motion Part 1, was merged into this
+branch (merge commit `fcd9adfc`).
+- **One conflict, `docs/audits/README.md`.** Both sides had appended index rows. Every row is kept:
+  motion-part-1, then failure-fixes, then data-a-entry.
+- **No logic was changed by both sides.** Main's other changes to files this branch also touches
+  merged without conflict:
+  - `IconButton` became `BouncingIconButton` in the entry editor, the report and `MapBubble`.
+  - `MainActivity` now uses the shared location-permission check.
+- **The bounce.** This part adds no icon button. The panel uses `Icon`, `Switch` and `TextButton`.
+
+### How it ran
+- Every run went through `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0`.
+- Gradle heap 1536m, Kotlin daemon 2g, Java temp `~/.cache/forager-test-tmp`.
+- No daemon was running before the first run.
+- Free disk was checked before each run: 5.0 GB at the start, 4.2 GB at the lowest.
+- The Kotlin daemon was stopped after compiling and again before the full suite.
+- `./gradlew --stop` ran at the end, and no Gradle or Kotlin daemon is left.
+- No phone or emulator was used.
+
+### Compile
+Main and unit-test sources compiled on the first run, with no errors.
+
+### New and edited test classes
+13 classes, 177 tests, 1 failure.
+- The failure was my own edit, `CartographyEntryReportScreenTest`'s "only kept decisions render":
+  "Find on Aug 1, 2026" was off screen, below the new tiles, profile line and waypoint table.
+- The fix scrolls to the lists before asserting; the assertions are unchanged (`a4077fb8`). On rerun
+  the class passes, 13 of 13.
+- `JournalEntriesOnMapScreenTest.kt` holds three classes (Portrait, ShortLandscape, FollowUps; 51
+  tests). They were missed by the first run's filter and run separately, with 0 failures.
+- `EntryDataScreensTest` passed 13 of 13 on its first run.
+
+### Revert checks
+Each check saved the file, made a one-line edit, ran the named classes and checked the log for
+compile errors first. It then restored the file from the saved copy and confirmed the tree clean
+against the committed forward change. Every check compiled, and each failure is one its edit can
+cause:
+
+| | One-line revert | Failed, with the message specific to the edit |
+|---|---|---|
+| R1 | group setter moves a changed decision last | `CartographyViewModelTest` "a group switch already in the asked-for state changes nothing" (1 of 29) |
+| R2 | track's waypoints dropped from Tracks membership | 9 of 49: `EntryContentsTest` (4), `CartographyViewModelTest` Tracks switch (1), `EntryDataScreensTest` (4). The counts tests fail as well, because counts are read from membership |
+| R3 | Start and End counted as waypoints | 6 of 26: `EntryContentsTest` counts (3), `EntryDataScreensTest` summary lines (3) |
+| R4 | share test dropped from the profile limit | `EntryReportTest` "too few heights": expected `TooFewHeights(10, 21)`, was `Drawn(...)` |
+| R5 | no time cut-off in distance from start | `EntryReportTest` waypoint rows (expected 0.0, was 1223.15); `EntryDataScreensTest` table ("0 ft") |
+| R6 | waypoint row tap does nothing | `EntryDataScreensTest` coordinates, and `LeavingTheJournalFixesTest`'s tab-change test, both failing on the coordinates line |
+| R6b | open coordinate rows held locally, not in `AvailabilityScreen` | `LeavingTheJournalFixesTest`'s tab-change test, at line 775, the assertion after the round trip |
+| R7 | `trackSubtitle` in place of `labelledTrackLine` | `EntryDataScreensTest` group-row test: no "0.8 mi · 1 min" |
+
+### Full suite
+510 classes, 4,093 tests, 24 skipped, **3 failures**. All three are existing tests. They are listed
+below and **not touched**, waiting for the planner's word.
+
+`CartographyScreenTest`:
+- "a committed entry shows its own Save action, not Finish entry": "Save" not displayed (`:251`).
+- "tapping the screen's own Save asks to confirm, then persists ...": "Save this entry?" not
+  displayed (`:268`).
+- "Cancel in the Save confirmation dismisses it ...": "Save this entry?" not displayed (`:285`).
+
+**Confirmed:** "Save" is not displayed, and the confirmation never opens after
+`onNodeWithText("Save").performClick()`.
+
+**Inferred, not measured:**
+- The cause is that the editor's Save button now sits below the bottom of the screen.
+- The class runs at Robolectric's default size, with no qualifiers. With no candidates, the old four
+  sections drew nothing. The panel now always draws its heading and a summary line ("Nothing from
+  this day to include yet.") above Save, which plausibly pushes Save past the bottom.
+- `performClick` touches the node's centre, so it misses a button that is off screen.
+
+**Proposed, test-only:** scroll to "Save" before asserting and clicking. The assertions would be
+unchanged.
+
+### The three CartographyScreenTest failures: cause confirmed, fixed (the owner, "Confirm cause, then scroll (Recommended)")
+
+**The cause is confirmed by measurement.** I added a temporary probe to "a committed entry shows its
+own Save action" and ran it alone. It compiled with no errors, and I then restored the file from a
+saved copy. Just before the failing assertion it read these unclipped bounds:
+
+| Node | Top | Bottom |
+|---|---|---|
+| Root | 0 dp | 470 dp (320 dp wide) |
+| Save | 530 dp | 582 dp |
+| Panel's "Nothing from this day to include yet." | 478 dp | 514 dp |
+
+Save lies entirely below the screen; its clipped bounds are 0 x 0.
+
+**The fix (`9a8a97e4`).** The three Save tests now call `performScrollTo()` on "Save" before
+asserting on it and before clicking it. Every assertion is unchanged. The class now passes 14 tests
+with 0 failures.
+
+**Full suite, rerun** under the same rules, with no Kotlin daemon running and no compile errors in
+the log: **510 classes, 4,093 tests, 24 skipped, 0 failures.** `./gradlew --stop` ran at the end, and
+no Gradle or Kotlin daemon is left.
+
+### Device check D2: an empty day's editor on the S22
+
+Run on the S22 Ultra in portrait, at the default font size.
+1. Open a saved journal entry for a day with no finds, tracks, waypoints or offline maps, or a
+   saved entry where nothing is included and nothing new has arrived.
+2. Open its editor (three-dot menu, then Edit entry).
+3. Without scrolling, note whether the Save button is fully visible above the bottom bar.
+
+This step records an observation and does not pass or fail. Robolectric's 320 x 470 dp test screen
+puts Save at 530 dp, so on a phone it may sit below the fold too. The step records whether the
+owner's phone shows it without scrolling.
+
+**Evidence to record:** "Save visible without scrolling: yes or no", plus the last line of the panel
+visible above the fold, described in words. Do not commit a screenshot.
