@@ -312,8 +312,12 @@ class StartZoomGate {
 /** The log tag the navigation view's camera lines go under (read on the device check). */
 const val NAVIGATION_VIEW_LOG_TAG = "ForagerNavView"
 
-/** The time the navigation view's own camera changes take, so the tilt and the turn ease in rather than jump. */
-private const val NAVIGATION_VIEW_TRANSITION_MILLIS = 750L
+/**
+ * The time the navigation view's own camera changes take, so the tilt and the turn ease in rather than jump. Internal since
+ * motion Part 2, Amendment 1 (RECORD -672): the strip and the navigation display slide for exactly this long
+ * (MotionTokens.navigationViewChromeSpec), read from here so the two cannot drift apart.
+ */
+internal const val NAVIGATION_VIEW_TRANSITION_MILLIS = 750L
 
 /**
  * The navigation view's camera changes on MapLibre's [LocationComponent], and the one listener

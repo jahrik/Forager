@@ -20,7 +20,12 @@ package com.zynergylabs.forager.app.ui.availability
 // ConditionsCard) now lives in AvailabilitySeasonalUi.kt and the trip windows card (TRIP_WINDOW_DATE_FORMAT
 // through ForagingWeatherGuidanceSection) in AvailabilityTripWindowsUi.kt; this file keeps the List tab.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -212,14 +217,21 @@ private fun ResultsSection(
  */
 @Composable
 private fun SpeciesRow(entry: AvailabilityEntry, onViewOnMap: (Long) -> Unit) {
+    // Motion Part 1 (dispatch 2026-09-28-652, item 3, scout L1; the owner, RECORD -651: "Yes, round them all"): the card's tap
+    // stays where it was, on the Card's modifier and outside its clip (so it takes touches across the whole box, corners
+    // included, as before), but its press is drawn by the Column inside, which fills the card and is clipped to its rounded
+    // shape, instead of as a square over the corners.
+    val tapInteraction = remember { MutableInteractionSource() }
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("species-row")
-            .clickable { onViewOnMap(entry.species.taxonId) },
+            .clickable(interactionSource = tapInteraction, indication = null) { onViewOnMap(entry.species.taxonId) },
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.md),
+            modifier = Modifier
+                .indication(tapInteraction, LocalIndication.current)
+                .padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Text(
@@ -248,7 +260,7 @@ private fun SpeciesRow(entry: AvailabilityEntry, onViewOnMap: (Long) -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
-                        .clickable { onViewOnMap(entry.species.taxonId) }
+                        .clickableWithShapedPress { onViewOnMap(entry.species.taxonId) }
                         .testTag("species-row-view-on-map"),
                 )
             }

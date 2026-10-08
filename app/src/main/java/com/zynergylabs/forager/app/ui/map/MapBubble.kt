@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.MapPopUp
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -21,7 +24,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -226,7 +228,7 @@ internal fun MapBubbleShell(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp), content = content)
-                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp).testTag(closeTag)) {
+                BouncingIconButton(onClick = onDismiss, modifier = Modifier.size(24.dp).testTag(closeTag)) {
                     Icon(Icons.Filled.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
                 }
             }
@@ -276,18 +278,16 @@ internal fun MapBubbleLayer(
 
     BackHandler(enabled = backEnabled && tapped != null) { onDismiss() }
 
-    if (tapped != null) {
-        when (val target = tapped.target) {
-            is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(tapped.anchorPx, tapped.bearingDeg, minY, modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
-                ObservationBubble(
-                    sighting = target.sighting,
-                    onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
-                    onDismiss = onDismiss,
-                    tipInBubble = tip,
-                    unitSystem = UnitSystem.forDistanceUnit(sources.distanceUnit),
-                )
-            }
-
+    // Motion Part 2, item 4 (dispatch 2026-09-28-666, scout M5; the owner, RECORD -651: "Fade and grow", from where it belongs):
+    // the bubble fades and grows from the glyph it is about, and shrinks back to it. Item 5 ("Let taps through at once"): from
+    // the moment it starts to leave it takes no touch, so a tap on it then reaches the map. It goes on drawing what it showed
+    // (`shown`) while it leaves. Another glyph tapped while it is open replaces it in place, as before (scout M6).
+    // Amendment 1 (RECORD -672), item 6 (scout M7): what a tapped thing shows is resolved here, before the pop-up, and the
+    // pop-up is shown only once there is something to show, so a forecast cell whose read comes late fades and grows when its
+    // content arrives instead of appearing at once. A record or cell that is gone still closes the bubble with a logged line.
+    val resolved: ShownBubble? = tapped?.let { thing ->
+        when (val target = thing.target) {
+            is MapBubbleTarget.SightingTarget -> ShownBubble(thing, content = null)
             is MapBubbleTarget.FeatureTarget -> {
                 val content: MapBubbleContent? = if (target.kind == MapBubbleKind.FORECAST_CELL) {
                     when (val cell = rememberForecastCell(target, forecast).value) {
@@ -314,8 +314,30 @@ internal fun MapBubbleLayer(
                         }
                     }
                 }
-                if (content != null) {
-                    AnchoredAtScreenPoint(tapped.anchorPx, tapped.bearingDeg, minY, modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
+                content?.let { ShownBubble(thing, it) }
+            }
+        }
+    }
+    val shown = rememberLastShown(resolved)
+    MapPopUp(
+        visible = resolved != null,
+        pivot = { shown?.tapped?.anchorPx ?: Offset.Zero },
+        modifier = modifier.fillMaxSize(),
+    ) {
+        shown?.let { bubble ->
+            when (val target = bubble.tapped.target) {
+                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, minY, Modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
+                    ObservationBubble(
+                        sighting = target.sighting,
+                        onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
+                        onDismiss = onDismiss,
+                        tipInBubble = tip,
+                        unitSystem = UnitSystem.forDistanceUnit(sources.distanceUnit),
+                    )
+                }
+
+                is MapBubbleTarget.FeatureTarget -> bubble.content?.let { content ->
+                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, minY, Modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
                         MapFeatureBubble(
                             content = content,
                             tipInBubble = tip,
@@ -330,7 +352,7 @@ internal fun MapBubbleLayer(
                             onNavigate = sources.onNavigateToWaypoint?.let { navigate ->
                                 { id: String ->
                                     onDismiss()
-                                    navigate(WaypointNavigationOrigin.MapBubble(id, tapped.anchorPx, tapped.bearingDeg))
+                                    navigate(WaypointNavigationOrigin.MapBubble(id, bubble.tapped.anchorPx, bubble.tapped.bearingDeg))
                                 }
                             },
                         )
@@ -598,3 +620,6 @@ internal const val MAP_BUBBLE_ENTRY_COUNT_TAG = "map-bubble-entry-count"
 /** J8: the untitled list of those entries' dates, opened from [MAP_BUBBLE_ENTRY_COUNT_TAG]. */
 internal const val MAP_BUBBLE_ENTRY_LIST_TAG = "map-bubble-entry-list"
 private const val MAP_BUBBLE_LOG_TAG = "MapBubble"
+
+/** A tapped thing with what its bubble shows, resolved (motion Part 2, Amendment 1, item 6): `content` is null for a sighting. */
+private data class ShownBubble(val tapped: TappedMapThing, val content: MapBubbleContent?)

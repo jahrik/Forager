@@ -1,5 +1,17 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.WordSwap
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.unit.IntSize
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
+import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
 import com.zynergylabs.forager.app.domain.hasArrived
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,7 +28,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -277,12 +288,16 @@ internal fun NavigationHud(
                                 .size(COMPASS_ICON_SIZE)
                                 .rotate(readout.northArrowDegrees ?: 0f),
                         )
-                        Text(
-                            text = readout.headingText,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
-                        )
+                        // Motion Part 2, item 6 (dispatch 2026-09-28-666; the owner, RECORD -651: "Numbers instant, words fade"):
+                        // each line here crossfades when its words change and changes at once when only its numbers do (WordSwap).
+                        WordSwap(text = readout.headingText, contentAlignment = Alignment.Center) { shown ->
+                            Text(
+                                text = shown,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
+                            )
+                        }
                     }
                     // Target compass.
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -294,33 +309,41 @@ internal fun NavigationHud(
                                 .size(COMPASS_ICON_SIZE)
                                 .rotate(readout.targetArrowDegrees ?: 0f),
                         )
-                        Text(
-                            text = readout.targetText,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG),
-                        )
+                        WordSwap(text = readout.targetText, contentAlignment = Alignment.Center) { shown ->
+                            Text(
+                                text = shown,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG),
+                            )
+                        }
                     }
                     // Distance and status.
                     Column(modifier = Modifier.weight(1f)) {
                         val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
                         val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
-                        Text(
-                            text = readout.distanceText,
-                            style = distanceStyle,
-                            color = distanceColor,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
-                        )
+                        // The distance itself stays instant; "Arrived" and "Unable to calculate route" are words, and fade in.
+                        WordSwap(text = readout.distanceText) { shown ->
+                            Text(
+                                text = shown,
+                                style = distanceStyle,
+                                color = distanceColor,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+                            )
+                        }
                         if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
-                        Text(
-                            text = readout.statusText,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
-                        )
+                        // The fix age ticks every second: numbers, so it changes at once.
+                        WordSwap(text = readout.statusText) { shown ->
+                            Text(
+                                text = shown,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
+                            )
+                        }
                     }
-                    IconButton(
+                    BouncingIconButton(
                         onClick = onExit,
                         modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),
                     ) {
@@ -351,20 +374,37 @@ internal fun NavigationHud(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable(onClick = onToggleCoordinateFormat)
+                                .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
                                 .padding(vertical = Spacing.xs)
                                 .testTag(NAVIGATION_HUD_COORDINATES_TAG),
                         )
                     }
                 }
-                if (sundownLine != null) {
-                    Text(
-                        text = sundownLine,
-                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
-                    )
+                // Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the display's sundown line fades and grows like the
+                // strip's: when its window opens the display grows down to hold it, from under the rows above, and the reverse when
+                // it closes; the fade alone, the height changing at once, under reduced motion. Its words crossfade (item 6). The
+                // display takes no touch beside its coordinates and its buttons, so the growing band moves no touch.
+                val sundownLineShown = rememberLastShown(sundownLine)
+                val reduceMotion = LocalReduceMotion.current
+                val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
+                val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
+                AnimatedVisibility(
+                    visible = sundownLine != null,
+                    enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top),
+                    exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top),
+                    label = "hudSundownLine",
+                ) {
+                    sundownLineShown?.let { line ->
+                        WordSwap(text = line) { shown ->
+                            Text(
+                                text = shown,
+                                style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -390,7 +430,7 @@ private fun RouteRetryRow(onRetryRoute: () -> Unit) {
     Row(
         modifier = Modifier
             .heightIn(min = RETRY_ROW_MIN_HEIGHT)
-            .clickable(role = Role.Button, onClickLabel = ROUTE_RETRY_TEXT, onClick = onRetryRoute)
+            .clickableWithShapedPress(role = Role.Button, onClickLabel = ROUTE_RETRY_TEXT, onClick = onRetryRoute)
             .testTag(NAVIGATION_HUD_RETRY_TAG),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
