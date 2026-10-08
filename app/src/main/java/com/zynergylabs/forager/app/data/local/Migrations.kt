@@ -1047,3 +1047,52 @@ val MIGRATION_17_18: Migration = object : Migration(17, 18) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_tracks_endedAtEpochMillis` ON `tracks` (`endedAtEpochMillis`)")
     }
 }
+
+/**
+ * Adds nullable `speciesIconicTaxonName` to `cached_searches` — dispatch 2026-09-28-695, amendment 1 (RECORD
+ * -696; the owner, "Save it with the search"). It holds a species row's iNaturalist group, so a species reopened
+ * from a recent search keeps its weather guidance (see [CachedSearchEntity.speciesIconicTaxonName]).
+ *
+ * **Not backfilled.** Every existing row is copied with `NULL`, written explicitly in the copy as
+ * [MIGRATION_17_18] writes its new columns: nothing stored says which group an old species row belongs to, and
+ * guessing one would show a pattern the user never had. Such a row shows no guidance until the species is
+ * searched by name again.
+ *
+ * A full rebuild rather than the `ALTER TABLE ... ADD COLUMN` the amendment named, for the reason
+ * [MIGRATION_12_13] records: [CachedSearchEntity] is declared directly by every `LegacyForagerDatabaseVn`
+ * fixture, so their generated `cached_searches` tables already carry this column and an `ADD COLUMN` would fail
+ * against them with a duplicate column; the explicit source column list below never names it, so a leaked one is
+ * ignored. The table has no index. Its SQL is `19.json`'s `createSql`; [SchemaMigrationTest] validates the result
+ * against that file.
+ */
+val MIGRATION_18_19: Migration = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `cached_searches_new` (
+            `key` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `radiusKm` INTEGER NOT NULL,
+            `month` INTEGER NOT NULL,
+            `filterLabel` TEXT NOT NULL,
+            `filterIconicTaxonName` TEXT,
+            `filterTaxonId` INTEGER,
+            `filterExcludedTaxonId` INTEGER,
+            `speciesIconicTaxonName` TEXT,
+            `entriesJson` TEXT NOT NULL,
+            `fetchedAtEpochMillis` INTEGER NOT NULL,
+            `lastAccessedAtEpochMillis` INTEGER NOT NULL,
+            PRIMARY KEY(`key`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `cached_searches_new` (`key`, `lat`, `lng`, `radiusKm`, `month`, `filterLabel`, `filterIconicTaxonName`, `filterTaxonId`, `filterExcludedTaxonId`, `speciesIconicTaxonName`, `entriesJson`, `fetchedAtEpochMillis`, `lastAccessedAtEpochMillis`)
+            SELECT `key`, `lat`, `lng`, `radiusKm`, `month`, `filterLabel`, `filterIconicTaxonName`, `filterTaxonId`, `filterExcludedTaxonId`, NULL, `entriesJson`, `fetchedAtEpochMillis`, `lastAccessedAtEpochMillis` FROM `cached_searches`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `cached_searches`")
+        db.execSQL("ALTER TABLE `cached_searches_new` RENAME TO `cached_searches`")
+    }
+}

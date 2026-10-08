@@ -750,9 +750,11 @@ class AvailabilityViewModel(
             it.copy(seasonalPattern = null, seasonalPatternErrorMessage = null)
         }
 
+        // Read now, while the selection is the one this search was started for.
+        val speciesGroup = speciesGroupToStore(filter)
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            getAvailability(region, month, filter).fold(
+            getAvailability(region, month, filter, speciesGroup).fold(
                 onSuccess = { result ->
                     _uiState.update { state ->
                         when (result) {
@@ -873,6 +875,16 @@ class AvailabilityViewModel(
         }
     }
 
+    /**
+     * The group to store with a search for [filter], so reopening it from the recent searches keeps it
+     * (dispatch 2026-09-28-695, amendment 1): the current selection's group when the selection is that
+     * species, and null for a category (its group is in the filter) or a selection that is not [filter].
+     */
+    private fun speciesGroupToStore(filter: TaxonFilter): String? =
+        _uiState.value.foragingSelection
+            .takeIf { filter is TaxonFilter.SpecificTaxon && it.filter == filter }
+            ?.iconicTaxonName
+
     private fun loadRecentSearches() {
         viewModelScope.launch {
             _uiState.update { it.copy(recentSearches = getRecentSearches()) }
@@ -903,7 +915,7 @@ class AvailabilityViewModel(
                 manualLngText = region.lng.toString(),
                 selectedMonth = summary.month,
                 taxonFilter = summary.filter,
-                foragingSelection = ForagingSelection.forChip(summary.filter),
+                foragingSelection = ForagingSelection.fromRecentSearch(summary),
                 taxonSearchQuery = "",
                 taxonSearchResults = emptyList(),
                 locationPermissionDenied = false,

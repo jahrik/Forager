@@ -50,6 +50,20 @@ class ForagingWeatherGuidanceTest {
         assertEquals("Fungi", selection.iconicTaxonName)
     }
 
+    /** Amendment 1 to -695: a recent search hands back the group stored with it, and only a species carries one. */
+    @Test
+    fun `a recent search rebuilds the selection with its stored group, and an old or lichens one has none`() {
+        val flyAgaric = TaxonFilter.SpecificTaxon(taxonId = 48715, label = "Fly Agaric")
+        val region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+        fun summary(filter: TaxonFilter, group: String?) =
+            CachedSearchSummary(region = region, month = 10, filter = filter, cachedAtEpochMillis = 0L, speciesIconicTaxonName = group)
+
+        assertEquals(ForagingSelection(flyAgaric, "Fungi"), ForagingSelection.fromRecentSearch(summary(flyAgaric, "Fungi")))
+        assertEquals("saved before version 19", ForagingSelection(flyAgaric, null), ForagingSelection.fromRecentSearch(summary(flyAgaric, null)))
+        assertEquals(ForagingSelection(TaxonFilter.LICHENS, null), ForagingSelection.fromRecentSearch(summary(TaxonFilter.LICHENS, null)))
+        assertEquals(ForagingSelection.fromCategory(TaxonFilter.PLANTS), ForagingSelection.fromRecentSearch(summary(TaxonFilter.PLANTS, null)))
+    }
+
     // ---- category guidance varies by category ----------------------------------------------
 
     @Test

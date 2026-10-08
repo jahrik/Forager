@@ -58,8 +58,9 @@ private val LADYBIRD = TaxonSearchResult(
  * is what each test holds as proof the card itself rendered, so an absent guidance block is the card's choice and not
  * a card that never composed.
  *
- * Not here: a species reopened from a recent search keeping its group (item 3 of the dispatch), stopped for the
- * owner because it needs a stored column; see `docs/ui/2026-10-07-guidance-text-report.md`.
+ * A species reopened from a recent search is reopened through [AvailabilityViewModel.onRecentSearchSelected], the
+ * callback a recent-search row's tap calls, with the entry the ViewModel itself loaded from the (in-memory) store
+ * after the species had been searched by name (amendment 1, RECORD -696: the group is saved with the search).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -139,6 +140,31 @@ class TripWindowsGuidanceTextTest {
 
         assertTripWindowsCardShown()
         composeRule.onNodeWithText(FUNGI_HEADING).performScrollTo().assertIsDisplayed()
+        assertNoRemovedText()
+    }
+
+    /**
+     * Amendment 1 to -695 (RECORD -696; the owner, "Save it with the search"): Fly Agaric searched by name, then
+     * another species picked so the selection is no longer Fly Agaric's, then Fly Agaric reopened from the recent
+     * searches. Before the amendment this reopened with no group and so no guidance.
+     */
+    @Test
+    fun `a fungus species reopened from a recent search shows the fungi pattern and no species note`() {
+        val viewModel = setScreenWithARegionSearched()
+        pickByName(viewModel, FLY_AGARIC)
+        pickByName(viewModel, LADYBIRD)
+        val flyAgaric = TaxonFilter.SpecificTaxon(taxonId = 48715, label = "Fly Agaric")
+        val recent = composeRule.runOnIdle { viewModel.uiState.value.recentSearches.single { it.filter == flyAgaric } }
+
+        composeRule.runOnIdle { viewModel.onRecentSearchSelected(recent) }
+        composeRule.waitForIdle()
+        assertEquals("the precondition: the reopened species is the selection", flyAgaric, viewModel.uiState.value.taxonFilter)
+
+        openTripPlanner()
+
+        assertTripWindowsCardShown()
+        composeRule.onNodeWithText(FUNGI_HEADING).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("one to three weeks after sustained rain", substring = true).performScrollTo().assertIsDisplayed()
         assertNoRemovedText()
     }
 
