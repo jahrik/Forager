@@ -8,12 +8,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeDown
+import com.zynergylabs.forager.app.ui.theme.Spacing
+import org.junit.Assert.assertEquals
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -25,10 +26,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Part 1 layout fixes, item 3 (Part 1's device check, check 8; planner message `2026-09-28-98`): after the
- * search bar's tap opens the manual coordinates and the dropdown scrolls to its end, the keyboard coming
- * up shrinks the dropdown's viewport after that scroll. The fields must end up in view above it, not
- * scrolled off the bottom.
+ * Part 1 layout fixes, item 3 (Part 1's device check, check 8; planner message `2026-09-28-98`): the keyboard
+ * coming up shrinks the dropdown's viewport, and the coordinate fields must stay in view above it.
+ *
+ * Until dispatch 2026-09-28-697 the coordinates were the dropdown's last row: the bar's tap scrolled the
+ * dropdown to its end and kept it there as the viewport changed, and T3a/T3b tested that keep-in-view and
+ * its stop on a user drag. That dispatch put the coordinates first and removed the scroll (the owner's
+ * reorder; the dispatch: "Remove the scroll-to-bottom-on-open"), so these tests now hold the new shape:
+ * the fields are in view at the top whatever the viewport, and nothing but the user scrolls the dropdown.
  *
  * Robolectric reports no keyboard, so the keyboard's own inset cannot be seen here: the viewport is shrunk
  * by the test, as the keyboard shrinks it on the phone. Whether the dropdown's cap follows the real
@@ -45,7 +50,6 @@ class SearchDropdownKeyboardTest {
     val rules: RuleChain = RuleChain.outerRule(layoutFixesHostActivityRule()).around(composeRule)
 
     private var viewport by mutableStateOf(800.dp)
-    private var expandRequested by mutableStateOf(true)
 
     private fun setDropdown() {
         composeRule.setContent {
@@ -62,8 +66,6 @@ class SearchDropdownKeyboardTest {
                     onRadiusChanged = {},
                     onMonthSelected = {},
                     onSetOnMap = {},
-                    expandManualCoordinatesRequested = expandRequested,
-                    onManualCoordinatesExpandConsumed = { expandRequested = false },
                 )
             }
         }
@@ -79,33 +81,36 @@ class SearchDropdownKeyboardTest {
         composeRule.waitForIdle()
     }
 
+    /** How far the Latitude field's top sits below the dropdown's top: the panel's own padding when it is not scrolled. */
+    private fun latitudeOffsetFromTop(): Dp {
+        val panelTop = composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).getUnclippedBoundsInRoot().top
+        val latitudeTop = composeRule.onNodeWithTag(SEARCH_DROPDOWN_LATITUDE_TAG).getUnclippedBoundsInRoot().top
+        return latitudeTop - panelTop
+    }
+
     @Test
-    fun `T3a when the viewport shrinks after the scroll to the end, the coordinates stay in view`() {
+    fun `T3a when the viewport shrinks, the coordinates stay in view at the top`() {
         setDropdown()
-        composeRule.onNodeWithText("Search this location").assertIsDisplayed()
-        composeRule.onNodeWithText("Set on map").assertIsDisplayed()
+        composeRule.onNodeWithText("Latitude").assertIsDisplayed()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SET_ON_MAP_TAG).assertIsDisplayed()
 
         shrinkTo(360)
 
         composeRule.onNodeWithText("Latitude").assertIsDisplayed()
         composeRule.onNodeWithText("Longitude").assertIsDisplayed()
-        composeRule.onNodeWithText("Search this location").assertIsDisplayed()
     }
 
     @Test
-    fun `T3b guard once the user drags the dropdown back up, a later viewport change leaves it where they put it`() {
+    fun `T3b the dropdown opens at its top and no viewport change scrolls it`() {
         setDropdown()
+        assertEquals("opened at its top", Spacing.lg.value, latitudeOffsetFromTop().value, 0.5f)
+
         shrinkTo(360)
-        composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).performTouchInput { swipeDown(startY = top + 40f, endY = bottom - 40f, durationMillis = 400) }
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).performTouchInput { swipeDown(startY = top + 40f, endY = bottom - 40f, durationMillis = 400) }
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Set on map").assertIsDisplayed()
+        assertEquals("still at its top after the viewport shrank", Spacing.lg.value, latitudeOffsetFromTop().value, 0.5f)
 
         shrinkTo(420)
         shrinkTo(360)
-
-        composeRule.onNodeWithText("Set on map").assertIsDisplayed()
-        composeRule.onNodeWithText("Search this location").assertIsNotDisplayed()
+        assertEquals("still at its top after the viewport changed twice more", Spacing.lg.value, latitudeOffsetFromTop().value, 0.5f)
     }
 }

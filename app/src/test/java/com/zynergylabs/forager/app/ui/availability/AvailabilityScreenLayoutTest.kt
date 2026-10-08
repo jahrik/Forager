@@ -21,6 +21,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.click
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -266,6 +269,7 @@ abstract class AvailabilityScreenLayoutTest {
     private fun setScreen(
         uiState: AvailabilityUiState,
         onUseCurrentLocation: () -> Unit = {},
+        onSearchManualCoordinates: () -> Unit = {},
         // Navigation HUD stage one: a State so a test can open the HUD mid-composition and
         // measure the map before and after, in one setContent.
         isReturning: State<Boolean> = mutableStateOf(false),
@@ -280,7 +284,7 @@ abstract class AvailabilityScreenLayoutTest {
                 navigationTarget = navigationTarget,
                 onManualLatChanged = {},
                 onManualLngChanged = {},
-                onSearchManualCoordinates = {},
+                onSearchManualCoordinates = onSearchManualCoordinates,
                 onRadiusChanged = {},
                 onMonthSelected = {},
                 onMapTabSelected = {},
@@ -792,60 +796,66 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 5 — the manual coordinates are open on the search bar's tap** (owner, 2026-09-28,
-     * continuation 2026-09-28-40: "Also open manual coordinates", reversing the earlier rule that
-     * "Enter coordinates manually" was the one control still gated behind Advanced search).
+     * **Test 5 — the coordinates are the first thing the search bar's tap shows** (owner, 2026-09-28,
+     * continuation 2026-09-28-40: "Also open manual coordinates"; dispatch 2026-09-28-697 put them
+     * first and removed the folds around them: "Manual can go at the top", "remove the drop down
+     * functions for the advanced search").
      *
-     * The bar's tap opens [SearchDropdown] with "Advanced search" and "Enter coordinates manually"
-     * both expanded, and where the fields do not fit, scrolls the dropdown once so they show
-     * (continuation 2026-09-28-41, "Expand and auto-scroll"). So "Search this location" is asserted
-     * displayed with no header tapped and no `performScrollTo()` in the test, on every
-     * configuration this class runs under, the 2x font scale included.
+     * Latitude and Longitude are asserted displayed with no header tapped and no `performScrollTo()`,
+     * on every configuration this class runs under, the 2x font scale included, and the two folds
+     * that used to hold them are asserted gone.
      */
     @Test
-    fun `the search bar's tap opens the manual coordinates, and Search this location shows without scrolling`() {
+    fun `the search bar's tap shows the coordinates first, with no fold, without scrolling`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
-        composeRule.onNodeWithContentDescription("Collapse Enter coordinates manually").assertExists()
-        composeRule.onNodeWithText("Search this location").assertIsDisplayed()
+        composeRule.onNodeWithText("Latitude").assertIsDisplayed()
+        composeRule.onNodeWithText("Longitude").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Advanced search").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Enter coordinates manually").assertCountEquals(0)
     }
 
     /**
-     * Radius, month, and — as of the map/navigation search-UI redo dispatch — the Location row
-     * ("Set on map"/"Use current location") all now live at [SearchDropdown]'s own top level.
-     * Unlike manual coordinates (the test above), these must be reachable *without* expanding
-     * "Advanced search" at all, which is the whole point of promoting them; asserting them in the
-     * same test as the still-nested "Search this location" wouldn't actually prove that.
-     * "Set on map"/"Use current location" are asserted once each with Advanced search expanded —
-     * moved, not duplicated. Since continuation 2026-09-28-40 the bar's tap opens Advanced search
-     * already expanded, so the count is taken without tapping its header (a tap would collapse it).
+     * Dispatch 2026-09-28-697's order, top to bottom: the coordinates, Month, Search radius, Recent
+     * searches, then Set on map and Search side by side, Set on map on the left (owner: "the slider
+     * should go below the month selection. Recent search below the slider", "The set on map and
+     * search button where the "Search this location" button is now", "Search on the right, set on
+     * map on the left"). Asserted by position, each from its laid-out bounds, not by tree order.
+     * "Use current location" and "Search this location" are asserted gone; Set on map appears once.
      */
     @Test
-    fun `search radius, month, and the location row are reachable after the bar's tap beside the expanded Advanced search, not duplicated in it`() {
+    fun `the search dropdown runs coordinates, Month, Search radius, Recent searches, then Set on map left of Search`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
+        composeRule.waitForIdle()
 
+        fun top(node: androidx.compose.ui.test.SemanticsNodeInteraction) = node.getUnclippedBoundsInRoot().top
+        val latitude = composeRule.onNodeWithTag(SEARCH_DROPDOWN_LATITUDE_TAG).getUnclippedBoundsInRoot()
+        val longitude = composeRule.onNodeWithTag(SEARCH_DROPDOWN_LONGITUDE_TAG).getUnclippedBoundsInRoot()
         // 8 km, not SEARCHED_STATE's own REGION.radiusKm (15) -- this text reads uiState.radiusKm,
-        // the slider's own current value, a separate field from the region that actually got
-        // searched (SEARCHED_STATE leaves it at AvailabilityUiState's own default, 8).
-        listOf(
-            "Set on map",
-            "Use current location",
-            "Search radius: 8 km",
-            "Month",
-        ).forEach { label ->
-            composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
-        }
-        composeRule.onNodeWithText("Advanced search").performScrollTo().assertIsDisplayed()
+        // the slider's own current value (AvailabilityUiState's default, 8).
+        val month = top(composeRule.onNodeWithText("Month"))
+        val radius = top(composeRule.onNodeWithText("Search radius: 8 km"))
+        val recent = top(composeRule.onNodeWithText("Recent searches"))
+        val setOnMap = composeRule.onNodeWithTag(SEARCH_DROPDOWN_SET_ON_MAP_TAG).getUnclippedBoundsInRoot()
+        val search = composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).getUnclippedBoundsInRoot()
 
-        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
+        assertEquals("Latitude and Longitude share the first row", latitude.top.value, longitude.top.value, 0.5f)
+        assertTrue("Latitude is left of Longitude", latitude.right <= longitude.left)
+        assertTrue("Month (${month}) is below the coordinates (${latitude.bottom})", month >= latitude.bottom)
+        assertTrue("Search radius ($radius) is below Month ($month)", radius > month)
+        assertTrue("Recent searches ($recent) is below Search radius ($radius)", recent > radius)
+        assertTrue("the bottom row (${setOnMap.top}) is below Recent searches ($recent)", setOnMap.top > recent)
+        assertEquals("Set on map and Search share the bottom row", setOnMap.top.value, search.top.value, 0.5f)
+        assertTrue("Set on map (${setOnMap.right}) is left of Search (${search.left})", setOnMap.right <= search.left)
+
         composeRule.onAllNodesWithText("Set on map").assertCountEquals(1)
-        composeRule.onAllNodesWithText("Use current location").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Use current location").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Search this location").assertCountEquals(0)
     }
 
     /**
@@ -947,27 +957,66 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * "Use current location" in the drawer's promoted Location row — map/navigation search-UI
-     * redo dispatch. This used to be a shortcut icon on the species search field itself (see this
-     * test's prior version); that icon is gone now ([SearchEntryBar] passes
-     * `showLocationTrailingIcon = false` to match the reference bar exactly, which shows nothing
-     * but the magnifying glass and the text), and "Use current location" is a first-class,
-     * promoted action in the drawer instead. Still has to call the same
-     * [AvailabilityScreen.onUseCurrentLocation] callback [RegionControls]' own button calls
-     * (inside that same dropdown's nested "Advanced search" section) — not a second location-fetch
-     * path — which this proves by wiring a recorder into that single callback.
+     * Where a real touch lands, as fractions of a target's width and height: its centre and four points
+     * towards its corners. A finger is not a point (CLAUDE.md, Testing): one centre touch would miss a
+     * region of the button that something else covers.
+     */
+    private val touchSamples = listOf(0.5f to 0.5f, 0.15f to 0.25f, 0.85f to 0.25f, 0.15f to 0.75f, 0.85f to 0.75f)
+
+    /** A real touch, at screen coordinates, on the node tagged [tag] at ([fx], [fy]) of its own bounds, after scrolling it into view. */
+    private fun touchTagged(tag: String, fx: Float, fy: Float) {
+        composeRule.onNodeWithTag(tag).performScrollTo()
+        composeRule.waitForIdle()
+        val b = composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
+        val at = androidx.compose.ui.geometry.Offset(b.left + b.width * fx, b.top + b.height * fy)
+        composeRule.onAllNodes(androidx.compose.ui.test.isRoot()).onFirst().performTouchInput { click(at) }
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * Dispatch 2026-09-28-697: Search, on the right of the bottom row, replaces "Use current location"
+     * and "Search this location" and runs the search on the coordinates in the fields, through the one
+     * [AvailabilityScreen] callback "Search this location" called, `onSearchManualCoordinates`. Real
+     * touches at screen coordinates, sampled across the button, each on a freshly opened dropdown (a
+     * search closes it); each must reach Search and close the dropdown.
      */
     @Test
-    fun `the drawer's Use current location button calls onUseCurrentLocation`() {
-        var callCount = 0
-        setScreen(SEARCHED_STATE, onUseCurrentLocation = { callCount++ })
+    fun `real touches across the Search button run the coordinate search and close the dropdown`() {
+        var searches = 0
+        var currentLocation = 0
+        setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { searches++ })
 
-        openSearchDropdown()
-        // Continuation 2026-09-28-42: where the manual coordinates do not fit (2x font), the bar's
-        // tap scrolls the dropdown to them, so scroll back up to the button first, as a user would.
-        composeRule.onNodeWithText("Use current location").performScrollTo().performClick()
+        touchSamples.forEachIndexed { i, (fx, fy) ->
+            openSearchDropdown()
+            composeRule.waitForIdle()
+            touchTagged(SEARCH_DROPDOWN_SEARCH_TAG, fx, fy)
+            assertEquals("touch ${i + 1} at ($fx, $fy) of Search reached it", i + 1, searches)
+            composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
+        }
+        assertEquals("Search does not run the current-location path", 0, currentLocation)
+    }
 
-        assertTrue("onUseCurrentLocation should have been called exactly once", callCount == 1)
+    /**
+     * Set on map, on the left of the bottom row, keeps its behaviour (dispatch 2026-09-28-697: "Keep
+     * everything that works today ... Set on map's behaviour"): the dropdown closes and the centre-pin
+     * picker's OK and Cancel come up over the map. Real touches sampled across the button, each on a
+     * freshly opened dropdown, the picker cancelled between them.
+     */
+    @Test
+    fun `real touches across Set on map close the dropdown and open the centre-pin picker`() {
+        var searches = 0
+        setScreen(SEARCHED_STATE, onSearchManualCoordinates = { searches++ })
+
+        touchSamples.forEachIndexed { i, (fx, fy) ->
+            openSearchDropdown()
+            composeRule.waitForIdle()
+            touchTagged(SEARCH_DROPDOWN_SET_ON_MAP_TAG, fx, fy)
+            composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
+            composeRule.onNodeWithText("OK").assertIsDisplayed()
+            composeRule.onNodeWithText("Cancel").assertIsDisplayed().performClick()
+            composeRule.waitForIdle()
+            assertEquals("touch ${i + 1} at ($fx, $fy) of Set on map ran no search", 0, searches)
+        }
     }
 }
 

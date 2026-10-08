@@ -203,18 +203,15 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     /**
-     * Opens the dropdown, which the bar's tap opens with "Advanced search" already expanded (owner,
-     * continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
+     * Opens the dropdown. Its Month and coordinates show with no fold to expand (dispatch
+     * 2026-09-28-697 removed "Advanced search" and "Enter coordinates manually"), so no header is
+     * tapped here; the two names are kept so the callers read as before.
      */
     private fun openSearchDropdownToAdvancedSearch() {
         openSearchDropdown()
     }
 
-    /**
-     * Opens the dropdown to the manual coordinates. The bar's tap expands both "Advanced search" and
-     * "Enter coordinates manually" once (continuation 2026-09-28-40); the dropdown is removed from
-     * composition when closed (`AnimatedVisibility` disposes it), so every open starts that way.
-     */
+    /** Opens the dropdown to the manual coordinates, its first row since dispatch 2026-09-28-697. */
     private fun openSearchDropdownToManualCoordinates() {
         openSearchDropdownToAdvancedSearch()
     }
@@ -224,12 +221,11 @@ class AvailabilityScreenConditionsMonthTest {
         openSearchDropdownToManualCoordinates()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        // performScrollTo(): radius and month, promoted to SearchDropdown's own top level ahead of
-        // this section (map/navigation redesign dispatch D), push "Search this location" below the
-        // dropdown's own bounded, scrolled viewport — without this the tap lands on the node's own
-        // (correct but currently off-screen) bounds, which reaches nothing actually rendered there.
+        // performScrollTo(): Search sits in the dropdown's bottom row (dispatch 2026-09-28-697),
+        // which can be below its bounded, scrolled viewport — without this the tap lands on the
+        // node's own (correct but currently off-screen) bounds, which reaches nothing rendered there.
         // Closes the dropdown itself, which is why nothing closes it here.
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
