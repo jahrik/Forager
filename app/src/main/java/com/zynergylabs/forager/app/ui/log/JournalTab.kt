@@ -49,6 +49,8 @@ import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
+import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.SlideOverPage
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
@@ -486,22 +488,33 @@ internal fun JournalTab(
     // function's own remembered state regardless of which RecordsTab sub-tab slot renders it.
     // The Finds section is two parts: the list (the gallery) and the detail (an open find's report,
     // editor and pickers); [findsSection] draws whichever applies.
-    val findsDetail: @Composable ColumnScope.() -> Unit = {
-        when {
-            editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
+    // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout F1, F2): the Finds section is a stack of
+    // pages (the gallery, a find's report, its editor, and the editor's two pickers), each opened page sliding in from the right
+    // and Back sliding it out again (motion/PageSlide.kt). Each page carries the find it shows, so a report still draws while it
+    // slides out after its find has closed.
+    val findsPage: FindsPage = when {
+        editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> FindsPage.PickLocation(editing)
+        editing != null && mode == JournalEntryMode.EDIT && pullingPhotoForEditingEntry -> FindsPage.PullPhoto(editing)
+        editing != null && mode == JournalEntryMode.EDIT -> FindsPage.Edit(editing)
+        editing != null -> FindsPage.Report(editing)
+        else -> FindsPage.Gallery
+    }
+    val findsDetail: @Composable ColumnScope.(FindsPage) -> Unit = { page ->
+        when (page) {
+            is FindsPage.PickLocation -> CentrePinLocationPicker(
                 mapSlot = mapSlot,
                 region = findLocationPickerRegion(deviceLocation, pickerRegion),
                 basemap = basemap,
                 night = night,
                 onConfirm = { location ->
                     pickingLocationForEditingEntry = false
-                    onEntryChanged(editing.copy(foundAt = location))
+                    onEntryChanged(page.entry.copy(foundAt = location))
                 },
                 onCancel = { pickingLocationForEditingEntry = false },
                 modifier = Modifier.weight(1f),
             )
 
-            editing != null && mode == JournalEntryMode.EDIT && pullingPhotoForEditingEntry -> PullPhotoPickerScreen(
+            is FindsPage.PullPhoto -> PullPhotoPickerScreen(
                 photos = uiState.galleryPhotos,
                 onPhotoSelected = { photo ->
                     pullingPhotoForEditingEntry = false
@@ -523,8 +536,8 @@ internal fun JournalTab(
                 modifier = Modifier.weight(1f),
             )
 
-            editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(
-                entry = editing,
+            is FindsPage.Edit -> LogEntryDetailScreen(
+                entry = page.entry,
                 onOpenCamera = onOpenCameraForLogEntry,
                 onEntryChanged = onEntryChanged,
                 onAddPhoto = onAddPhoto,
@@ -533,23 +546,23 @@ internal fun JournalTab(
                 onAddLocation = { pickingLocationForEditingEntry = true },
                 onSave = { onSaveEntry(); mode = JournalEntryMode.REPORT },
                 onCancel = onCancelEditing,
-                onDeleteEntry = { onDeleteEntry(editing.id) },
+                onDeleteEntry = { onDeleteEntry(page.entry.id) },
                 onBack = onLeaveEditingIncidentally,
                 onPhotoAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
                 modifier = Modifier.weight(1f),
             )
 
-            editing != null -> LogEntryReportScreen(
-                entry = editing,
+            is FindsPage.Report -> LogEntryReportScreen(
+                entry = page.entry,
                 onEdit = {
                     onStartEditingEntry()
                     mode = JournalEntryMode.EDIT
                 },
-                onDeleteEntry = { onDeleteEntry(editing.id) },
+                onDeleteEntry = { onDeleteEntry(page.entry.id) },
                 onBack = onCloseEntry,
                 modifier = Modifier.weight(1f),
             )
-            else -> Unit
+            FindsPage.Gallery -> Unit
         }
     }
     val findsList: @Composable ColumnScope.() -> Unit = {
@@ -581,9 +594,22 @@ internal fun JournalTab(
             onEditEntry = editFind,
         )
     }
-    val findsSection: @Composable ColumnScope.() -> Unit = {
-        if (editing != null) findsDetail() else findsList()
+    // One page stack for both places the Finds section is drawn (Records' Finds slot, and the find over the view below), each
+    // with its own slide. [page] is what it shows: the current page, or for the find over the view as it slides away, the page it
+    // last showed.
+    val findsPages: @Composable ColumnScope.(FindsPage) -> Unit = { page ->
+        PageSlide(
+            targetState = page,
+            depthOf = { it.depth },
+            contentKey = { it.kind },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { shown ->
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (shown == FindsPage.Gallery) findsList() else findsDetail(shown)
+            }
+        }
     }
+    val findsSection: @Composable ColumnScope.() -> Unit = { findsPages(findsPage) }
 
     fun selectTopTab(tab: JournalTopTab) {
         // Leaving Records mid-find-edit for Entries is an incidental exit — see this composable's
@@ -658,7 +684,15 @@ internal fun JournalTab(
             )
         }
 
-        when (selectedTopTab) {
+        // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout J1, J2): Records, the right-hand side
+        // of the switch and the page Back steps out of to Entries, slides in from the right over Entries, and slides out to the
+        // right going back, by the switch or by Back.
+        PageSlide(
+            targetState = selectedTopTab,
+            depthOf = { it.ordinal },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { shownTopTab ->
+        when (shownTopTab) {
             JournalTopTab.CARTOGRAPHY -> CartographyScreen(
                 uiState = cartographyUiState,
                 galleryPhotos = galleryPhotos,
@@ -694,7 +728,7 @@ internal fun JournalTab(
                 onDiscardEntryChanges = onDiscardCartographyEntryChanges,
                 onSaveEntryAsDraft = onSaveCartographyEntryAsDraft,
                 onDeleteEntry = onDeleteCartographyEntry,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxSize(),
                 // J3, C4 (plan J9): one full-width column in compact portrait; `columns` stays the
                 // only width knob. A short window (a phone on its side) keeps two columns, which J5's
                 // sideways cards use (plan L4); the rule is J3's, unchanged.
@@ -726,7 +760,7 @@ internal fun JournalTab(
             // the phone turns (plan L7: a rotation is not a recreation here, and a moved call site
             // would drop its remember state); the L1 row sits above it only in a short window, with
             // no action (portrait's Records has no floating button to move into it, L2).
-            JournalTopTab.RECORDS -> Column(modifier = Modifier.weight(1f)) {
+            JournalTopTab.RECORDS -> Column(modifier = Modifier.fillMaxSize()) {
                 shortWindowHeader?.invoke(null)
                 RecordsTab(
                     modifier = Modifier.weight(1f),
@@ -785,6 +819,7 @@ internal fun JournalTab(
                     )
             }
         }
+        }
     }
 
     // M1: the find opened from a map bubble, over the view (FindOverView). An opaque Surface, so no
@@ -792,8 +827,18 @@ internal fun JournalTab(
     // so Back unwinds the find first (a picker, the edit form, then the report) and only then the view.
     if (findOverViewVisible) {
         BackHandler(enabled = backEnabled) { unwindFindsSection() }
+    }
+    // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout F3): it slides in from the right over the
+    // view and out to the right on Back, uncovering the view exactly as it was. While it comes in, nothing beneath takes a
+    // touch; while it goes, it takes none itself (SlideOverPage). As it goes it keeps showing the page it last showed (its find
+    // has closed by then), so it does not turn into the gallery on its way out.
+    val overViewPageHeld = remember { arrayOfNulls<FindsPage>(1) }
+    if (findOverViewVisible) overViewPageHeld[0] = findsPage
+    SlideOverPage(visible = findOverViewVisible) {
         Surface(modifier = Modifier.fillMaxSize().testTag(FIND_OVER_VIEW_TAG)) {
-            Column(modifier = Modifier.fillMaxSize()) { findsSection() }
+            Column(modifier = Modifier.fillMaxSize()) {
+                findsPages(if (findOverViewVisible) findsPage else overViewPageHeld[0] ?: FindsPage.Gallery)
+            }
         }
     }
     }
@@ -901,6 +946,47 @@ internal enum class PendingJournalDestination {
      * (its id passed beside this), or the Tracks list alone when the file was not imported.
      */
     VIEW_IMPORTED_TRACK,
+}
+
+/**
+ * A page of the Finds section (motion Part 3, item 1): the gallery, or the open find in its report, its editor, or one of the
+ * editor's two pickers. Each opened page carries the find it shows, so it can be drawn while it slides away after the find has
+ * closed. [depth] is how far in it is (a page deeper than the current one slides in over it; a shallower one is uncovered by the
+ * current one sliding out), and [kind] is which page it is: a change of the find within one page (a field typed, the open id
+ * swapped for its draft row) updates it in place, with no slide.
+ */
+internal sealed interface FindsPage {
+    val depth: Int
+    val kind: String
+
+    data object Gallery : FindsPage {
+        override val depth = 0
+        override val kind = "gallery"
+    }
+
+    sealed interface WithFind : FindsPage {
+        val entry: MushroomLogEntry
+    }
+
+    data class Report(override val entry: MushroomLogEntry) : WithFind {
+        override val depth = 1
+        override val kind = "report"
+    }
+
+    data class Edit(override val entry: MushroomLogEntry) : WithFind {
+        override val depth = 2
+        override val kind = "edit"
+    }
+
+    data class PickLocation(override val entry: MushroomLogEntry) : WithFind {
+        override val depth = 3
+        override val kind = "pick-location"
+    }
+
+    data class PullPhoto(override val entry: MushroomLogEntry) : WithFind {
+        override val depth = 3
+        override val kind = "pull-photo"
+    }
 }
 
 /** The find shown over the Journal ([FindOverView]). */

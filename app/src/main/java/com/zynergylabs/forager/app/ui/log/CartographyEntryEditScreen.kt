@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -174,8 +175,16 @@ internal fun CartographyEntryEditScreen(
     modifier: Modifier = Modifier,
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
+    /**
+     * Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout J7): whether the album picker is open over
+     * this editor, and whether this screen draws that picker itself. [CartographyScreen] holds the first and draws the picker as
+     * its own page, which slides in over the editor and out again on Back, so it passes `false` for the second and this screen
+     * draws the form only. The defaults are this screen on its own, as before: it holds the flag and draws the picker in place.
+     */
+    pullingPhotoState: MutableState<Boolean> = remember(entry.id) { mutableStateOf(false) },
+    drawsPhotoPicker: Boolean = true,
 ) {
-    var pullingPhoto by remember(entry.id) { mutableStateOf(false) }
+    var pullingPhoto by pullingPhotoState
     // Entry-photo-acquisition dispatch, Item 3: found on device — system back from this picker
     // landed on the Cartography entry *list*, skipping this editor entirely. CartographyScreen's
     // own BackHandler only knows "an entry is open"; pullingPhoto is a level inside that it had no
@@ -187,10 +196,10 @@ internal fun CartographyEntryEditScreen(
     // codebase (the map "+" flow, the camera return, the Cartography entry, the Records sub-tab,
     // now this) — a shared navigation abstraction remains queued behind the AvailabilityScreen.kt
     // split, not attempted here.
-    BackHandler(enabled = backEnabled && pullingPhoto) {
+    BackHandler(enabled = backEnabled && pullingPhoto && drawsPhotoPicker) {
         pullingPhoto = false
     }
-    if (pullingPhoto) {
+    if (pullingPhoto && drawsPhotoPicker) {
         PullPhotoPickerScreen(
             photos = galleryPhotos,
             onPhotoSelected = { photo -> onToggleKeptPhoto(photo.id); pullingPhoto = false },
