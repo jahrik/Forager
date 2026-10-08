@@ -167,6 +167,8 @@ internal fun SearchEntryBar(
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
     onFieldFocused: () -> Unit,
+    /** RECORD -723: the Clear text button at the bar's right end, shown only while a search is showing. */
+    onClearSearch: () -> Unit = {},
     /** Whether this bar is the Maps tab's, over its map: its species suggestions are then at the map chrome's alpha (owner, "1 A"). */
     overMap: Boolean = false,
 ) {
@@ -246,6 +248,18 @@ internal fun SearchEntryBar(
                         contentPadding = fieldContentPadding,
                         suggestionsOverMap = overMap,
                     )
+                }
+                // RECORD -723: "a 'Clear' text button at the right end of the search bar, shown only while a search is
+                // showing" (a region is set, which is what the summary reads as a search). It removes the search and its
+                // results (AvailabilityViewModel.clearSearch); the summary goes back to "Search a location". A sibling
+                // of the field, not its trailing icon, so a tap on it never focuses the field or opens the dropdown.
+                if (uiState.region != null) {
+                    TextButton(
+                        onClick = onClearSearch,
+                        modifier = Modifier.padding(end = Spacing.xs).testTag(SEARCH_BAR_CLEAR_TAG),
+                    ) {
+                        Text("Clear", color = contentColor)
+                    }
                 }
             }
             Spacer(Modifier.height(Spacing.xs))
@@ -506,6 +520,9 @@ internal const val SEARCH_DROPDOWN_SET_ON_MAP_TAG = "search-dropdown-set-on-map"
 
 /** [SearchDropdown]'s Search button, the right of its bottom row, for tests. */
 internal const val SEARCH_DROPDOWN_SEARCH_TAG = "search-dropdown-search"
+
+/** [SearchEntryBar]'s Clear text button (RECORD -723), for tests. */
+internal const val SEARCH_BAR_CLEAR_TAG = "search-bar-clear"
 
 /** See [SearchDropdown]'s own doc comment. */
 internal const val SEARCH_DROPDOWN_TAG = "search-dropdown"

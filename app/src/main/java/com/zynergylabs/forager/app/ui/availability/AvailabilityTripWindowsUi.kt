@@ -15,13 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.domain.ForagingWeatherGuidance
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatRainfall
 import com.zynergylabs.forager.app.domain.model.formatSoilTemperature
@@ -32,13 +30,11 @@ import com.zynergylabs.forager.app.ui.format.displayDate
 
 
 /**
- * Upcoming days that sit inside the stated post-rain lag range, next to the group's general
- * weather pattern.
+ * Upcoming days that sit inside the stated post-rain lag range.
  *
- * Two owned domain objects meet here and stay visually distinct: [TripWindowReport] is
- * measurements and date arithmetic only (see its own doc comment for why it must never grow a
- * score), and [ForagingWeatherGuidance] is the separately-stated rule of thumb that makes those
- * measurements interesting. The card shows both but never blends them into one sentence.
+ * [TripWindowReport] is measurements and date arithmetic only (see its own doc comment for why it
+ * must never grow a score). The group's weather guidance text that used to follow it, under a
+ * divider, was removed by RECORD -727.
  *
  * Unlike [ConditionsCard], not gated to the browsed month: the days ahead of today are relevant
  * to planning a trip this week regardless of which month's species ranking is on screen.
@@ -64,12 +60,9 @@ internal fun TripWindowsCard(uiState: AvailabilityUiState) {
                 uiState.tripWindowReport != null -> TripWindowReportContent(uiState.tripWindowReport, uiState.unitSystem)
             }
 
-            // No guidance written for the selection's group means no section and no divider above
-            // it: the card ends at its measurements (dispatch 2026-09-28-695).
-            ForagingWeatherGuidance.forSelection(uiState.foragingSelection, uiState.unitSystem)?.let { guidance ->
-                HorizontalDivider()
-                ForagingWeatherGuidanceSection(guidance)
-            }
+            // RECORD -727, the owner: "remove the block of text here labeled Rain and Fungi: the general pattern",
+            // then "Remove both" for the plants block. The divider and the guidance section that sat here are gone,
+            // for every group: the card ends at its measurements.
         }
     }
 }
@@ -125,28 +118,5 @@ private fun TripWindowRow(window: TripWindow, unitSystem: UnitSystem) {
             }
         }
         LabelledTable(rows)
-    }
-}
-
-/**
- * The general weather pattern for the current selection, stated as a rule of thumb next to the
- * measurements above it — never combined with them into a score. See
- * [ForagingWeatherGuidance]'s doc comment for the rules this enforces.
- */
-@Composable
-private fun ForagingWeatherGuidanceSection(guidance: ForagingWeatherGuidance.Guidance) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        // labelMedium + a muted color, not titleSmall/labelLarge: Material3 sizes titleSmall and
-        // labelLarge identically (14sp/500), so this heading and the card's own "Trip Windows"
-        // title above it were reading as the same weight despite one being nested inside the
-        // other. This is deliberately a step down from the card title, not a second one beside it.
-        Text(
-            guidance.heading,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        guidance.paragraphs.forEach { paragraph ->
-            Text(paragraph, style = MaterialTheme.typography.bodySmall)
-        }
     }
 }

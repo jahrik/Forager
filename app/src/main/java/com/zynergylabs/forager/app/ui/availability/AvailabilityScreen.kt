@@ -222,7 +222,6 @@ import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ForagingSelection
-import com.zynergylabs.forager.app.domain.ForagingWeatherGuidance
 import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MgrsConverter
@@ -424,6 +423,12 @@ fun AvailabilityScreen(
      * [SearchDropdown].
      */
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
+    /**
+     * RECORD -723: the search bar's Clear, shown only while a search is showing (a region is set). MainActivity
+     * wires it to [AvailabilityViewModel.clearSearch]. Defaulted to a no-op only so the many screen tests that
+     * never show Clear need not pass it.
+     */
+    onClearSearch: () -> Unit = {},
     /**
      * Where "now" comes from for the relative times this screen renders — the offline banner's
      * "saved 3 hours ago" and the recent-searches picker's "cached 2 days ago".
@@ -1810,6 +1815,7 @@ fun AvailabilityScreen(
             onDeleteTrack = onDeleteTrack,
             tracksErrorMessage = tracksErrorMessage,
             onRecentSearchSelected = onRecentSearchSelected,
+            onClearSearch = onClearSearch,
             onRadiusChanged = onRadiusChanged,
             onMonthSelected = onMonthSelected,
             journalScreenState = journalScreenState,

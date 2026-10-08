@@ -65,6 +65,7 @@ import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.rules.ExternalResource
@@ -95,6 +96,9 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
 
     val searchCache = InMemorySearchCacheRepository()
 
+    /** When set, every sightings fetch waits for it: a fetch still running, for the Clear-while-loading test. */
+    var sightingsGate: CompletableDeferred<Unit>? = null
+
     private val repository = object : MushroomRepository, TaxonSearchRepository {
         override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
             availabilityFetches += Triple(region, month, filter)
@@ -105,6 +109,7 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
 
         override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> {
             sightingsFetches += Triple(region, month, filter)
+            sightingsGate?.await()
             return Result.success(SightingsPage(sightings = listOf(sightingAt(region)), totalResults = 1))
         }
 
@@ -165,6 +170,7 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
                 onPlaceTripPin = vm::onPlaceTripPin,
                 onDeletePlannedTrip = vm::onDeletePlannedTrip,
                 onRecentSearchSelected = vm::onRecentSearchSelected,
+                onClearSearch = vm::clearSearch,
                 onOfflineMapLatChanged = vm::onOfflineMapLatChanged,
                 onOfflineMapLngChanged = vm::onOfflineMapLngChanged,
                 onOfflineMapRadiusChanged = vm::onOfflineMapRadiusChanged,
