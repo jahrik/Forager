@@ -52,6 +52,7 @@ import com.zynergylabs.forager.app.ui.diagnostics.DIAGNOSTICS_TITLE
 import com.zynergylabs.forager.app.ui.diagnostics.directoryHeading
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.MapMode
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -316,9 +317,14 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(false, capturedNightModeLoaded)
     }
 
+    /**
+     * Since dispatch 2026-09-28-708 the gate also waits for the stored basemap
+     * ([AvailabilityUiState.mapMode]), so "loaded" here is both reads landed. The state gained
+     * `mapMode` for that; the assertion is unchanged.
+     */
     @Test
     fun `the main map is told once the Night Maps preference has loaded`() {
-        setScreenWithOfflineMapsState(initial = SEARCHED_STATE.copy(nightModeMapsLoaded = true))
+        setScreenWithOfflineMapsState(initial = SEARCHED_STATE.copy(nightModeMapsLoaded = true, mapMode = MapMode.DEFAULT))
         composeRule.onNodeWithTag(MAP_SLOT_TAG).assertExists()
 
         assertEquals(true, capturedNightModeLoaded)
@@ -430,14 +436,16 @@ class AvailabilityScreenSettingsPanelTest {
 
         assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
         // Map layers L0b (owner's ruling on Q3, "Stays open"): the sheet stays open on a map-type
-        // tap, so the other chips are still on screen. Before L0b the picker closed itself here and
-        // this asserted Satellite's count was 0.
-        composeRule.onAllNodesWithText("Satellite").assertCountEquals(1)
-        composeRule.onNodeWithText("Satellite").assertIsDisplayed().performClick()
+        // tap, so the other chip is still on screen. Before L0b the picker closed itself here and
+        // this asserted Satellite's count was 0; until dispatch 2026-09-28-708 it then went on to
+        // Satellite, which that dispatch removed, so it now goes back to Topographical and checks
+        // that no Satellite chip is offered.
+        composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
+        composeRule.onNodeWithText("Topographical").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
         assertNotEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        assertEquals(Basemap.USGS_IMAGERY_ONLY, capturedBasemap)
+        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
     }
 
     @Test

@@ -51,7 +51,8 @@ internal abstract class LayersChipsTests(private val baseChipTopDp: Float) {
         openSheet()
         val sheet = composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).getUnclippedBoundsInRoot()
         val first = chip("Street")
-        val last = chip("Satellite")
+        // The last chip has been Topographical since dispatch 2026-09-28-708 removed Satellite.
+        val last = chip("Topographical")
 
         val rowCentre = (first.left.value + last.right.value) / 2f
         val sheetCentre = (sheet.left.value + sheet.right.value) / 2f
