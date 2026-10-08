@@ -510,3 +510,31 @@ is down from 4,317 because `StripReadoutsShownTest` was deleted, and the new pla
      -714 did not touch.
    - This is back-by's own test, written by the first coder; it has never passed.
    - **The change it would need:** drop the "clipped either way" half, or decide that status separately.
+
+## RECORD -715: test claims changed; the suite is green
+
+The owner, verbatim: "Keep it, 12 dp taller (Recommended)". The measured placement stays as built, landscape included.
+
+**Claims changed, each citing -715:**
+
+1. **`AvailabilityScreenNavigationWordsTest`, data part B's three 360 dp display tests**, changed to RECORD -713's rule:
+   - **The shared check, `assertDisplayWhole`.** It used to require the "Facing" and "Alt" labels drawn. It now asserts:
+     - the first row's lines (the figure, its kind, the turn, the status) are whole;
+     - each readout that is shown (heading, altitude) is whole, and so is each label that is drawn;
+     - the coordinates are whole.
+   - **Through that check:** "at 360 dp the longest lines fit whole" and "at 360 dp the display's decimal coordinates fit
+     whole beside the longest lines".
+   - **Renamed:** "on the route the display reads the turn in words, the route by trail, the straight line straight,
+     and labels its heading and altitude" is now "… and its heading and altitude, labelled where they fit". Where a label
+     is drawn, it is still checked to sit before its own reading.
+2. **`NavigationHudQuickSettingsWidthTest`, its "clipped either way" half**, changed to RECORD -694's rule. A line cut
+   with or without the button must be one line ending in "…". The only such line is "No origin waypoint for this
+   track", which is too long for the column even with no button. A line that only the button cuts must still be whole.
+
+**Measured at 360 dp after the change** (from the tests' own `MEASURED` lines):
+- The status "≈ 1250 ft straight" is whole: box 102.5 dp, needs 102.25 dp.
+- "by trail" sits beside "1280 ft", whole.
+- The second row's heading "281° W" and elevation "9843 ft" are whole, and the coordinates are whole.
+
+**Full suite:** `:app:testDebugUnitTest`, read from the JUnit XML (550 files): **4,313 tests, 0 failures, 0 errors,
+24 skipped.** No `@Ignore` added; the 24 skipped are existing `@Ignore`s.
