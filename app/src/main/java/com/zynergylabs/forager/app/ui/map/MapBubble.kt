@@ -74,6 +74,7 @@ import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlin.math.abs
 import kotlin.math.atan2
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * M1's bubble shell and the layer every map host puts over its map (`prompts/preserved/2026-09-28-29.md`
@@ -305,7 +306,7 @@ internal fun MapBubbleLayer(
                         )
                     }
                 } else {
-                    mapBubbleContentFor(target, sources).also { found ->
+                    mapBubbleContentFor(target, sources, is24HourClock()).also { found ->
                         if (found == null) {
                             LaunchedEffect(target) {
                                 Log.w(MAP_BUBBLE_LOG_TAG, "No ${target.kind} ${target.featureId} in the host's lists; its bubble was not shown.")

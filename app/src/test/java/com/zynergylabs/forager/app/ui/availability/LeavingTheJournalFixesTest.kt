@@ -1218,7 +1218,8 @@ class LeavingTheJournalFixesTest {
         const val NEW_DAY_ENTRY_ID = "day-new"
         const val NEW_FIND_ID = "find-new"
         const val TYPED_TEXT = "Typed on the trail, not saved."
-        val FIND_TILE_TEXT = "Find on $FIND_DATE"
+        // A find tile shows the name the user gave the find (data part D, RECORD -702), COMMITTED_FIND's own identification.
+        val FIND_TILE_TEXT = "Chanterelle"
 
         val PHOTO = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
 

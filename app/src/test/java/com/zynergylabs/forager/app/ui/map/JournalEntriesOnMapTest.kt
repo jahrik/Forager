@@ -51,7 +51,7 @@ class JournalEntriesOnMapTest {
 
     @Test
     fun `an entry is named by the report header's date form`() {
-        assertEquals("2026-09-12", journalEntryDateLabel(LocalDate.of(2026, 9, 12)))
+        assertEquals("Sep 12, 2026", journalEntryDateLabel(LocalDate.of(2026, 9, 12)))
     }
 
     // ── The bubble's entry lines ──
@@ -60,15 +60,15 @@ class JournalEntriesOnMapTest {
     fun `up to three keeping entries are each a date line labelled Open entry and the date`() {
         assertNull(keptInEntriesLines(emptyList()))
         assertEquals(
-            KeptInEntriesLines.Dates(listOf(EntryLine("a", "2026-09-12", "Open entry 2026-09-12"))),
+            KeptInEntriesLines.Dates(listOf(EntryLine("a", "Sep 12, 2026", "Open entry Sep 12, 2026"))),
             keptInEntriesLines(listOf(onMap("a", 12))),
         )
         assertEquals(
             KeptInEntriesLines.Dates(
                 listOf(
-                    EntryLine("a", "2026-09-12", "Open entry 2026-09-12"),
-                    EntryLine("b", "2026-09-05", "Open entry 2026-09-05"),
-                    EntryLine("c", "2026-08-30", "Open entry 2026-08-30"),
+                    EntryLine("a", "Sep 12, 2026", "Open entry Sep 12, 2026"),
+                    EntryLine("b", "Sep 5, 2026", "Open entry Sep 5, 2026"),
+                    EntryLine("c", "Aug 30, 2026", "Open entry Aug 30, 2026"),
                 ),
             ),
             keptInEntriesLines(listOf(onMap("a", 12), onMap("b", 5), JournalEntryOnMap("c", LocalDate.of(2026, 8, 30)))),
@@ -110,7 +110,7 @@ class JournalEntriesOnMapTest {
     )
 
     private fun keptInOf(kind: MapBubbleKind, layerId: String, id: String): List<JournalEntryOnMap>? =
-        when (val content = mapBubbleContentFor(MapBubbleTarget.FeatureTarget(kind, layerId, id, LatLng(45.0, -122.0)), sources)) {
+        when (val content = mapBubbleContentFor(MapBubbleTarget.FeatureTarget(kind, layerId, id, LatLng(45.0, -122.0)), sources, is24HourClock = false)) {
             is MapBubbleContent.Find -> content.keptIn
             is MapBubbleContent.Photo -> content.keptIn
             is MapBubbleContent.WaypointContent -> content.keptIn

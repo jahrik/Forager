@@ -4,7 +4,8 @@ package com.zynergylabs.forager.app.ui.availability
 // trip windows card, moved out of AvailabilityResultsUi.kt before this part changed it. Same package,
 // so its caller (TripPlannerSection) and TRIP_WINDOW_DATE_FORMAT's other users (the planned-trips row,
 // its map bubble) resolve unchanged. The move itself changed no line of it; the later commits on branch data-c-seasonal then
-// changed TripWindowRow.
+// changed TripWindowRow. Data part D (RECORD -702) then removed TRIP_WINDOW_DATE_FORMAT ("MMM d"): its users show the shared
+// "Oct 7, 2026" (ui/format/DisplayDates.kt).
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,10 +30,8 @@ import com.zynergylabs.forager.app.domain.model.formatSoilTemperature
 import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.ui.theme.Spacing
-import java.time.format.DateTimeFormatter
+import com.zynergylabs.forager.app.ui.format.displayDate
 
-
-internal val TRIP_WINDOW_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
 
 /**
  * Upcoming days that sit inside the stated post-rain lag range, next to the group's general

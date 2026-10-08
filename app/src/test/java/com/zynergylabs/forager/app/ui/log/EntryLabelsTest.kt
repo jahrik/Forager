@@ -10,6 +10,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The exact words and figures data part A (dispatch 2026-09-28-667) puts on the entry's editor and
@@ -80,7 +81,7 @@ class EntryLabelsTest {
 
     @Test
     fun `dates read Oct 7, 2026 and coordinates are labelled`() {
-        assertEquals("Oct 7, 2026", formatEntryDate(LocalDate.of(2026, 10, 7)))
+        assertEquals("Oct 7, 2026", displayDate(LocalDate.of(2026, 10, 7)))
         assertEquals("Coordinates: 45.3200, -122.6400", waypointCoordinatesLine(45.32, -122.64))
     }
 }

@@ -38,6 +38,7 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.formatTimeSpan
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The editor's "In this entry" panel (dispatch 2026-09-28-667, data part A; the owner in RECORD -656:
@@ -252,7 +253,7 @@ private val EntryItem.kindLabel: String
 private fun EntryItem.title(): String = when (this) {
     is EntryTrackItem -> name ?: "Recorded track"
     is EntryWaypointItem -> name
-    is EntryFindItem -> "Find on ${formatEntryDate(foundOn)}"
+    is EntryFindItem -> "Find on ${displayDate(foundOn)}"
     is EntryOfflineMapItem -> name
 }
 

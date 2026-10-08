@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.ui.log.journalEntryCountLabel
 import java.time.LocalDate
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /** The report menu's item for an entry not shown on the map (J8, the dispatch's copy). */
 const val SHOW_ON_MAP_LABEL = "Show on map"
@@ -23,8 +24,12 @@ const val HIDE_ALL_JOURNAL_ENTRIES_LABEL = "Hide all"
 fun journalEntriesChipLabel(count: Int): String =
     if (count == 1) "1 journal entry on map" else "$count journal entries on map"
 
-/** An entry's date as the Journal's report header shows it (planner, Q3: `2026-09-12`). */
-fun journalEntryDateLabel(date: LocalDate): String = date.toString()
+/**
+ * An entry's date as the Journal's report header shows it, "Oct 7, 2026": the map's journal menu and its bubbles' date lines.
+ * The planner's earlier ISO answer (Q3, `2026-09-12`) is superseded by the owner's "Use 'Oct 7, 2026' everywhere" (RECORD -656,
+ * applied by -702).
+ */
+fun journalEntryDateLabel(date: LocalDate): String = displayDate(date)
 
 /** A bubble date line's accessibility label (owner's Q2 ruling, "Tap a date line"). */
 fun openEntryAccessibilityLabel(date: String): String = "Open entry $date"

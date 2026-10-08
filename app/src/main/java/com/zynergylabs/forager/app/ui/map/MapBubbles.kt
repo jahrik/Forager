@@ -28,7 +28,6 @@ import com.zynergylabs.forager.app.domain.isOfflineRegionStale
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
-import com.zynergylabs.forager.app.ui.availability.TRIP_WINDOW_DATE_FORMAT
 import com.zynergylabs.forager.app.ui.availability.decimalDegreesLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.rectEdgeIntersection
@@ -40,12 +39,13 @@ import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_REFERENCE_CLASS
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.legendDatesLine
-import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
 import com.zynergylabs.forager.app.ui.track.trackTitle
 import java.time.LocalDate
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import com.zynergylabs.forager.app.ui.format.displayDate
+import com.zynergylabs.forager.app.ui.format.displayDateTime
 
 /**
  * M1, tap a map glyph for a bubble (`prompts/preserved/2026-09-28-29.md`, continuation
@@ -232,7 +232,7 @@ sealed interface MapBubbleContent {
  * not there any more (a delete landed, a list reloaded), which the host treats as nothing to show.
  * Not for cells, which are looked up in the store ([lookUpForecastCell]).
  */
-fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecordSources): MapBubbleContent? {
+fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecordSources, is24HourClock: Boolean): MapBubbleContent? {
     val id = target.featureId
     // J8: the shown entries keeping this record, when it is highlighted; empty otherwise.
     fun keptIn(kind: HighlightedRecordKind) = sources.journalEntriesKeeping[HighlightedRecord(kind, id)].orEmpty()
@@ -251,7 +251,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
             val keepingEntries = keptIn(HighlightedRecordKind.PHOTO)
             MapBubbleContent.Photo(
                 photo = gallery.photo,
-                date = gallery.photo.createdAtEpochMillis?.let(::formatRecordTimestamp) ?: PHOTO_DATE_UNKNOWN,
+                date = gallery.photo.createdAtEpochMillis?.let { displayDateTime(it, is24HourClock) } ?: PHOTO_DATE_UNKNOWN,
                 attachedTo = photoAttachmentLine(gallery, sources, keepingEntriesShown = keepingEntries.isNotEmpty()),
                 keptIn = keepingEntries,
             )
@@ -265,7 +265,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
             // date, MGRS when there is one, decimal degrees.
             MapBubbleContent.Trip(
                 trip = trip,
-                date = TRIP_WINDOW_DATE_FORMAT.format(trip.date),
+                date = displayDate(trip.date),
                 mgrs = mgrsOf(trip.location),
                 coordinates = decimalDegreesLabel(trip.location.lat, trip.location.lng),
             )
@@ -275,8 +275,8 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
             val stats = ComputeTrackStatisticsUseCase()(track.points)
             MapBubbleContent.TrackContent(
                 trackId = track.id,
-                title = trackTitle(track),
-                date = formatRecordTimestamp(track.startedAtEpochMillis),
+                title = trackTitle(track, is24HourClock),
+                date = displayDateTime(track.startedAtEpochMillis, is24HourClock),
                 distance = formatDistanceMeters(stats.distanceMeters, sources.distanceUnit),
                 // Plan T16: "No times in file" for an imported track whose file had none.
                 duration = trackDurationLabel(track, stats.durationMillis),
@@ -308,7 +308,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
 }
 
 /** A find's date as its gallery tile captions it ("Find on <date>", `FindsGalleryScreen`). */
-private fun findDateLabel(find: MushroomLogEntry): String = "Find on ${find.foundOn}"
+private fun findDateLabel(find: MushroomLogEntry): String = "Find on ${displayDate(find.foundOn)}"
 
 /** No line rather than a wrong one, as the rows do (`MgrsCoordinate`'s doc comment). */
 private fun mgrsOf(location: LatLng): String? = (MgrsConverter.convert(location) as? MgrsCoordinate.Grid)?.value

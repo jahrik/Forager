@@ -52,6 +52,7 @@ import com.zynergylabs.forager.app.ui.track.trackTitle
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * Records' **All** view — journal redesign J1, S4 (plan J4; the owner's answers in
@@ -179,7 +180,7 @@ internal fun RecordsLogbookList(
                             BadgedRow(
                                 type = RecordType.TRACKS,
                                 recordId = record.track.id,
-                                detailsName = trackTitle(record.track),
+                                detailsName = trackTitle(record.track, is24HourClock()),
                                 onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.TrackDetails(record.track.id)) } },
                             ) {
                                 TrackExportRow(track = record.track, waypoints = waypoints, getFullRecord = getFullRecord)
