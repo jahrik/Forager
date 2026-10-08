@@ -87,7 +87,11 @@ internal fun Modifier.landscapeStripHalf(
             return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
         }
         val window = constraints.maxWidth.toDp() + searchSideInset + railSideInset
-        val half = (window / 2 - railSideInset).coerceAtLeast(0.dp).roundToPx().coerceAtMost(constraints.maxWidth)
+        // What is left of the room once the bar has its half, rounded to pixels exactly as the bar's own `width()` rounds it
+        // (`(window / 2 - searchSideInset)`, the scaffold's landscapeSearchWidth), so the two never overlap or leave a gap by a
+        // pixel when the window's width in pixels is odd.
+        val barPx = (window / 2 - searchSideInset).coerceAtLeast(0.dp).roundToPx()
+        val half = (constraints.maxWidth - barPx).coerceIn(0, constraints.maxWidth)
         val placeable = measurable.measure(constraints.copy(minWidth = half, maxWidth = half))
         layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
