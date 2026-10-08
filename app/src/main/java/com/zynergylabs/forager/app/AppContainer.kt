@@ -5,6 +5,7 @@ import java.io.File
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.JournalBackup
 import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.BackByWatch
 import com.zynergylabs.forager.app.domain.SettingsResetNotice
 import com.zynergylabs.forager.app.domain.RecordingHalts
 import com.zynergylabs.forager.app.domain.BackupScheduler
@@ -400,6 +401,17 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
         errorLog = errorLog,
         lastKnownLocation = lastKnownLocation,
+    )
+
+    // Back by (dispatch 2026-09-28-645, plan task T15), held here for the same reason and driven by
+    // TrackRecordingService the same way; its arrival rule is the sundown watch's.
+    val backByWatch = BackByWatch(
+        alertDelivery = alertDelivery,
+        clock = currentTimeProvider,
+        readTrack = trackRepository::getById,
+        readWaypoint = waypointRepository::getById,
+        isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
+        errorLog = errorLog,
     )
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
     val getWaypointsUseCase = GetWaypointsUseCase(waypointRepository)

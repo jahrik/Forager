@@ -22,4 +22,10 @@ internal open class RecordingWatches(private val container: AppContainer) {
 
     /** Each point the sampler keeps, to the return watch. See [com.zynergylabs.forager.app.domain.ReturnWatch.onKeptPoint]. */
     open fun returnOnKeptPoint(point: TrackPoint) = container.returnWatch.onKeptPoint(point)
+
+    /**
+     * Every raw fix, to the back-by watch (dispatch 2026-09-28-645; guarded as the others are,
+     * RECORD -674 and -687). See [com.zynergylabs.forager.app.domain.BackByWatch.onFix].
+     */
+    open fun backByOnFix(point: TrackPoint, provider: FixProvider) = container.backByWatch.onFix(point, provider)
 }

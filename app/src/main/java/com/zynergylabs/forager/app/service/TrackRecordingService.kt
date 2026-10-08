@@ -12,10 +12,12 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.MainActivity
 import com.zynergylabs.forager.app.R
+import com.zynergylabs.forager.app.alert.BACK_BY_NOTIFICATION_ID
 import com.zynergylabs.forager.app.diagnostics.WalkLogger
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationSampler
@@ -71,6 +73,15 @@ import kotlinx.coroutines.sync.withLock
  * handed every raw fix, evaluated on its own 15 s timer and once at the first fix, ended with the
  * recording or the service. The three sundown alerts arrive with the app swiped away for the same
  * reason the off-track alert does.
+ *
+ * ## And the back-by watch (dispatch 2026-09-28-645, plan task T15)
+ *
+ * The same way again, for [com.zynergylabs.forager.app.domain.BackByWatch]: begun with the
+ * recording, handed every raw fix, evaluated on its own 15 s timer, ended with the recording or the
+ * service. The back-by alert's two buttons, "I'm back" and "+30 min", are [ACTION_BACK_BY_IM_BACK]
+ * and [ACTION_BACK_BY_LATER] sent to this service, as its own "Stop recording" is: this service is
+ * what is still running when the app has been swiped away. No exact alarm: the timer is this
+ * service's, which runs exactly as long as the recording does, the only time Back by exists.
  *
  * ## And the walk logger, in debug builds (dispatch 2026-09-28-532)
  *
@@ -139,6 +150,7 @@ class TrackRecordingService : Service() {
                 }
             }
             ACTION_STOP -> stopRecording()
+            ACTION_BACK_BY_IM_BACK, ACTION_BACK_BY_LATER -> onBackByAction(intent.action!!, intent.getStringExtra(EXTRA_TRACK_ID))
         }
         return START_STICKY
     }
@@ -147,6 +159,7 @@ class TrackRecordingService : Service() {
         // Whatever recording this service had begun the watch for is over with the service.
         (application as ForagerApplication).container.returnWatch.end(null)
         (application as ForagerApplication).container.sundownWatch.end(null)
+        (application as ForagerApplication).container.backByWatch.end(null)
         WalkLogger.of(this).onRecordingStopped()
         recordingJob?.cancel()
         scope.cancel()
@@ -168,6 +181,7 @@ class TrackRecordingService : Service() {
         val watches = watchesFor(container)
         container.returnWatch.begin(trackId, mode)
         container.sundownWatch.begin(trackId)
+        container.backByWatch.begin(trackId)
         WalkLogger.of(this).onRecordingStarted(trackId)
         val sampler = LocationSampler(mode)
         var lastAccepted: TrackPoint? = null
@@ -196,6 +210,10 @@ class TrackRecordingService : Service() {
                             if (guardWatch("The sundown watch", candidate) { watches.sundownOnFix(candidate, fix.provider) } == true) {
                                 launch { tickSundown(container) }
                             }
+                            // Dispatch 2026-09-28-645 (RECORD -674, -687): every raw fix to the
+                            // back-by watch, guarded as the two above are, so a back-by watch that
+                            // throws loses this fix and nothing else.
+                            guardWatch("The back-by watch", candidate) { watches.backByOnFix(candidate, fix.provider) }
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
                                 // Dispatch 2026-09-28-425: the kept point to the watch too, which
@@ -231,6 +249,52 @@ class TrackRecordingService : Service() {
                     tickSundown(container)
                 }
             }
+            launch {
+                // Dispatch 2026-09-28-645: Back by on its own loop, so a failure in one evaluation
+                // cannot hold up the other. Once at the start too, for a time set a moment before
+                // the service began (BackByWatch keeps it).
+                tickBackBy(container)
+                while (isActive) {
+                    delay(BACK_BY_TICK_MILLIS)
+                    tickBackBy(container)
+                }
+            }
+        }
+    }
+
+    /** One back-by evaluation; anything it throws is logged and dropped, as [tickSundown] does. */
+    private suspend fun tickBackBy(container: AppContainer) {
+        try {
+            container.backByWatch.tick()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "A back-by evaluation failed; the next tick tries again.", e)
+        }
+    }
+
+    /**
+     * "I'm back" or "+30 min" from the back-by alert (dispatch 2026-09-28-645). The alert is taken
+     * down either way: answered, or left from a recording that has ended. Acted on only for the
+     * recording this service is running, which the intent names; with no recording running the
+     * service was started only to hear this, and stops again, as a Stop with nothing recording does.
+     */
+    private fun onBackByAction(action: String, trackId: String?) {
+        NotificationManagerCompat.from(this).cancel(BACK_BY_NOTIFICATION_ID)
+        val current = currentTrackId
+        if (current == null) {
+            Log.w(TAG, "A back-by action arrived with no recording running; nothing to change.")
+            if (recordingJob == null) stopSelf()
+            return
+        }
+        if (trackId != current) {
+            Log.w(TAG, "A back-by action for track '$trackId' arrived while recording '$current'; ignored.")
+            return
+        }
+        val watch = (application as ForagerApplication).container.backByWatch
+        when (action) {
+            ACTION_BACK_BY_IM_BACK -> watch.imBack(current)
+            ACTION_BACK_BY_LATER -> watch.later(current)
         }
     }
 
@@ -290,6 +354,10 @@ class TrackRecordingService : Service() {
             val container = (application as ForagerApplication).container
             container.returnWatch.end(trackId)
             container.sundownWatch.end(trackId)
+            container.backByWatch.end(trackId)
+            // The reminder ends with the recording (the owner: "Cancel automatically"), so an alert
+            // still in the shade has nothing left to answer.
+            NotificationManagerCompat.from(this).cancel(BACK_BY_NOTIFICATION_ID)
             WalkLogger.of(this).onRecordingStopped()
             scope.launch {
                 flushPendingPoints(trackId, container)
@@ -425,6 +493,12 @@ class TrackRecordingService : Service() {
         const val EXTRA_TRACK_ID = "com.zynergylabs.forager.app.service.extra.TRACK_ID"
         const val EXTRA_MODE = "com.zynergylabs.forager.app.service.extra.MODE"
 
+        /** The back-by alert's "I'm back" (dispatch 2026-09-28-645), with [EXTRA_TRACK_ID]. */
+        const val ACTION_BACK_BY_IM_BACK = "com.zynergylabs.forager.app.service.action.BACK_BY_IM_BACK"
+
+        /** The back-by alert's "+30 min", with [EXTRA_TRACK_ID]. */
+        const val ACTION_BACK_BY_LATER = "com.zynergylabs.forager.app.service.action.BACK_BY_LATER"
+
         private const val TAG = "TrackRecordingService"
         private const val CHANNEL_ID = "track_recording"
         private const val NOTIFICATION_ID = 1001
@@ -445,5 +519,8 @@ class TrackRecordingService : Service() {
         // How often the sundown alerts are re-evaluated (dispatch 2026-09-28-516): the screen's
         // own re-read of the track runs at the same 15 s, and the alerts are minute-scale moments.
         private const val SUNDOWN_TICK_MILLIS = 15_000L
+
+        // Back by's (dispatch 2026-09-28-645): a minute-precision reminder fires at most 15 s late.
+        private const val BACK_BY_TICK_MILLIS = 15_000L
     }
 }

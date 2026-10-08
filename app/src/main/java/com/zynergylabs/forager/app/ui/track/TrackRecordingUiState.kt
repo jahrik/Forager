@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.nextRouteLine
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.BackByShown
 import com.zynergylabs.forager.app.domain.SundownLine
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
@@ -136,6 +137,13 @@ data class TrackRecordingUiState(
      * position" included. Replaces the countdown this state carried, which nothing rendered.
      */
     val sundownLine: SundownLine? = null,
+    /**
+     * This recording's Back by (dispatch 2026-09-28-645, plan task T15), as
+     * [com.zynergylabs.forager.app.domain.BackByWatch] publishes it: the time set and the clock it was
+     * published at. `null` with none set, or no recording. The strip shows its line in the last hour
+     * ([BackByShown.lineShown]); the quick menu and the gear's dot show it whenever it is set.
+     */
+    val backBy: BackByShown? = null,
     /**
      * The waypoint whose delete was asked for (a swipe on its Records row, journal redesign J4) and
      * has not run yet: the Undo snackbar is still up. See [TrackRecordingViewModel.requestRemoveWaypoint].
