@@ -100,7 +100,7 @@ screenrecords in `~/Zynergy/device-evidence/2026-10-08/`, not in the repo):
 
 **Cause:** the blank is the `MapView` being rebuilt on every return, inside MapLibre. Our camera restore and the screen's sizing
 are right. The fixes are either to cover a returning map with a picture of the one that left until the new one renders fully
-(B), or to keep one `MapView` alive across tab changes (C). Per the coordinator, that is a stop: [OUTCOME PENDING].
+(B), or to keep one `MapView` alive across tab changes (C). Per the coordinator, that is a stop: the cause was reported and B or C was offered (B, a picture over the returning map, recommended as the smaller), and **no fix is built here**. Item 4 waits on the owner's choice.
 
 **Logging kept** (`map/SightingsMap.kt`, tag `ForagerMapsComeback`): a new map's first 8 rendered frames and its two camera
 restores, about 10 lines per return to Maps, nothing otherwise.
@@ -125,11 +125,11 @@ tests have no revert: there is no fix behind them.
 
 ## Full suite
 
-[SUITE PENDING]
+Run 22:48 to 22:57 UTC on the code at `5c693fe5` (every later commit adds only this report and its index row). The results directory was emptied first and only XML written after the start was counted: **4,502 tests in 581 classes, 24 skipped, 0 failures, 0 errors** (Gradle: BUILD SUCCESSFUL). That is 17 more than #206's 4,485: item 1's 12 (6 in each window class: 4 open-state, 2 second-turn), item 2's 3, item 3's net 0 (4 rewritten), and item 4's 2 (MapsReturnTest, portrait and landscape), counted from each class's XML. Two test cases were changed: `JournalShortWindowCardsTest`'s incidental-exit test (item 2), and `NightModeFadeTest`, rewritten (item 3).
 
 ## S22 launch check
 
-[LAUNCH PENDING]
+`scripts/s22-launch-check.sh` on the S22 (SM-S908U, R5CT321008R), the debug APK built from `5c693fe5` (installed versionName `1.0.3107+g5c693fe5`): install Success, `compile -m verify -f` Success, dexopt `status=verify`, cold launch, **PASS**, process alive after 8 s, crash buffer empty. The same install was then used, as the coordinator asked, for item 4's returns to Maps (screenrecords and logcat only; nothing uninstalled or cleared). The phone was left on that build.
 
 ## Device only
 
