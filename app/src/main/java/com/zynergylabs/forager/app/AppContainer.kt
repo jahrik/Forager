@@ -6,6 +6,8 @@ import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.JournalBackup
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.BackByWatch
+import com.zynergylabs.forager.app.domain.SettingsResetNotice
+import com.zynergylabs.forager.app.domain.RecordingHalts
 import com.zynergylabs.forager.app.domain.BackupScheduler
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
@@ -159,11 +161,29 @@ import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
 class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
+    /**
+     * `Log.w`-backed, for the pieces that take an [ErrorLog] and are built here rather than in an
+     * Activity. First in the container (dispatch 2026-09-28-658 moved it up from beside the
+     * backup) because properties initialise in source order and the iNaturalist repository below
+     * now takes it.
+     */
+    val errorLog: ErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
+
+    /**
+     * Raised when a settings file was corrupt and has been reset (RECORD -660, item 2). Every settings
+     * repository below is handed it; `MainActivity` shows the one-time message and clears it. Built
+     * before any of them, since properties initialise in source order.
+     */
+    val settingsResetNotice = SettingsResetNotice()
+
+    /** The recording service's report of a recording it stopped on its own (RECORD -660, item 4); the recording screen reads it. */
+    val recordingHalts = RecordingHalts()
+
     private val api = INaturalistClient.create(debug = BuildConfig.DEBUG)
     private val weatherApi = OpenMeteoClient.create(debug = BuildConfig.DEBUG)
     private val historicalWeatherApi = OpenMeteoArchiveClient.create(debug = BuildConfig.DEBUG)
 
-    val mushroomRepository: MushroomRepository = INaturalistMushroomRepository(api)
+    val mushroomRepository: MushroomRepository = INaturalistMushroomRepository(api, errorLog)
 
     // One object, two owned interfaces, one API call behind both — see
     // TripPlanningWeatherProvider's doc comment for why they are separate interfaces.
@@ -178,7 +198,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
 
     // HUD-foundations dispatch, Item 2: declination, and the one place magnetic heading becomes
-    // true heading. No consumer yet by design — the navigation HUD dispatch wires it; see
+    // true heading. Consumed by MainActivity, which hands it to the map screen (dispatch
+    // 2026-09-28-658, F5: this said "no consumer yet", true when written); see
     // ComputeTrueHeadingUseCase's own doc comment for the strip/HUD consequence recorded there.
     val declinationProvider: DeclinationProvider = AndroidDeclinationProvider()
     val computeTrueHeadingUseCase = ComputeTrueHeadingUseCase(declinationProvider)
@@ -216,9 +237,6 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
 
     private val database = ForagerDatabase.create(context)
 
-    /** `Log.w`-backed, for the pieces (the backup) that take an [ErrorLog] and are built here rather than in an Activity. */
-    val errorLog: ErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
-
     // Journal backup and restore (dispatch 2026-09-28-127). The snapshot copies `forager.db` itself, so the
     // backup is built over the same file the database above opened. Scratch space is the cache folder: the
     // system may clear it, and nothing there is anyone's only copy.
@@ -231,7 +249,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         appVersionCode = PackageInfoCompat.getLongVersionCode(context.packageManager.getPackageInfo(context.packageName, 0)),
         errorLog = errorLog,
     )
-    val backupSchedulePreferences: BackupSchedulePreferences = DataStoreBackupSchedulePreferences(context)
+    val backupSchedulePreferences: BackupSchedulePreferences = DataStoreBackupSchedulePreferences(context, settingsReset = settingsResetNotice)
     val backupFiles: BackupFiles = ContentResolverBackupFiles(context)
 
     /** Touches WorkManager only when the schedule changes, so a launch that never opens Backup never starts it. */
@@ -258,7 +276,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
     // One instance for both interfaces (map layers L0b, planner's ruling on F1): DataStore refuses a
     // second live instance on `map_preferences`, so the layer choices live in this same class.
-    private val dataStoreMapPreferencesRepository = DataStoreMapPreferencesRepository(context)
+    private val dataStoreMapPreferencesRepository = DataStoreMapPreferencesRepository(context, settingsReset = settingsResetNotice)
     val mapPreferencesRepository: MapPreferencesRepository = dataStoreMapPreferencesRepository
     val mapLayerPreferencesRepository: MapLayerPreferencesRepository = dataStoreMapPreferencesRepository
 
@@ -270,15 +288,15 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
      * because DataStore refuses a second live instance on a file.
      */
     val forecastCellStore: ForecastCellStore = forecastCellStore(context)
-    val unitSystemPreferenceRepository: UnitSystemPreferenceRepository = DataStoreUnitSystemPreferenceRepository(context)
-    val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context)
-    val sundownPreferencesRepository: SundownPreferencesRepository = DataStoreSundownPreferencesRepository(context)
+    val unitSystemPreferenceRepository: UnitSystemPreferenceRepository = DataStoreUnitSystemPreferenceRepository(context, settingsReset = settingsResetNotice)
+    val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context, settingsReset = settingsResetNotice)
+    val sundownPreferencesRepository: SundownPreferencesRepository = DataStoreSundownPreferencesRepository(context, settingsReset = settingsResetNotice)
 
     /** Dispatch 2026-09-28-502: the waypoint being navigated to, picked back up when the app opens again. One per process, as DataStore requires. */
-    val waypointNavigationRepository: WaypointNavigationRepository = DataStoreWaypointNavigationRepository(context)
-    val photoLocationPreferenceRepository: PhotoLocationPreferenceRepository = DataStorePhotoLocationPreferenceRepository(context)
-    val cameraOrientationPreferenceRepository: CameraOrientationPreferenceRepository = DataStoreCameraOrientationPreferenceRepository(context)
-    val cameraGridModeRepository: CameraGridModeRepository = DataStoreCameraGridModeRepository(context)
+    val waypointNavigationRepository: WaypointNavigationRepository = DataStoreWaypointNavigationRepository(context, settingsReset = settingsResetNotice)
+    val photoLocationPreferenceRepository: PhotoLocationPreferenceRepository = DataStorePhotoLocationPreferenceRepository(context, settingsReset = settingsResetNotice)
+    val cameraOrientationPreferenceRepository: CameraOrientationPreferenceRepository = DataStoreCameraOrientationPreferenceRepository(context, settingsReset = settingsResetNotice)
+    val cameraGridModeRepository: CameraGridModeRepository = DataStoreCameraGridModeRepository(context, settingsReset = settingsResetNotice)
 
     val photoStore: PhotoStore = FilePhotoStore(context)
     val cameraCaptureFiles = CameraCaptureFiles(context)
@@ -348,7 +366,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val returnRecord = FileReturnRecord(java.io.File(context.filesDir, RETURN_RECORD_FILE_NAME), currentTimeProvider)
     // Dispatch 2026-09-28-626 (plan T14): Settings' "Off-track reminder" and the check made when a
     // recording starts. The watch reads the checkbox at the moment it decides to alert.
-    val offTrackReminderPreferences: OffTrackReminderPreferenceRepository = DataStoreOffTrackReminderPreferenceRepository(context)
+    val offTrackReminderPreferences: OffTrackReminderPreferenceRepository = DataStoreOffTrackReminderPreferenceRepository(context, settingsReset = settingsResetNotice)
     val offTrackReminderCheck = OffTrackReminderCheck(AndroidBackgroundRunCheck(context.applicationContext), offTrackReminderPreferences, errorLog)
     val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery, returnRecord, isReminderOn = offTrackReminderPreferences::enabledNow)
 
@@ -398,8 +416,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // now detaches its waypoints first — HUD-foundations dispatch, Item 3, see DeleteTrackUseCase.
     val keptTrackPathRepository: KeptTrackPathRepository = RoomKeptTrackPathRepository(database.cartographyEntryDao())
     val deleteTrackUseCase = DeleteTrackUseCase(trackRepository, waypointRepository, keptTrackPathRepository)
-    // The origin-waypoint read path for Track.originWaypointId — no consumer until the navigation
-    // HUD dispatch, by design; see GetTrackOriginWaypointUseCase's own doc comment.
+    // The origin-waypoint read path for Track.originWaypointId. Consumed by MainActivity's
+    // recording ViewModel (dispatch 2026-09-28-658, F5: this said "no consumer until the navigation
+    // HUD dispatch", true when written); see GetTrackOriginWaypointUseCase's own doc comment.
     val getTrackOriginWaypointUseCase = GetTrackOriginWaypointUseCase(trackRepository, waypointRepository)
 
     // Journal Stage 2d: CartographyEntryReportScreen's own map, resolving kept references

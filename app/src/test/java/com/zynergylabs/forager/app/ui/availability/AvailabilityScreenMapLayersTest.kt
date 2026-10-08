@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.ui.map.mapLayerSwitchTag
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_NO_FORECAST_HERE
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_REFERENCE_CLASS
+import com.zynergylabs.forager.app.ui.map.layers.LEGEND_ZOOM_IN_FOR_FORECAST
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.activeLayerCredits
@@ -125,10 +126,14 @@ class AvailabilityScreenMapLayersSheetTest {
     private val map = LayersRecordingMapSlot(DATES)
     private lateinit var preferences: InMemoryLayerPreferences
 
-    private fun setScreen(store: ForecastCellStore = AbsentForecastCellStore, stored: MapLayerPreferences = MapLayerPreferences.NONE) {
+    private fun setScreen(
+        store: ForecastCellStore = AbsentForecastCellStore,
+        stored: MapLayerPreferences = MapLayerPreferences.NONE,
+        mapSlot: LayersRecordingMapSlot = map,
+    ) {
         preferences = InMemoryLayerPreferences(stored)
         val viewModel = mapLayersViewModel(layerPreferences = preferences, store = store)
-        composeRule.setContent { MapLayersTestScreen(viewModel, map.slot, store) }
+        composeRule.setContent { MapLayersTestScreen(viewModel, mapSlot.slot, store) }
         composeRule.waitForIdle()
     }
 
@@ -281,6 +286,30 @@ class AvailabilityScreenMapLayersSheetTest {
         val navTop = composeRule.onNodeWithText("Maps").getUnclippedBoundsInRoot().top
         assertTrue("right-aligned ($bounds in $root)", root.right - bounds.right < 24.dp)
         assertTrue("above the nav ($bounds, nav top $navTop)", bounds.bottom <= navTop)
+    }
+
+    /**
+     * Data part C (dispatch -668, the owner's "Fix both (Recommended)", RECORD -656): when the map
+     * reports the camera below the forecast's minimum zoom, the legend chip says so while collapsed,
+     * without being opened. The map's own report is device-only (it reads MapLibre's camera); this
+     * drives the host from that report on, through the real screen and ViewModel.
+     */
+    @Test
+    fun `when the map is zoomed out past the forecast, the collapsed legend chip says Zoom in to see the forecast`() {
+        setScreen(store = FixedForecastStore(BOTH_FORECAST_GROUPS), mapSlot = LayersRecordingMapSlot(DATES, zoomedOut = true))
+
+        composeRule.onNodeWithText("2 layers").assertIsDisplayed()
+        composeRule.onNodeWithText(LEGEND_ZOOM_IN_FOR_FORECAST, useUnmergedTree = true).assertIsDisplayed()
+        assertEquals("Show legend", composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+    }
+
+    /** The other half: zoomed in far enough, the chip carries no such note. */
+    @Test
+    fun `when the map is zoomed in far enough, the legend chip has no zoom note`() {
+        setScreen(store = FixedForecastStore(BOTH_FORECAST_GROUPS), mapSlot = LayersRecordingMapSlot(DATES, zoomedOut = false))
+
+        composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).assertIsDisplayed()
+        assertEquals(0, composeRule.onAllNodesWithText(LEGEND_ZOOM_IN_FOR_FORECAST, useUnmergedTree = true).fetchSemanticsNodes().size)
     }
 
     @Test

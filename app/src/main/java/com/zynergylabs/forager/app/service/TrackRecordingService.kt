@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.service
 
-import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,14 +7,12 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.MainActivity
@@ -24,9 +21,12 @@ import com.zynergylabs.forager.app.alert.BACK_BY_NOTIFICATION_ID
 import com.zynergylabs.forager.app.diagnostics.WalkLogger
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationSampler
+import com.zynergylabs.forager.app.domain.RecordingHalt
+import com.zynergylabs.forager.app.domain.RecordingHaltReason
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.toTrackPoint
+import com.zynergylabs.forager.app.location.hasLocationPermission
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -102,6 +102,12 @@ class TrackRecordingService : Service() {
     // back on ACTION_STOP.
     @Volatile private var currentTrackId: String? = null
 
+    /**
+     * Where each fix goes besides the sampler: the container's watches. A test replaces it, before
+     * the start command, to hand the service a watch that throws (dispatch 2026-09-28-658, R1).
+     */
+    internal var watchesFor: (AppContainer) -> RecordingWatches = ::RecordingWatches
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -114,17 +120,23 @@ class TrackRecordingService : Service() {
             ACTION_START -> {
                 val trackId = intent.getStringExtra(EXTRA_TRACK_ID)
                 val modeName = intent.getStringExtra(EXTRA_MODE)
-                val mode = TrackRecordingMode.entries.firstOrNull { it.name == modeName } ?: TrackRecordingMode.BALANCED
+                val mode = TrackRecordingMode.entries.firstOrNull { it.name == modeName } ?: run {
+                    // Dispatch 2026-09-28-658 (R2): the fallback is logged, so a renamed or missing
+                    // mode recording at Balanced's spacing leaves a trace.
+                    Log.w(TAG, "Unknown recording mode '$modeName' for track '$trackId'; recording at ${TrackRecordingMode.BALANCED.name}.")
+                    TrackRecordingMode.BALANCED
+                }
                 if (trackId != null && recordingJob == null) {
                     // Defence in depth against the confirmed FGS-location-type crash: MainActivity
                     // already gates on this before ever sending ACTION_START (see its own
-                    // hasLocationPermission()), but this service must never crash regardless of how
+                    // hasLocationPermission), but this service must never crash regardless of how
                     // it gets told to start — see startForegroundWithLocationType()'s doc comment.
-                    if (hasLocationPermission()) {
+                    if (hasLocationPermission(this)) {
                         startRecording(trackId, mode)
                     } else {
                         Log.w(TAG, "Refusing to start recording for track '$trackId': no location permission.")
-                        stopSelf()
+                        // RECORD -660 (item 4): the screen is told, and the track it made is ended.
+                        halt(trackId, RecordingHaltReason.NO_LOCATION_PERMISSION)
                     }
                 } else if (trackId != null && trackId != currentTrackId) {
                     // One recording at a time. A start for another track while one is running is
@@ -156,9 +168,17 @@ class TrackRecordingService : Service() {
 
     private fun startRecording(trackId: String, mode: TrackRecordingMode) {
         currentTrackId = trackId
-        startForegroundWithLocationType()
+        if (!startForegroundWithLocationType(trackId)) {
+            // Refused (dispatch 2026-09-28-658, R7): logged inside, and the service stops, as the
+            // permission branch above does. No watch was begun. RECORD -660 (item 4): the screen
+            // is told, so it shows not recording, and the track it made is ended.
+            currentTrackId = null
+            halt(trackId, RecordingHaltReason.FOREGROUND_REFUSED)
+            return
+        }
 
         val container = (application as ForagerApplication).container
+        val watches = watchesFor(container)
         container.returnWatch.begin(trackId, mode)
         container.sundownWatch.begin(trackId)
         container.backByWatch.begin(trackId)
@@ -180,17 +200,25 @@ class TrackRecordingService : Service() {
                     when (fix) {
                         is LocationFix.Update -> {
                             val candidate = fix.toTrackPoint()
-                            container.returnWatch.onFix(candidate, fix.provider)
+                            // Dispatch 2026-09-28-658 (R1): each watch call is guarded, as the
+                            // sundown tick is. A watch that throws on this fix loses this fix; the
+                            // point is still sampled and saved, and the recording goes on.
+                            guardWatch("The return watch", candidate) { watches.returnOnFix(candidate, fix.provider) }
                             // Dispatch 2026-09-28-516: every raw fix to the sundown watch too, and
                             // an evaluation at once on the first, so a recording started past the
                             // leave-by time does not wait for the timer.
-                            if (container.sundownWatch.onFix(candidate, fix.provider)) launch { tickSundown(container) }
-                            container.backByWatch.onFix(candidate, fix.provider)
+                            if (guardWatch("The sundown watch", candidate) { watches.sundownOnFix(candidate, fix.provider) } == true) {
+                                launch { tickSundown(container) }
+                            }
+                            // Dispatch 2026-09-28-645 (RECORD -674, -687): every raw fix to the
+                            // back-by watch, guarded as the two above are, so a back-by watch that
+                            // throws loses this fix and nothing else.
+                            guardWatch("The back-by watch", candidate) { watches.backByOnFix(candidate, fix.provider) }
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
                                 // Dispatch 2026-09-28-425: the kept point to the watch too, which
                                 // measures a return against the track as it stood at Return.
-                                container.returnWatch.onKeptPoint(candidate)
+                                guardWatch("The return watch's kept point", candidate) { watches.returnOnKeptPoint(candidate) }
                                 val shouldFlush = bufferMutex.withLock {
                                     pendingPoints += candidate
                                     pendingPoints.size >= FLUSH_BATCH_SIZE
@@ -198,7 +226,11 @@ class TrackRecordingService : Service() {
                                 if (shouldFlush) flushPendingPoints(trackId, container)
                             }
                         }
-                        LocationFix.PermissionDenied -> stopRecording()
+                        LocationFix.PermissionDenied -> {
+                            // RECORD -660 (item 4): the screen is told why; stopRecording ends the track.
+                            (application as ForagerApplication).container.recordingHalts.report(RecordingHalt(trackId, RecordingHaltReason.NO_LOCATION_PERMISSION))
+                            stopRecording()
+                        }
                     }
                 }
             }
@@ -265,6 +297,39 @@ class TrackRecordingService : Service() {
             ACTION_BACK_BY_LATER -> watch.later(current)
         }
     }
+
+    /**
+     * A recording this service will not run (RECORD -660, item 4): reported to the screen through
+     * [com.zynergylabs.forager.app.domain.RecordingHalts], and the track the screen created for it
+     * ended, as a stop ends one, so it is not left open. Then the service stops itself, after the
+     * end is written, as [stopRecording] does: stopping first would cancel the write with the scope.
+     */
+    private fun halt(trackId: String, reason: RecordingHaltReason) {
+        val container = (application as ForagerApplication).container
+        container.recordingHalts.report(RecordingHalt(trackId, reason))
+        scope.launch {
+            container.endTrackUseCase(trackId).onFailure { error ->
+                Log.w(TAG, "Couldn't mark track '$trackId' ended after it could not be recorded.", error)
+            }
+            stopSelf()
+        }
+    }
+
+    /**
+     * One watch call for one fix (dispatch 2026-09-28-658, R1). Anything it throws is logged and
+     * dropped, for the reason [tickSundown] gives: the collector runs as a child of the recording,
+     * and an exception escaping it would cancel the recording with it, so no later point would be
+     * saved. Returns the call's result, or `null` when it threw.
+     */
+    private inline fun <T> guardWatch(what: String, fix: TrackPoint, call: () -> T): T? =
+        try {
+            call()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "$what failed on the fix at ${fix.timestampEpochMillis}; the point is still recorded and the next fix tries again.", e)
+            null
+        }
 
     /**
      * One sundown evaluation. Anything it throws is logged and dropped: it runs as a child of the
@@ -395,27 +460,31 @@ class TrackRecordingService : Service() {
      * `onStartCommand`, an uncaught `RuntimeException: Unable to start service` on the main
      * thread). [onStartCommand]'s [hasLocationPermission] check is what prevents this method from
      * ever being reached without the permission it needs.
+     *
+     * **Other refusals** (dispatch 2026-09-28-658, R7). The platform can still refuse with the
+     * permission held: from Android 12 a foreground start the system does not allow at that moment
+     * throws `ForegroundServiceStartNotAllowedException` (an [IllegalStateException]), and from
+     * Android 14 a location-type start from the background without a while-in-use exemption throws
+     * a [SecurityException]. Either is caught, logged with the track it was for, and reported as
+     * `false`, so [startRecording] stops the service as the permission branch does, rather than the
+     * service crashing. Returns `true` once the service is in the foreground.
      */
-    private fun startForegroundWithLocationType() {
+    private fun startForegroundWithLocationType(trackId: String): Boolean {
         val notification = buildNotification()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            true
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "The system refused to start recording track '$trackId' in the foreground; stopping.", e)
+            false
+        } catch (e: SecurityException) {
+            Log.w(TAG, "The system refused to start recording track '$trackId' in the foreground (not allowed from the background); stopping.", e)
+            false
         }
-    }
-
-    /**
-     * Same check, same two permissions, as
-     * [com.zynergylabs.forager.app.location.AndroidLocationProvider.hasLocationPermission] — not shared code
-     * across a service/domain-layer boundary that owns neither Context nor Manifest, matching that
-     * class's own doc comment on why (see also `MainActivity`'s own copy, and
-     * `com.zynergylabs.forager.app.ui.map.SightingsMap.kt`'s).
-     */
-    private fun hasLocationPermission(): Boolean {
-        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
     }
 
     companion object {

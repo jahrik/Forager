@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import com.zynergylabs.forager.app.data.repository.runCatchingCancellable
 import com.zynergylabs.forager.app.domain.PhotoStore
@@ -160,6 +161,10 @@ class FilePhotoStore(
      * any reason the read can't complete: below API 29, no `ACCESS_MEDIA_LOCATION` grant, a `uri`
      * [MediaStore.setRequireOriginal] doesn't recognize, or no EXIF tags present at all — a missing
      * coordinate or timestamp is the ordinary case, not a failure this store surfaces.
+     *
+     * An absent tag and a read that threw still give the same null result, but a throw is logged
+     * with its cause (dispatch 2026-09-28-658, J4), so a refused permission or an IO error is not
+     * mistaken in the log for a photo that simply had no location.
      */
     private fun readExifData(uri: Uri): ExifData {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return ExifData(null, null, null)
@@ -174,6 +179,8 @@ class FilePhotoStore(
                     capturedAtEpochMillis = exif.readCapturedAtEpochMillis(),
                 )
             }
+        }.onFailure { error ->
+            Log.w(TAG, "Couldn't read the imported photo's EXIF location and time; it is kept with none.", error)
         }.getOrNull() ?: ExifData(null, null, null)
     }
 
@@ -182,12 +189,15 @@ class FilePhotoStore(
         // A fresh SimpleDateFormat per call, deliberately not a shared instance — SimpleDateFormat
         // is not thread-safe, and persist() is a suspend function this store's single AppContainer
         // instance can be called concurrently from more than one coroutine.
-        return runCatching { SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).parse(raw)?.time }.getOrNull()
+        return runCatching { SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).parse(raw)?.time }
+            .onFailure { error -> Log.w(TAG, "The imported photo's EXIF time '$raw' did not parse; using the time of import.", error) }
+            .getOrNull()
     }
 
     private data class ExifData(val latitude: Double?, val longitude: Double?, val capturedAtEpochMillis: Long?)
 
     private companion object {
+        const val TAG = "FilePhotoStore"
         const val PHOTOS_SUBDIR = "photos"
     }
 }

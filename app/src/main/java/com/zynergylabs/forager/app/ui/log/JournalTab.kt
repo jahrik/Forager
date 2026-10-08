@@ -30,6 +30,7 @@ import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.OPEN_FIND_LABEL
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
@@ -297,6 +298,10 @@ internal fun JournalTab(
      * for callers that host this tab on its own (tests).
      */
     cartographyEntryModeState: MutableState<CartographyEntryMode> = remember { mutableStateOf(CartographyEntryMode.VIEW) },
+    /** Data part A (dispatch 2026-09-28-667): see [CartographyScreen]'s parameters of the same names. Defaulted for callers that host this tab on its own (tests). */
+    onSetCartographyEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
+    cartographyOpenEntryGroupsState: MutableState<Set<EntryGroup>> = remember { mutableStateOf(emptySet()) },
+    cartographyOpenWaypointRowsState: MutableState<Set<String>> = remember { mutableStateOf(emptySet()) },
     /**
      * Intent 2026-09-28-44, F3 (the owner: "Keep finds open too (Recommended)"): an open find's
      * report-or-editor mode ([mode]) and M1's find over the view ([FindOverView]), held by the caller.
@@ -716,6 +721,9 @@ internal fun JournalTab(
                 backEnabled = backEnabled,
                 mapBubbleSources = entryMapBubbleSources,
                 entryModeState = cartographyEntryModeState,
+                onSetEntryGroupIncluded = onSetCartographyEntryGroupIncluded,
+                openEntryGroupsState = cartographyOpenEntryGroupsState,
+                openEntryWaypointRowsState = cartographyOpenWaypointRowsState,
                 openEntryRequest = entryOpenRequest,
                 onOpenEntryRequestConsumed = { entryOpenRequest = null },
                 onSetShownOnMap = onSetCartographyEntryShownOnMap,
