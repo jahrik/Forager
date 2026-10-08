@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.GrowIn
 import android.Manifest
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -483,6 +484,15 @@ internal fun CartographyEntryReportScreen(
         val openingCameraRequest = remember(openingFrameToken, resolvedMapData) {
             resolvedMapData?.let(::entryMapFrame)?.let { MapCameraRequest(openingFrameToken, it) }
         }
+        // Motion Part 3, Amendment 2 (RECORD -682; scout E2): the map arrives a moment after the report opens; it now grows in
+        // like a list row, pushing the body down smoothly, instead of popping in. Same structure whether or not the map is
+        // fullscreen, so the one map call site below never moves (this file's doc comment, "Fullscreen"). It goes at once.
+        GrowIn(
+            visible = entryMapShown,
+            modifier = if (isMapFullscreen) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth(),
+            shrinkOut = false,
+        ) {
+        Column(modifier = if (isMapFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
         if (resolvedMapData != null && mapRegion != null) {
             Box(
                 modifier = if (isMapFullscreen) {
@@ -610,7 +620,8 @@ internal fun CartographyEntryReportScreen(
 
             if (!isMapFullscreen) {
                 val availableOfflineRegion = coveringOfflineRegion
-                if (availableOfflineRegion != null) {
+                // Amendment 2 (scout E3): the offline-map row, found a moment after the map, grows in the same way.
+                GrowIn(visible = availableOfflineRegion != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -632,6 +643,8 @@ internal fun CartographyEntryReportScreen(
                     }
                 }
             }
+        }
+        }
         }
 
         if (!isMapFullscreen) {

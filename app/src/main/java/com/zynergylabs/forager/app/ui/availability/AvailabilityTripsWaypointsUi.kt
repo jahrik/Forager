@@ -9,6 +9,8 @@ package com.zynergylabs.forager.app.ui.availability
 // split, as recorded in the Understory amendment merged in #130.
 
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
@@ -81,19 +83,26 @@ internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTri
 private fun PlannedTripsList(plannedTrips: List<PlannedTrip>, onDeletePlannedTrip: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Planned Trips", style = MaterialTheme.typography.titleSmall)
-        if (plannedTrips.isEmpty()) {
+        // Motion Part 3, Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout P1): a deleted trip's card
+        // fades and shrinks while the cards below close up (motion/ListMotion.kt). The last one leaves before the empty text.
+        val rows = rememberListRows(plannedTrips, key = { it.id })
+        if (rows.isEmpty()) {
             Text(
                 "No trips planned yet. Tap the add button on the map to plan one.",
                 style = MaterialTheme.typography.bodySmall,
             )
         } else {
             val today = LocalDate.now()
-            plannedTrips.forEach { trip ->
-                PlannedTripRow(
-                    trip = trip,
-                    isToday = trip.date == today,
-                    onDelete = { onDeletePlannedTrip(trip.id) },
-                )
+            rows.forEach { row ->
+                key(row.key) {
+                    ListRowMotion(row) { trip ->
+                        PlannedTripRow(
+                            trip = trip,
+                            isToday = trip.date == today,
+                            onDelete = { onDeletePlannedTrip(trip.id) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -197,6 +206,10 @@ internal fun WaypointsSection(
 ) {
     // J4b L6: one open row at a time, and a touch elsewhere on the list closes it.
     val swipeGroup = rememberSwipeRevealGroup()
+    // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt; scout P2): a deleted waypoint's row
+    // fades and shrinks while the rows below close up, and Undo brings it back the way it went. The last one leaves before the
+    // empty text shows.
+    val rows = rememberListRows(waypoints, key = { it.id })
     Column(
         modifier = modifier.swipeRevealTouchWatcher(swipeGroup).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -208,13 +221,13 @@ internal fun WaypointsSection(
                 color = MaterialTheme.colorScheme.error,
             )
 
-            waypoints.isEmpty() -> Text(
+            rows.isEmpty() -> Text(
                 "No waypoints dropped yet. Tap the add button on the map to drop one.",
                 style = MaterialTheme.typography.bodySmall,
             )
 
-            else -> waypoints.forEach { waypoint ->
-                key(waypoint.id) {
+            else -> rows.forEach { row ->
+                key(row.key) { ListRowMotion(row) { waypoint ->
                     // J4b L6: two-stage swipe. No Edit: nothing in the app edits a waypoint after
                     // it is dropped (WaypointRepository.save's only caller is CreateWaypointUseCase).
                     TwoStageSwipeRow(
@@ -232,7 +245,7 @@ internal fun WaypointsSection(
                             onNavigate = onNavigateToWaypoint?.let { navigate -> { navigate(waypoint.id) } },
                         )
                     }
-                }
+                } }
             }
         }
     }

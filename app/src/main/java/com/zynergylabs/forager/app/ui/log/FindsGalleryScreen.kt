@@ -37,7 +37,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.ListRowShape
+import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import androidx.compose.ui.unit.IntOffset
 
 /**
  * Records' Finds submenu — **one implementation, responsive layout**, restoring the same "one
@@ -95,14 +102,18 @@ internal fun FindsGalleryScreen(
 ) {
     var selectedTab by remember { mutableStateOf(FindsGalleryTab.LOG) }
 
-    if (isLoading && entries.isEmpty() && draftEntries.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    // Motion Part 3, Amendment 2 (RECORD -682; scout F5): the spinner and the gallery crossfade instead of swapping in one frame
+    // (motion/StateCrossfade.kt).
+    StateCrossfade(
+        targetState = isLoading && entries.isEmpty() && draftEntries.isEmpty(),
+        modifier = modifier.fillMaxSize(),
+    ) { loading ->
+    if (loading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        return
-    }
-
-    Column(modifier = modifier.fillMaxSize()) {
+    } else {
+    Column(modifier = Modifier.fillMaxSize()) {
         SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(selected = selectedTab == FindsGalleryTab.LOG, onClick = { selectedTab = FindsGalleryTab.LOG }, text = { Text("Log") })
             Tab(
@@ -112,7 +123,20 @@ internal fun FindsGalleryScreen(
             )
         }
 
-        val visibleEntries = if (selectedTab == FindsGalleryTab.DRAFTS) draftEntries else entries
+        val glide = MotionTokens.listRowSpec<IntOffset>()
+        // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout F4): Drafts opens over Log, sliding in from the
+        // right, and Log slides it back out. The tab row above stays still. Each tab's grid is its own page, drawn from its own
+        // tab, with its own rows.
+        PageSlide(
+            targetState = selectedTab,
+            depthOf = { it.ordinal },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { shownTab ->
+        Column(modifier = Modifier.fillMaxSize()) {
+        val visibleEntries = if (shownTab == FindsGalleryTab.DRAFTS) draftEntries else entries
+        // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"): a deleted find's tile fades and shrinks, the grid
+        // closes up after it with a glide, and Undo brings it back the way it went (motion/ListMotion.kt).
+        val rows = rememberListRows(visibleEntries, key = { it.id })
         if (visibleEntries.isEmpty() && loadErrorMessage != null) {
             Text(
                 loadErrorMessage,
@@ -131,19 +155,30 @@ internal fun FindsGalleryScreen(
             // draft either way (see MushroomLogViewModel.onStartNewEntry), but tapping "+" while
             // looking at Drafts would read as "add a draft," which isn't a distinct action from
             // "add an entry."
-            if (selectedTab == FindsGalleryTab.LOG && onAddEntry != null) item { AddEntryTile(onClick = onAddEntry) }
-            if (selectedTab == FindsGalleryTab.DRAFTS) {
-                items(visibleEntries, key = { it.id }) { entry ->
-                    FindTileWithOptions(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true, onEdit = onEditEntry, onDelete = onDeleteEntry)
+            if (shownTab == FindsGalleryTab.LOG && onAddEntry != null) item(key = ADD_ENTRY_TILE_KEY) { AddEntryTile(onClick = onAddEntry) }
+            if (shownTab == FindsGalleryTab.DRAFTS) {
+                items(rows, key = { it.key }) { row ->
+                    ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
+                        FindTileWithOptions(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                    }
                 }
             } else {
-                items(visibleEntries, key = { it.id }) { entry ->
-                    FindTileWithOptions(entry = entry, onClick = { onOpenEntry(entry.id) }, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                items(rows, key = { it.key }) { row ->
+                    ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
+                        FindTileWithOptions(entry = entry, onClick = { onOpenEntry(entry.id) }, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                    }
                 }
             }
         }
+        }
+        }
+    }
+    }
     }
 }
+
+/** The "+" tile's key in the grid, so the tiles' keys never collide with it (motion Part 3 keys every tile). */
+private const val ADD_ENTRY_TILE_KEY = "finds-add-entry-tile"
 
 /** Which of [FindsGalleryScreen]'s two tabs is selected — ordinal order matches display order. */
 private enum class FindsGalleryTab { LOG, DRAFTS }
