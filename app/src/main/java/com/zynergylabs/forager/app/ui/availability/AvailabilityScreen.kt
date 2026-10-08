@@ -1058,6 +1058,7 @@ fun AvailabilityScreen(
     val nextWaypointLine = navigatingToWaypoint?.let { nextStraightLine(waypointStraightLine, uiState.liveFix, it, straightLineNow) }
     LaunchedEffect(nextWaypointLine) { waypointStraightLine = nextWaypointLine }
     var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
+    var forecastZoomedOut by remember { mutableStateOf(false) }
     val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
     val drawnMapLayers = withUnavailableColourFieldsHidden(uiState.mapLayers, MAP_LAYER_REGISTRY, availableColourFieldGroups.keys)
     val forecastWeek = uiState.forecastWeek
@@ -1070,6 +1071,7 @@ fun AvailabilityScreen(
                 week = forecastWeek,
                 groupsByLayer = availableColourFieldGroups,
                 onCellsShown = { forecastCellsShown = it },
+                onZoomedOutChanged = { forecastZoomedOut = it },
             )
         }
     }
@@ -1089,6 +1091,7 @@ fun AvailabilityScreen(
         stored = uiState.mapLayers,
         availableColourFields = availableColourFieldGroups.keys,
         cellsShown = forecastCellsShown.filterKeys { it in availableColourFieldGroups },
+        forecastZoomedOut = forecastZoomedOut,
         records = mapRecordsDrawn,
         journalHighlights = journalHighlights,
         // J8-3: the chip's list. Hiding writes shownOnMap for each entry, one write each; the Layers

@@ -52,6 +52,21 @@ class MapLegendTest {
         )
     }
 
+    /**
+     * Data part C (dispatch -668, the owner's "Fix both (Recommended)", RECORD -656): below the
+     * colour fields' minimum zoom the legend carries the note; otherwise it does not.
+     */
+    @Test
+    fun `the legend is marked zoomed out only when the map says the camera is below the forecast's zoom`() {
+        val zoomedOut = mapLegendFor(effective(both), registry, COLOUR_FIELDS, emptyMap(), zoomedOut = true)
+        val zoomedIn = mapLegendFor(effective(both), registry, COLOUR_FIELDS, emptyMap(), zoomedOut = false)
+
+        assertEquals(true, zoomedOut?.zoomedOut)
+        assertEquals(false, zoomedIn?.zoomedOut)
+        assertEquals("Zoom in to see the forecast", LEGEND_ZOOM_IN_FOR_FORECAST)
+        assertNull("no visible field: no legend, zoomed out or not", mapLegendFor(effective(emptySet()), registry, COLOUR_FIELDS, emptyMap(), zoomedOut = true))
+    }
+
     @Test
     fun `each layer's dates read Week of the week, weather to the weather date, and are left out while none of its cells is in view`() {
         val shown = mapOf(
