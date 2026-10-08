@@ -25,6 +25,9 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,13 +106,26 @@ internal fun FindsGalleryScreen(
     onDeleteEntry: ((String) -> Unit)? = null,
     /** J4b L1: the menu's Edit, opening the find in its edit form. Only read when [onDeleteEntry] is set. */
     onEditEntry: ((String) -> Unit)? = null,
+    /**
+     * RECORD -753 (the owner: "Yes, match Entries (Recommended)"): set in a short landscape window, where "New find" sits in the
+     * Journal's L1 row as "New entry" does on Entries, so this screen draws no floating button and its grid needs no clearance for
+     * one. It is written with whether the button belongs on screen now (Log is the tab showing, the grid is not loading, and
+     * [onAddEntry] is set), and set back to false when this screen leaves. `null` (the default) is the floating button, as before.
+     */
+    newFindInHeader: MutableState<Boolean>? = null,
 ) {
     var selectedTab by remember { mutableStateOf(FindsGalleryTab.LOG) }
+    val galleryLoading = isLoading && entries.isEmpty() && draftEntries.isEmpty()
+    if (newFindInHeader != null) {
+        val belongs = onAddEntry != null && !galleryLoading && selectedTab == FindsGalleryTab.LOG
+        SideEffect { if (newFindInHeader.value != belongs) newFindInHeader.value = belongs }
+        DisposableEffect(newFindInHeader) { onDispose { newFindInHeader.value = false } }
+    }
 
     // Motion Part 3, Amendment 2 (RECORD -682; scout F5): the spinner and the gallery crossfade instead of swapping in one frame
     // (motion/StateCrossfade.kt).
     StateCrossfade(
-        targetState = isLoading && entries.isEmpty() && draftEntries.isEmpty(),
+        targetState = galleryLoading,
         modifier = modifier.fillMaxSize(),
     ) { loading ->
     if (loading) {
@@ -133,7 +149,8 @@ internal fun FindsGalleryScreen(
         // tab, with its own rows.
         // RECORD -751: the "New find" button replaces the "+" tile. It belongs to Log, as the tile did, and sits over the grid
         // at its bottom end, as "New entry" sits over the Entries timeline; Log's grid gets that timeline's bottom clearance.
-        val showNewFind = onAddEntry != null
+        // RECORD -753: not in a short landscape window, where the L1 row carries it (newFindInHeader).
+        val showNewFind = onAddEntry != null && newFindInHeader == null
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
         PageSlide(
             targetState = selectedTab,
