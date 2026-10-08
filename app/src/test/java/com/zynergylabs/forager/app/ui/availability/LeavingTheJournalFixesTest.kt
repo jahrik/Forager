@@ -618,7 +618,7 @@ class LeavingTheJournalFixesTest {
     fun `F1 a new find left by Back offers Discard, and once that find is saved the Discard deletes nothing`() {
         setScreen()
         openFindsGallery()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).performClick()
         composeRule.waitForIdle()
         typeFindIdentification("Hedgehog")
         pressBack()
@@ -657,7 +657,7 @@ class LeavingTheJournalFixesTest {
     fun `F1b the search bar stays away while a closed find slides out, then returns, and its dropdown never opens`() {
         setScreen()
         openFindsGallery()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).performClick()
         composeRule.waitForIdle()
         typeFindIdentification("Hedgehog")
 

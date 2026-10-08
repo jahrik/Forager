@@ -81,6 +81,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -1536,7 +1538,16 @@ internal fun CompactMainScaffold(
                             // one — Kotlin then refuses it ("cannot be called with an implicit
                             // receiver") since a BoxScope, not a ColumnScope, is this call's real one.
                             // fullscreen-fixes dispatch, Item 1 (third design): fed into heightIn below.
-                            val searchDropdownTopOffset = if (compactTab() == CompactTab.MAP) mapSearchBarHeight + mapCompassStripHeight.coerceAtLeast(compassStripClearance) else 0.dp
+                            // RECORD -750, item 1 (the owner: "The drop down search panel has a gap between the top of the panel and
+                            // the bottom of the bar. It should sit flush against the bar to look continuous"): in a landscape window
+                            // the strip is beside the bar, not under it, so the panel starts at the bar's own bottom, its divider. The
+                            // strip's clearance below was added there too, and since the landscape strip reports no portrait height
+                            // (mapCompassStripHeight is 0 there) it fell back to one text line, the gap. Portrait is unchanged.
+                            val searchDropdownTopOffset = when {
+                                compactTab() != CompactTab.MAP -> 0.dp
+                                landscapeSearchWidth != null -> mapSearchBarHeight
+                                else -> mapSearchBarHeight + mapCompassStripHeight.coerceAtLeast(compassStripClearance)
+                            }
                             // Part 1 layout fixes, item 3 (Part 1's device check, check 8): on the Maps tab
                             // this Box runs to the window's bottom, since the tab's contentWindowInsets
                             // reserve only the top and sides, so the keyboard does not shrink it. The panel's
@@ -1545,6 +1556,16 @@ internal fun CompactMainScaffold(
                             // includes the keyboard) shrinks this Box already. Robolectric reports no
                             // keyboard, so this is device-only by construction.
                             val searchDropdownImeBottom = with(LocalDensity.current) { WindowInsets.ime.getBottom(this).toDp() }
+                            // RECORD -750, item 2 (the owner: "If the keyboard is floating keep it to the one side. The bar still should
+                            // scroll up to reveal the search button at the bottom"): in landscape the panel's cap now follows the
+                            // keyboard as portrait's does (below), and the panel is told the keyboard is up, read from the real IME
+                            // insets rather than only from its own viewport shrinking: docked (a bottom inset) or floating (visible,
+                            // but a floating keyboard reports no inset). Either way the panel scrolls to its end, so Search and Set on
+                            // map sit above a docked keyboard's top or at the panel's own bottom. Its width and side never change.
+                            // Device-only: Robolectric has no keyboard, and whether a floating keyboard reports itself visible is the
+                            // OEM's (see the -750 report).
+                            @OptIn(ExperimentalLayoutApi::class)
+                            val searchDropdownKeyboardUp = landscapeSearchWidth != null && (searchDropdownImeBottom > 0.dp || WindowInsets.isImeVisible)
                             // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
                             NoTouchTargetExpansion(active = !showSearchDropdown) {
                             androidx.compose.animation.AnimatedVisibility(
@@ -1585,7 +1606,8 @@ internal fun CompactMainScaffold(
                                         .padding(mapControlsPadding)
                                         .padding(top = searchDropdownTopOffset)
                                         .width(landscapeSearchWidth)
-                                        .heightIn(max = maxHeight - searchDropdownTopOffset)
+                                        // RECORD -750, item 2: above a docked keyboard, as portrait's cap is (no nav band in landscape).
+                                        .heightIn(max = (maxHeight - searchDropdownTopOffset - searchDropdownImeBottom).coerceAtLeast(0.dp))
                                 } else {
                                     Modifier
                                         .align(Alignment.TopStart)
@@ -1630,6 +1652,7 @@ internal fun CompactMainScaffold(
                                     },
                                     // Over the Maps tab's map only; on the other tabs its Month menu stays solid.
                                     overMap = compactTab() == CompactTab.MAP,
+                                    keyboardUp = searchDropdownKeyboardUp,
                                 )
                             }
                             }
