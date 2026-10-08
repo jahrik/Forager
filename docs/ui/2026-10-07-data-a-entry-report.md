@@ -373,3 +373,40 @@ below and **not touched**, waiting for the planner's word.
 
 **Proposed, test-only:** scroll to "Save" before asserting and clicking. The assertions would be
 unchanged.
+
+### The three CartographyScreenTest failures: cause confirmed, fixed (the owner, "Confirm cause, then scroll (Recommended)")
+
+**The cause is confirmed by measurement.** I added a temporary probe to "a committed entry shows its
+own Save action" and ran it alone. It compiled with no errors, and I then restored the file from a
+saved copy. Just before the failing assertion it read these unclipped bounds:
+
+| Node | Top | Bottom |
+|---|---|---|
+| Root | 0 dp | 470 dp (320 dp wide) |
+| Save | 530 dp | 582 dp |
+| Panel's "Nothing from this day to include yet." | 478 dp | 514 dp |
+
+Save lies entirely below the screen; its clipped bounds are 0 x 0.
+
+**The fix (`9a8a97e4`).** The three Save tests now call `performScrollTo()` on "Save" before
+asserting on it and before clicking it. Every assertion is unchanged. The class now passes 14 tests
+with 0 failures.
+
+**Full suite, rerun** under the same rules, with no Kotlin daemon running and no compile errors in
+the log: **510 classes, 4,093 tests, 24 skipped, 0 failures.** `./gradlew --stop` ran at the end, and
+no Gradle or Kotlin daemon is left.
+
+### Device check D2: an empty day's editor on the S22
+
+Run on the S22 Ultra in portrait, at the default font size.
+1. Open a saved journal entry for a day with no finds, tracks, waypoints or offline maps, or a
+   saved entry where nothing is included and nothing new has arrived.
+2. Open its editor (three-dot menu, then Edit entry).
+3. Without scrolling, note whether the Save button is fully visible above the bottom bar.
+
+This step records an observation and does not pass or fail. Robolectric's 320 x 470 dp test screen
+puts Save at 530 dp, so on a phone it may sit below the fold too. The step records whether the
+owner's phone shows it without scrolling.
+
+**Evidence to record:** "Save visible without scrolling: yes or no", plus the last line of the panel
+visible above the fold, described in words. Do not commit a screenshot.
