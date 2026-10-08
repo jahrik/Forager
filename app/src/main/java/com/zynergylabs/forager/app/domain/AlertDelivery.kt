@@ -172,6 +172,21 @@ data class AlertDeliveryOutcome(
 /** Why a vibration was skipped: the phone is on silent and the alert does not override it. */
 const val VIBRATION_SKIPPED_PHONE_ON_SILENT = "phone on silent"
 
+/** Why a vibration was skipped: Do Not Disturb drops this kind of alert (dispatch 2026-09-28-685, Amendment 1). */
+const val VIBRATION_SKIPPED_DO_NOT_DISTURB = "Do Not Disturb"
+
+/**
+ * Android's interruption filter, the Do Not Disturb state, as the alert record cares about it (dispatch 2026-09-28-685,
+ * Amendment 1, RECORD -694; the owner: "Yes, cover Do Not Disturb (Recommended)"). [UNKNOWN] is a filter the platform
+ * could not report.
+ */
+enum class DoNotDisturbFilter { OFF, PRIORITY, ALARMS_ONLY, TOTAL_SILENCE, UNKNOWN }
+
+/** Owned seam over `NotificationManager.getCurrentInterruptionFilter`; the Android implementation is `AndroidDoNotDisturbSource`. */
+fun interface DoNotDisturbSource {
+    fun current(): DoNotDisturbFilter
+}
+
 /**
  * Why Android will not play an alert's vibration, or `null` when nothing here says it won't
  * (dispatch 2026-09-28-685, fix 3). Only one case is known from the ringer alone: a silenced ringer
@@ -183,3 +198,31 @@ const val VIBRATION_SKIPPED_PHONE_ON_SILENT = "phone on silent"
  */
 fun vibrationSkippedBecause(overridesSilence: Boolean, ringerMode: RingerMode): String? =
     if (!overridesSilence && ringerMode == RingerMode.SILENT) VIBRATION_SKIPPED_PHONE_ON_SILENT else null
+
+/**
+ * Why Do Not Disturb drops an alert's vibration, or `null` when it does not (dispatch 2026-09-28-685, Amendment 1).
+ * An alert that overrides silence vibrates with alarm usage; one that does not, with notification usage.
+ *
+ * - Total silence drops both.
+ * - Alarms only drops notification usage and lets alarms through.
+ * - Priority only drops notification usage unless this app or its channel was made an exception, which this app does
+ *   not read (that needs notification-policy access it does not ask for). So it is recorded as skipped: inferred from
+ *   Android's defaults, not observed. It lets alarms through, Android's default for that mode, also not read.
+ * - Off or unknown drops nothing this can tell.
+ *
+ * Ahead of the ringer in [vibrationSkipReason], as in the trip-start warning (`alertAudibilityWarning`).
+ */
+fun vibrationSkippedByDoNotDisturb(overridesSilence: Boolean, filter: DoNotDisturbFilter): String? = when (filter) {
+    DoNotDisturbFilter.TOTAL_SILENCE -> VIBRATION_SKIPPED_DO_NOT_DISTURB
+    DoNotDisturbFilter.ALARMS_ONLY, DoNotDisturbFilter.PRIORITY -> if (overridesSilence) null else VIBRATION_SKIPPED_DO_NOT_DISTURB
+    DoNotDisturbFilter.OFF, DoNotDisturbFilter.UNKNOWN -> null
+}
+
+/**
+ * The one reason recorded, Do Not Disturb first, then the ringer; `null` when neither drops the vibration. A `null`
+ * input was unreadable and says nothing. Not covered: a phone-level setting that turns vibration off (Android's
+ * vibration and haptics settings), which no reading here can see.
+ */
+fun vibrationSkipReason(overridesSilence: Boolean, filter: DoNotDisturbFilter?, ringerMode: RingerMode?): String? =
+    filter?.let { vibrationSkippedByDoNotDisturb(overridesSilence, it) }
+        ?: ringerMode?.let { vibrationSkippedBecause(overridesSilence, it) }

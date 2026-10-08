@@ -17,6 +17,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -314,6 +316,8 @@ internal fun NavigationHud(
                                 text = shown,
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG),
                             )
                         }
@@ -333,6 +337,8 @@ internal fun NavigationHud(
                                     style = distanceStyle,
                                     color = distanceColor,
                                     maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
                                 )
                             }
@@ -343,6 +349,8 @@ internal fun NavigationHud(
                                         style = MaterialTheme.typography.labelMedium,
                                         color = distanceColor,
                                         maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_KIND_TAG),
                                     )
                                 }
@@ -350,13 +358,26 @@ internal fun NavigationHud(
                         }
                         if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
                         // The fix age ticks every second: numbers, so it changes at once.
-                        WordSwap(text = readout.statusText) { shown ->
-                            Text(
-                                text = shown,
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
-                            )
+                        // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694; the owner: "Drop 'Approaching ·' if needed
+                        // (Recommended)"): a status with a shorter form shows it when the whole one does not fit this width.
+                        // Either way the line is one line and ends in "…" when it still overflows ("Stay beside the search
+                        // bar, '…' (Recommended)"): it used to wrap at a word and draw only the first ("No", S22, font 2.0).
+                        val statusStyle = MaterialTheme.typography.labelMedium
+                        val statusMeasurer = rememberTextMeasurer()
+                        BoxWithConstraints {
+                            val status = statusTextThatFits(readout, constraints.maxWidth) { text ->
+                                statusMeasurer.measure(text, statusStyle, maxLines = 1, softWrap = false).size.width
+                            }
+                            WordSwap(text = status) { shown ->
+                                Text(
+                                    text = shown,
+                                    style = statusStyle,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
+                                )
+                            }
                         }
                     }
                     BouncingIconButton(
@@ -385,6 +406,8 @@ internal fun NavigationHud(
                                     text = shown,
                                     style = MaterialTheme.typography.labelMedium,
                                     maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
                                 )
                             }
@@ -396,6 +419,8 @@ internal fun NavigationHud(
                                     text = elevation,
                                     style = MaterialTheme.typography.labelMedium,
                                     maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.testTag(NAVIGATION_HUD_ELEVATION_TAG),
                                 )
                             }
@@ -461,6 +486,8 @@ internal fun LabelledReadout(label: String?, reading: @Composable () -> Unit) {
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
                 maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.testTag(NAVIGATION_LABEL_TAG),
             )
         }
@@ -534,6 +561,12 @@ internal data class NavigationHudReadout(
      * needs no label.
      */
     val headingIsReading: Boolean = false,
+    /**
+     * Dispatch 2026-09-28-685, Amendment 1 (RECORD -694; the owner: "Drop 'Approaching ·' if needed (Recommended)"): a
+     * shorter [statusText] for when the whole one does not fit, or `null` when there is none. Today only "Approaching ·
+     * last fix 45 s ago", whose short form is the plain stale line, "Last fix 45 s ago". See [statusTextThatFits].
+     */
+    val statusShortText: String? = null,
 ) {
     /**
      * Dispatch -677: whether the second row is drawn. Since the heading moved there (with its label, out of the space under
@@ -803,7 +836,7 @@ internal fun navigationReadout(
     // has no room for both a label and a stale fix's age.
     val statusText = when (freshness) {
         FixFreshness.LOST -> "No fix for ${formatFixAge(age)}"
-        FixFreshness.STALE -> if (approaching) "Approaching · last fix ${formatFixAge(age)} ago" else "Last fix ${formatFixAge(age)} ago"
+        FixFreshness.STALE -> if (approaching) "$APPROACHING_PREFIX${staleFixText(age).replaceFirstChar { it.lowercaseChar() }}" else staleFixText(age)
         FixFreshness.FRESH -> when {
             // The owner: "Drop "Approaching" when arrived", "Arrived" alone; with a route that also
             // drops the straight line, which before this dispatch read under "Arrived" outside twice
@@ -828,7 +861,23 @@ internal fun navigationReadout(
         routeRetryOffered = freshness != FixFreshness.LOST && route is ReturnRoute.Unavailable && route.canRetry,
         distanceKindText = distanceKind?.words,
         headingIsReading = headingIsReading,
+        statusShortText = if (freshness == FixFreshness.STALE && approaching) staleFixText(age) else null,
     )
+}
+
+/** "Last fix 45 s ago": the stale line alone, and the short form of the approaching one. */
+private fun staleFixText(ageMillis: Long): String = "Last fix ${formatFixAge(ageMillis)} ago"
+
+private const val APPROACHING_PREFIX = "Approaching · "
+
+/**
+ * The status line to draw in [maxWidthPx]: [NavigationHudReadout.statusText] when [widthOf] says it fits, else its short
+ * form when it has one (dispatch 2026-09-28-685, Amendment 1, RECORD -694). The short form is not checked in turn: if it
+ * overflows too, the line's own ellipsis cuts it.
+ */
+internal fun statusTextThatFits(readout: NavigationHudReadout, maxWidthPx: Int, widthOf: (String) -> Int): String {
+    val short = readout.statusShortText ?: return readout.statusText
+    return if (widthOf(readout.statusText) <= maxWidthPx) readout.statusText else short
 }
 
 /** "48 s" under a minute, "6 min" from a minute on — coarse on purpose; the number's job is "old", not a stopwatch. */

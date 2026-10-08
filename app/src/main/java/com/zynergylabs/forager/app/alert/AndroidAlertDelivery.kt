@@ -23,7 +23,8 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.WalkBack
-import com.zynergylabs.forager.app.domain.vibrationSkippedBecause
+import com.zynergylabs.forager.app.domain.DoNotDisturbSource
+import com.zynergylabs.forager.app.domain.vibrationSkipReason
 import java.util.Date
 
 /**
@@ -56,6 +57,8 @@ class AndroidAlertDelivery internal constructor(
      * (dispatch 2026-09-28-685, fix 3). The trip-start warning's own seam, reused; faked in tests.
      */
     private val audibility: AlertAudibility = AndroidAlertAudibility(context),
+    /** Do Not Disturb, read with the ringer (dispatch 2026-09-28-685, Amendment 1, RECORD -694). Faked in tests. */
+    private val doNotDisturb: DoNotDisturbSource = AndroidDoNotDisturbSource(context),
 ) : AlertDelivery {
     constructor(context: Context) : this(context, ::postNotificationFor, ::vibrateForAlert)
 
@@ -99,18 +102,24 @@ class AndroidAlertDelivery internal constructor(
     }
 
     /**
-     * Why Android will not play the vibration just issued ([vibrationSkippedBecause]), for the record
+     * Why Android will not play the vibration just issued ([vibrationSkipReason]), for the record
      * only: what was delivered is already decided and unchanged (dispatch 2026-09-28-685, fix 3; the
-     * owner, RECORD -678). A ringer that cannot be read is logged and leaves the record as it was.
+     * owner, RECORD -678; Do Not Disturb added by Amendment 1, RECORD -694). A reading that fails is logged and says nothing.
      */
     private fun vibrationSkipped(alert: Alert): String? {
+        val filter = try {
+            doNotDisturb.current()
+        } catch (e: Exception) {
+            Log.w(TAG, "Do Not Disturb could not be read; the ${alert.kind} alert's vibration is not checked against it.", e)
+            null
+        }
         val ringerMode = try {
             audibility.current().ringerMode
         } catch (e: Exception) {
-            Log.w(TAG, "The ringer could not be read; the ${alert.kind} alert's vibration is recorded as issued, not checked against it.", e)
-            return null
+            Log.w(TAG, "The ringer could not be read; the ${alert.kind} alert's vibration is not checked against it.", e)
+            null
         }
-        return vibrationSkippedBecause(alert.overridesSilence, ringerMode)
+        return vibrationSkipReason(alert.overridesSilence, filter, ringerMode)
     }
 
     private companion object {
