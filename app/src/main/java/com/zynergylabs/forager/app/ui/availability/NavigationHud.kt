@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -294,6 +295,17 @@ internal fun NavigationHud(
                 .testTag(NAVIGATION_HUD_TAG)
                 .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
+            // RECORD -714 (the owner: "Button moves to second row (Recommended)"): where the three-dot button goes. Left of the X
+            // when the first row can still give the status its full width beside it; else at the end of the second row. The
+            // switch point is a measured fit, not a fixed width: the distance column the first row would leave beside the button
+            // is worked out from this window's width and the first row's fixed parts (the north arrow, the X's 48 dp, the
+            // button's 36 dp, the gaps), and the turn column, the figure, its kind and the status are measured in their own
+            // type at the current font scale. What is measured is one fixed reference line, data part B's longest route line
+            // ("Sharp right · 169°", "1280 ft" "by trail", "≈ 1250 ft straight", dispatch -677), not whatever the display shows
+            // this second: decided by the window and the font, the button does not move between rows, and the display does
+            // not change height, as the walk's statuses come and go.
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val buttonInFirstRow = quickSettings != null && firstRowHoldsTheButton(constraints.maxWidth)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -397,7 +409,7 @@ internal fun NavigationHud(
                         }
                     }
                     }
-                    if (quickSettings != null) MapQuickSettingsButton(quickSettings)
+                    if (buttonInFirstRow && quickSettings != null) MapQuickSettingsButton(quickSettings)
                     BouncingIconButton(
                         onClick = onExit,
                         modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),
@@ -410,10 +422,11 @@ internal fun NavigationHud(
                 // heading has more to say than a dash (NavigationHudReadout.secondRowShown). The coordinates segment takes
                 // the row's remaining width as its tap band, padded to ~24dp tall; the heading and elevation are plain
                 // readouts. Its height is the coordinates' padded line, as before: the labels sit on the same line.
-                if (readout.secondRowShown) {
+                val buttonInSecondRow = quickSettings != null && !buttonInFirstRow
+                if (readout.secondRowShown || buttonInSecondRow) {
                     // Dispatch 2026-09-28-685: the planner's extension of Amendment 2 (RECORD -699) to this row. The owner's
                     // "Coordinates take priority (Recommended)" was asked about the strip; its reason, that the coordinates are
-                    // what you read out to get help, holds here too. So, as on the strip (readoutsKeptBeside): the coordinates
+                    // what you read out to get help, holds here too. So, as on the strip (readoutsFitBeside): the coordinates
                     // are measured first and stay whole. Since RECORD -713, facing and altitude drop their labels first, then
                     // facing goes, then altitude; neither is shortened with "…" any more.
                     val rowStyle = MaterialTheme.typography.labelMedium
@@ -430,8 +443,10 @@ internal fun NavigationHud(
                         // then facing, then altitude; whatever is shown is whole (readoutsFitBeside).
                         val labelsPx = listOfNotNull(labelPx(headingLabel), readout.elevationText?.let { labelPx(elevationLabel) })
                         val valuesPx = listOfNotNull(widthOf(readout.headingText), readout.elevationText?.let { widthOf(it) })
-                        val fit = readoutsFitBeside(
-                            availablePx = constraints.maxWidth,
+                        // RECORD -714: with the button at this row's end, its 36 dp and its gap come out first.
+                        val buttonReservePx = if (buttonInSecondRow) with(density) { (QUICK_SETTINGS_TAP_TARGET + Spacing.sm).roundToPx() } else 0
+                        val fit = if (!readout.secondRowShown) ReadoutsFit(labels = false, shown = listOf(false, false)) else readoutsFitBeside(
+                            availablePx = constraints.maxWidth - buttonReservePx,
                             coordinatesPx = coordinatesPx ?: 0,
                             labelsPx = labelsPx,
                             valuesPx = valuesPx,
@@ -439,7 +454,7 @@ internal fun NavigationHud(
                             withCoordinates = coordinatesPx != null,
                         )
                         val headingShown = fit.shown[0]
-                        val elevationShown = readout.elevationText != null && fit.shown[1]
+                        val elevationShown = readout.elevationText != null && fit.shown.getOrElse(1) { false }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -478,7 +493,7 @@ internal fun NavigationHud(
                                 }
                             }
                         }
-                        readout.coordinatesText?.let { coordinates ->
+                        readout.coordinatesText?.takeIf { readout.secondRowShown }?.let { coordinates ->
                             if (headingShown || elevationShown) Text("·", style = rowStyle)
                             Text(
                                 text = coordinates,
@@ -492,6 +507,10 @@ internal fun NavigationHud(
                                     .padding(vertical = Spacing.xs)
                                     .testTag(NAVIGATION_HUD_COORDINATES_TAG),
                             )
+                        }
+                        if (buttonInSecondRow && quickSettings != null) {
+                            if (readout.coordinatesText == null || !readout.secondRowShown) Spacer(Modifier.weight(1f))
+                            MapQuickSettingsButton(quickSettings)
                         }
                     }
                     }
@@ -544,6 +563,7 @@ internal fun NavigationHud(
                     }
                 }
             }
+            }
         }
     }
 }
@@ -570,6 +590,47 @@ internal fun LabelledReadout(label: String?, reading: @Composable () -> Unit) {
         reading()
     }
 }
+
+/**
+ * RECORD -714: whether the display's first row, [hudWidthPx] wide, can keep the three-dot button left of the X and still give
+ * the reference route line its full width (see the call site). The distance column is what is left of the row after its
+ * padding, the north arrow, the turn column, the X's 48 dp touch box, the button and the four gaps between five children;
+ * the figure and its kind fit side by side in it, or the kind leads the status line (RECORD -713); either way the status
+ * must be whole.
+ */
+@Composable
+internal fun firstRowHoldsTheButton(hudWidthPx: Int): Boolean {
+    val measurer = rememberTextMeasurer()
+    val typography = MaterialTheme.typography
+    val density = LocalDensity.current
+    fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    val small = typography.labelMedium
+    val figureStyle = typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
+    with(density) {
+        val turnColumnPx = maxOf(COMPASS_ICON_SIZE.roundToPx(), widthOf(REFERENCE_TURN, small))
+        val fixedPx = 2 * Spacing.sm.roundToPx() + COMPASS_ICON_SIZE.roundToPx() + turnColumnPx +
+            HUD_EXIT_TOUCH_SIZE.roundToPx() + QUICK_SETTINGS_TAP_TARGET.roundToPx() + 4 * Spacing.md.roundToPx()
+        val columnPx = hudWidthPx - fixedPx
+        val gapPx = Spacing.xs.roundToPx()
+        val figurePx = widthOf(REFERENCE_FIGURE, figureStyle)
+        val kindPx = widthOf(REFERENCE_KIND, small)
+        val statusPx = widthOf(REFERENCE_STATUS, small)
+        return if (figurePx + gapPx + kindPx <= columnPx) {
+            statusPx <= columnPx
+        } else {
+            kindPx + gapPx + widthOf("·", small) + gapPx + statusPx <= columnPx
+        }
+    }
+}
+
+/** RECORD -714: the reference line the button's place is measured against, data part B's longest route line (dispatch -677). */
+private const val REFERENCE_TURN = "Sharp right · 169°"
+private const val REFERENCE_FIGURE = "1280 ft"
+private const val REFERENCE_KIND = "By trail"
+private const val REFERENCE_STATUS = "≈ 1250 ft straight"
+
+/** The X's touch box: Material's icon button at its 48 dp minimum interactive size. */
+private val HUD_EXIT_TOUCH_SIZE = 48.dp
 
 /** What the large figure measures, "by trail" or "straight", in the status line's type (dispatch -677; RECORD -713). */
 @Composable
