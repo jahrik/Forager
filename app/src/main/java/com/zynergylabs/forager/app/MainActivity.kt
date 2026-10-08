@@ -229,6 +229,7 @@ class MainActivity : ComponentActivity() {
                     alreadyRecordingMessage = getString(R.string.track_recording_already_recording),
                     abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
                     sundownShown = container.sundownWatch.shown,
+                    backBy = container.backByWatch,
                     shouldPromptBackgroundRun = container.offTrackReminderCheck::atRecordingStart,
                     recordingHalts = container.recordingHalts.latest,
                 )
@@ -687,6 +688,9 @@ class MainActivity : ComponentActivity() {
                     isReturning = trackUiState.isReturning,
                     isOffTrack = trackUiState.isOffTrack,
                     recordingSundownLine = trackUiState.sundownLine,
+                    recordingBackBy = trackUiState.backBy,
+                    onBackByChoice = trackRecordingViewModel::setBackBy,
+                    onClearBackBy = trackRecordingViewModel::clearBackBy,
                     onToggleReturning = {
                         if (trackUiState.isReturning) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
                     },

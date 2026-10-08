@@ -387,6 +387,12 @@ internal fun CompactMapTab(
      * recording, the HUD shows sunset and dark only, computed here ([rememberScreenSundownLine]).
      */
     recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine? = null,
+    /**
+     * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 to 3): the three-dot button at
+     * the strip's far right, and in the HUD while navigating, with Back by, the sundown settings and the off-track
+     * reminder; its Back by also gives the strip's and the HUD's "Back by" line. `null` draws no button.
+     */
+    quickSettings: MapQuickSettings? = null,
     compassProvider: CompassProvider,
     /** See [AvailabilityScreen]'s own `computeTrueHeading` doc comment. */
     computeTrueHeading: ComputeTrueHeadingUseCase,
@@ -711,6 +717,17 @@ internal fun CompactMapTab(
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
                 }
             }
+            // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): what sits below the strip in portrait (the
+            // observation bubble's top, the icon bar's drag limit, the taxon and journal chips; the search dropdown, in the
+            // scaffold, through searchBarSlot) clears the strip's measured height, not one text line. Back by's three-dot button
+            // (dispatch 2026-09-28-645) gave the strip a 36 dp floor, twice that line, and its sundown and Back by lines grow it
+            // too. The one-line clearance stays the floor, and is what is used while the strip is not measured: before its first
+            // layout, while navigating (the display replaces it), and in a landscape window, where the strip sits in the other
+            // corner and is not measured. The comment above records a regression from reading a measured height back for the
+            // bubble's minY; the strip's measured height was already read here for the search notice (searchBarSlot), and the
+            // test that caught that regression ("tapping elsewhere on the map dismisses the observation bubble") is @Ignore'd
+            // for an unrelated harness reason, so whether the regression returns is a device item.
+            val compassStripBottomClearance = with(compassStripDensity) { compassStripHeightPx.toDp() }.coerceAtLeast(compassStripClearance)
             Box(
                 modifier = modifier
                     .fillMaxSize()
@@ -854,7 +871,7 @@ internal fun CompactMapTab(
                         launchINaturalistObservation(context, sighting.observationId)
                         tapped = null
                     },
-                    minY = topInset + compassStripClearance,
+                    minY = topInset + compassStripBottomClearance,
                     // Fullscreen and the search dropdown are left out as the drawer and the menu states are (dispatch 2026-09-28-312,
                     // item 11): a bubble closes after anything opened after it, and their Back handlers were registered before the
                     // bubble layer's, so without these terms a bubble took the first Back and they the second. The dropdown's state
@@ -909,7 +926,7 @@ internal fun CompactMapTab(
                     // searchBarBottom, the search bar's own bottom (settled, not animated), without the strip clearance (the compass strip is in the other corner there,
                     // nothing else is drawn in that band beside the notice and the chips, which make room for the L, and the SearchDropdown
                     // starts below it); the L pushes down to it as well as up. Portrait keeps topInset + the clearance.
-                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) searchBarBottom else topInset + compassStripClearance).toPx() },
+                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) searchBarBottom else topInset + compassStripBottomClearance).toPx() },
                     noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
                     controlsPadding = controlsPadding,
                     bar = { barModifier -> phoneBar(barModifier, mapIconClusterChildColor(), Spacing.xs, false) },
@@ -1035,6 +1052,10 @@ internal fun CompactMapTab(
                         positionNote = positionNote,
                         // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
                         sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
+                        backByLine = backByLineText(quickSettings?.backBy, sundownClock),
+                        // Amendment 3 (RECORD -648): "a 3 dot menu at the far right", placed by the strip,
+                        // not the screen (RECORD -649): the strip's own right end in every orientation.
+                        quickSettings = quickSettings,
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
                 }
@@ -1043,10 +1064,13 @@ internal fun CompactMapTab(
                 LaunchedEffect(isNavigating) { if (isNavigating) compassStripHeightPx = 0 }
 
                 // Below the compass strip (topInset + compassStripClearance as top padding), same
-                // reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts
-                // touches across its full width, so a chip placed underneath it would have its own
-                // "Show all species" tap silently swallowed the same way a bubble anchored there
-                // would. topInset itself (see this composable's own doc comment) clears whatever
+                // reasoning as AnchoredAtScreenPoint's own minY: the strip is drawn across the map's
+                // full width, so a chip placed underneath it would be hidden behind it, and where it
+                // sat under the strip's coordinates or its quick-settings button (dispatch -645), its
+                // "Show all species" tap would go to them. Corrected in dispatch 2026-09-28-645: this
+                // said "the strip's Surface intercepts touches across its full width", which stopped
+                // being true when the strip became a plain Box that takes no touches of its own
+                // (CompassElevationStripContent); its real long-press tests reach the map through it. topInset itself (see this composable's own doc comment) clears whatever
                 // chrome floats above the strip too — SearchEntryBar, on the Map tab.
                 //
                 // J8-3 (owner: "Top, by the species chip (Recommended)"): the journal-entries chip sits in
@@ -1098,7 +1122,7 @@ internal fun CompactMapTab(
                             Modifier
                                 .align(Alignment.TopCenter)
                                 .padding(controlsPadding)
-                                .padding(top = topInset + compassStripClearance + Spacing.sm)
+                                .padding(top = topInset + compassStripBottomClearance + Spacing.sm)
                         }.then(if (chipsMeantToShow) Modifier.mapKeepOut(MapKeepOutIds.CHIPS) else Modifier),
                     ) {
                         MapPopUp(state = taxonChip, pivot = PopUpPivot.TopCentre) {
@@ -1174,6 +1198,8 @@ internal fun CompactMapTab(
                         // hidden until its window opens (Amendment 2, RECORD -595).
                         sundownLine = (recordingSundownLine ?: rememberScreenSundownLine(uiState.headingFix?.let { com.zynergylabs.forager.app.domain.model.LatLng(it.lat, it.lng) }, currentTime))
                             .let { sundownLineText(it, sundownClock) },
+                        backByLine = backByLineText(quickSettings?.backBy, sundownClock),
+                        quickSettings = quickSettings,
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
