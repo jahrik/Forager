@@ -17,6 +17,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.text.TextLayoutResult
@@ -161,23 +162,41 @@ class AvailabilityScreenNavigationWordsTest {
         assertTrue("$name <$text>: box $box holds the text's $needs", box >= needs - 0.5.dp)
     }
 
-    /** Every line of the display, labels included, is whole. */
+    /** Whether [tag] is drawn in the unmerged tree. */
+    private fun drawn(tag: String) = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    /** Whether the label reading [text] is drawn inside [parentTag]. */
+    private fun labelDrawn(parentTag: String, text: String) =
+        composeRule.onAllNodes(hasTestTag(NAVIGATION_LABEL_TAG) and hasText(text) and hasAnyAncestor(hasTestTag(parentTag)), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    /**
+     * Every line of the display is whole. Changed by RECORD -715 (the owner: "Keep it, 12 dp taller (Recommended)"), to RECORD
+     * -713's rule ("Drop labels, then values"): it used to require the "Facing" and "Alt" labels drawn. Since -714 put the
+     * three-dot button at the end of the second row at 360 dp, the labels may drop there. What it asserts now: the first
+     * row's lines (the figure, its kind, the turn, the status) are whole; each readout shown (heading, altitude) is whole, and
+     * so is each label that is drawn; the coordinates are whole.
+     */
     private fun assertDisplayWhole() {
         listOf(
             "distance" to NAVIGATION_HUD_DISTANCE_TAG,
             "distance kind" to NAVIGATION_HUD_DISTANCE_KIND_TAG,
             "turn" to NAVIGATION_HUD_TARGET_TAG,
             "status" to NAVIGATION_HUD_STATUS_TAG,
-            "heading" to NAVIGATION_HUD_HEADING_TAG,
-            "elevation" to NAVIGATION_HUD_ELEVATION_TAG,
             "coordinates" to NAVIGATION_HUD_COORDINATES_TAG,
         ).forEach { (name, tag) -> assertWhole(name, node(tag)) }
-        assertWhole("heading label", label(NAVIGATION_HUD_TAG, HEADING_LABEL))
-        assertWhole("altitude label", label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
+        if (drawn(NAVIGATION_HUD_HEADING_TAG)) assertWhole("heading", node(NAVIGATION_HUD_HEADING_TAG))
+        if (drawn(NAVIGATION_HUD_ELEVATION_TAG)) assertWhole("elevation", node(NAVIGATION_HUD_ELEVATION_TAG))
+        if (labelDrawn(NAVIGATION_HUD_TAG, HEADING_LABEL)) assertWhole("heading label", label(NAVIGATION_HUD_TAG, HEADING_LABEL))
+        if (labelDrawn(NAVIGATION_HUD_TAG, ALTITUDE_LABEL)) assertWhole("altitude label", label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
     }
 
+    /**
+     * Changed by RECORD -715, to RECORD -713's rule: it required "Facing" and "Alt" drawn before their readings, and was named
+     * "… and labels its heading and altitude". At 360 dp with the three-dot button ending the second row (-714) the labels may
+     * drop; where a label is drawn it still sits before its own reading, on its line.
+     */
     @Test
-    fun `on the route the display reads the turn in words, the route by trail, the straight line straight, and labels its heading and altitude`() {
+    fun `on the route the display reads the turn in words, the route by trail, the straight line straight, and its heading and altitude, labelled where they fit`() {
         setScreen(facing = 45f, route = ReturnRoute.Ahead(east, 1_500.0))
 
         assertEquals("Right · 45°", textOf(NAVIGATION_HUD_TARGET_TAG))
@@ -186,13 +205,17 @@ class AvailabilityScreenNavigationWordsTest {
         assertEquals("≈ 1250 ft straight", textOf(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
         assertEquals("9843 ft", textOf(NAVIGATION_HUD_ELEVATION_TAG))
-        // Each label sits before its own reading, on its line.
-        val facing = bounds(label(NAVIGATION_HUD_TAG, HEADING_LABEL))
+        // Each label that is drawn sits before its own reading, on its line.
         val heading = bounds(node(NAVIGATION_HUD_HEADING_TAG))
-        assertTrue("\"Facing\" $facing is left of the heading $heading", facing.right <= heading.left)
-        val alt = bounds(label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
+        if (labelDrawn(NAVIGATION_HUD_TAG, HEADING_LABEL)) {
+            val facing = bounds(label(NAVIGATION_HUD_TAG, HEADING_LABEL))
+            assertTrue("\"Facing\" $facing is left of the heading $heading", facing.right <= heading.left)
+        }
         val elevation = bounds(node(NAVIGATION_HUD_ELEVATION_TAG))
-        assertTrue("\"Alt\" $alt is left of the altitude $elevation", alt.right <= elevation.left)
+        if (labelDrawn(NAVIGATION_HUD_TAG, ALTITUDE_LABEL)) {
+            val alt = bounds(label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
+            assertTrue("\"Alt\" $alt is left of the altitude $elevation", alt.right <= elevation.left)
+        }
         // The kind follows the figure on the same line.
         val figure = bounds(node(NAVIGATION_HUD_DISTANCE_TAG))
         val kind = bounds(node(NAVIGATION_HUD_DISTANCE_KIND_TAG))
@@ -259,16 +282,27 @@ class AvailabilityScreenNavigationWordsTest {
         assertWhole("strip elevation", node(COMPASS_STRIP_ELEVATION_TAG))
     }
 
+    /**
+     * Changed by RECORD -713 (the owner: "Drop labels, then values (Recommended)"). It asserted the labelled line whole at 360 dp,
+     * "Facing" and "Alt" included. Since Back by's three-dot button (dispatch 2026-09-28-645) takes 36 dp of the strip, the
+     * labelled line no longer fits there, and the owner's rule drops the labels before any value. What it asserts now: no
+     * label is drawn, each value shown is whole, and the coordinates are whole. Its old name was "at 360 dp the strip's
+     * labelled line fits whole".
+     */
     @Test
-    fun `at 360 dp the strip's labelled line fits whole`() {
+    fun `at 360 dp the strip drops its labels first and keeps its values and coordinates whole`() {
         setScreen(facing = 315f, route = null, navigating = false)
 
         assertEquals("315° NW", textOf(COMPASS_STRIP_HEADING_TAG))
         assertEquals("9843 ft", textOf(COMPASS_STRIP_ELEVATION_TAG))
         assertWhole("strip heading", node(COMPASS_STRIP_HEADING_TAG))
         assertWhole("strip elevation", node(COMPASS_STRIP_ELEVATION_TAG))
-        assertWhole("strip heading label", label(STRIP_TAG, HEADING_LABEL))
-        assertWhole("strip altitude label", label(STRIP_TAG, ALTITUDE_LABEL))
+        for (dropped in listOf(HEADING_LABEL, ALTITUDE_LABEL)) {
+            assertTrue(
+                "the label <$dropped> is dropped before any value",
+                composeRule.onAllNodes(hasTestTag(NAVIGATION_LABEL_TAG) and hasText(dropped) and hasAnyAncestor(hasTestTag(STRIP_TAG)), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+            )
+        }
         assertWhole("strip coordinates", composeRule.onNode(hasText(coordinatesStripText(LatLng(fix.lat, fix.lng), false)) and hasAnyAncestor(hasTestTag(STRIP_TAG)), useUnmergedTree = true))
     }
 
