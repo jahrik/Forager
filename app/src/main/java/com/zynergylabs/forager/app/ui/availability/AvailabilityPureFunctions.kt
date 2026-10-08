@@ -90,6 +90,10 @@ internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolea
  * instruction for exactly this case: if the setting isn't wired, hardcode MGRS and say so, rather
  * than build the setting or the emergency card as unplanned scope here.
  *
+ * **Superseded for the labels by dispatch -677, Amendment 1 (RECORD -680):** the pair is now bare, "45.3262, -122.6340",
+ * on the strip and the navigation display, because with the heading and altitude labelled the labelled pair no longer
+ * fitted at 360 dp; the owner chose "Shorter decimals, no labels (Recommended)". The reasoning below was the original's.
+ *
  * The decimal pair is labeled ("Lat."/"Long.", the project owner's own wording) rather than the bare
  * "45.5231, -122.6414" [PlannedTripRow] shows — that row sits next to a named trip, where the pair
  * reads as "that trip's location" from context; this strip has no such context, so an unlabeled pair
@@ -100,7 +104,10 @@ internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolea
 internal fun coordinatesStripText(location: LatLng?, showDecimalDegrees: Boolean): String {
     if (location == null) return "Coordinates unavailable"
     if (showDecimalDegrees) {
-        return "Lat. ${"%.4f".format(location.lat)} Long. ${"%.4f".format(location.lng)}"
+        // Dispatch 2026-09-28-677, Amendment 1 (RECORD -680; the owner: "Shorter decimals, no labels (Recommended)"):
+        // "45.3262, -122.6340", where it read "Lat. 45.3262 Long. -122.6340". Locale.US, so a comma-decimal phone cannot
+        // print "45,3262, -122,6340", a pair that no longer reads as two numbers.
+        return "${String.format(java.util.Locale.US, "%.4f", location.lat)}, ${String.format(java.util.Locale.US, "%.4f", location.lng)}"
     }
     return when (val mgrs = MgrsConverter.convert(location)) {
         is MgrsCoordinate.Grid -> mgrs.value

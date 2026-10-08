@@ -11,10 +11,11 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatApproximateDistance
 import com.zynergylabs.forager.app.domain.relativeBearingDegrees
+import com.zynergylabs.forager.app.domain.DistanceKind
+import com.zynergylabs.forager.app.domain.turnText
 import com.zynergylabs.forager.app.domain.shownPosition
 import com.zynergylabs.forager.app.ui.map.NavigationFacing
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
-import kotlin.math.roundToInt
 
 /** The HUD's status line with only an approximate position (the owner's words, RECORD -508). */
 internal const val APPROXIMATE_HUD_TEXT = "Approximate, finding GPS…"
@@ -84,9 +85,12 @@ internal fun approximateNavigationReadout(
         null
     }
     return noFix.copy(
-        targetText = needle?.let { "Turn ${it.roundToInt() % 360}°" } ?: "",
+        // Dispatch 2026-09-28-677: the turn in words, as the GPS display words it ("Slight left · 10°"); was "Turn N°".
+        targetText = needle?.let { turnText(it) } ?: "",
         targetArrowDegrees = needle,
         distanceText = if (far) formatApproximateDistance(distanceMeters, accuracy, distanceUnit) else "—",
+        // Dispatch -677: "≈ 3.2 km straight": from an approximate reading the figure is always the straight line, never the route.
+        distanceKindText = DistanceKind.STRAIGHT.words.takeIf { far },
         statusText = APPROXIMATE_HUD_TEXT,
     )
 }
