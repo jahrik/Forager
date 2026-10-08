@@ -316,3 +316,76 @@ Revert checks to add at the build:
 - `coordinatesStripText` writing "Lat." again: every decimal assertion fails.
 
 Still unverified: everything above. Nothing is compiled or run.
+
+## The build (Gradle go, RECORD -664's go for the data sweep)
+
+Written 2026-10-07 (UTC). This section supersedes the "nothing compiled or run" status above. The text above is left as
+it was written.
+
+**Merge.** origin/main (`f17b24b5`, which includes data part A and motion Parts 1 and 2) was merged in at `9f303502`.
+The one conflict was the audits index. Main's side added no row at that point, so this branch's row was kept and no
+row was dropped. No source file conflicted, and no logic was changed on both sides.
+
+- The A files this branch edits (`EntryReport.kt`, `EntryReportSummary.kt`) are unchanged on main since `fcd9adfc`,
+  the A head merged in earlier.
+- **The bounce.** This part adds no icon button. The Details fold is a clickable row with a decorative icon, and the
+  display's exit was already `BouncingIconButton`.
+
+**How it ran.**
+
+- Every Gradle run went through `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0`.
+- Gradle heap was 1536m, the Kotlin daemon 2g, and Java temp `~/.cache/forager-test-tmp` (as a system property and in
+  `JAVA_TOOL_OPTIONS`).
+- No daemon was running at the start.
+- Free disk was checked before each run: 3.6 GB at the start, 3.2 GB at the lowest.
+- The Kotlin daemon was stopped after each compile and before each test run.
+- `./gradlew --stop` ran at the end, and no Gradle or Kotlin daemon is left.
+- No phone or emulator was used.
+
+**Compile.** Main sources compiled on the first run. The test sources had one error, mine: the words test passed a
+nullable route where `AvailabilityScreen` takes a non-null one. It now passes `ReturnRoute.Pending` when not
+navigating (`66668160`). The second compile had no errors.
+
+**New and edited test classes: 28 classes, 387 tests, 0 failures, 19 skipped.** The skipped tests are `@Ignore`s that
+were already there.
+
+Measured under native graphics, these supersede the estimates above:
+
+| What | Measured |
+|---|---|
+| At 360 dp, the longest lines | each whole, box = needed width |
+| "Sharp right · 169°" | 102.75 dp |
+| "1280 ft" + "by trail" | 52.75 + 40.25 dp |
+| "≈ 1250 ft straight" | 102.25 dp |
+| MGRS | 123.75 dp, whole |
+| Decimal pair "45.5200, -122.6800" | 116.25 dp, whole |
+| "Facing" / "Alt" | 38.75 / 16.25 dp |
+| Display height, longest lines vs short lines | 96 dp / 96 dp |
+| Landscape 780 × 360, every line, MGRS and decimal | whole |
+| Landscape display | ends at 96 dp, central third from 120 dp: 24 dp clear here, with no status bar (the S22's clearance stays a device item) |
+
+**Revert checks: nine, every one failed for its own reason.** The runner saved a copy, applied the edit, compiled, and
+refused to read results after any compile error; none had one. It then ran the named classes, read the JUnit XML,
+restored from the saved copy, and confirmed the file equals HEAD (forward change present: true for all nine).
+
+| Revert | Result |
+|---|---|
+| R1 slight band from 11° | 4 failures, e.g. expected "Slight left · 10°", was "Ahead · 10°" |
+| R2 route kind STRAIGHT | 2 failures, expected "by trail", was "straight" |
+| R3 tiles ignore overMap | 1 failure, Distance tile expected Transparent, was the solid fill |
+| R4 fold state local | 1 failure, "the next walk's sheet opens with the fold open" |
+| R5 24-hour forced off | 1 failure, title expected "Sep 18, 2026, 21:13", was "9:13 PM" |
+| R6 heading back under the arrow, labelled | 2 failures, "by trail" 2 of 8 characters visible at 360 dp: the evidence for moving the heading |
+| R7 moving speed with the assumed default | 3 failures, expected null/"—", was 0.889 m/s / "2.0 mph" |
+| R8 tile reads distance over whole time | 2 failures, expected "4.1 mph", was "1.0 mph" |
+| R9 "Lat." pair back | 3 failures, expected "45.5152, -122.6784", was "Lat. 45.5152 Long. -122.6784" |
+
+**Full suite: 522 suites, 4,167 tests, 0 failures, 24 skipped.** No existing test broke. Every existing assertion
+changed by this part is listed above, in "Files" and in Amendment 1's list. No test was ignored or weakened.
+
+**Still device-only:**
+
+- the S22's landscape clearance with its status bar;
+- how the profile looks;
+- how the outlined tiles read over satellite imagery;
+- the 24-hour title beside a 12-hour Records row.
