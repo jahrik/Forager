@@ -606,7 +606,7 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         )
         touchNavItem("Maps")
         touchCentreOf(glyphTag(FIND.id))
-        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("Kept in 4 journal entries")
+        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("In 4 journal entries")
 
         touchCentreOf(MAP_BUBBLE_ENTRY_COUNT_TAG)
         touchCentreOf(mapBubbleEntryLineTag("entry-3"))
@@ -928,9 +928,9 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         openPhotoBubble()
 
         val texts = bubbleTexts()
-        assertEquals("one Kept in line on the bubble: $texts", listOf("Kept in 4 journal entries"), texts.filter { "Kept in" in it })
-        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("Kept in 4 journal entries")
-        assertEquals(listOf(photoDate, "In Golden chanterelle", "Kept in 4 journal entries", "View photo"), texts)
+        assertEquals("one Kept in line on the bubble: $texts", listOf("In 4 journal entries"), texts.filter { "journal entr" in it })
+        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("In 4 journal entries")
+        assertEquals(listOf(photoDate, "In Golden chanterelle", "In 4 journal entries", "View photo"), texts)
     }
 
     @Test
@@ -955,7 +955,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         drawThePhoto(findIds = listOf(FIND.id), entryCount = 1)
         setScreen(entryKeepingPhoto("entry-a", day, "Shown later.", shown = false))
         openPhotoBubble()
-        assertEquals("not highlighted: as it was", listOf(photoDate, "In Golden chanterelle · Kept in 1 journal entry", "View photo"), bubbleTexts())
+        assertEquals("not highlighted: as it was", listOf(photoDate, "Golden chanterelle · 1 journal entry", "View photo"), bubbleTexts())
 
         // Shown on the map from its report, as a user does it (J8-3).
         openEntryReport("entry-a", "Shown later.")
@@ -981,7 +981,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
             entryKeepingPhoto("entry-b", day.minusDays(7), "Not shown.", shown = false),
         )
         openPhotoBubble()
-        assertEquals("switch off: as it was", listOf(photoDate, "In Golden chanterelle · Kept in 2 journal entries", "View photo"), bubbleTexts())
+        assertEquals("switch off: as it was", listOf(photoDate, "Golden chanterelle · 2 journal entries", "View photo"), bubbleTexts())
 
         touchCentreOf(composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION))
         touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())

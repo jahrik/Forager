@@ -44,7 +44,7 @@ sealed interface KeptInEntriesLines {
 /**
  * What a highlighted record's bubble says about [entries], the shown entries that keep it (owner's Q2
  * ruling, "Tap a date line"): nothing for none; one date line each for up to three; past three, one
- * line, "Kept in N journal entries" — the photo bubble's own wording and plural
+ * line, "In N journal entries" (was "Kept in"; the owner, RECORD -671) — the photo bubble's own wording and plural
  * ([journalEntryCountLabel]) — over the list of their dates.
  */
 fun keptInEntriesLines(entries: List<JournalEntryOnMap>): KeptInEntriesLines? {
@@ -56,7 +56,7 @@ fun keptInEntriesLines(entries: List<JournalEntryOnMap>): KeptInEntriesLines? {
     return if (lines.size <= MAX_ENTRY_DATE_LINES) {
         KeptInEntriesLines.Dates(lines)
     } else {
-        KeptInEntriesLines.Count("Kept in ${journalEntryCountLabel(lines.size)}", lines)
+        KeptInEntriesLines.Count("In ${journalEntryCountLabel(lines.size)}", lines)
     }
 }
 

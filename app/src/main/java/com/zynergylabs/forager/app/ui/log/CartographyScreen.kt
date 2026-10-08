@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.zynergylabs.forager.app.domain.EntryGroup
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -214,8 +216,15 @@ internal fun CartographyScreen(
      * is a return to the map; `{}` by default is every other caller.
      */
     onEntryClosed: (entryId: String, fromReport: Boolean) -> Unit = { _, _ -> },
+    /** Data part A (dispatch 2026-09-28-667): a group switch in the editor's "In this entry" panel, [CartographyViewModel.onSetEntryGroupIncluded]. `{ _, _ -> }` by default is every other caller. */
+    onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
+    /** Which of that panel's groups are open: hoisted to the caller (`AvailabilityScreen` holds it), as [entryModeState] is, so it survives a tab change. */
+    openEntryGroupsState: MutableState<Set<EntryGroup>> = remember { mutableStateOf(emptySet()) },
+    /** Which waypoint rows in an entry report show their coordinates, by waypoint id: hoisted the same way (RECORD -671). */
+    openEntryWaypointRowsState: MutableState<Set<String>> = remember { mutableStateOf(emptySet()) },
 ) {
     var mode by entryModeState
+    var openEntryGroups by openEntryGroupsState
     val shortWindow = shortWindowHeader != null
     // The L1 row as this screen draws it: not at all when the caller draws it above the pages (Amendment 1).
     val headerHere: (@Composable ((@Composable () -> Unit)?) -> Unit)? = if (shortWindowHeaderAbove != null) null else shortWindowHeader
@@ -427,6 +436,9 @@ internal fun CartographyScreen(
                     onSetTrackDecision = onSetTrackDecision,
                     onSetWaypointDecision = onSetWaypointDecision,
                     onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+                    onSetGroupIncluded = onSetEntryGroupIncluded,
+                    openGroups = openEntryGroups,
+                    onToggleGroupOpen = { group -> openEntryGroups = if (group in openEntryGroups) openEntryGroups - group else openEntryGroups + group },
                     onToggleKeptPhoto = onToggleKeptPhoto,
                     onOpenCamera = onOpenCameraForEntry,
                     onAcquirePhoto = onAcquirePhotoForEntry,
@@ -461,6 +473,8 @@ internal fun CartographyScreen(
                     onLayerVisibilityChanged = onMapLayerVisibilityChanged,
                     mapBubbleSources = mapBubbleSources,
                     onSetShownOnMap = onSetShownOnMap?.let { set -> { shown: Boolean -> set(editingEntry.id, shown) } },
+                    candidates = uiState.candidatesForEditingEntry,
+                    openWaypointRowsState = openEntryWaypointRowsState,
                     onEdit = { mode = CartographyEntryMode.EDIT },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = ::closeEntryByUser,
@@ -691,12 +705,24 @@ internal fun CartographyScreen(
         modifier = modifier.fillMaxSize(),
     ) { shown ->
         when (shown) {
-            is EntriesPage.Entry -> ShortWindowFrame(headerHere, action = null, modifier = Modifier) { contentModifier ->
-                entryDetail(shown.entry, shown.mode, contentModifier)
-            }
-            EntriesPage.Loading -> ShortWindowFrame(headerHere, action = null, modifier = Modifier) { contentModifier ->
-                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            // Amendment 2 follow-up (the planner, after RECORD -682; scout J6): the spinner before a new entry's editor and the
+            // editor are one page (no slide between them), and the spinner now crossfades into the editor, as every other
+            // loading state does (motion/StateCrossfade.kt).
+            is EntriesPage.Entry, EntriesPage.Loading -> StateCrossfade(
+                targetState = shown,
+                modifier = Modifier.fillMaxSize(),
+                contentKey = { it is EntriesPage.Loading },
+            ) { state ->
+                when (state) {
+                    is EntriesPage.Entry -> ShortWindowFrame(headerHere, action = null, modifier = Modifier) { contentModifier ->
+                        entryDetail(state.entry, state.mode, contentModifier)
+                    }
+                    EntriesPage.Loading -> ShortWindowFrame(headerHere, action = null, modifier = Modifier) { contentModifier ->
+                        Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    else -> Unit
                 }
             }
             is EntriesPage.PullPhoto -> pullPhotoPage()
