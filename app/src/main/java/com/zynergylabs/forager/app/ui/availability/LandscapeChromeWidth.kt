@@ -60,42 +60,50 @@ internal fun Modifier.besideLandscapeSearchBar(
 }
 
 /**
- * RECORD -729 (dispatch 2026-09-28-729). The owner, verbatim: "Landscape mode strip can extend to meet the search bar. The
- * search bar height can change to meet the height of the strip. The two can meet at direct center, and they can be split by a
- * simple vertical line between the two"; shown as steps, "Yes, that's it (Recommended)"; on navigation, "Strip only
- * (Recommended)". So in a short landscape window, not navigating, the strip takes the rail-side half of the top edge exactly:
- * from the window's centre to the rail-side controls edge. The search bar takes the other half (the scaffold's
- * `landscapeSearchWidth`), so the two meet at the centre. While navigating the display keeps [besideLandscapeSearchBar].
+ * RECORD -729 (dispatch 2026-09-28-729), as revised by RECORD -732. The owner, -729: "Landscape mode strip can extend to meet
+ * the search bar. The search bar height can change to meet the height of the strip. The two can meet at direct center, and
+ * they can be split by a simple vertical line between the two". At -729's build the centre left the strip narrower than the
+ * room it already had, so the heading still dropped; asked, the owner, -732: "Join moves to fit the strip (Recommended)".
  *
- * Like [besideLandscapeSearchBar] this goes **after** `padding(controlsPadding)` on a child aligned to the rail-side top corner,
- * and recovers the window from the width it is offered; the width is worked out, not read back from a measurement. With no
- * rail, or the bar on the rail's side, it changes nothing.
+ * So in a short landscape window, not navigating, the strip is as wide as its readouts need whole (heading, altitude and
+ * coordinates, with its needle, padding and three-dot button: [LandscapeStripNeed]), and the search bar takes the rest, never
+ * narrower than its own floor ([rememberLandscapeBarFloorPx]: its field's resting text whole, and Clear). Where both cannot
+ * fit, the bar keeps its floor and the strip narrows, and readoutsFitBeside decides what it drops; the strip never narrows
+ * below the coordinates alone (they never drop), and there the bar gives way. While navigating the display keeps
+ * [besideLandscapeSearchBar].
+ *
+ * Goes **after** `padding(controlsPadding)` on a child aligned to the rail-side top corner, so the width it is offered is the
+ * room between the two controls edges. Worked out from text measurements, never read back from a layout. The strip's
+ * resulting width (measured on it) is what the scaffold gives the bar as its rail-side padding, so the two meet on the same
+ * pixel whatever the rounding. With no rail, or the bar on the rail's side, it changes nothing.
  */
-internal fun Modifier.landscapeStripHalf(
+internal fun Modifier.landscapeStripFit(
     railEdge: ScreenEdge?,
     searchEdge: ScreenEdge?,
-    controlsPadding: PaddingValues,
-    layoutDirection: LayoutDirection,
+    need: LandscapeStripNeed,
+    barFloorPx: Int,
 ): Modifier {
     if (railEdge == null || searchEdge == null || railEdge == searchEdge) return this
-    val left = controlsPadding.calculateLeftPadding(layoutDirection)
-    val right = controlsPadding.calculateRightPadding(layoutDirection)
-    val (searchSideInset, railSideInset) = if (searchEdge == ScreenEdge.Left) left to right else right to left
     return layout { measurable, constraints ->
         if (!constraints.hasBoundedWidth) {
             val placeable = measurable.measure(constraints)
             return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
         }
-        val window = constraints.maxWidth.toDp() + searchSideInset + railSideInset
-        // What is left of the room once the bar has its half, rounded to pixels exactly as the bar's own `width()` rounds it
-        // (`(window / 2 - searchSideInset)`, the scaffold's landscapeSearchWidth), so the two never overlap or leave a gap by a
-        // pixel when the window's width in pixels is odd.
-        val barPx = (window / 2 - searchSideInset).coerceAtLeast(0.dp).roundToPx()
-        val half = (constraints.maxWidth - barPx).coerceIn(0, constraints.maxWidth)
-        val placeable = measurable.measure(constraints.copy(minWidth = half, maxWidth = half))
+        val width = landscapeStripWidthPx(constraints.maxWidth, need, barFloorPx)
+        val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
         layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
 }
 
-/** RECORD -729: the 1 dp line at the window's centre between the search bar and the strip in a short landscape window. */
+/**
+ * RECORD -732: the strip's width in a room of [roomPx] (the window less both controls insets): what its readouts need whole,
+ * else what the bar's floor leaves, but never less than the coordinates alone need; never more than the room.
+ */
+internal fun landscapeStripWidthPx(roomPx: Int, need: LandscapeStripNeed, barFloorPx: Int): Int =
+    minOf(need.fullPx, maxOf(need.coordinatesOnlyPx, roomPx - barFloorPx)).coerceIn(0, maxOf(roomPx, 0))
+
+/** RECORD -732: what the landscape strip needs, in pixels: everything whole, and the coordinates alone. */
+internal data class LandscapeStripNeed(val fullPx: Int, val coordinatesOnlyPx: Int)
+
+/** RECORD -729, -732: the 1 dp line where the search bar and the strip meet in a short landscape window. */
 internal const val LANDSCAPE_BAR_STRIP_LINE_TAG = "landscape-bar-strip-line"

@@ -56,9 +56,10 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDisplay
 
 /**
- * RECORD -729 (dispatch 2026-09-28-729): in a short landscape window, not navigating, the search bar and the compass strip meet
- * at the window's centre at one height, split by a 1 dp line. The owner, verbatim: "Landscape mode strip can extend to meet the
- * search bar. The search bar height can change to meet the height of the strip. The two can meet at direct center, and they can
+ * RECORD -729 (dispatch 2026-09-28-729), as revised by RECORD -732: in a short landscape window, not navigating, the search bar
+ * and the compass strip meet at one height, split by a 1 dp line. Since -732 (the owner: "Join moves to fit the strip
+ * (Recommended)") the join is the strip's inner edge, the strip as wide as its readouts need whole, not the window's centre.
+ * The owner at -729, verbatim: "Landscape mode strip can extend to meet the search bar. The search bar height can change to meet the height of the strip. The two can meet at direct center, and they can
  * be split by a simple vertical line between the two"; shown as steps, "Yes, that's it (Recommended)".
  *
  * Through the real [AvailabilityScreen] at the S22's two landscape windows (780 x 360 and 823 x 384 dp), at ROTATION_90 (the
@@ -88,13 +89,13 @@ abstract class LandscapeBarStripJoinTests {
     private var generation by mutableStateOf(0)
     private var rotationSeen: Int? = null
 
-    private fun setScreen(rotation: Int) {
+    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = AvailabilityUiState(liveFix = fix)) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             rotationSeen = LocalView.current.display?.rotation
             key(generation) {
                 AvailabilityScreen(
-                    uiState = AvailabilityUiState(liveFix = fix),
+                    uiState = uiState,
                     compassProvider = FixedCompass(315f),
                     computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                     currentTime = CurrentTimeProvider { t + 1_000L },
@@ -144,24 +145,20 @@ abstract class LandscapeBarStripJoinTests {
     private fun assertJoin(rotation: Int) {
         setScreen(rotation)
         val window = composeRule.onRoot().getUnclippedBoundsInRoot()
-        val mapBounds = bounds(MAP_TAG)
-        val centre = centreOf(mapBounds)
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         val strip = bounds(STRIP_TAG)
         val rail = bounds(COMPACT_NAVIGATION_RAIL_TAG)
         val line = bounds(LANDSCAPE_BAR_STRIP_LINE_TAG)
-        println("MEASURED rotation $rotation: window ${window.d()}, centre ${centre.value}, bar ${bar.d()}, strip ${strip.d()}, line ${line.d()}, rail ${rail.d()}")
+        val join = if (barOnLeft(rotation)) strip.left else strip.right
+        println("MEASURED rotation $rotation: window ${window.d()}, join ${join.value}, bar ${bar.d()} (${(bar.right - bar.left).value} wide), strip ${strip.d()} (${(strip.right - strip.left).value} wide), line ${line.d()}, rail ${rail.d()}")
 
-        assertEquals("positive control: the map is the window's width, so its centre is the window's", centreOf(window).value, centre.value, 0.5f)
         if (barOnLeft(rotation)) {
             assertEquals("the bar starts at the punch-hole (left) edge", window.left.value, bar.left.value, 0.5f)
-            assertEquals("the bar's right edge is the centre", centre.value, bar.right.value, 0.5f)
-            assertEquals("the strip's left edge is the centre", centre.value, strip.left.value, 0.5f)
+            assertEquals("the bar's right edge is the strip's inner edge", join.value, bar.right.value, 0.5f)
             assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
         } else {
             assertEquals("the bar ends at the punch-hole (right) edge", window.right.value, bar.right.value, 0.5f)
-            assertEquals("the bar's left edge is the centre", centre.value, bar.left.value, 0.5f)
-            assertEquals("the strip's right edge is the centre", centre.value, strip.right.value, 0.5f)
+            assertEquals("the bar's left edge is the strip's inner edge", join.value, bar.left.value, 0.5f)
             assertEquals("the strip starts at the rail's inner edge", rail.right.value, strip.left.value, 0.5f)
         }
         assertEquals("the bar and the strip start at the same top", strip.top.value, bar.top.value, 0.5f)
@@ -169,14 +166,14 @@ abstract class LandscapeBarStripJoinTests {
         assertTrue("the strip keeps its 36 dp floor (${(strip.bottom - strip.top).value})", (strip.bottom - strip.top).value >= 36f - 0.5f)
 
         assertEquals("the line is 1 dp wide", 1f, (line.right - line.left).value, 0.1f)
-        assertEquals("the line sits at the centre", centre.value, centreOf(line).value, 0.5f)
+        assertEquals("the line sits on the join", join.value, centreOf(line).value, 0.5f)
         assertEquals("the line starts at the bar's top", bar.top.value, line.top.value, 0.5f)
         assertEquals("the line ends at the bar's bottom, nothing below it over the map", bar.bottom.value, line.bottom.value, 0.5f)
     }
 
-    @Test fun `at ROTATION_90 the bar and the strip meet at the centre at one height, with the line between them`() = assertJoin(Surface.ROTATION_90)
+    @Test fun `at ROTATION_90 the bar and the strip meet at the strip's inner edge at one height, with the line on it`() = assertJoin(Surface.ROTATION_90)
 
-    @Test fun `at ROTATION_270 the bar and the strip meet at the centre at one height, with the line between them`() = assertJoin(Surface.ROTATION_270)
+    @Test fun `at ROTATION_270 the bar and the strip meet at the strip's inner edge at one height, with the line on it`() = assertJoin(Surface.ROTATION_270)
 
     // ── The three-dot button, by real touches ──
 
@@ -213,9 +210,9 @@ abstract class LandscapeBarStripJoinTests {
 
     private fun assertLongPressesAroundJoin(rotation: Int) {
         setScreen(rotation)
-        val centre = centreOf(bounds(MAP_TAG))
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         val strip = bounds(STRIP_TAG)
+        val centre = if (barOnLeft(rotation)) strip.left else strip.right
         val clickable = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
             .map { with(composeRule.density) { DpRect(it.boundsInRoot.left.toDp(), it.boundsInRoot.top.toDp(), it.boundsInRoot.right.toDp(), it.boundsInRoot.bottom.toDp()) } }
         // The bar is a Surface and takes every touch on itself; the strip takes touches only on its coordinates and its button.
@@ -273,23 +270,95 @@ abstract class LandscapeBarStripJoinTests {
         }
     }
 
+    private fun assertAllThree(format: String) {
+        listOf(COMPASS_STRIP_HEADING_TAG, COMPASS_STRIP_ELEVATION_TAG, COMPASS_STRIP_COORDINATES_TAG).forEach {
+            assertTrue("$format: $it is shown", shown(it))
+        }
+    }
+
     private fun assertReadoutsWhole(rotation: Int) {
         setScreen(rotation)
-        assertTrue("positive control: the coordinates are shown", shown(COMPASS_STRIP_COORDINATES_TAG))
+        assertAllThree("MGRS")
         val mgrs = readoutsShown()
         val coordinates = bounds(COMPASS_STRIP_COORDINATES_TAG)
         composeRule.touchAt(centreOf(coordinates), (coordinates.top + coordinates.bottom) / 2)
         composeRule.mainClock.advanceTimeBy(1_000)
         composeRule.waitForIdle()
+        assertAllThree("decimal")
         val decimal = readoutsShown()
         println("MEASURED rotation $rotation strip readouts: MGRS $mgrs; decimal $decimal")
         assertTrue("positive control: the touch switched the format (${mgrs.last()} to ${decimal.last()})", mgrs.last() != decimal.last())
         assertTrue("the decimal coordinates read as decimal: ${decimal.last()}", decimal.last().contains("45.52"))
     }
 
-    @Test fun `at ROTATION_90 the strip's readouts are whole in both coordinate formats`() = assertReadoutsWhole(Surface.ROTATION_90)
+    @Test fun `at ROTATION_90 the strip's heading, altitude and coordinates are whole in both coordinate formats`() = assertReadoutsWhole(Surface.ROTATION_90)
 
-    @Test fun `at ROTATION_270 the strip's readouts are whole in both coordinate formats`() = assertReadoutsWhole(Surface.ROTATION_270)
+    @Test fun `at ROTATION_270 the strip's heading, altitude and coordinates are whole in both coordinate formats`() = assertReadoutsWhole(Surface.ROTATION_270)
+
+    // ── The bar's floor: its resting text and Clear stay whole ──
+
+    private fun assertBarFloor(rotation: Int, uiState: AvailabilityUiState, withClear: Boolean) {
+        setScreen(rotation, uiState)
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertBarTextWhole(rotation, bar)
+        if (withClear) {
+            val clear = bounds(SEARCH_BAR_CLEAR_TAG)
+            assertTrue("Clear ${clear.d()} lies inside the bar ${bar.d()}", clear.left >= bar.left - 0.5.dp && clear.right <= bar.right + 0.5.dp)
+        }
+        assertAllThree("with the bar's floor")
+    }
+
+    @Test fun `at ROTATION_90 the bar's resting text is whole beside the whole strip`() = assertBarFloor(Surface.ROTATION_90, AvailabilityUiState(liveFix = fix), withClear = false)
+
+    @Test fun `at ROTATION_270 with a search showing, the bar's summary and Clear are whole beside the whole strip`() =
+        assertBarFloor(Surface.ROTATION_270, AvailabilityUiState(liveFix = fix, region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.52, lng = -122.68, radiusKm = 15)), withClear = true)
+
+    /**
+     * RECORD -732: where the bar's floor and the whole strip cannot both fit, the bar keeps its floor and the strip gives way,
+     * readoutsFitBeside dropping from the front; the coordinates never drop. A long species search makes the bar's summary
+     * long enough that this happens in both windows (positive control: the heading is dropped).
+     */
+    @Test fun `at ROTATION_90 a long search keeps the bar's floor and the strip drops from the front, coordinates whole`() {
+        val state = AvailabilityUiState(
+            liveFix = fix,
+            region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.52, lng = -122.68, radiusKm = 15),
+            taxonFilter = com.zynergylabs.forager.app.domain.model.TaxonFilter.SpecificTaxon(48473L, "Hericium erinaceus"),
+        )
+        assertBarFloorKept(Surface.ROTATION_90, state)
+    }
+
+    private fun assertBarFloorKept(rotation: Int, state: AvailabilityUiState) {
+        setScreen(rotation, state)
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        val strip = bounds(STRIP_TAG)
+        val shownReadouts = readoutsShown()
+        println("MEASURED rotation $rotation long search: bar ${bar.d()} (${(bar.right - bar.left).value} wide), strip ${strip.d()} (${(strip.right - strip.left).value} wide), readouts $shownReadouts")
+        assertTrue("positive control: the floor bound, so the heading gave way ($shownReadouts)", !shown(COMPASS_STRIP_HEADING_TAG))
+        assertTrue("the coordinates are shown", shown(COMPASS_STRIP_COORDINATES_TAG))
+        assertBarTextWhole(rotation, bar)
+        val clear = bounds(SEARCH_BAR_CLEAR_TAG)
+        assertTrue("Clear ${clear.d()} lies inside the bar ${bar.d()}", clear.left >= bar.left - 0.5.dp && clear.right <= bar.right + 0.5.dp)
+    }
+
+    private fun assertBarTextWhole(rotation: Int, bar: DpRect) {
+        val texts = composeRule.onAllNodes(
+            androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag(SEARCH_ENTRY_BAR_TAG)) and
+                androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult),
+            useUnmergedTree = true,
+        ).fetchSemanticsNodes()
+        val summary = texts.mapNotNull { node ->
+            val text = node.config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text } ?: return@mapNotNull null
+            text.takeIf { it.contains(" · ") }?.let { it to node }
+        }
+        assertEquals("positive control: one resting text in the bar (${texts.size} texts)", 1, summary.size)
+        val (text, node) = summary.single()
+        val results = mutableListOf<TextLayoutResult>()
+        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        val layout = results.single()
+        println("MEASURED rotation $rotation bar ${bar.d()} (${(bar.right - bar.left).value} wide) resting text <$text>: lines ${layout.lineCount}, visible ${layout.getLineEnd(0, visibleEnd = true)} of ${text.length}")
+        assertEquals("<$text> is one line", 1, layout.lineCount)
+        assertEquals("<$text> shows every character", text.length, layout.getLineEnd(0, visibleEnd = true))
+    }
 
     private class FixedCompass(degrees: Float) : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(degrees, HeadingUncertainty.Estimated(2f), 0L))
