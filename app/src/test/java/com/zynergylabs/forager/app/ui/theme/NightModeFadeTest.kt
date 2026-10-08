@@ -102,7 +102,7 @@ class NightModeFadeTest {
     }
 
     @Test
-    fun `the blend is quick: it is over in well under half a second`() {
+    fun `the blend is quick, over in well under half a second`() {
         setScreen()
         flipToDarkWithTheClockStopped()
         // Half a second of frames.
