@@ -6,7 +6,8 @@ it was built), -725 with its clarification -726 (species suggestions), and -727 
 `search-keyboard`, cut from `origin/main` at `bfbba33f` (the base the dispatch names; fetched and confirmed before cutting).
 No PR. Paths are relative to `app/src/main/java/com/zynergylabs/forager/app/` unless they start with `app/` or `docs/`.
 
-**Status: built and run; full suite 4,410 tests, 2 failures (existing tests whose premise -725 removed, not touched).** Gradle started only after `systemctl --user is-active t6b-night` read `inactive` (12:14:20 UTC).
+**Status: built and run. After the -728 round (section 6), the full suite is 4,416 tests, 24 skipped, 0 failures.** The
+sections below up to 5 describe the first round as reported; section 6 supersedes what it changes. Gradle started only after `systemctl --user is-active t6b-night` read `inactive` (12:14:20 UTC).
 Every behaviour claim below rests on a test named beside it; what no Robolectric test can show is listed under "Device only".
 
 ## 1. The keyboard covers the dropdown's bottom row (-722)
@@ -202,6 +203,79 @@ Free disk: 3.6 GB at the start of the session, 3.3 GB after the final run.
   daemon stopped at the end of each scope. Compiled first (main and tests) before any test run.
 - Free disk: 3.6 GB at the start, 3.3 GB at the end, never under 1.5 GB.
 
+## 6. RECORD -728, the second round
+
+The planner's message, with the owner's words quoted in it. Commit `f3083b77`.
+
+1. **The two seasonal-pattern tests** (`AvailabilityViewModelSeasonalPatternTest`): each now runs the search
+   (`searchReferenceRegion()`) after the species pick, citing -725 and -728. The assertions are unchanged. Both pass.
+2. **Clear's size.** The owner: "Keep 29 dp tall, wide (Recommended)". The bar's height is kept, and Clear is
+   `height(fieldHeight)` and `widthIn(min = 48.dp)`. Measured: the field's height, and wider than 48 dp. It was already 58 dp
+   wide, from Material's button minimum width, so the `widthIn` is a guard. Five real touches across it reach it (the
+   existing test). R14 (Clear forced to 30 dp wide) fails: "Clear is at least 48 dp wide (30.0.dp)".
+3. **"Facing" removed.** The owner: "Keep the the 330° NW metric, just remove the word "facing" and nothing else."
+   `HEADING_LABEL` is deleted. The strip's `stripHeadingLabel` returns no label, and the navigation display's second row
+   passes none. The heading value and "Alt" are unchanged. `readoutsFitBeside` is unchanged: the heading's label now costs
+   0 px. Data part B's tests (`AvailabilityScreenNavigationWordsTest`) no longer reference the label. Their "Facing" checks
+   became `assertNoFacing()`, citing -728, and two tests were added there.
+   **The first revert (R15) did not bite.** At 360 dp and in landscape the labels drop for width anyway, so "Facing" put
+   back was never drawn and those tests passed both ways. New class `NoFacingLabelTest`, at 384 dp (the S22's portrait
+   width), where labels fit. Its positive control is that "Alt" is drawn. R15b fails both of its tests: the display's
+   labels read `[Facing, Alt]`; on the strip, at 14 sp, the longer labelled line no longer fits, so both labels drop
+   (`[]`).
+4. **The hang-down, found and measured** (semantic bounds, 384 dp portrait, Maps tab with a fix). Before: the bar is 0 to
+   45 dp, its divider 40 to 41 dp, and the strip starts at 45 dp. The layout bounds had no overlap and no gap. What the
+   owner saw is 4 dp of the bar's own 80% fill below its divider: the Column's bottom padding (`padding(vertical = xs)`).
+   The divider reads as the bar's edge, so that band read as the top of the strip. Fix: the padding moved above the
+   divider (`padding(top = xs)`, `Spacer(xs * 2)`). The divider is now the bar's last 1 dp, at 44 to 45, and the strip
+   starts at 45. The bar is still 45 dp, so the scaffold's `searchBarHeight` and everything placed by it are unchanged.
+   `SearchBarStripSeamTest` checks divider bottom = bar bottom = strip top, and a bar of 45 dp. R16 (the padding back)
+   fails: "the divider is the bar's last line ... expected 45.0 but was 41.0". Not visible to Robolectric: whether the
+   divider's colour against the strip reads as one seam on a phone (device step 6).
+5. **14 sp.** The owner: "Go up to 14 sp". `STRIP_READOUT_FONT_SIZE = 14.sp`, `STRIP_READOUT_LINE_HEIGHT = 20.sp` and
+   `stripReadoutStyle()` are in `ui/availability/AvailabilityMapControlsUi.kt`, with the owner's words. Applied to the
+   strip's readout line: heading, altitude and its label, coordinates, the dots, "Location services unavailable" and the
+   position note. **Not applied** (my reading of "the strip's readout text"): the sundown and Back by lines under the
+   readout, the navigation display, and the search bar. The bar's field height is still twice labelMedium's line (the
+   owner's earlier ask, and the bar must stay 45 dp), so it is no longer twice the strip's text line. The strip is still
+   36 dp tall (the three-dot button; checked ≥ 36 dp). `SearchBarStripSeamTest` reads 14 sp from each text's laid-out
+   style. R17 (back to labelMedium) fails: "compass-strip-heading is 14 sp expected 14.0 but was 12.0".
+
+**What the larger text drops** (measured with a probe, removed after use: native graphics, heading 315° NW, altitude
+9843 ft, MGRS "10T ER 24991 40768" and decimal "45.5200, -122.6800"; "Facing" already removed in both columns). Every
+coordinate stays whole, and every value shown is whole, as `readoutsFitBeside` requires.
+
+| Width | Coordinates | 12 sp | 14 sp |
+|---|---|---|---|
+| 360 x 640 portrait | MGRS and decimal | heading, Alt label, altitude | heading, altitude; **the Alt label drops** |
+| 384 x 823 portrait (S22) | MGRS and decimal | heading, Alt label, altitude | heading, Alt label, altitude (no change) |
+| 780 x 360 landscape (S22) | MGRS | altitude only (heading dropped) | altitude only (no change) |
+| 780 x 360 landscape (S22) | decimal | heading, altitude | altitude only: **the heading drops** |
+
+So at 14 sp, two things that showed at 12 sp drop: the "Alt" label at 360 dp portrait, and, in a short landscape window
+showing decimal coordinates, the heading itself (the needle still points). No test was changed for this. Every existing
+fit test (data part B's 360 dp and landscape, Back by's) passes, because each asserts the drop order and wholeness, not
+that a given readout is shown. Whether the landscape heading drop is acceptable is the owner's call.
+
+**Revert checks, second round** (same runner; all compiled, all fresh, all restored byte-identical; the forward change was
+committed before R15b and confirmed present after it):
+
+| # | Edit | Class | Failed | Message |
+|---|---|---|---|---|
+| R14 | Clear 30 dp wide | SearchBarClearTest | 1/4 | "Clear is at least 48 dp wide (30.0.dp)" |
+| R15 | "Facing" back | AvailabilityScreenNavigationWordsTest | **0/8** | did not bite: the labels drop at 360 dp and in landscape anyway |
+| R15b | "Facing" back | NoFacingLabelTest | 2/2 | display labels `[Facing, Alt]`; strip labels `[]` (the labelled line no longer fits) |
+| R16 | bar padding back below the divider | SearchBarStripSeamTest | 1/2 | "divider ... expected 45.0 but was 41.0" |
+| R17 | strip back to 12 sp | SearchBarStripSeamTest | 1/2 | "compass-strip-heading is 14 sp expected 14.0 but was 12.0" |
+
+**Full suite after -728: 4,416 tests in 566 classes, 24 skipped, 0 failures, 0 errors** (from the JUnit XML; Gradle "BUILD
+SUCCESSFUL"; results directory emptied first). `t6b-night` read inactive before the run and was not touched. Free disk 3.3 GB.
+`./gradlew --stop` at the end; no Gradle or Kotlin process left.
+
+Device step 6: on the S22, with a fix on the Maps tab, the bar's divider meets the strip with no band of bar colour under it,
+and the strip's readout is visibly larger (14 sp). In a short landscape window with decimal coordinates, the heading is not
+shown (expected, above).
+
 ## Device only
 
 Robolectric reports no keyboard, so the keep-in-view's trigger on a phone (the cap following `WindowInsets.ime`) is device
@@ -219,11 +293,12 @@ only. Steps, cheap first, on the S22:
 ## Commits
 
 `1426522e` (-722), `4902a2dd` (-723 recent search), `fa2795a4` (-723 Clear, -725/-726, -727), `1b403fb9` (-725 map reads the
-search last run), `c85dcc6a` (Clear's height), and this report's commit. Pushed to `origin/search-keyboard`. No PR.
+search last run), `c85dcc6a` (Clear's height), `273f1978` (report), `f3083b77` (-728), and this report's update. Pushed to `origin/search-keyboard`. No PR.
 
 ## Not done
 
 - **"Merge"** in the -723 relay is not done: the dispatch says "No PR", and the relay does not say what to merge into what.
   `origin/main` is still `bfbba33f`, the base, so the branch needs no merge from it. Merging into `main` is left for the
   planner's word.
-- The two seasonal-pattern tests above, and the unread constant in section 5.
+- The unread constant in section 5. (The two seasonal-pattern tests were rewritten in -728, section 6.)
+- The PR: the planner opens it (-728).
