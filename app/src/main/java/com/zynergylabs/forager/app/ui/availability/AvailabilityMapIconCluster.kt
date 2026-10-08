@@ -194,6 +194,11 @@ internal class MapIconClusterState(
     val displayedOffsetPx: Animatable<Float, AnimationVector1D>
         get() = if (landscape) position.landscapeDisplayedOffsetPx else position.displayedOffsetPx
 
+    /** Whether this orientation's height was just restored and not yet fitted to measured bounds (RECORD -711); see [MapIconClusterPositionState.snapRestoredPortrait]. */
+    var snapRestored: Boolean
+        get() = if (landscape) position.snapRestoredLandscape else position.snapRestoredPortrait
+        set(value) { if (landscape) position.snapRestoredLandscape = value else position.snapRestoredPortrait = value }
+
     /** Horizontal drag accumulated only during a gesture, read at its end to decide a side flip, then reset. */
     var horizontalDragPx by mutableFloatStateOf(0f)
 
@@ -271,6 +276,9 @@ internal fun BoxScope.MapIconCluster(
     landscapeBar: (@Composable (Modifier) -> Unit)? = null,
     landscapePill: (@Composable (onLeftSide: Boolean) -> Unit)? = null,
 ) {
+    // RECORD -711: nothing is drawn until a stored side and height have been applied, so a cluster restored
+    // to the left never shows a frame on the right first. See MapIconClusterPositionState.
+    if (!state.position.placementApplied) return
     val compassStripDensity = LocalDensity.current
     val mapIconBarOffsetScope = rememberCoroutineScope()
     // A drag distance past this point (either direction) commits the bar to the opposite side —
@@ -493,6 +501,8 @@ internal fun BoxScope.MapIconCluster(
             }
         }
         state.horizontalDragPx = 0f
+        // RECORD -711: a drag has ended, so its side and height are stored (AvailabilityScreen watches this).
+        state.position.onDragSettled()
         if (glides && from != null) {
             state.glide.fromLeftInRootPx = from
             startGlide()
@@ -548,7 +558,12 @@ internal fun BoxScope.MapIconCluster(
     val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
     LaunchedEffect(state.clusterHeightPx, state.mapContentBoxHeightPx, state.bottomNavHeightPx, isFullscreen, state.landscape, legendBoundPx, currentNoticeBottomPx) {
         val targetPx = clampMapIconBarVerticalOffset(state.userChosenOffsetPx)
-        if (targetPx != state.displayedOffsetPx.value) {
+        // RECORD -711: a height restored at launch is fitted to this window's limits with a snap, not a
+        // glide, so it never slides in from beyond them; from the first measured fit on, as before.
+        if (state.snapRestored) {
+            if (targetPx != state.displayedOffsetPx.value) state.displayedOffsetPx.snapTo(targetPx)
+            if (state.clusterHeightPx > 0f) state.snapRestored = false
+        } else if (targetPx != state.displayedOffsetPx.value) {
             state.displayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
         }
     }

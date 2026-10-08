@@ -12,6 +12,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.model.Region
@@ -43,7 +45,8 @@ class DataStoreMapPreferencesRepository(
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
     settingsReset: SettingsResetListener = SettingsResetListener.None,
-) : MapPreferencesRepository, MapLayerPreferencesRepository, BasemapPreferenceRepository {
+) : MapPreferencesRepository, MapLayerPreferencesRepository, BasemapPreferenceRepository,
+    MapIconClusterPlacementRepository {
 
     private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope)
 
@@ -147,6 +150,39 @@ class DataStoreMapPreferencesRepository(
         dataStore.edit { prefs -> prefs[KEY_BASEMAP] = key }
     }
 
+    /**
+     * RECORD -711: the icon cluster's side and height, four keys under `map.icon_cluster` in this same file
+     * and [dataStore]. `null` when none of the four is stored; a key missing beside others (which no write
+     * here produces, since all four are written together) reads as [MapIconClusterPlacement.DEFAULT]'s value.
+     */
+    override suspend fun getMapIconClusterPlacement(): Result<MapIconClusterPlacement?> = runCatchingCancellable {
+        val prefs = dataStore.data.first()
+        val portraitOnLeft = prefs[KEY_CLUSTER_PORTRAIT_LEFT]
+        val portraitOffsetDp = prefs[KEY_CLUSTER_PORTRAIT_OFFSET_DP]
+        val landscapeOnPortSide = prefs[KEY_CLUSTER_LANDSCAPE_PORT_SIDE]
+        val landscapeOffsetDp = prefs[KEY_CLUSTER_LANDSCAPE_OFFSET_DP]
+        if (portraitOnLeft == null && portraitOffsetDp == null && landscapeOnPortSide == null && landscapeOffsetDp == null) {
+            null
+        } else {
+            val default = MapIconClusterPlacement.DEFAULT
+            MapIconClusterPlacement(
+                portraitOnLeft = portraitOnLeft ?: default.portraitOnLeft,
+                portraitOffsetDp = portraitOffsetDp ?: default.portraitOffsetDp,
+                landscapeOnPortSide = landscapeOnPortSide ?: default.landscapeOnPortSide,
+                landscapeOffsetDp = landscapeOffsetDp ?: default.landscapeOffsetDp,
+            )
+        }
+    }
+
+    override suspend fun setMapIconClusterPlacement(placement: MapIconClusterPlacement): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs ->
+            prefs[KEY_CLUSTER_PORTRAIT_LEFT] = placement.portraitOnLeft
+            prefs[KEY_CLUSTER_PORTRAIT_OFFSET_DP] = placement.portraitOffsetDp
+            prefs[KEY_CLUSTER_LANDSCAPE_PORT_SIDE] = placement.landscapeOnPortSide
+            prefs[KEY_CLUSTER_LANDSCAPE_OFFSET_DP] = placement.landscapeOffsetDp
+        }
+    }
+
     private companion object {
         const val DATA_STORE_NAME = "map_preferences"
         val KEY_LAST_PICKED_LAT = doublePreferencesKey("offline_map.last_picked_lat")
@@ -156,6 +192,10 @@ class DataStoreMapPreferencesRepository(
         val KEY_NIGHT_MODE_MAPS = booleanPreferencesKey("night_mode.maps")
         val KEY_MAP_FULLSCREEN = booleanPreferencesKey("map.fullscreen")
         val KEY_BASEMAP = stringPreferencesKey("map.basemap")
+        val KEY_CLUSTER_PORTRAIT_LEFT = booleanPreferencesKey("map.icon_cluster.portrait_left")
+        val KEY_CLUSTER_PORTRAIT_OFFSET_DP = floatPreferencesKey("map.icon_cluster.portrait_offset_dp")
+        val KEY_CLUSTER_LANDSCAPE_PORT_SIDE = booleanPreferencesKey("map.icon_cluster.landscape_port_side")
+        val KEY_CLUSTER_LANDSCAPE_OFFSET_DP = floatPreferencesKey("map.icon_cluster.landscape_offset_dp")
 
         // Map layers L0b, B3: per-layer keys are built from the registry id at use.
         const val LAYER_KEY_PREFIX = "map.layer."
