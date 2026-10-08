@@ -2,7 +2,7 @@
 
 Branch `small-fixes-1007`, cut from `origin/main` at `b71c1569` (motion Part 3 merged; data parts A to C, motion Parts 1 and 2 and the failure fixes already on it). Dispatch: `prompts/preserved/2026-10-07-15.md`. The owner's words are in RECORD -644, -655, -678, -684 and -689.
 
-**State: code and tests written for fixes 1, 3 and 4. Fix 5 is done and proven. Fix 2 is a proposal only, with no code. Nothing has been compiled or run under Gradle.** Gradle waits for the planner's go. That go also waits on two stops, listed below.
+**State, after Amendment 1 (RECORD -694) and the build:** see "Amendment 1" and "The build" at the end. The sections up to "Not verified" are the pre-build report, left as written; the pre-build stops are answered by Amendment 1.
 
 ## Premises checked
 
@@ -115,3 +115,122 @@ These are in the coder's final message: fix 2's approach, and fix 4's exact stri
   - fix 4: force `leaveByHasPassed` to false.
 - Do Not Disturb, and Android's own "vibrate for notifications" settings, can also drop the off-track buzz. The ringer cannot tell this app either case, so the record still says "done" for them.
 - Whether "Approaching · last fix 45 s ago" is cut at 360 dp has not been measured.
+
+## Amendment 1 (RECORD -694): what was added
+
+The owner's answers, verbatim:
+
+1. Fix 2: "Stay beside the search bar, '…' (Recommended)".
+2. "Drop 'Approaching ·' if needed (Recommended)".
+3. Fix 4: "Approve as written (Recommended)".
+4. Fix 3: "Yes, cover Do Not Disturb (Recommended)".
+
+### Fix 2: the strip and the display stay beside the search bar
+
+Code: `ui/availability/LandscapeChromeWidth.kt`, applied in `AvailabilityCompactMapUi.kt`.
+
+- **Width.** The landscape strip and display are capped at the room between the rail-side controls edge and the search bar's end.
+- **How the bar's end is found.** It is recomputed the way the scaffold places the bar: `min(384 dp, half the window − punch-side inset − 8 dp)`. It is not read back from a measurement. That avoids the regression recorded on `onGloballyPositioned` placement.
+- **Text.** Every text in the display and the strip is one line, with no soft wrap, and ends in "…" when it overflows. That covers the target, the distance and its kind, the status, the heading, the altitude, the labels, and the strip's "no fix" line.
+
+### Item 2: "Approaching ·" is dropped when it does not fit
+
+- `NavigationHudReadout.statusShortText` holds "Last fix N s ago". I kept the capital L, the same form the line takes when the walker is not approaching.
+- `statusTextThatFits` measures the status line's own width (`BoxWithConstraints` with `rememberTextMeasurer`).
+
+### Item 4: Do Not Disturb
+
+- New owned seam: `DoNotDisturbSource` / `DoNotDisturbFilter` in `domain/AlertDelivery.kt`, with `alert/AndroidDoNotDisturbSource.kt` as the Android side.
+- The rules are in `vibrationSkippedByDoNotDisturb`:
+
+| Do Not Disturb mode | Off-track (notification usage) | Sundown (alarm usage) |
+|---|---|---|
+| Total silence | skipped | skipped |
+| Alarms only | skipped | not skipped |
+| Priority only | skipped (inferred) | not skipped |
+
+- **Priority only is inferred.** It assumes Android's defaults. The app's own Do Not Disturb exceptions, and whether a channel may bypass Do Not Disturb, are not read: reading them needs notification-policy access, which the app does not ask for.
+- Do Not Disturb is checked before the ringer. A reading that fails is logged and treated as saying nothing.
+- **Not covered:** a phone-level setting that turns vibration off (Android's vibration and haptics settings). Nothing the app can read shows it.
+
+### Constructor change
+
+`AndroidAlertDelivery` now has a three-argument internal constructor. A test that ends in a trailing lambda, `SundownNotificationTextTest`, therefore still passes the vibration seam. The full constructor takes the ringer and Do Not Disturb explicitly.
+
+## The build (the only one, 2026-10-08)
+
+### How it was run
+
+- Every run was under `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0`.
+- Gradle heap 1536m, Kotlin daemon 2g, Java temp `~/.cache/forager-test-tmp`.
+- No daemon was running before the first run.
+- Each run compiled first, then the Kotlin daemon was stopped, then tests ran.
+- `./gradlew --stop` at the end, with no Gradle or Kotlin process left.
+- Free disk: 4.4 GB at the start, 4.0 GB at the end.
+
+### First compile
+
+It failed in `SundownNotificationTextTest`. My new last constructor parameter had captured that test's trailing lambda. I fixed it in the production code with the three-argument constructor above, and did not touch the test.
+
+### New tests
+
+All pass, except the font 1.0 case below:
+
+- `SkippedVibrationRecordTest` (8 tests)
+- `StartBackNowTest` (4)
+- `ImportedLabelFitTest` (3)
+- `LandscapeLargeFontTest` (9)
+- the additions to `NavigationHudReadoutTest`
+
+`ImportedLabelFitTest` first failed on its own harness: the details sheet is a second window, so the screen has two roots. I fixed the test to read the first root.
+
+### Revert checks
+
+Each one restored the file from a copy saved before the edit, and checked it with `cmp`. Each compile log was checked for errors before any result was read.
+
+| Check | Edit | Result |
+|---|---|---|
+| Fix 1 | The title loses its weight | Bit at font 1.0 and font 2.0: "every character of the label shows expected:<8> but was:<1>", the S22's one-letter column. |
+| Fix 3 | The ringer never skips | Bit: "expected vibration=skipped(phone on silent) but was vibration=done", in 2 tests. |
+| Fix 4 | `leaveByHasPassed` is always false | **The first try did not compile:** a smart cast was lost, the case CLAUDE.md describes. Its results were not cited. Redone as `get() = false`, it bit in 3 tests: "…start by 4:54 PM" where "Start back now…" was expected. |
+| Item 1 | No width cap | Bit at both rotations at font 2.0. For example, display `left=356 dp` against a search bar ending at 384 dp, and strip `[94, 716]` dp against the bar's `[0, 384]` dp. |
+| Item 2 | The short form is never used | Bit: "expected Last fix 45 s ago but was Approaching · last fix 45 s ago". |
+| Item 4 | Do Not Disturb ignored | **The first try did not compile:** a type mismatch. Not cited. Redone, it bit in 2 tests: "PRIORITY, NORMAL … expected skipped(Do Not Disturb) but was done", and "expected Do Not Disturb but was null". |
+
+### Measured, with native graphics and the S22's landscape window (823 × 384 dp) under Robolectric
+
+**At font 2.0:**
+- The display and the strip are each 332 dp wide and end exactly at the bar.
+- The display is 122 dp tall, with and without the cap, so its height is unchanged. It clears the central third by 6 dp.
+- The status line shows 6 of its 33 characters, then "…".
+- The coordinates in the display and the strip, and the strip's altitude ("404 ft" shows 2 characters), end in "…". At this font, the coordinates show nothing but the "…".
+
+**"Approaching · last fix 45 s ago":**
+- At 360 dp portrait and in landscape, font 1.0, it is whole.
+- At 360 dp portrait, font 2.0, it reads "Last fix 45 s ago".
+
+**Fix 1:** at 360 dp the label is 54 dp at font 1.0 and 106.5 dp at font 2.0, one line, inside the window. The long title shows 25 of its 31 characters at font 1.0 and 12 at font 2.0, then "…".
+
+### Full suite
+
+4,233 tests, 24 skipped, **2 failures, both from one cause, and not touched:**
+
+1. `AvailabilityScreenNavigationWordsLandscapeTest`, an existing test: "MGRS, navigation-hud-distance-kind <by trail>: not ellipsised". It shows 5 of 8 characters.
+2. `LandscapeLargeFontTest`, "font 1,0 the display is whole…", a new test: "font 1.0 <No origin waypoint for this track> is not ellipsised". It shows 30 of 33 characters.
+
+**Cause: the owner's two rules disagree at font 1.0.**
+
+- With no cap, the display already overlapped the search bar at font 1.0.
+  - In the 823 dp window it was 360 dp wide from x = 383 dp, against a bar ending at 384 dp: 1 dp of overlap.
+  - The existing test's 780 dp window has room for only about 318 dp beside the bar, so the overlap there is about 42 dp.
+  - The S22's real cut-out inset puts its overlap at roughly 20 dp. That figure is inferred, not measured.
+- So "never wider than the gap to the search bar" changes the display at font 1.0, and that cuts text, against "at font 1.0, nothing changes".
+
+This goes back to the owner. The options are in the coder's message.
+
+## Not verified (after the build)
+
+- Every layout figure above is from Robolectric, which reports no insets. The S22's cut-out and status bar, and so its real gap and its central-third clearance, are device items.
+- The Priority-only rule for Do Not Disturb is inferred from Android's defaults.
+- A phone-level vibration-off setting is not covered.
+- No phone or emulator was used.
