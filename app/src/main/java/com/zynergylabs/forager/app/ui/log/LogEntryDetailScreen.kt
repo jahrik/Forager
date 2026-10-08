@@ -57,6 +57,10 @@ import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
@@ -151,12 +155,17 @@ internal fun LogEntryDetailScreen(
                 BouncingIconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
+                // Data part D (RECORD -703, "Match the tile"): the find's title by the tile's rule ([findTitle]), blank when it has
+                // none, with the tile's screen-reader label.
+                val title = findTitle(entry, is24HourClock())
+                val blankLabel = findBlankTitleLabel(entry)
                 Text(
-                    "Find on ${entry.foundOn}",
+                    title ?: "",
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier = Modifier.weight(1f, fill = false).testTag(FIND_PAGE_TITLE_TAG)
+                        .then(if (title == null) Modifier.semantics { contentDescription = blankLabel } else Modifier),
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

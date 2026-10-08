@@ -328,8 +328,8 @@ class AvailabilityScreenMapLayersSheetTest {
         // many ramps it holds.
         assertEquals(2, composeRule.onAllNodesWithText("0%", useUnmergedTree = true).fetchSemanticsNodes().size)
         assertEquals(2, composeRule.onAllNodesWithText("100%", useUnmergedTree = true).fetchSemanticsNodes().size)
-        composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-26", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-25", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Week of Sep 28, 2026, weather to Sep 26, 2026", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Week of Sep 28, 2026, weather to Sep 25, 2026", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         assertEquals(2, composeRule.onAllNodesWithText(LEGEND_NO_FORECAST_HERE, useUnmergedTree = true).fetchSemanticsNodes().size)
         composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         assertEquals("Hide legend", composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).fetchSemanticsNode().config[SemanticsActions.OnClick].label)

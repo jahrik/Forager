@@ -92,7 +92,7 @@ import com.zynergylabs.forager.app.ui.map.FEATURE_ID_PROPERTY
 import com.zynergylabs.forager.app.ui.map.journalHighlightFeatureCollections
 import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import com.zynergylabs.forager.app.ui.map.layers.MapSourceIds
-import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
+import com.zynergylabs.forager.app.ui.format.displayDateTime
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -499,8 +499,8 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
 
         touchCentreOf(JOURNAL_ENTRIES_CHIP_TAG)
         composeRule.onNodeWithTag(journalEntriesListRowTag("entry-a")).assertIsDisplayed()
-        composeRule.onNodeWithText("2026-09-12").assertIsDisplayed()
-        composeRule.onNodeWithText("2026-09-05").assertIsDisplayed()
+        composeRule.onNodeWithText("Sep 12, 2026").assertIsDisplayed()
+        composeRule.onNodeWithText("Sep 5, 2026").assertIsDisplayed()
         touchCentreOf(journalEntriesListRowTag("entry-b"))
 
         assertEquals(false, stored("entry-b").shownOnMap)
@@ -586,7 +586,7 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         touchNavItem("Maps")
         touchCentreOf(glyphTag(FIND.id))
         composeRule.onNodeWithTag(mapBubbleEntryLineTag("entry-a")).assertIsDisplayed()
-        composeRule.onNodeWithText("2026-09-12", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Sep 12, 2026", useUnmergedTree = true).assertIsDisplayed()
 
         touchCentreOf(mapBubbleEntryLineTag("entry-a"))
 
@@ -856,7 +856,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
     override val glyphY: Dp = 380.dp
     override val extraGlyphs: List<StubGlyph> get() = listOf(StubGlyph(MapLayerIds.PHOTOS, BUBBLE_PHOTO.photo.id, glyphX, glyphY + 96.dp, KEPT_PHOTO_AT))
 
-    private val photoDate = formatRecordTimestamp(BUBBLE_PHOTO.photo.createdAtEpochMillis!!)
+    private val photoDate = displayDateTime(BUBBLE_PHOTO.photo.createdAtEpochMillis!!, is24HourClock = false)
     private val day = LocalDate.of(2026, 9, 12)
 
     /** The Maps tab draws the photo, which [findIds] use and [entryCount] saved entries keep in all. */
@@ -911,7 +911,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
 
         openPhotoBubble()
 
-        assertEquals(listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+        assertEquals(listOf(photoDate, "In Golden chanterelle", "Sep 12, 2026", "View photo"), bubbleTexts())
     }
 
     @Test
@@ -942,7 +942,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
 
         val texts = bubbleTexts()
         assertEquals("never the not-attached line: $texts", emptyList<String>(), texts.filter { it == "Not in a find or a journal entry" })
-        assertEquals(listOf(photoDate, "2026-09-12", "View photo"), texts)
+        assertEquals(listOf(photoDate, "Sep 12, 2026", "View photo"), texts)
     }
 
     /**
@@ -964,7 +964,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         assertEquals(true, stored("entry-a").shownOnMap)
         openPhotoBubble()
 
-        assertEquals("highlighted", listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+        assertEquals("highlighted", listOf(photoDate, "In Golden chanterelle", "Sep 12, 2026", "View photo"), bubbleTexts())
     }
 
     /**
@@ -987,7 +987,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())
 
         assertTrue("the switch is on", "visible $JOURNAL_ENTRIES_SWITCH_LAYER_ID true" in layerPreferences.writes)
-        assertEquals("switch on", listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+        assertEquals("switch on", listOf(photoDate, "In Golden chanterelle", "Sep 12, 2026", "View photo"), bubbleTexts())
     }
 
     // ── Item 2: no ring on a waypoint the map does not draw ──
