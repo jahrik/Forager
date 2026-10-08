@@ -8,7 +8,7 @@ fresh fetch. No PR.
 what Search runs, the new "Search coordinates" button and the two banners changed. The sections between here and Amendment 2 are
 left as they were written, as the record of the first pass.
 
-**Status: written, not run.** The dispatch holds Gradle for the planner's go. Nothing on this branch has been compiled, no test has
+**Status: built and run on the planner's go (RECORD -710); see "The build" at the end, which supersedes every "not compiled or run" above.** The dispatch holds Gradle for the planner's go. Nothing on this branch has been compiled, no test has
 run, and no revert check has been done. Every claim below about behaviour is what the code is written to do, not something observed.
 
 Paths are relative to `app/src/main/java/com/zynergylabs/forager/app/` unless they start with `app/` or `docs/`.
@@ -352,3 +352,118 @@ its time; one created for another day stores none; the time survives a re-edit a
 - Revert checks planned: (12) drop the `foundAtEpochMillis` write in `CreateMushroomLogEntryUseCase`: `FindFoundAtTimeTest` fails;
   (13) drop it from `toEntity`: the round-trip test fails; (14) put "Unnamed find" back for `null`: the blank tests fail;
   (15) restore the old auto-name pattern: `AutoWaypointNameTest` fails.
+
+## The build (RECORD -710)
+
+The planner's go: "Merge search order once checks pass". Every Gradle run used `systemd-run --user --scope -q -p MemoryMax=5G
+-p MemorySwapMax=0`, the Gradle heap at 1536m, the Kotlin daemon at 2g, and Java temp at `~/.cache/forager-test-tmp`. No daemon
+was running before the first run. Free disk was checked before each run: 3.5 GB at the start, 3.1 GB at the lowest, never under
+1.5 GB. The Kotlin daemon was stopped after every run. `./gradlew --stop` ran at the end, and no Gradle or Kotlin daemon is left.
+No phone or emulator.
+
+### Base
+
+- `origin/main` was at 18 when the build started, as the planner said. It had moved to `d223728b` (PR #198, small-fixes-1007),
+  so I merged it in first (`b73fd32d`). After the planner reported that back-by had landed (PR #199, `0f5cf0e5`, still at 18),
+  I merged main again (`c2f231a5`) before the full suite. Both merges conflicted only in `docs/audits/README.md`; every row was
+  kept. Back-by's changes to `MainActivity`, `AvailabilityCompactScaffold` and `TrackRecordingViewModel` merged without
+  conflict and touched different lines from mine: constructor arguments next to each other, and the dropdown's top offset. No
+  logic was changed on both sides.
+- The chain is now main 18, then guidance-text's 18 to 19, then this branch's 19 to 20. I checked every remote branch before the
+  build: none is above 19.
+
+### Compile
+
+The first compile had 2 errors, both mine: `TrackExportPanel.kt` still called the private `formatTrackTimestamp` I had removed.
+It was used for the share button's label and an imported track's subtitle. Both now use the shared formatter with the phone's
+setting, and `trackSubtitle` takes `is24HourClock`. Its two test files pass `false`, and no assertion changed (`6a37da4d`). After
+that, main and unit tests compiled both times.
+
+### Room schemas
+
+- **`20.json`**: I moved my hand-written 19.json and 20.json aside and ran `:app:kspDebugKotlin --rerun`. Room exported a
+  `20.json` that is **byte-for-byte identical** to the hand-written one (`cmp`).
+- **`19.json`**: Room exports only the current version, so this run could not export 19.json to compare. I put the hand-written
+  file back from the saved copy. Two things still check it: the hash script reproduces its hash, and `SchemaMigrationTest`
+  validates the 18 to 19 and 19 to 20 steps against it. Both pass.
+
+### Tests
+
+- **Changed and new classes**: 44 classes, 670 tests, 22 skipped. The first run had 19 failures:
+  - **12 in my new tests.** The sampled-touch loops in `AvailabilityScreenLayoutTest` (three configurations) and
+    `SearchDropdownSearchesTheFieldsTest` reopened the dropdown after a button in it had closed it, and the reopen did nothing.
+    Measured: the search field was still focused before the second touch, and after that touch no dropdown existed. Each sample
+    is now its own test on a fresh screen, and each fields test makes one touch (`f775822d`). This is reported as a finding,
+    below, and is not worked around in the app.
+  - **1 that I missed earlier.** `JournalEntriesOnMapTest` built one expected value with `date.toString()`; it now uses
+    `displayDate` (`f775822d`).
+  - **7 in existing tests, not touched**: see below.
+- **Full suite**, after both merges: **4,384 tests, 7 failed, 24 skipped** (554 classes, `BUILD FAILED`). The 7 are those below
+  and nothing else.
+
+### Existing tests that break, not touched (for the planner)
+
+- **`JournalPendingDeleteTest`, five tests** (the ones with two finds), and **`LeavingTheJournalFixesTest`, the two short-landscape
+  tests (F1, F3)**. They cannot find the find tile ("Morel" / "Chanterelle").
+- **Cause, measured with a temporary print in the test, removed after** (window 720×1280 px): the "+" row, then the Sep 21
+  heading, the Oyster tile, and the Sep 20 heading at 1240 to 1280 px, the window's bottom edge. The Morel tile is below it. The
+  grid is lazy, so a tile out of view is not composed and has no node. Grouping by day adds a heading row for each day and
+  pushes the second day's tile off screen. Before, the two finds shared one row. Short landscape runs out of room sooner, which
+  is why only those variants of `LeavingTheJournalFixesTest` fail.
+- **Possible fixes**, for the planner to choose:
+  - (a) give the grid a test tag and have these tests scroll it to the tile (`performScrollToNode`) before touching or counting.
+    A count of 0 must then come from scrolling to the end of the grid, not from a tile that was never composed;
+  - (b) run those tests on a taller window.
+  
+  The behaviour itself is what -656 asked for.
+
+### Revert checks
+
+18 checks. For each one: edit, run the named classes, read the build log for compile errors (there were none in any check),
+restore from a copy saved before the edit (byte-identical, `cmp`), and confirm the working tree was clean afterwards
+(`git status` empty, so every forward change is present). Every check failed for the reason its own edit should cause:
+
+| Check | Edit | Failed with |
+|---|---|---|
+| r01 | swap the bottom row | "Set on map (395.0.dp) is left of Search (16.0.dp)" |
+| r03 | scroll to the end on open | short landscape: "'Latitude' … is not displayed". In portrait the panel fits, so `SearchDropdownKeyboardTest` T3b did not fail: it only shows "no scroll" where there is something to scroll, which is the short-landscape case |
+| r04 | Month above the coordinates | "Month (77.0.dp) is below Search coordinates (273.0.dp)" |
+| r05 | Search wired to the coordinate search | the five Search touches, the fields test's bottom-Search test and the tap-through positive control: "ran the current-location path expected:<1> but was:<0>" |
+| r06 | Search coordinates wired to the current-location path | the five Search-coordinates touches and both fields tests: "expected:<[(45.5231, -122.6765)]> but was:<[]>" |
+| r07a, r07b | the old banner strings | the three `AvailabilityViewModelLocateMeTest` banner tests, on the exact old text |
+| r08 | tile text "Find on <date>" | `FindsGroupedByDayTest`: six tests, e.g. "'Found 2:14 PM'" not found |
+| r09 | days unsorted | "the newer day (… top=318.3dp …) is above the older (… top=72.0dp …)", plus the headless grouping test |
+| r10 | the Records row forced to 12-hour | `TrackSheetDataTest`: "'Sep 18, 2026, 21:13' && hasAnyAncestorThat(track-row-flat)" not found |
+| r11 | `journalEntryDateLabel` back to ISO | three `JournalEntriesOnMapTest` tests: "expected:<[Sep 12, 2026]> but was:<[2026-09-12]>" |
+| r12 | no found-at write on create | `FindFoundAtTimeTest`: "expected:<1791382440000> but was:<null>" (two tests) |
+| r13 | found-at dropped in `toEntity` | the same two tests, the same message |
+| r14 | "Unnamed find" back | three `FindsGroupedByDayTest` tests, e.g. "Text = '[Unnamed find]'" on the report title |
+| r15 | the old auto-name pattern | four `AutoWaypointNameTest` tests and three `TrackRecordingViewModelTest` tests: "expected:<Start · Sep 5, [2026, ]9:41 AM> but was:<Start · Sep 5, []9:41 AM>" |
+| guidance (a) | the "No weather guidance for this selection" branch back | five tests: three `ForagingWeatherGuidanceTest` unit tests (no group, a category, lichens), the default-selections test, and `TripWindowsGuidanceTextTest`'s "no guidance block at all" |
+| guidance (b) | the species caveat back | four tests: two `TripWindowsGuidanceTextTest` screen tests ("No species-specific data is available for" found) and two unit tests |
+
+Planned checks (2) and (8)–(11) in the first sections were rewritten to fit Amendments 2 and 4: (2) is now (5), and (8) is now
+the tile-text check above.
+
+The runner listed each multi-class run's results twice, because its file pattern matched every fresh result file once per class
+argument. The failures above are counted once each, by name. Every failure message is specific to its own edit, and no check
+reported a failure that its edit could not cause.
+
+### Findings
+
+1. **After a button in the search dropdown closes it, the search field keeps its focus (Robolectric), so the next tap on the bar
+   does not reopen the dropdown.**
+   - Measured: focused before the second touch, and the touch opened nothing.
+   - Closing with Back is different: `AvailabilityScreenBubbleAndDropdownBackTest` shows a touch reopening it after that.
+   - This is not new. "Search this location" and "Use current location" closed the dropdown through the same path, and no test
+     had ever reopened it after a button close.
+   - Whether a phone does the same is a device item. If it does, the bar needs a second tap, or a tap elsewhere first.
+2. **The 7 existing-test breaks above.** Not touched; waiting for the planner.
+3. **`20.json` matches Room's own export exactly.** `19.json` could not be exported for comparison (see Room schemas above).
+
+### Still device-only
+
+- the bar's reopen after a button close (finding 1);
+- the keyboard over the dropdown's bottom row;
+- the dropdown's look at the 80% fill;
+- the grouped Finds grid's look, and a day's heading going at once while its last tile fades.
