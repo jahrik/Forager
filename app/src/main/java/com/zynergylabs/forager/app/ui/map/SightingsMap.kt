@@ -583,13 +583,13 @@ fun SightingsMap(
         }
         // RECORD -752 (dispatch 2026-09-28-755, item 4): logging only, to find the S22's blank and magnified frame on a return
         // to Maps. The first few frames this MapView renders, with its size and camera then; the restore's own logs are below.
-        // A MapView cannot run under Robolectric, so this is read from the phone's logcat (MAP_RETURN_LOG_TAG).
+        // A MapView cannot run under Robolectric, so this is read from the phone's logcat (MAPS_COMEBACK_LOG_TAG).
         val firstFramesLogged = intArrayOf(0)
         val frameLogger = MapView.OnDidFinishRenderingFrameListener { fully, _, _ ->
-            if (firstFramesLogged[0] < MAP_RETURN_FRAMES_LOGGED) {
+            if (firstFramesLogged[0] < MAPS_COMEBACK_FRAMES_LOGGED) {
                 firstFramesLogged[0]++
                 val camera = mapLibreMap?.cameraPosition
-                Log.i(MAP_RETURN_LOG_TAG, "frame ${firstFramesLogged[0]} fully=$fully view=${mapView.width}x${mapView.height} render=${mapView.renderView.width}x${mapView.renderView.height} zoom=${camera?.zoom} target=${camera?.target} style=${loadedStyle != null}")
+                Log.i(MAPS_COMEBACK_LOG_TAG, "frame ${firstFramesLogged[0]} fully=$fully view=${mapView.width}x${mapView.height} render=${mapView.renderView.width}x${mapView.renderView.height} zoom=${camera?.zoom} target=${camera?.target} style=${loadedStyle != null}")
             }
         }
         mapView.addOnDidFinishRenderingFrameListener(frameLogger)
@@ -816,7 +816,7 @@ fun SightingsMap(
         // style; a later style swap keeps its own camera, as before.
         val cameraRestore = cameraRestoreFor(if (appliedStyle == null) currentCameraMemory?.saved else null, previousCameraMode)
         cameraRestore?.let {
-            Log.i(MAP_RETURN_LOG_TAG, "restore before the style: view=${mapView.width}x${mapView.height} to zoom=${it.zoom} target=${it.target} (camera was zoom=${map.cameraPosition.zoom})")
+            Log.i(MAPS_COMEBACK_LOG_TAG, "restore before the style: view=${mapView.width}x${mapView.height} to zoom=${it.zoom} target=${it.target} (camera was zoom=${map.cameraPosition.zoom})")
             cameraMoveClassifier.markAppMove()
             applyCameraRestore(map, it)
         }
@@ -853,7 +853,7 @@ fun SightingsMap(
             // Item 4: again once the style has loaded, in case a style's own default camera replaced it,
             // and the region target recorded before loadedStyle wakes the data+camera effect below.
             cameraRestore?.let {
-                Log.i(MAP_RETURN_LOG_TAG, "restore on the style load: view=${mapView.width}x${mapView.height}, camera was zoom=${map.cameraPosition.zoom} target=${map.cameraPosition.target}")
+                Log.i(MAPS_COMEBACK_LOG_TAG, "restore on the style load: view=${mapView.width}x${mapView.height}, camera was zoom=${map.cameraPosition.zoom} target=${map.cameraPosition.target}")
                 cameraMoveClassifier.markAppMove()
                 applyCameraRestore(map, it)
                 lastAppliedCameraTarget = it.appliedTarget
@@ -1670,10 +1670,10 @@ internal fun searchFrameMove(isGpsTracking: Boolean, requestId: Int, lastApplied
 internal const val SEARCH_FRAME_LOG_TAG = "ForagerSearchFrame"
 
 /** RECORD -752: logcat tag for a map's first frames and its camera restore on a return to Maps (logging only). */
-internal const val MAP_RETURN_LOG_TAG = "ForagerMapReturn"
+internal const val MAPS_COMEBACK_LOG_TAG = "ForagerMapsComeback"
 
 /** RECORD -752: how many of a new MapView's first rendered frames are logged. */
-private const val MAP_RETURN_FRAMES_LOGGED = 8
+private const val MAPS_COMEBACK_FRAMES_LOGGED = 8
 
 internal fun shouldApplyCameraRequest(
     isGpsTracking: Boolean,
