@@ -61,7 +61,7 @@ class InAppCameraHostTest {
     private var slotSawLockToPortrait: Boolean? = null
 
     /** The test's slot: the real dialog over the fake session, viewfinder a plain box. */
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onLockCameraToPortraitChanged, onPhotoCaptured, onDismiss ->
         slotSawLockToPortrait = lockToPortrait
         val session = FakeCameraCaptureSession()
         InAppCameraDialog(
@@ -74,6 +74,7 @@ class InAppCameraHostTest {
             onGridModeChanged = onGridModeChanged,
             autoSaveLocationToPhotos = autoSaveLocationToPhotos,
             onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+            onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
             levelProvider = FakeLevelProvider(),
             viewfinder = { modifier -> Box(modifier) },
         )
@@ -92,6 +93,7 @@ class InAppCameraHostTest {
                 onGridModeChanged = {},
                 autoSaveLocationToPhotos = true,
                 onAutoSaveLocationToPhotosChanged = {},
+                onLockCameraToPortraitChanged = {},
                 onLogEntryPhoto = { logEntryPhotos += it },
                 onAlbumPhoto = { albumPhotos += it },
                 onCartographyEntryPhoto = { cartographyPhotos += it },

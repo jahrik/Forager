@@ -140,7 +140,7 @@ import kotlinx.coroutines.launch
 internal fun InAppCameraDialog(
     session: CameraCaptureSession,
     cameraCaptureFiles: CameraCaptureFiles,
-    /** Settings' "Lock camera to portrait": decides the window lock and, with the window's shape at open, the arrangement. */
+    /** "Lock camera to portrait": decides the window lock and, with the window's shape at open, the arrangement; the gear panel shows it. */
     lockToPortrait: Boolean,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
@@ -148,9 +148,9 @@ internal fun InAppCameraDialog(
     gridMode: GridMode,
     /** Asks for a new grid mode; the chip shows it once it is stored, not before. */
     onGridModeChanged: (GridMode) -> Unit,
-    /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`; the Location chip shows it. */
+    /** "Automatically Save Location to Photos", from `AvailabilityUiState`; the Location chip and the gear panel show it. */
     autoSaveLocationToPhotos: Boolean,
-    /** Settings' own handler for that value; the Location chip calls it with the toggle. */
+    /** The screen's handler for that value; the Location chip and the gear panel call it. */
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     /** The level line's roll; collected only while the level is shown. */
     levelProvider: LevelProvider,
@@ -158,6 +158,12 @@ internal fun InAppCameraDialog(
     /** Hides the status bar on the Activity's window and puts it back on leaving; a test injects a fake to see which window was asked, and that it was restored. */
     statusBarHider: StatusBarHider = SystemStatusBarHider,
     viewfinder: @Composable (Modifier) -> Unit,
+    /**
+     * The gear panel's "Lock camera to portrait" handler (dispatch 2026-09-28-707), the screen's own,
+     * which stores the value and hands it back as [lockToPortrait]. Defaulted so the camera tests that
+     * do not exercise the panel need no argument for it; the production slot passes it explicitly.
+     */
+    onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
 ) {
     // rememberSaveable: a rotation mid-session must not reset the user's sense of how many they
     // have taken. The photos themselves are already handed over and safe either way.
@@ -171,6 +177,9 @@ internal fun InAppCameraDialog(
     var timerMode by rememberSaveable { mutableStateOf(TimerMode.Off) }
     val countdown = remember(scope) { CaptureCountdown(scope) }
     val countdownSeconds by countdown.remainingSeconds.collectAsState()
+    // The gear panel (dispatch 2026-09-28-707): closed when the camera opens, and kept across a
+    // rotation like the count, since turning the phone to read it must not close it.
+    var showCameraSettings by rememberSaveable { mutableStateOf(false) }
 
     // The screen opens the session, not the viewfinder — the deadlock fix of 2026-09-15, see
     // CameraCaptureSession.open. Enter opens, leave closes; the `when` below never changes.
@@ -359,6 +368,7 @@ internal fun InAppCameraDialog(
                 onGridModeChanged,
                 autoSaveLocationToPhotos,
                 onAutoSaveLocationToPhotosChanged,
+                onOpenCameraSettings = { showCameraSettings = true },
             ),
         )
         CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
@@ -371,6 +381,20 @@ internal fun InAppCameraDialog(
                 shutterEnabled = shutterEnabled,
                 shutterDescription = if (countdownSeconds != null) CANCEL_TIMER_DESCRIPTION else SHUTTER_DESCRIPTION,
                 onShutter = onShutter,
+            )
+        }
+        // Last, so it draws and takes touches above the strip and the shutter band; its BackHandler,
+        // composed after the one above, closes it before the camera. See CameraSettingsPanelLayer.
+        if (showCameraSettings) {
+            CameraSettingsPanelLayer(
+                stripEdge = punchHoleEdge(arrangement),
+                deviceRotation = session.deviceRotation,
+                displayRotation = displayRotation,
+                autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+                onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+                lockToPortrait = lockToPortrait,
+                onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
+                onClose = { showCameraSettings = false },
             )
         }
     }
@@ -532,7 +556,7 @@ internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
 
 /**
  * The strip's chips for this session, in order along the edge: Flash, Timer, Grid, Location
- * (decision B8, Closed decision A). The flash chip only when the bound camera has a flash unit: it
+ * (decision B8, Closed decision A), then the gear (dispatch 2026-09-28-707), always present. The flash chip only when the bound camera has a flash unit: it
  * would hide itself anyway, but a chip that composes nothing would still take a slot. Read in
  * composition, so the chip arrives when the bind reports the unit. The Timer chip always
  * (2026-09-26), the grid chip always (2026-09-22), and the Location chip always (2026-09-26):
@@ -546,6 +570,7 @@ private fun stripChips(
     onGridModeChanged: (GridMode) -> Unit,
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    onOpenCameraSettings: () -> Unit,
 ): List<StripChip> = buildList {
     if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
     add { deviceRotation, displayRotation -> TimerChip(timerMode, onTimerModeChanged, deviceRotation, displayRotation) }
@@ -553,4 +578,5 @@ private fun stripChips(
     add { deviceRotation, displayRotation ->
         LocationChip(autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, deviceRotation, displayRotation)
     }
+    add { deviceRotation, displayRotation -> CameraSettingsChip(onOpenCameraSettings, deviceRotation, displayRotation) }
 }
