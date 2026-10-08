@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.data.diagnostics
 
 import android.util.Log
+import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ReturnRecord
 import com.zynergylabs.forager.app.domain.ReturnRecordEvent
@@ -58,11 +59,21 @@ internal fun lineFor(event: ReturnRecordEvent, atMillis: Long): String {
         is ReturnRecordEvent.AlertDelivered -> "alert-delivery track=${event.trackId} " + (
             event.outcome?.let { o ->
                 "notification=${if (o.notificationPosted) "posted" else "not-posted(${o.notificationProblem})"} " +
-                    "vibration=${if (o.vibrated) "done" else "failed(${o.vibrationProblem})"}"
+                    "vibration=${vibrationWord(o)}"
             } ?: "outcome=not-reported"
             )
     }
     return "${utc(atMillis)} $details"
+}
+
+/**
+ * "done", "skipped(phone on silent)" or "failed(<problem>)". Skipped is Android choosing not to play
+ * a vibration that was issued without error (dispatch 2026-09-28-685, fix 3); it is never "done".
+ */
+private fun vibrationWord(o: AlertDeliveryOutcome): String = when {
+    o.vibrationSkipped != null -> "skipped(${o.vibrationSkipped})"
+    o.vibrated -> "done"
+    else -> "failed(${o.vibrationProblem})"
 }
 
 private val UTC_MILLIS: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)

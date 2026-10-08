@@ -17,6 +17,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +47,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -314,6 +318,8 @@ internal fun NavigationHud(
                                 text = shown,
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG),
                             )
                         }
@@ -333,6 +339,8 @@ internal fun NavigationHud(
                                     style = distanceStyle,
                                     color = distanceColor,
                                     maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
                                 )
                             }
@@ -343,6 +351,8 @@ internal fun NavigationHud(
                                         style = MaterialTheme.typography.labelMedium,
                                         color = distanceColor,
                                         maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_KIND_TAG),
                                     )
                                 }
@@ -350,13 +360,26 @@ internal fun NavigationHud(
                         }
                         if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
                         // The fix age ticks every second: numbers, so it changes at once.
-                        WordSwap(text = readout.statusText) { shown ->
-                            Text(
-                                text = shown,
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
-                            )
+                        // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694; the owner: "Drop 'Approaching ·' if needed
+                        // (Recommended)"): a status with a shorter form shows it when the whole one does not fit this width.
+                        // Either way the line is one line and ends in "…" when it still overflows ("Stay beside the search
+                        // bar, '…' (Recommended)"): it used to wrap at a word and draw only the first ("No", S22, font 2.0).
+                        val statusStyle = MaterialTheme.typography.labelMedium
+                        val statusMeasurer = rememberTextMeasurer()
+                        BoxWithConstraints {
+                            val status = statusTextThatFits(readout, constraints.maxWidth) { text ->
+                                statusMeasurer.measure(text, statusStyle, maxLines = 1, softWrap = false).size.width
+                            }
+                            WordSwap(text = status) { shown ->
+                                Text(
+                                    text = shown,
+                                    style = statusStyle,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
+                                )
+                            }
                         }
                     }
                     BouncingIconButton(
@@ -372,40 +395,87 @@ internal fun NavigationHud(
                 // the row's remaining width as its tap band, padded to ~24dp tall; the heading and elevation are plain
                 // readouts. Its height is the coordinates' padded line, as before: the labels sit on the same line.
                 if (readout.secondRowShown) {
+                    // Dispatch 2026-09-28-685: the planner's extension of Amendment 2 (RECORD -699) to this row. The owner's
+                    // "Coordinates take priority (Recommended)" was asked about the strip; its reason, that the coordinates are
+                    // what you read out to get help, holds here too. So, as on the strip (readoutsKeptBeside): the coordinates
+                    // are measured first and stay whole, and facing and altitude share what is left in proportion to their
+                    // widths, shortening with "…", then dropping, facing first, below STRIP_READOUT_MIN_WIDTH each.
+                    val rowStyle = MaterialTheme.typography.labelMedium
+                    val rowMeasurer = rememberTextMeasurer()
+                    val headingLabel = HEADING_LABEL.takeIf { readout.headingIsReading }
+                    val elevationLabel = readout.elevationText?.let { elevation -> ALTITUDE_LABEL.takeIf { elevation != ELEVATION_UNAVAILABLE_TEXT } }
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val density = LocalDensity.current
+                        fun widthOf(text: String) = rowMeasurer.measure(text, rowStyle, maxLines = 1, softWrap = false).size.width
+                        fun labelled(label: String?, text: String) = (label?.let { widthOf(it) + with(density) { Spacing.xs.roundToPx() } } ?: 0) + widthOf(text)
+                        val headingPx = labelled(headingLabel, readout.headingText)
+                        val elevationPx = readout.elevationText?.let { labelled(elevationLabel, it) }
+                        val coordinatesPx = readout.coordinatesText?.let { widthOf(it) }
+                        val separatorPx = widthOf("·") + with(density) { 2 * Spacing.sm.roundToPx() }
+                        val readoutsPx = listOfNotNull(headingPx, elevationPx)
+                        val availablePx = constraints.maxWidth
+                        // With no coordinates there is nothing to keep whole, and the row is as it was.
+                        val kept = if (coordinatesPx == null) {
+                            List(readoutsPx.size) { true }
+                        } else {
+                            readoutsKeptBeside(availablePx, coordinatesPx, readoutsPx, separatorPx, with(density) { STRIP_READOUT_MIN_WIDTH.roundToPx() })
+                        }
+                        val headingShown = kept[0]
+                        val elevationShown = elevationPx != null && kept[1]
+                        val keptPx = listOfNotNull(headingPx.takeIf { headingShown }, elevationPx?.takeIf { elevationShown })
+                        val room = availablePx.toLong() - (coordinatesPx ?: 0) - (if (coordinatesPx != null) keptPx.size else keptPx.size - 1).coerceAtLeast(0).toLong() * separatorPx
+                        val allWhole = coordinatesPx == null || room >= keptPx.sumOf { it.toLong() }
+                        // Each readout's cap when they cannot all be whole: its share of the room, in proportion to its width.
+                        fun capOf(px: Int): Modifier = if (allWhole) {
+                            Modifier
+                        } else {
+                            Modifier.widthIn(max = with(density) { (room.coerceAtLeast(0L) * px / keptPx.sum().coerceAtLeast(1)).toInt().toDp() })
+                        }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
-                        LabelledReadout(label = HEADING_LABEL.takeIf { readout.headingIsReading }) {
-                            // Motion Part 2, item 6 (dispatch 2026-09-28-666; the owner, RECORD -651: "Numbers instant, words fade"):
-                            // each line here crossfades when its words change and changes at once when only its numbers do (WordSwap).
-                            WordSwap(text = readout.headingText) { shown ->
-                                Text(
-                                    text = shown,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    maxLines = 1,
-                                    modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
-                                )
+                        if (headingShown) {
+                            Box(modifier = capOf(headingPx)) {
+                                LabelledReadout(label = headingLabel) {
+                                    // Motion Part 2, item 6 (dispatch 2026-09-28-666; the owner, RECORD -651: "Numbers instant, words fade"):
+                                    // each line here crossfades when its words change and changes at once when only its numbers do (WordSwap).
+                                    WordSwap(text = readout.headingText) { shown ->
+                                        Text(
+                                            text = shown,
+                                            style = rowStyle,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
+                                        )
+                                    }
+                                }
                             }
                         }
-                        readout.elevationText?.let { elevation ->
-                            Text("·", style = MaterialTheme.typography.labelMedium)
-                            LabelledReadout(label = ALTITUDE_LABEL.takeIf { elevation != ELEVATION_UNAVAILABLE_TEXT }) {
-                                Text(
-                                    text = elevation,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    maxLines = 1,
-                                    modifier = Modifier.testTag(NAVIGATION_HUD_ELEVATION_TAG),
-                                )
+                        if (elevationShown && readout.elevationText != null && elevationPx != null) {
+                            if (headingShown) Text("·", style = rowStyle)
+                            Box(modifier = capOf(elevationPx)) {
+                                LabelledReadout(label = elevationLabel) {
+                                    Text(
+                                        text = readout.elevationText,
+                                        style = rowStyle,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.testTag(NAVIGATION_HUD_ELEVATION_TAG),
+                                    )
+                                }
                             }
                         }
                         readout.coordinatesText?.let { coordinates ->
-                            Text("·", style = MaterialTheme.typography.labelMedium)
+                            if (headingShown || elevationShown) Text("·", style = rowStyle)
                             Text(
                                 text = coordinates,
-                                style = MaterialTheme.typography.labelMedium,
+                                style = rowStyle,
                                 maxLines = 1,
+                                softWrap = false,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
                                     .weight(1f)
@@ -414,6 +484,7 @@ internal fun NavigationHud(
                                     .testTag(NAVIGATION_HUD_COORDINATES_TAG),
                             )
                         }
+                    }
                     }
                 }
                 // Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the display's sundown line fades and grows like the
@@ -461,6 +532,8 @@ internal fun LabelledReadout(label: String?, reading: @Composable () -> Unit) {
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
                 maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.testTag(NAVIGATION_LABEL_TAG),
             )
         }
@@ -534,6 +607,12 @@ internal data class NavigationHudReadout(
      * needs no label.
      */
     val headingIsReading: Boolean = false,
+    /**
+     * Dispatch 2026-09-28-685, Amendment 1 (RECORD -694; the owner: "Drop 'Approaching ·' if needed (Recommended)"): a
+     * shorter [statusText] for when the whole one does not fit, or `null` when there is none. Today only "Approaching ·
+     * last fix 45 s ago", whose short form is the plain stale line, "Last fix 45 s ago". See [statusTextThatFits].
+     */
+    val statusShortText: String? = null,
 ) {
     /**
      * Dispatch -677: whether the second row is drawn. Since the heading moved there (with its label, out of the space under
@@ -803,7 +882,7 @@ internal fun navigationReadout(
     // has no room for both a label and a stale fix's age.
     val statusText = when (freshness) {
         FixFreshness.LOST -> "No fix for ${formatFixAge(age)}"
-        FixFreshness.STALE -> if (approaching) "Approaching · last fix ${formatFixAge(age)} ago" else "Last fix ${formatFixAge(age)} ago"
+        FixFreshness.STALE -> if (approaching) "$APPROACHING_PREFIX${staleFixText(age).replaceFirstChar { it.lowercaseChar() }}" else staleFixText(age)
         FixFreshness.FRESH -> when {
             // The owner: "Drop "Approaching" when arrived", "Arrived" alone; with a route that also
             // drops the straight line, which before this dispatch read under "Arrived" outside twice
@@ -828,7 +907,23 @@ internal fun navigationReadout(
         routeRetryOffered = freshness != FixFreshness.LOST && route is ReturnRoute.Unavailable && route.canRetry,
         distanceKindText = distanceKind?.words,
         headingIsReading = headingIsReading,
+        statusShortText = if (freshness == FixFreshness.STALE && approaching) staleFixText(age) else null,
     )
+}
+
+/** "Last fix 45 s ago": the stale line alone, and the short form of the approaching one. */
+private fun staleFixText(ageMillis: Long): String = "Last fix ${formatFixAge(ageMillis)} ago"
+
+private const val APPROACHING_PREFIX = "Approaching · "
+
+/**
+ * The status line to draw in [maxWidthPx]: [NavigationHudReadout.statusText] when [widthOf] says it fits, else its short
+ * form when it has one (dispatch 2026-09-28-685, Amendment 1, RECORD -694). The short form is not checked in turn: if it
+ * overflows too, the line's own ellipsis cuts it.
+ */
+internal fun statusTextThatFits(readout: NavigationHudReadout, maxWidthPx: Int, widthOf: (String) -> Int): String {
+    val short = readout.statusShortText ?: return readout.statusText
+    return if (widthOf(readout.statusText) <= maxWidthPx) readout.statusText else short
 }
 
 /** "48 s" under a minute, "6 min" from a minute on — coarse on purpose; the number's job is "old", not a stopwatch. */
