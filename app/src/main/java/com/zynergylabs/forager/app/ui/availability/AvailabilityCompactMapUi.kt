@@ -140,6 +140,17 @@ import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.ui.draw.clipToBounds
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
+import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.MapPopUp
+import com.zynergylabs.forager.app.ui.motion.PopUpPivot
+import com.zynergylabs.forager.app.ui.motion.isOnScreen
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
+import com.zynergylabs.forager.app.ui.motion.rememberPopUpState
+import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerPopUp
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -881,7 +892,51 @@ internal fun CompactMapTab(
                 // alongside the HUD doing the same work. Gated on isNavigating, never isReturning,
                 // so stage two's picker cannot bring it back by accident — see AvailabilityScreen's
                 // own isNavigating doc comment.
-                if (!isNavigating) {
+                // Motion Part 2, item 3: how the strip and the navigation display come and go (their comments below). Up and out,
+                // or down and in, by the panel's own height, with a fade, all one timed animation exactly as long as the map's
+                // tilt (Amendment 1, RECORD -672). Under reduced motion the fade alone, on the pop-ups' fade.
+                val reduceMotion = LocalReduceMotion.current
+                val navigationChromeSlide = MotionTokens.navigationViewChromeSpec<IntOffset>()
+                val navigationChromeTimedFade = MotionTokens.navigationViewChromeSpec<Float>()
+                val reducedFade = MotionTokens.mapPopUpFadeSpec<Float>()
+                val navigationChromeEnter = if (reduceMotion) {
+                    fadeIn(animationSpec = reducedFade)
+                } else {
+                    slideInVertically(animationSpec = navigationChromeSlide) { fullHeight -> -fullHeight } + fadeIn(animationSpec = navigationChromeTimedFade)
+                }
+                val navigationChromeExit = if (reduceMotion) {
+                    fadeOut(animationSpec = reducedFade)
+                } else {
+                    slideOutVertically(animationSpec = navigationChromeSlide) { fullHeight -> -fullHeight } + fadeOut(animationSpec = navigationChromeTimedFade)
+                }
+                // Motion Part 2, item 3 (dispatch 2026-09-28-666, scouts N1 and N2; the owner, RECORD -651: "Move with the map"):
+                // on starting navigation the strip slides up and out, clipped at its own top edge so it goes in under the search
+                // bar, while the navigation display below slides down and in the same way, both on navigationViewChromeSpec,
+                // exactly as long as the map's tilt; on stopping, the reverse. Each fades as it moves; under
+                // reduced motion each only fades. A leaving strip takes no touch (item 5) and gives up its keep-out and its
+                // measured height at once, so nothing waits on it. It is still composed for the length of its exit, so for that
+                // moment it reads the heading at sensor rate beside the HUD (the paragraph above): bounded, and the S22's to judge.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !isNavigating,
+                    enter = navigationChromeEnter,
+                    exit = navigationChromeExit,
+                    modifier = if (railPortEdge != null) {
+                        // Landscape B2 (S4): the top corner on the rail side, below the
+                        // status bar only (the Scaffold's top inset), not below the search
+                        // bar, which is on the other side now; content-width.
+                        Modifier
+                            .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                            .padding(controlsPadding)
+                    } else {
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(controlsPadding)
+                            .fillMaxWidth()
+                            .padding(top = topInset)
+                    }
+                        .clipToBounds()
+                        .leavingTakesNoTouches(leaving = isNavigating),
+                ) {
                     CompassElevationStrip(
                         heading = trueHeading,
                         elevationMeters = uiState.liveAltitudeMeters,
@@ -894,23 +949,16 @@ internal fun CompactMapTab(
                         // is how that clearance reaches here now that the bar composes as a real overlay
                         // in the same Box as this tab's own content (compactMainScaffold's own call
                         // site) instead of a sibling Column entry above it; 0.dp (this parameter's own
-                        // default) reproduces the old flush-against-the-map-top behavior exactly.
+                        // default) reproduces the old flush-against-the-map-top behavior exactly. The
+                        // alignment and the padding are on the AnimatedVisibility above (motion Part 2).
                         modifier = if (railPortEdge != null) {
-                            // Landscape B2 (S4): the top corner on the rail side, below the
-                            // status bar only (the Scaffold's top inset), not below the search
-                            // bar, which is on the other side now; content-width.
                             Modifier
-                                .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
-                                .padding(controlsPadding)
                         } else {
                             Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(controlsPadding)
                                 .fillMaxWidth()
-                                .padding(top = topInset)
-                                // After the padding, so it is the strip's own height (item 2).
-                                .onSizeChanged { compassStripHeightPx = it.height }
-                        }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
+                                // The strip's own height (item 2), and not while it leaves (motion Part 2).
+                                .onSizeChanged { if (!isNavigating) compassStripHeightPx = it.height }
+                        }.then(if (!isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
                         contentWidth = railPortEdge != null,
                         positionNote = positionNote,
                         // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
@@ -918,6 +966,8 @@ internal fun CompactMapTab(
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
                 }
+                // Motion Part 2: the strip's measured height goes the moment it starts to leave, as it did when it left at once.
+                LaunchedEffect(isNavigating) { if (isNavigating) compassStripHeightPx = 0 }
 
                 // Below the compass strip (topInset + compassStripClearance as top padding), same
                 // reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts
@@ -932,7 +982,16 @@ internal fun CompactMapTab(
                 // around them: CLAUDE.md, the Surface pitfall), so two chips wider than the room wrap to a
                 // second line instead of running off the screen. It holds whichever chips there are.
                 val shownJournalEntries = mapLayers.journalHighlights.shownEntries
-                if (mapTaxonFilterLabel != null || shownJournalEntries.isNotEmpty()) {
+                // Motion Part 2, item 4 (scout M1; the owner, RECORD -651: "Fade and grow", from where each belongs): each chip
+                // fades and grows down from its top centre, under the strip it hangs from, and shrinks back up to it; item 5: a
+                // leaving chip takes no touch. The row stays composed until its last chip has gone, and gives up its keep-out
+                // the moment no chip is meant to show.
+                val taxonChipShown = rememberLastShown(mapTaxonFilterLabel)
+                val taxonChip = rememberPopUpState(mapTaxonFilterLabel != null)
+                val journalChipShown = rememberLastShown(shownJournalEntries.takeIf { it.isNotEmpty() })
+                val journalChip = rememberPopUpState(shownJournalEntries.isNotEmpty())
+                val chipsMeantToShow = mapTaxonFilterLabel != null || shownJournalEntries.isNotEmpty()
+                if (taxonChip.isOnScreen || journalChip.isOnScreen) {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         // Part 1 layout fixes (the owner's "Option B for the chips", planner message 2026-09-29-07): in
@@ -967,15 +1026,19 @@ internal fun CompactMapTab(
                                 .align(Alignment.TopCenter)
                                 .padding(controlsPadding)
                                 .padding(top = topInset + compassStripClearance + Spacing.sm)
-                        }.mapKeepOut(MapKeepOutIds.CHIPS),
+                        }.then(if (chipsMeantToShow) Modifier.mapKeepOut(MapKeepOutIds.CHIPS) else Modifier),
                     ) {
-                        mapTaxonFilterLabel?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
-                        if (shownJournalEntries.isNotEmpty()) {
-                            JournalEntriesMapChip(
-                                entries = shownJournalEntries,
-                                onHide = mapLayers.onHideJournalEntry,
-                                onHideAll = mapLayers.onHideAllJournalEntries,
-                            )
+                        MapPopUp(state = taxonChip, pivot = PopUpPivot.TopCentre) {
+                            taxonChipShown?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
+                        }
+                        MapPopUp(state = journalChip, pivot = PopUpPivot.TopCentre) {
+                            journalChipShown?.let { entries ->
+                                JournalEntriesMapChip(
+                                    entries = entries,
+                                    onHide = mapLayers.onHideJournalEntry,
+                                    onHideAll = mapLayers.onHideAllJournalEntries,
+                                )
+                            }
                         }
                     }
                 }
@@ -990,7 +1053,30 @@ internal fun CompactMapTab(
                 // panel but the search bar, whose fullscreen slide it follows the way the strip
                 // does; compassStripClearance stays in the taxon chip's and bubble's paths only
                 // because those still clear the strip while not navigating. Never touches mapSlot.
-                if (isNavigating) {
+                // Motion Part 2, item 3: slides down and in from under the search bar as the strip above slides out, and back up
+                // and out on stop (the strip's comment above). Leaving, it takes no touch and gives up its keep-out at once.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isNavigating,
+                    enter = navigationChromeEnter,
+                    exit = navigationChromeExit,
+                    modifier = if (railPortEdge != null) {
+                        // Landscape B2 (S4): the top corner on the rail side, below the
+                        // status bar only, at most 360dp wide.
+                        Modifier
+                            .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                            .padding(controlsPadding)
+                            .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
+                            .fillMaxWidth()
+                    } else {
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(controlsPadding)
+                            .fillMaxWidth()
+                            .padding(top = topInset)
+                    }
+                        .clipToBounds()
+                        .leavingTakesNoTouches(leaving = !isNavigating),
+                ) {
                     NavigationHud(
                         heading = trueHeading,
                         liveFix = uiState.liveFix,
@@ -1011,21 +1097,9 @@ internal fun CompactMapTab(
                         // hidden until its window opens (Amendment 2, RECORD -595).
                         sundownLine = (recordingSundownLine ?: rememberScreenSundownLine(uiState.headingFix?.let { com.zynergylabs.forager.app.domain.model.LatLng(it.lat, it.lng) }, currentTime))
                             .let { sundownLineText(it, sundownClock) },
-                        modifier = if (railPortEdge != null) {
-                            // Landscape B2 (S4): the top corner on the rail side, below the
-                            // status bar only, at most 360dp wide.
-                            Modifier
-                                .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
-                                .padding(controlsPadding)
-                                .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
-                                .fillMaxWidth()
-                        } else {
-                            Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(controlsPadding)
-                                .fillMaxWidth()
-                                .padding(top = topInset)
-                        }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
                     )
                 }
 
@@ -1035,14 +1109,20 @@ internal fun CompactMapTab(
                 // clearance), inside controlsPadding so it keeps clear of the landscape rail; the
                 // snackbars rise above it while it shows (the scaffold). Composed before the nav, so the
                 // nav keeps winning its own band.
-                if (isNavigating && !navigationFollowing) {
+                // Motion Part 2, item 4 (scout N3; "Fade and grow"): it grows up from its bottom centre and shrinks back down;
+                // item 5: from the moment it starts to leave (a tap on it, which brings the view back) it takes no touch.
+                val returnToRouteShown = isNavigating && !navigationFollowing
+                MapPopUp(
+                    visible = returnToRouteShown,
+                    pivot = PopUpPivot.BottomCentre,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(controlsPadding)
+                        .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+                ) {
                     ReturnToRoutePill(
                         onClick = onReturnToRoute,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(controlsPadding)
-                            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
-                            .mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE),
+                        modifier = if (returnToRouteShown) Modifier.mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE) else Modifier,
                     )
                 }
 
@@ -1064,21 +1144,33 @@ internal fun CompactMapTab(
                 } else {
                     Spacing.sm
                 }
-                mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown)?.let { legend ->
-                    DisposableEffect(Unit) { onDispose { legendChipTopPx = null } }
-                    MapLegendChip(
-                        legend = legend,
-                        expanded = mapLayers.legendExpanded,
-                        onExpandedChange = mapLayers.onLegendExpandedChange,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(controlsPadding)
-                            .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
-                            .mapKeepOut(MapKeepOutIds.LEGEND)
-                            .onGloballyPositioned { coordinates ->
-                                legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
-                            },
-                    )
+                // Motion Part 2, item 4 (scout M2; "Fade and grow"): the legend grows out of its own bottom-end corner and shrinks
+                // back into it; item 5: leaving, it takes no touch and gives up its keep-out at once. It keeps the cluster clear of
+                // it (legendChipTopPx) until it has gone, so the cluster does not glide down over a legend still fading. Opening
+                // and closing it (scout M3) is unchanged: not among the owner's choices.
+                val legendNow = mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown)
+                val legendShown = rememberLastShown(legendNow)
+                MapPopUp(
+                    visible = legendNow != null,
+                    pivot = PopUpPivot.BottomEnd,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(controlsPadding)
+                        .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE),
+                ) {
+                    legendShown?.let { legend ->
+                        DisposableEffect(Unit) { onDispose { legendChipTopPx = null } }
+                        MapLegendChip(
+                            legend = legend,
+                            expanded = mapLayers.legendExpanded,
+                            onExpandedChange = mapLayers.onLegendExpandedChange,
+                            modifier = Modifier
+                                .then(if (legendNow != null) Modifier.mapKeepOut(MapKeepOutIds.LEGEND) else Modifier)
+                                .onGloballyPositioned { coordinates ->
+                                    legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
+                                },
+                        )
+                    }
                 }
 
                 // Fullscreen-fixes dispatch, Item 1 (third design). Composed here — after the
@@ -1234,9 +1326,14 @@ internal fun CompactMapTab(
                 } else {
                     with(LocalDensity.current) { mapBottomNavHeightPx.toDp() }
                 }
-                if (pendingAction != null) {
-                    CentrePinLocationPickerOverlay(
-                        onConfirm = {
+                // Motion Part 2, item 4 (scout M9; "Fade and grow", from where each belongs): the centre pin grows from its tip, the
+                // map's centre, and the OK/Cancel row up from its bottom edge; each shrinks back as it leaves, and from that moment
+                // takes no touch (item 5). One overlay for both of its uses, the add menu's three and the search's "Set on map",
+                // whose OK and Cancel stay as they were: the add menu's when an action is pending, the search's otherwise.
+                CentrePinLocationPickerPopUp(
+                    visible = pendingAction != null || pickingSearchLocation,
+                    onConfirm = {
+                        if (pendingAction != null) {
                             when (pendingAction) {
                                 PendingMapAction.PLAN_TRIP -> pendingTripLocation = cameraCenter
                                 PendingMapAction.LOG_FIND -> onLogFindHere(cameraCenter)
@@ -1244,30 +1341,20 @@ internal fun CompactMapTab(
                                 null -> Unit
                             }
                             pendingAction = null
-                        },
-                        onCancel = { pendingAction = null },
-                        modifier = Modifier.fillMaxSize(),
-                        bottomInset = centrePinConfirmBottomInset,
-                        rowPadding = controlsPadding,
-                        // The map's own night (the renderMode handed to mapSlot above), so the pin
-                        // follows Night Maps (colour build C2 (e)).
-                        night = renderMode.night,
-                    )
-                } else if (pickingSearchLocation) {
-                    // AdvancedSearchDropdown's own "Set on map" — same overlay, same already-shown
-                    // map, same cameraCenter this tab already tracks via onCameraIdle; see this
-                    // param's own doc comment for why it isn't a second picker.
-                    CentrePinLocationPickerOverlay(
-                        onConfirm = { onSearchLocationPicked(cameraCenter) },
-                        onCancel = onCancelSearchLocationPick,
-                        modifier = Modifier.fillMaxSize(),
-                        bottomInset = centrePinConfirmBottomInset,
-                        rowPadding = controlsPadding,
-                        // The map's own night (the renderMode handed to mapSlot above), so the pin
-                        // follows Night Maps (colour build C2 (e)).
-                        night = renderMode.night,
-                    )
-                }
+                        } else if (pickingSearchLocation) {
+                            onSearchLocationPicked(cameraCenter)
+                        }
+                    },
+                    onCancel = {
+                        if (pendingAction != null) pendingAction = null else if (pickingSearchLocation) onCancelSearchLocationPick()
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    bottomInset = centrePinConfirmBottomInset,
+                    rowPadding = controlsPadding,
+                    // The map's own night (the renderMode handed to mapSlot above), so the pin
+                    // follows Night Maps (colour build C2 (e)).
+                    night = renderMode.night,
+                )
             }
         }
     }
