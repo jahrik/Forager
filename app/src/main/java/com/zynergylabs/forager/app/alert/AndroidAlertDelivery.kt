@@ -18,10 +18,12 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.Alert
+import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.WalkBack
+import com.zynergylabs.forager.app.domain.vibrationSkippedBecause
 import java.util.Date
 
 /**
@@ -49,6 +51,11 @@ class AndroidAlertDelivery internal constructor(
     private val postNotification: (Context, Alert) -> Boolean,
     /** Issues the alert's vibration. A seam for tests. */
     private val vibrate: (Context, Boolean) -> Unit,
+    /**
+     * The ringer, read as each vibration is issued, to record whether Android will play it
+     * (dispatch 2026-09-28-685, fix 3). The trip-start warning's own seam, reused; faked in tests.
+     */
+    private val audibility: AlertAudibility = AndroidAlertAudibility(context),
 ) : AlertDelivery {
     constructor(context: Context) : this(context, ::postNotificationFor, ::vibrateForAlert)
 
@@ -87,7 +94,23 @@ class AndroidAlertDelivery internal constructor(
             vibrationProblem = e::class.simpleName
             false
         }
-        return AlertDeliveryOutcome(posted, notificationProblem, vibrated, vibrationProblem)
+        val skipped = if (vibrated) vibrationSkipped(alert) else null
+        return AlertDeliveryOutcome(posted, notificationProblem, vibrated && skipped == null, vibrationProblem, skipped)
+    }
+
+    /**
+     * Why Android will not play the vibration just issued ([vibrationSkippedBecause]), for the record
+     * only: what was delivered is already decided and unchanged (dispatch 2026-09-28-685, fix 3; the
+     * owner, RECORD -678). A ringer that cannot be read is logged and leaves the record as it was.
+     */
+    private fun vibrationSkipped(alert: Alert): String? {
+        val ringerMode = try {
+            audibility.current().ringerMode
+        } catch (e: Exception) {
+            Log.w(TAG, "The ringer could not be read; the ${alert.kind} alert's vibration is recorded as issued, not checked against it.", e)
+            return null
+        }
+        return vibrationSkippedBecause(alert.overridesSilence, ringerMode)
     }
 
     private companion object {

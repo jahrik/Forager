@@ -283,7 +283,7 @@ class SundownWatch(
         if (outcome != null && (!outcome.notificationPosted || !outcome.vibrated)) {
             errorLog.w(
                 TAG,
-                "The $kind alert was only partly delivered: notification ${outcome.notificationProblem ?: "posted"}, vibration ${outcome.vibrationProblem ?: "issued"}.",
+                "The $kind alert was only partly delivered: notification ${outcome.notificationProblem ?: "posted"}, vibration ${outcome.vibrationProblem ?: outcome.vibrationSkipped?.let { "skipped: $it" } ?: "issued"}.",
                 IllegalStateException("partial delivery of $kind"),
             )
         }
