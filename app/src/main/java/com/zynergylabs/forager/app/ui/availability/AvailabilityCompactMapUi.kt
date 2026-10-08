@@ -1148,7 +1148,7 @@ internal fun CompactMapTab(
                 // back into it; item 5: leaving, it takes no touch and gives up its keep-out at once. It keeps the cluster clear of
                 // it (legendChipTopPx) until it has gone, so the cluster does not glide down over a legend still fading. Opening
                 // and closing it (scout M3) is unchanged: not among the owner's choices.
-                val legendNow = mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown)
+                val legendNow = mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown, mapLayers.forecastZoomedOut)
                 val legendShown = rememberLastShown(legendNow)
                 MapPopUp(
                     visible = legendNow != null,

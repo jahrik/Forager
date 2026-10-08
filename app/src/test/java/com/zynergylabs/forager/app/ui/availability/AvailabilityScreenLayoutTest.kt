@@ -10,6 +10,8 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -205,6 +207,11 @@ private val TRIP_WINDOW_REPORT_ONE_WINDOW = TripWindowReport(
         deeperMoistureBand = null,
         temperatureBand = null,
     ),
+)
+
+/** [TRIP_WINDOW_REPORT_ONE_WINDOW] with a soil moisture reading (data part C). */
+private val TRIP_WINDOW_REPORT_WITH_MOISTURE = TRIP_WINDOW_REPORT_ONE_WINDOW.copy(
+    windows = TRIP_WINDOW_REPORT_ONE_WINDOW.windows.map { it.copy(meanShallowSoilMoistureM3M3 = 0.27) },
 )
 
 private val CONDITIONS = ConditionsSummary(
@@ -621,8 +628,12 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
-        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertIsDisplayed()
-        composeRule.onNodeWithText("2 days since last rain.").assertIsDisplayed()
+        // Data part C (dispatch -668): a labelled table, not sentences. Each row is one merged node,
+        // so its label and its value are found on the same node. The last rain is 2 days before the
+        // newest observed day, which is yesterday, so 3 days ago (it used to read "2 days since last
+        // rain.").
+        composeRule.onNode(hasText("Rain, last 14 days") and hasText("12.4mm")).assertIsDisplayed()
+        composeRule.onNode(hasText("Last rainy day") and hasText("3 days ago")).assertIsDisplayed()
     }
 
     /**
@@ -635,8 +646,8 @@ abstract class AvailabilityScreenLayoutTest {
 
         composeRule.onNodeWithText("Seasonal").performClick()
 
-        composeRule.onNodeWithText("0.5 in of rain in the last 14 days").assertIsDisplayed()
-        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertDoesNotExist()
+        composeRule.onNode(hasText("Rain, last 14 days") and hasText("0.5 in")).assertIsDisplayed()
+        composeRule.onNodeWithText("12.4mm").assertDoesNotExist()
     }
 
     /** The screen's own half of the gate: no conditions in state, no card in the tree. */
@@ -711,7 +722,7 @@ abstract class AvailabilityScreenLayoutTest {
         openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
-        composeRule.onNodeWithText("Soil temperature: 52.3°F").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Soil temperature") and hasText("52.3°F")).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("roughly 50–68 °F", substring = true).performScrollTo().assertIsDisplayed()
         composeRule.onAllNodesWithText("°C", substring = true).assertCountEquals(0)
     }
@@ -724,8 +735,28 @@ abstract class AvailabilityScreenLayoutTest {
         openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
-        composeRule.onNodeWithText("Soil temperature: 11.3°C").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Soil temperature") and hasText("11.3°C")).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("roughly 10–20 °C", substring = true).performScrollTo().assertIsDisplayed()
+    }
+
+    /**
+     * Data part C (dispatch -668): a trip window reads as dated rows. Its dates are "Aug 16, 2025"
+     * (owner, RECORD -656), and its soil moisture is the plain scale with the figure under it: 0.27
+     * m³/m³ sits between the proposed Dry (below 0.15) and Wet (0.30 and up) thresholds, so Moist.
+     * The scale is read to TalkBack as one phrase, which is what is asserted.
+     */
+    @Test
+    fun `a trip window shows its dates as Aug 16, 2025, its rain and soil as labelled rows, and soil moisture on the plain scale`() {
+        setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_WITH_MOISTURE))
+
+        openToolsDrawer()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Aug 16, 2025 – Aug 18, 2025").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Days after rain") and hasText("10–12")).performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Last soaking rain") and hasText("30mm, ended Aug 6, 2025")).performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Soil moisture") and hasContentDescription("Moist, 0.27 m³/m³")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Shallow soil moisture", substring = true).assertDoesNotExist()
     }
 
     /**
