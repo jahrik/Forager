@@ -4,6 +4,10 @@ Dispatch 2026-09-28-697 (RECORD intent -697; preserved at `prompts/preserved/202
 by the planner: "Search on the right, set on map on the left". Branch `search-order`, cut from `origin/main` at `b71c1569` after a
 fresh fetch. No PR.
 
+**Superseded in part by Amendment 2 (RECORD -700), below.** The stop on how Search reaches the current position is answered;
+what Search runs, the new "Search coordinates" button and the two banners changed. The sections between here and Amendment 2 are
+left as they were written, as the record of the first pass.
+
 **Status: written, not run.** The dispatch holds Gradle for the planner's go. Nothing on this branch has been compiled, no test has
 run, and no revert check has been done. Every claim below about behaviour is what the code is written to do, not something observed.
 
@@ -133,3 +137,55 @@ Every changed assertion, with its reason:
 - **Device only:** with the keyboard up in portrait, whether the bottom row is reachable (the panel's cap follows the keyboard,
   `AvailabilityCompactScaffold.kt`, Robolectric shows no keyboard); how the reordered panel looks at the 80% fill.
 - **The stop above is unresolved.** Until the owner chooses, the dropdown cannot search the current position.
+
+## Amendment 2 (RECORD -700): the stop answered
+
+The planner relayed the owner's answers, verbatim:
+
+1. "There are no fields to fill in. Search is the same as "Use current location" just renamed and relocated." The bottom-right
+   **Search** now calls `onUseCurrentLocation`, the old "Use current location" path unchanged (permission, one fix, the fields
+   written, a search), and reads no field.
+2. "Small button under the fields". A text button, **"Search coordinates"** (`SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG`), directly
+   under Latitude and Longitude, calls `onSearchManualCoordinates`, the old "Search this location" path; validation and its error
+   text are unchanged.
+3. "Option 1, but only refer to "Set on map" since that is right there." The banners now read exactly
+   "Location permission was denied. Tap Set on map to choose a place." (`LOCATION_PERMISSION_DENIED_MESSAGE`,
+   `ui/availability/AvailabilitySearchUi.kt`, read by `searchNoticeMessage`) and
+   "Couldn't find your location. Tap Set on map to choose a place." (`COULD_NOT_FIND_LOCATION_MESSAGE`,
+   `ui/availability/AvailabilityViewModel.kt`, set by `useCurrentLocation` on no fix). The copy flag above is closed by this.
+
+The layout, top to bottom: Latitude and Longitude, "Search coordinates", Month, Search radius, Recent searches, then Set on map
+(left) and Search (right).
+
+**No existing test read either old banner string** (grep of `app/src/test` and `app/src/androidTest` for "permission was denied",
+"determine your location" and "coordinates manually" found only the removed fold's label). So no assertion on them changed; three
+new tests read the new strings.
+
+### Tests changed by Amendment 2
+
+| File | Was (first pass) | Now | Why |
+|---|---|---|---|
+| `AvailabilityScreenLayoutTest`, Search real touches | five sampled touches each call `onSearchManualCoordinates`; `onUseCurrentLocation` never | renamed `…run the current-location path…`; each touch calls `onUseCurrentLocation`; `onSearchManualCoordinates` never | Search is "Use current location" renamed (item 1) |
+| same, new | — | `real touches across Search coordinates run the typed-coordinates search and close the dropdown`: five sampled touches, each calls `onSearchManualCoordinates` and closes the dropdown; `onUseCurrentLocation` never | Item 2 |
+| same, order test | coordinates, Month, radius, Recent, bottom row | adds "Search coordinates" under the coordinates' bottom and above Month's top | Item 2's position |
+| same, Set on map real touches | no coordinate search | also no current-location search | Set on map now sits beside a button that runs the current-location path |
+| `SearchDropdownSearchesTheFieldsTest` | two tests, one centre touch on the bottom Search | both on "Search coordinates", each with five sampled touches on a freshly opened dropdown, each asserting no current-location call; new third test: the bottom Search, with a field typed over, runs the current-location path once and no coordinate search | Items 1 and 2 |
+| `SearchDropdownClosingTapThroughTest` | Search counted through `onSearchManualCoordinates` | counted through `onUseCurrentLocation` | Item 1; the touch target and the containment assertion are unchanged |
+| `SearchDropdownKeyboardTest` T3a | after the shrink, Latitude and Longitude displayed | also "Search coordinates" displayed | The button belongs with the fields |
+| `AvailabilitySearchSummaryCopyTest` helper | Set on map and Search exist | also "Search coordinates" displayed | Item 2; this also runs in short landscape (w823dp-h384dp), where it is not measured whether the button fits below the fields without scrolling. If it fails there, that is a finding about the layout, to report rather than relax |
+| `searchAReferenceRegion` helpers (BackNavigation, TripPlanningFlow, ConditionsMonth, WaypointFlow, MapIconStack) | type coordinates, click the Search tag | click the "Search coordinates" tag | Navigation only; Search no longer runs a typed search |
+| `AvailabilityViewModelLocateMeTest`, three new | — | `useCurrentLocation` with no fix: the banner is the "Couldn't find your location…" string and no region is set; with `PermissionDenied`: the "Location permission was denied…" string; `onPermissionDenied()` (the OS dialog's denial): the same string | Item 3, exact strings, read through `searchNoticeMessage`, what the banner shows |
+
+### Revert checks for Amendment 2, planned, not run
+
+Same rules as above (saved copy, compile log first, forward change confirmed after). (5) Wire Search back to
+`onSearchManualCoordinates`: the Search real-touch test, the tap-through positive control and the "bottom Search reads no field" test
+must fail on their current-location counts. (6) Wire "Search coordinates" to `onUseCurrentLocation`: its real-touch test and both
+fields tests must fail. (7) Restore either old banner string: the matching `AvailabilityViewModelLocateMeTest` test must fail on it.
+
+### Unverified, added by Amendment 2
+
+- The banner messages are tested headless (ViewModel and `searchNoticeMessage`), not through a touch on Search on the real screen:
+  the screen tests wire `onUseCurrentLocation` to a recorder, and on the phone the path goes through `MainActivity`'s permission
+  launcher, which no Robolectric test here drives.
+- Whether "Search coordinates" fits under the fields in short landscape without scrolling (above).

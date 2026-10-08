@@ -819,7 +819,8 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * Dispatch 2026-09-28-697's order, top to bottom: the coordinates, Month, Search radius, Recent
+     * Dispatch 2026-09-28-697's order, top to bottom: the coordinates with "Search coordinates" under
+     * them (RECORD -700: "Small button under the fields"), Month, Search radius, Recent
      * searches, then Set on map and Search side by side, Set on map on the left (owner: "the slider
      * should go below the month selection. Recent search below the slider", "The set on map and
      * search button where the "Search this location" button is now", "Search on the right, set on
@@ -827,7 +828,7 @@ abstract class AvailabilityScreenLayoutTest {
      * "Use current location" and "Search this location" are asserted gone; Set on map appears once.
      */
     @Test
-    fun `the search dropdown runs coordinates, Month, Search radius, Recent searches, then Set on map left of Search`() {
+    fun `the search dropdown runs coordinates, Search coordinates, Month, Search radius, Recent searches, then Set on map left of Search`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
@@ -838,6 +839,7 @@ abstract class AvailabilityScreenLayoutTest {
         val longitude = composeRule.onNodeWithTag(SEARCH_DROPDOWN_LONGITUDE_TAG).getUnclippedBoundsInRoot()
         // 8 km, not SEARCHED_STATE's own REGION.radiusKm (15) -- this text reads uiState.radiusKm,
         // the slider's own current value (AvailabilityUiState's default, 8).
+        val searchCoordinates = composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).getUnclippedBoundsInRoot()
         val month = top(composeRule.onNodeWithText("Month"))
         val radius = top(composeRule.onNodeWithText("Search radius: 8 km"))
         val recent = top(composeRule.onNodeWithText("Recent searches"))
@@ -846,7 +848,8 @@ abstract class AvailabilityScreenLayoutTest {
 
         assertEquals("Latitude and Longitude share the first row", latitude.top.value, longitude.top.value, 0.5f)
         assertTrue("Latitude is left of Longitude", latitude.right <= longitude.left)
-        assertTrue("Month (${month}) is below the coordinates (${latitude.bottom})", month >= latitude.bottom)
+        assertTrue("Search coordinates (${searchCoordinates.top}) is under the coordinates (${latitude.bottom})", searchCoordinates.top >= latitude.bottom)
+        assertTrue("Month ($month) is below Search coordinates (${searchCoordinates.bottom})", month >= searchCoordinates.bottom)
         assertTrue("Search radius ($radius) is below Month ($month)", radius > month)
         assertTrue("Recent searches ($recent) is below Search radius ($radius)", recent > radius)
         assertTrue("the bottom row (${setOnMap.top}) is below Recent searches ($recent)", setOnMap.top > recent)
@@ -974,26 +977,47 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * Dispatch 2026-09-28-697: Search, on the right of the bottom row, replaces "Use current location"
-     * and "Search this location" and runs the search on the coordinates in the fields, through the one
-     * [AvailabilityScreen] callback "Search this location" called, `onSearchManualCoordinates`. Real
-     * touches at screen coordinates, sampled across the button, each on a freshly opened dropdown (a
-     * search closes it); each must reach Search and close the dropdown.
+     * RECORD -700, the owner: "Search is the same as "Use current location" just renamed and relocated."
+     * Search, on the right of the bottom row, calls the one [AvailabilityScreen] callback "Use current
+     * location" called, `onUseCurrentLocation` (permission, one fix, the fields written, a search; see
+     * MainActivity), and never the typed-coordinates search. Real touches at screen coordinates, sampled
+     * across the button, each on a freshly opened dropdown (Search closes it); each must reach Search.
      */
     @Test
-    fun `real touches across the Search button run the coordinate search and close the dropdown`() {
-        var searches = 0
+    fun `real touches across the Search button run the current-location path and close the dropdown`() {
         var currentLocation = 0
-        setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { searches++ })
+        var coordinateSearches = 0
+        setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { coordinateSearches++ })
 
         touchSamples.forEachIndexed { i, (fx, fy) ->
             openSearchDropdown()
             composeRule.waitForIdle()
             touchTagged(SEARCH_DROPDOWN_SEARCH_TAG, fx, fy)
-            assertEquals("touch ${i + 1} at ($fx, $fy) of Search reached it", i + 1, searches)
+            assertEquals("touch ${i + 1} at ($fx, $fy) of Search ran the current-location path", i + 1, currentLocation)
             composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
         }
-        assertEquals("Search does not run the current-location path", 0, currentLocation)
+        assertEquals("Search never runs the typed-coordinates search", 0, coordinateSearches)
+    }
+
+    /**
+     * RECORD -700, the owner on typed coordinates: "Small button under the fields". "Search coordinates"
+     * calls `onSearchManualCoordinates`, the path "Search this location" called, and never the
+     * current-location path. Real touches sampled across it, each on a freshly opened dropdown.
+     */
+    @Test
+    fun `real touches across Search coordinates run the typed-coordinates search and close the dropdown`() {
+        var currentLocation = 0
+        var coordinateSearches = 0
+        setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { coordinateSearches++ })
+
+        touchSamples.forEachIndexed { i, (fx, fy) ->
+            openSearchDropdown()
+            composeRule.waitForIdle()
+            touchTagged(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG, fx, fy)
+            assertEquals("touch ${i + 1} at ($fx, $fy) of Search coordinates ran the coordinate search", i + 1, coordinateSearches)
+            composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
+        }
+        assertEquals("Search coordinates never runs the current-location path", 0, currentLocation)
     }
 
     /**
@@ -1005,7 +1029,8 @@ abstract class AvailabilityScreenLayoutTest {
     @Test
     fun `real touches across Set on map close the dropdown and open the centre-pin picker`() {
         var searches = 0
-        setScreen(SEARCHED_STATE, onSearchManualCoordinates = { searches++ })
+        var currentLocation = 0
+        setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { searches++ })
 
         touchSamples.forEachIndexed { i, (fx, fy) ->
             openSearchDropdown()
@@ -1015,7 +1040,8 @@ abstract class AvailabilityScreenLayoutTest {
             composeRule.onNodeWithText("OK").assertIsDisplayed()
             composeRule.onNodeWithText("Cancel").assertIsDisplayed().performClick()
             composeRule.waitForIdle()
-            assertEquals("touch ${i + 1} at ($fx, $fy) of Set on map ran no search", 0, searches)
+            assertEquals("touch ${i + 1} at ($fx, $fy) of Set on map ran no coordinate search", 0, searches)
+            assertEquals("touch ${i + 1} at ($fx, $fy) of Set on map ran no current-location search", 0, currentLocation)
         }
     }
 }

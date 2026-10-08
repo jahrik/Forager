@@ -221,11 +221,11 @@ class AvailabilityScreenConditionsMonthTest {
         openSearchDropdownToManualCoordinates()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        // performScrollTo(): Search sits in the dropdown's bottom row (dispatch 2026-09-28-697),
-        // which can be below its bounded, scrolled viewport — without this the tap lands on the
-        // node's own (correct but currently off-screen) bounds, which reaches nothing rendered there.
+        // "Search coordinates", under the fields (RECORD -700), runs the typed-coordinates search.
+        // performScrollTo() kept: harmless where it is already in view, and the tap would otherwise
+        // land on off-screen bounds if it ever is not.
         // Closes the dropdown itself, which is why nothing closes it here.
-        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 

@@ -38,8 +38,8 @@ import org.robolectric.annotation.Config
  * stopped; a real touch on its Search button must reach the map beneath and not the button. The positive
  * control is the same touch on the open panel, which must reach the button, so the mid-close result is not just a miss.
  *
- * Dispatch 2026-09-28-697 removed "Use current location", the button this test first touched (at the panel's top), and put
- * Search in the panel's bottom row. Touching Search instead, the mid-close test also asserts the touch point is still inside
+ * Dispatch 2026-09-28-697 moved "Use current location", the button this test first touched (at the panel's top), to the
+ * panel's bottom row and renamed it Search (RECORD -700: the same path). Touching Search there, the mid-close test also asserts the touch point is still inside
  * the shrinking panel when it lands: a point the panel had already shrunk away from would reach the map whatever the fix did.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -147,10 +147,10 @@ class SearchDropdownClosingTapThroughTest {
     private fun Screen() {
         AvailabilityScreen(
             uiState = LAYOUT_FIXES_FIX_STATE,
-            onUseCurrentLocation = {},
+            onUseCurrentLocation = { searches++ },
             onManualLatChanged = {},
             onManualLngChanged = {},
-            onSearchManualCoordinates = { searches++ },
+            onSearchManualCoordinates = {},
             onRadiusChanged = {},
             onMonthSelected = {},
             onMapTabSelected = {},
