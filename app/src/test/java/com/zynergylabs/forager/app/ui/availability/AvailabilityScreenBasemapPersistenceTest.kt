@@ -113,6 +113,34 @@ class AvailabilityScreenBasemapPersistenceTest {
         return runBlocking { raw.data.first()[stringPreferencesKey("map.basemap")].also { job.cancelAndJoin() } }
     }
 
+    /**
+     * Waits for [condition], letting the main looper run between checks. `composeRule.waitUntil` alone
+     * timed out here with the condition already true once the looper had run (seen at the -710 build:
+     * after `waitForIdle()` the store held "street" at once), because a ViewModel coroutine resuming on
+     * the main thread, or a touch's effect, is not always run by its polling. Idling first each time is
+     * what lets the work the condition waits for actually happen.
+     */
+    private fun awaitIdle(condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + 5_000
+        while (true) {
+            composeRule.waitForIdle()
+            if (condition()) return
+            check(System.currentTimeMillis() < deadline) { "condition still false after 5 s" }
+            Thread.sleep(20)
+        }
+    }
+
+    /**
+     * Lets a launch's repository go of the file: cancels its scope and waits for it to finish, idling
+     * the main looper meanwhile. A `runBlocking { cancelAndJoin() }` here hung the -710 build for ten
+     * minutes (thread dump: the test thread parked in `joinBlocking`), the main thread blocked while the
+     * scope waited to finish; this cannot hang, it fails after five seconds.
+     */
+    private fun release(scope: Job) {
+        scope.cancel()
+        awaitIdle { scope.isCompleted }
+    }
+
     @Before
     fun setUp() {
         dataStoreFile().delete()
@@ -156,7 +184,7 @@ class AvailabilityScreenBasemapPersistenceTest {
         val (repository, repositoryScope) = launchRepository()
         val viewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = repository)
         composeRule.setContent { MapLayersTestScreen(viewModel, slot, AbsentForecastCellStore) }
-        composeRule.waitUntil(5_000) { released().isNotEmpty() && stored(repository) == "topographic" }
+        awaitIdle { released().isNotEmpty() && stored(repository) == "topographic" }
 
         assertEquals(
             "every render mode the map may draw is Topographical",
@@ -168,7 +196,7 @@ class AvailabilityScreenBasemapPersistenceTest {
             listOf("The stored basemap \"satellite\" names no map type; opening on Topographical and storing that."),
             logged.filter { "basemap" in it },
         )
-        runBlocking { repositoryScope.cancelAndJoin() }
+        release(repositoryScope)
         assertEquals("the file now holds Topographical", "topographic", rawStoredKey())
     }
 
@@ -179,16 +207,16 @@ class AvailabilityScreenBasemapPersistenceTest {
         val firstViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = firstRepository)
         var current by mutableStateOf(firstViewModel)
         composeRule.setContent { key(current) { MapLayersTestScreen(current, slot, AbsentForecastCellStore) } }
-        composeRule.waitUntil(5_000) { released().isNotEmpty() }
+        awaitIdle { released().isNotEmpty() }
         assertEquals(Basemap.OPEN_TOPO_MAP, released().last().basemap)
 
         touchLayersRow()
         composeRule.onNodeWithText("Street").performTouchInput { click() }
-        composeRule.waitUntil(5_000) { stored(firstRepository) == "street" }
+        awaitIdle { stored(firstRepository) == "street" }
         assertEquals(Basemap.OSM_STANDARD, released().last().basemap)
 
         // The process ends: the first repository lets go of the file.
-        runBlocking { firstScope.cancelAndJoin() }
+        release(firstScope)
 
         // Second launch: a fresh repository over the same file and a fresh ViewModel, whose read is held
         // until the test lets it through, so the frames before it lands are observable.
@@ -205,7 +233,7 @@ class AvailabilityScreenBasemapPersistenceTest {
         assertEquals("nothing may draw while the stored basemap is unread", emptyList<MapRenderMode>(), released())
 
         held.release()
-        composeRule.waitUntil(5_000) { released().isNotEmpty() }
+        awaitIdle { released().isNotEmpty() }
 
         assertEquals(
             "every render mode the map may draw is the restored Street",
