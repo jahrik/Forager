@@ -234,3 +234,54 @@ This goes back to the owner. The options are in the coder's message.
 - The Priority-only rule for Do Not Disturb is inferred from Android's defaults.
 - A phone-level vibration-off setting is not covered.
 - No phone or emulator was used.
+
+## Amendment 2 (RECORD -699)
+
+### The planner's correction
+
+"At font 1.0 nothing changes" was the planner's addition, not the owner's. It is withdrawn.
+
+### Item 1: the cap applies at every font scale
+
+The owner: "Yes, everywhere (Recommended)".
+
+**Existing test changed:** `AvailabilityScreenNavigationWordsLandscapeTest`, citing -699.
+
+- **Before:** every line of the navigation display had to be whole, with no "…" and every character visible.
+- **Now:** each line is one line, and it is whole wherever it is not cut with "…". A new check also says the display must not overlap the search bar.
+- **At this test's 780 dp width, the display shrinks from 360 dp to 318 dp:**
+  - "by trail" shows 5 of 8 characters;
+  - "≈ 1250 ft straight" shows 15 of 18;
+  - the grid reference "10T ER 24991 40768" shows 16 of 18;
+  - the turn words, heading and altitude stay whole.
+
+**My font 1.0 test now asserts the same rule.** At 823 dp the display is 359 dp wide and ends exactly at the search bar. "No origin waypoint for this track" shows 30 of 33 characters. The strip's font 1.0 case still asserts that everything is whole, which it is.
+
+### Item 2: coordinates take priority on the strip
+
+The owner: "Coordinates take priority (Recommended)".
+
+How the strip shares its width now (`AvailabilityMapControlsUi.kt`, `stripReadoutsShown`):
+
+- The coordinates are measured first and get their full width.
+- Facing and altitude share what is left, in proportion to their own widths. When everything fits, nothing is shared out and every reading shows whole.
+- When they cannot both have at least 48 dp (`STRIP_READOUT_MIN_WIDTH`), facing drops out first and altitude stays. When there is room for neither, both drop.
+- **My call:** facing drops first because the needle beside it still shows the direction. The 48 dp floor is also my choice, not measured on a phone.
+
+**Tests:**
+- `StripReadoutsShownTest`: 5 tests of the rule.
+- `LandscapeLargeFontTest` at font 2.0, both rotations: the strip's coordinates are whole, 18 of 18 characters.
+
+**At font 2.0 in the S22's landscape window (Robolectric):**
+- The strip is 282 dp wide.
+- Facing and altitude both drop, so the strip shows the needle and the coordinates only.
+
+**Revert check:** readouts that never give way. Restored from a saved copy. It bit at both rotations: "the coordinates <10T ER 24991 40768> are not ellipsised".
+
+### Run
+
+- **Affected classes, all pass:** `LandscapeLargeFontTest`, `StripReadoutsShownTest`, `AvailabilityScreenNavigationWordsTest` (with its landscape class), `AvailabilityScreenLandscapeB2Test`, `AvailabilityScreenPortraitStripTnumTest`.
+- **One fix on the way:** the first version gave the two readouts equal weights. That cut "306° NW" at font 1.0 while altitude left part of its half unused, which failed two portrait strip tests and my font 1.0 test. Proportional weights, and no weights when everything fits, fixed it.
+- **Full suite:** 4,238 tests, 24 skipped, **0 failures, 0 errors**.
+- Gradle was stopped with `./gradlew --stop`, and no Gradle or Kotlin process is left.
+- Free disk: 4.0 GB.
