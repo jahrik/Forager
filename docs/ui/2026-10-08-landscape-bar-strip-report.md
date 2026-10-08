@@ -14,8 +14,8 @@ ruling and RECORD -699, and need the owner.
    (`punchHoleEdgeFor`, `portEdge`); at ROTATION_270 both swap. Built mirrored. The three-dot button stays at the strip's own
    right end in both rotations (RECORD -649), so at 270 it sits at the join, beside the line. Tested at both rotations.
 2. **Wrong premise: meeting the bar gives the strip no more room.** Before, the strip was already capped at the room beside
-   the bar (RECORD -694), which reached to the bar's end, 8 dp short of the centre. Now the bar ends at the centre, so the
-   strip is 8 dp *narrower* at 780 dp (310 dp, was 318) and at 823 dp (331.5, was 339.5 at font 1.0). The heading that 14 sp
+   the bar (RECORD -694), which reached to the bar's end (8 dp short of the centre at 780 dp; at 823 dp the bar stopped at
+   its 384 dp cap, 27.5 dp short). Now the bar ends at the centre, so the strip is *narrower*: 310 dp at 780 (was 318) and 331.5 dp at 823 (was 359), font 1.0. The heading that 14 sp
    dropped (the dispatch's "Why") is still dropped; see Measurements.
 3. **The 384 dp cap and the 8 dp gap no longer apply while not navigating.** Item 1 says the bar ends exactly at the centre;
    at 823 dp the cap would have stopped it at 384. Removed for that state only.
@@ -63,7 +63,7 @@ decimal "45.5200, -122.6800". Every value shown is whole (not ellipsised, every 
 Why, from a probe of the 14 sp widths (removed after use): heading 58.3 dp, "9843 ft" 48.3, "Alt" + gap 23.0, a separator
 20.3, MGRS 140.3, decimal 132.0. Room for the readouts is the strip less its button (36), padding (16) and needle (18): 240 dp
 at 780, 261.5 at 823. Adding the heading needs 307.9 (MGRS) / 299.6 (decimal): short by 68 / 60 dp at 780 and 46 / 38 dp at
-823. Before this change the room was 8 dp more and the same readouts showed.
+823. Before this change the room was 248 dp at 780 and 289 at 823, and the same readouts showed (heading dropped at both).
 
 ## Tests (`app/src/test/.../ui/availability/LandscapeBarStripJoinTest.kt`, 16 tests)
 
