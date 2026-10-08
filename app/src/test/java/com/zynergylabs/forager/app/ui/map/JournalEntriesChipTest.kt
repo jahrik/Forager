@@ -176,7 +176,7 @@ class JournalEntriesChipTest {
     fun `more than three keeping entries are one line, Kept in 4 journal entries, whose list of dates is a menu at the map chrome's opacity`() {
         setBubble(keptIn = entries)
 
-        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertIsDisplayed().assertTextEquals("Kept in 4 journal entries")
+        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertIsDisplayed().assertTextEquals("In 4 journal entries")
         assertEquals("no date lines past three", 0, composeRule.onAllNodesWithTag(mapBubbleEntryLineTag("a")).fetchSemanticsNodes().size)
 
         touchCentreOf(MAP_BUBBLE_ENTRY_COUNT_TAG)

@@ -347,3 +347,20 @@ R5's end reflow jump is accepted for now.
 - **Revert checks added to the plan:** R13, `pagePushTransform`'s forward exit replaced by `ExitTransition.None`: "edge to edge"
   fails; R14, `LeavingPageFrame` without `leavingTakesNoTouches` also makes the drawer's close-row test fail (the drawer closes).
 
+## Merge of data part A and J6 (2026-10-08), also not compiled
+
+- **Merge:** `origin/main` at f17b24b5 (PR #194, data part A) merged in. Git resolved every code file on its own; the one conflict
+  was `docs/audits/README.md`, two rows added at the same place, resolved by keeping both (data-a-entry's, then this branch's).
+  The four shared Journal files were checked by hand after the merge, and no logic was changed on both sides:
+  - `log/CartographyScreen.kt`: A's new editor and report parameters (`onSetGroupIncluded`, `openGroups`, `candidates`,
+    `openWaypointRowsState`) sit inside the entry detail this branch made a page, reading the page's own entry.
+  - `log/CartographyEntryEditScreen.kt`: A's "In this entry" panel and "Leave out" wording, beside this branch's
+    `pullingPhotoState` / `drawsPhotoPicker`; the album picker still opens from A's `onAddFromAlbum`.
+  - `log/CartographyEntryReportScreen.kt`: A's tiles, profile and waypoint table are in the report body, below the map block that
+    grows in (E2); the offline-map row grows in (E3).
+  - `log/JournalTab.kt`: A's three new parameters, passed to `CartographyScreen` beside this branch's `shortWindowHeaderAbove`.
+- **J6** (the planner: "yes"): the spinner before a new entry's editor now has its own key inside the editor's page, so it
+  crossfades into the editor (`StateCrossfade` in `CartographyScreen`'s page content), with no slide between them. Not driven by a
+  test.
+- The merge is to be repeated right before the build, since data part C may land on main first.
+
