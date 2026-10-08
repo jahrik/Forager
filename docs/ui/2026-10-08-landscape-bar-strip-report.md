@@ -4,7 +4,8 @@ Dispatch 2026-09-28-729 (RECORD intent -729; preserved at `prompts/preserved/202
 cut from `origin/main` at `f8739856` (PR #202 merged; fetched and confirmed before cutting). No PR. Paths are relative to
 `app/src/main/java/com/zynergylabs/forager/app/ui/availability/` unless they start with `app/` or `docs/`.
 
-**Status: built and run. Full suite 4,432 tests, 24 skipped, 6 failures, all six existing tests that this change breaks,
+**Superseded in part by RECORD -732 (section at the end): the join now moves to fit the strip.** As first built (-729):
+**full suite 4,432 tests, 24 skipped, 6 failures, all six existing tests that this change breaks,
 left untouched and listed below with their reasons.** Two of them (the large-font strip) are a real conflict between this
 ruling and RECORD -699, and need the owner.
 
@@ -138,3 +139,82 @@ each scope. No Gradle process left at the end.
 ## Commits
 
 `dc6047d8` (the layout and its tests), `73e62bb0` (pixel rounding; the L re-fits on the limit), and this report.
+
+## Superseding section, RECORD -732: the join moves to fit the strip
+
+The planner (RECORD -732), with the owner's answer verbatim: "Join moves to fit the strip (Recommended)". Supersedes the
+centre join above, its measurements table and its "what the strip shows" paragraph. Kept: the mirroring at 270, the
+navigation and fullscreen behaviour, the equal height, the line, the L's re-fit and the rounding fix.
+
+**A correction to the -729 width figures above.** "Adding the heading needs 307.9 / 299.6" counted three separators; the
+strip's readout line has two (heading · altitude · coordinates). The right figures are 287.6 dp (MGRS) and 279.3 dp
+(decimal) for the readouts, so at -729's centre join the heading was short by 47.6 / 39.3 dp at 780 and 26.1 / 17.8 dp at
+823. The conclusion (the heading dropped) stands.
+
+**Rule now** (not navigating, short landscape, Maps tab):
+- The strip is as wide as its readout line needs whole, measured as the strip and readoutsFitBeside measure it: the row's
+  padding (8 dp each side), the needle (18 dp), the three-dot button (36 dp), and, without labels, the heading, the altitude
+  and the coordinates, each after a separator (the dot and 8 dp each side). The heading is measured at its widest value form
+  ("000°" and the widest compass point, tabular figures), so the join does not move as the phone turns; while the heading
+  has status words instead ("Compass unavailable", "Compass unreliable") their width is allowed for. With no fix, the no-fix
+  line. `rememberLandscapeStripNeed` in `AvailabilityMapControlsUi.kt`.
+- The bar takes the rest of the room, never narrower than its floor (`rememberLandscapeBarFloorPx`, `AvailabilitySearchUi.kt`):
+  search icon start padding 16 + icon 18 + the field's content padding 16 + 16 + its resting text (the search summary, in
+  bodyLarge) whole, plus, while a search shows, Clear (max(58 dp, the word + 12 + 12)) + 4. Measured: with a "Hericium
+  erinaceus · October · 9 mi" search showing, the floor is **394.33 dp** (the bar's width where it binds, both windows).
+  Where it does not bind, the floor is not printed by any test.
+- Where both cannot fit, the bar keeps its floor and the strip narrows, and readoutsFitBeside drops from the front; the strip
+  never goes below the coordinates alone (`landscapeStripWidthPx`), and there the bar gives way.
+- The bar is placed by the strip's measured width, as padding on the rail's side, so the two meet on the same pixel. The line
+  is centred on the strip's inner edge. The scaffold falls back to -729's half for the first frame before the strip is measured.
+
+**Measurements** (native graphics, xxhdpi, font 1.0, heading 315° NW, 9843 ft; `LandscapeBarStripJoinTest`):
+
+| Window, rotation | Bar | Strip (width) | Line | Height |
+|---|---|---|---|---|
+| 780 x 360, 90 | 0 to 342.33 | 342.33 to 700 (357.67) | 341.67 to 342.67 | 36 / 36 |
+| 780 x 360, 270 | 437.67 to 780 | 80 to 437.67 (357.67) | 437.33 to 438.33 | 36 / 36 |
+| 823 x 384, 90 | 0 to 385.33 | 385.33 to 743 (357.67) | 384.67 to 385.67 | 36 / 36 |
+| 823 x 384, 270 | 437.67 to 823 | 80 to 437.67 (357.67) | 437.33 to 438.33 | 36 / 36 |
+
+The strip shows **heading, altitude and coordinates whole** in both windows, both rotations, MGRS and decimal: "315° NW",
+"9843 ft", "10T ER 24991 40768" / "45.5200, -122.6800". The bar's resting text "October · Search a location" is whole (342.33
+dp bar at 780). With a long search showing (floor binds), the bar is 394.33 dp, the strip 305.67 dp at 780 and 348.67 dp at
+823, showing altitude and coordinates (the heading dropped), Clear inside the bar and the summary whole.
+
+**Tests** (`LandscapeBarStripJoinTest`, now 11 per window, 22 in all, 22 pass): the join equals the strip's measured inner edge
+(±0.5 dp) and the bar's edge; the line sits on it; equal heights; the three-dot button by real touches; long-presses around
+the join; heading, altitude and coordinates whole in both formats; the bar's resting text whole; with a search showing,
+summary and Clear whole; with a long search, the floor kept and the heading dropped, coordinates shown. The -729 B2 tests S1
+and S2 (two each) now assert the new rule, citing -732: the bar runs from the punch-hole edge to the strip's inner edge.
+`LandscapeLargeFontTest` at font 2.0 passes as written (coordinates 18 of 18).
+
+**Revert checks** (same runner; all compiled, all fresh, all restored byte-identical, `git status` clean after):
+
+| # | Edit | Failed | Message |
+|---|---|---|---|
+| R5 | strip back to half the room (the fit removed) | 780: 4/11; 823: 1/11 | "MGRS: compass-strip-heading is shown" (780); "positive control: the floor bound, so the heading gave way" (823, where half the room, 371.5 dp, is wider than the need) |
+| R6 | bar ignores the strip's width | 3/11 each | "the bar's right edge is the strip's inner edge expected 342.33 but was 390.0" (823: 385.33 / 411.67) |
+| R7 | bar floor 0 | 1/11 each | "positive control: the floor bound, so the heading gave way ([315° NW, 9843 ft, 10T ER 24991 40768])" |
+| R2 | bar keeps its own height | 2/11 each | "the bar is the strip's height expected 36.0 but was 45.0" |
+| R3 | no line | 2/11 each | "could not find any node ... 'landscape-bar-strip-line'" |
+| R4 | L not re-fitted on the limit | B1 2/18, notice 1/1 | "the L did not move ... expected 45.0 but was 44.0"; "expected 47.0 but was 44.0" |
+
+**Full suite: 4,438 tests in 568 classes, 24 skipped, 3 failures, 0 errors** (JUnit XML; Gradle agrees). The three are
+existing tests, not touched:
+- `LandscapeLRulingsTest` "B1 at ROTATION_90 / 270 ... a notice makes room and the L does not move": "the notice [112, 36]
+  [302, 116] is still wide enough to read (at least 200 dp)" (190 dp).
+- `LayoutFixesChipRowLandscapeTest` "T7 with the cluster on the far side the two chips have room and stay on one line": the
+  journal chip wraps under the taxon chip.
+
+Cause: these harnesses pass no compass, so the heading reads as a status ("Compass unavailable", inferred from the default
+`AndroidCompassProvider` under Robolectric, not printed). Allowing for the status's width makes the strip wider and the bar,
+which the notice and the chip row take their width from, narrower (about 302 dp at 823). Confirmed by order: with the status
+allowance absent, these B1 tests passed (18 of 18); adding it made B2 S5 pass (its heading node was dropped without it) and
+B1 fail. So the choice is between showing a compass status whole and keeping the bar wide enough for a notice beside the L
+and for two chips on one line, when the phone reports no usable compass. Options: keep the allowance (now); measure the value
+form only, so a status drops first (B2 S5 then fails, the heading status no longer shows in short landscape); or add the
+notice's 200 dp beside the L, and the chips, to the bar's floor. For the owner.
+
+Free disk 3.3 GB at the end. `t6b-night` inactive before every run, not touched. `./gradlew --stop` after every scope; no
+Gradle process left.
