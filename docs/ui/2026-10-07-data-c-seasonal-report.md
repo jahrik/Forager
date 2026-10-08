@@ -177,3 +177,44 @@ row when the model served none. Tested through the real screen and ViewModel in
 `AvailabilityScreenConditionsMonthTest` (row shown as "Moist, 0.27 m³/m³"; no row without a
 reading). `displayDate` stays alone in `ui/availability/DisplayDates.kt` so a merge with data part
 A's formatter can unify them. Still not compiled or run.
+
+## Build and test results (the planner's Gradle go, 2026-10-08T00:57Z)
+
+**Merge.** `origin/main` at `bc85fd29` (failure-fixes, motion Parts 1 and 2) merged in as `a374ce87`. Three
+conflicts, none where both sides changed the same logic:
+- `AvailabilityCompactMapUi.kt`: main wrapped the legend chip in motion Part 2's `MapPopUp`; this branch added
+  the zoomed-out flag to `mapLegendFor`. Kept main's pop-up and passed the flag to its `mapLegendFor` call.
+- `AvailabilityResultsUi.kt` imports: kept main's `clickableWithShapedPress`; dropped `Canvas`, whose chart moved
+  out on this branch. Main's SpeciesRow change (shaped press) merged cleanly and is untouched.
+- `docs/audits/README.md`: every row kept from both sides.
+No icon button was added in this part, so nothing needed to go through `BouncingIconButton`.
+
+**Runs.** Each run was under `systemd-run --user --scope -p MemoryMax=5G -p MemorySwapMax=0`, with Gradle at `-Xmx1536m`,
+the Kotlin daemon at `-Xmx2g`, and Java temp at `~/.cache/forager-test-tmp`. No daemon was running at the start;
+free disk was 3.8 to 4.1 GB throughout.
+- Compile (`:app:compileDebugUnitTestKotlin`): succeeded first time, with no compile errors. The Kotlin daemon was
+  then stopped before the tests.
+- New and changed classes: 160 tests in 14 classes, 0 failures.
+- Full suite (`:app:testDebugUnitTest`): **4,110 tests in 513 classes, 0 failed, 24 skipped**. That is the
+  JUnit XML tally. The source has 3,883 `@Test` methods; the difference comes from abstract classes run under
+  several configurations (for example the three `AvailabilityScreenLayout*` variants).
+- No existing test broke.
+- `./gradlew --stop` was run at the end; no Gradle or Kotlin daemon is left.
+
+**Revert checks (8).** Each one saved a copy of the file, made a one-line edit (refused if it matched other than once or changed
+nothing), ran the affected classes, checked the build log for compile errors (none in any of the eight), read the
+JUnit XML, and restored the file from the saved copy. Afterwards `git status` was clean, so the forward state is HEAD.
+1. `toDomain` passes `dailyRain = emptyList()`: both new parsing tests fail ("but was:<[]>").
+   `AvailabilityScreenConditionsMonthTest`'s chart test does **not** fail, and could not: its fake provider builds
+   the `ConditionsSummary` itself, past `toDomain`. My prediction listed it; the prediction was wrong, not the
+   check. The screen test holds the path from the summary to the chart; the parsing tests hold `toDomain`.
+2. Span index `(lag + 1) / spanDays`: three histogram and chart tests fail (spans `[1, 2, 0, 1, 0, 0]`).
+3. Scale `<=` at the dry threshold: "threshold itself is Moist" fails (`MOIST` expected, `DRY`).
+4. Host drops `onZoomedOutChanged`: the zoomed-out legend screen test fails (note not displayed).
+5. Chip never draws the note: the same test fails.
+6. `TripWindowRow` back to "MMM d": the trip window screen test fails (no "Aug 16, 2025 – Aug 18, 2025").
+7. "Last rainy day" without the +1: the chart-model test and the conditions-month screen test fail ("3 days ago").
+8. The Seasonal soil moisture row never added: the amendment's screen test fails.
+
+**Still device-only.** The charts' drawing and fit, the scale's look at large font sizes, and the camera zoom trigger
+inside `SightingsMap`.
