@@ -97,6 +97,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBars
@@ -425,6 +426,18 @@ internal fun CompactMainScaffold(
         // positioning — this stays a one-time text-measurement-derived constant instead, the
         // proven-safe shape that doc comment prescribes.
         val searchBarHeight = compassStripClearance * 2 + Spacing.xs * 3 + DividerDefaults.Thickness
+        // RECORD -729 (the owner: "The search bar height can change to meet the height of the strip"; on navigation, "Strip
+        // only"): in a short landscape window on the Maps tab, not navigating, the bar takes the compass strip's measured height
+        // (CompactMapTab's onLandscapeStripHeightMeasured), and everything placed by the bar's bottom here follows it, as -709
+        // has things follow the strip's measured bottom in portrait. Equal heights mean the bar's bottom is the strip's too.
+        // 0 until the strip is measured, and while navigating, where the bar keeps searchBarHeight. Portrait never sets it.
+        var landscapeStripHeight by remember { mutableStateOf(0.dp) }
+        // RECORD -732: the strip's measured width there; the bar takes the rest of the room. 0 until measured.
+        var landscapeStripWidth by remember { mutableStateOf(0.dp) }
+        val barMeetsStrip = isLandscapeWindow && compactTab() == CompactTab.MAP && !isNavigating
+        val mapSearchBarHeight = if (barMeetsStrip && landscapeStripHeight > 0.dp) landscapeStripHeight else searchBarHeight
+        // A height left over from an earlier landscape Maps tab is not reused: it is measured again on the way back.
+        LaunchedEffect(barMeetsStrip) { if (!barMeetsStrip) { landscapeStripHeight = 0.dp; landscapeStripWidth = 0.dp } }
         // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): the Maps tab's compass strip as measured,
         // handed up through searchBarSlot; 0 while it is not measured (before its first layout, while navigating, in a landscape
         // window), where the dropdown keeps the one-line clearance above. See CompactMapTab's compassStripBottomClearance.
@@ -445,7 +458,7 @@ internal fun CompactMainScaffold(
         // this crashed AvailabilityScreenMapIconStackTest's own new fullscreen-toggle test on the
         // very first run, uncoerced.
         val animatedTopInset by animateDpAsState(
-            targetValue = if (isMapFullscreen()) 0.dp else searchBarHeight,
+            targetValue = if (isMapFullscreen()) 0.dp else mapSearchBarHeight,
             animationSpec = MotionTokens.panelMotionSpec(),
             label = "mapTopInset",
         )
@@ -1021,7 +1034,24 @@ internal fun CompactMainScaffold(
                             } else {
                                 mapControlsPadding.calculateRightPadding(searchLayoutDirection)
                             }
-                            minOf(LANDSCAPE_SEARCH_MAX_WIDTH, maxWidth / 2 - punchHoleInset - LANDSCAPE_SEARCH_CENTRE_GAP).coerceAtLeast(0.dp)
+                            val railInset = if (portEdge == ScreenEdge.Left) {
+                                mapControlsPadding.calculateLeftPadding(searchLayoutDirection)
+                            } else {
+                                mapControlsPadding.calculateRightPadding(searchLayoutDirection)
+                            }
+                            if (!isNavigating && landscapeStripWidth > 0.dp) {
+                                // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): not navigating, the bar
+                                // takes the room the strip leaves and ends where the strip begins (CompactMapTab's
+                                // landscapeStripFit, which keeps the bar's floor). No 384 dp cap and no gap. While navigating it
+                                // keeps the capped width below, which the navigation display is placed beside (RECORD -694, -715;
+                                // the owner, on navigation: "Strip only").
+                                (maxWidth - punchHoleInset - railInset - landscapeStripWidth).coerceAtLeast(0.dp)
+                            } else if (!isNavigating) {
+                                // Before the strip is first measured: RECORD -729's half, for that frame.
+                                (maxWidth / 2 - punchHoleInset).coerceAtLeast(0.dp)
+                            } else {
+                                minOf(LANDSCAPE_SEARCH_MAX_WIDTH, maxWidth / 2 - punchHoleInset - LANDSCAPE_SEARCH_CENTRE_GAP).coerceAtLeast(0.dp)
+                            }
                         } else {
                             null
                         }
@@ -1051,10 +1081,22 @@ internal fun CompactMainScaffold(
                                 clusterPosition = mapIconClusterPosition,
                                 cameraMemory = mapCameraMemory,
                                 returnMemory = mapReturnMemory,
-                                // Landscape B2: the punch-hole side, and the search bar's capped
-                                // width there (the chip sits under it, within it).
-                                punchHoleEdge = if (showRail) punchHoleEdge else null,
-                                landscapeSearchWidth = landscapeSearchWidth,
+                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapLandscape).
+                                landscape = CompactMapLandscape(
+                                    // Landscape B1: in a short landscape window this tab overlays
+                                    // the rail on the port edge in place of its bottom bar, and pads
+                                    // its controls clear of it (showRail, mapControlsPadding).
+                                    railPortEdge = if (showRail) portEdge else null,
+                                    // Landscape B2: the punch-hole side, and the search bar's capped
+                                    // width there (the chip sits under it, within it).
+                                    punchHoleEdge = if (showRail) punchHoleEdge else null,
+                                    landscapeSearchWidth = landscapeSearchWidth,
+                                    onRailWidthMeasured = { mapRailWidthPx = it },
+                                    // RECORD -729: the landscape strip's height, which the bar takes (mapSearchBarHeight).
+                                    onLandscapeStripHeightMeasured = { landscapeStripHeight = it },
+                                    // RECORD -732: and its width; the bar takes the rest of the room (landscapeSearchWidth).
+                                    onLandscapeStripWidthMeasured = { landscapeStripWidth = it },
+                                ),
                                 // Attribution must rise above the floating bottom nav while the nav
                                 // is there — fullscreen-fixes dispatch, Item 1 (third design) — and
                                 // follow it off screen while it isn't: safeAttributionBottomInset
@@ -1093,58 +1135,62 @@ internal fun CompactMainScaffold(
                                 isDrawerOpen = isDrawerOpen(),
                                 onBottomNavTabSelected = onBottomNavTabSelected,
                                 onBottomNavHeightMeasured = { bottomNavHeightPx = it },
-                                // Landscape B1: in a short landscape window this tab overlays
-                                // the rail on the port edge in place of its bottom bar, and pads
-                                // its controls clear of it (showRail, mapControlsPadding).
-                                railPortEdge = if (showRail) portEdge else null,
-                                onRailWidthMeasured = { mapRailWidthPx = it },
                                 controlsPadding = mapControlsPadding,
                                 onLocateMe = onLocateMe,
-                                isRecording = isRecording,
-                                onToggleRecording = onToggleRecording,
-                                startRecordingErrorMessage = startRecordingErrorMessage,
-                                breadcrumbPoints = breadcrumbPoints,
-                                waypoints = mapWaypoints,
-                                onDropWaypoint = onDropWaypoint,
-                                returnToStart = returnToStart,
-                                isReturning = isReturning,
-                                isNavigating = isNavigating,
-                                isOffTrack = isOffTrack,
+                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapRecording).
+                                recording = CompactMapRecording(
+                                    isRecording = isRecording,
+                                    onToggleRecording = onToggleRecording,
+                                    startRecordingErrorMessage = startRecordingErrorMessage,
+                                    breadcrumbPoints = breadcrumbPoints,
+                                    waypoints = mapWaypoints,
+                                    onDropWaypoint = onDropWaypoint,
+                                ),
+                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapNavigation).
+                                navigation = CompactMapNavigation(
+                                    returnToStart = returnToStart,
+                                    isReturning = isReturning,
+                                    isNavigating = isNavigating,
+                                    isOffTrack = isOffTrack,
+                                    onToggleReturning = onToggleReturning,
+                                    navigationTarget = navigationTarget,
+                                    returnRoute = returnRoute,
+                                    routeLine = routeLine,
+                                    onRetryRoute = onRetryRoute,
+                                    isNavigatingToWaypoint = waypointNavigate.isNavigatingToWaypoint,
+                                    waypointStraightLine = waypointNavigate.straightLine,
+                                    waypointReopen = waypointNavigate.mapReopen,
+                                    onWaypointReopenConsumed = waypointNavigate.onMapReopenConsumed,
+                                    navigationFollowing = navigationFollowing,
+                                    navigationViewRequestId = navigationViewRequestId,
+                                    onLeftNavigationView = onLeftNavigationView,
+                                    onReturnToRoute = onReturnToRoute,
+                                    navigationZoomPending = navigationZoomPending,
+                                    onNavigationZoomApplied = onNavigationZoomApplied,
+                                ),
                                 recordingSundownLine = recordingSundownLine,
                                 quickSettings = quickSettings,
-                                onToggleReturning = onToggleReturning,
                                 compassProvider = compassProvider,
                                 computeTrueHeading = computeTrueHeading,
-                                navigationTarget = navigationTarget,
-                                returnRoute = returnRoute,
-                                routeLine = routeLine,
-                                onRetryRoute = onRetryRoute,
-                                isNavigatingToWaypoint = waypointNavigate.isNavigatingToWaypoint,
-                                waypointStraightLine = waypointNavigate.straightLine,
-                                waypointReopen = waypointNavigate.mapReopen,
-                                onWaypointReopenConsumed = waypointNavigate.onMapReopenConsumed,
                                 showDecimalDegrees = showDecimalDegrees,
                                 onToggleCoordinateFormat = onToggleCoordinateFormat,
-                                navigationFollowing = navigationFollowing,
-                                navigationViewRequestId = navigationViewRequestId,
-                                onLeftNavigationView = onLeftNavigationView,
-                                onReturnToRoute = onReturnToRoute,
-                                navigationZoomPending = navigationZoomPending,
-                                onNavigationZoomApplied = onNavigationZoomApplied,
                                 currentTime = currentTime,
                                 taxonFilter = mapTaxonFilter(),
                                 onClearTaxonFilter = onClearMapTaxonFilter,
-                                // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
-                                // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
-                                // pickingSearchLocationOnMap doc comment.
-                                pickingSearchLocation = pickingSearchLocationOnMap,
-                                onSearchLocationPicked = { location ->
-                                    onManualLatChanged("%.4f".format(location.lat))
-                                    onManualLngChanged("%.4f".format(location.lng))
-                                    onSearchManualCoordinates()
-                                    pickingSearchLocationOnMap = false
-                                },
-                                onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapSearchLocationPick).
+                                searchLocationPick = CompactMapSearchLocationPick(
+                                    // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
+                                    // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
+                                    // pickingSearchLocationOnMap doc comment.
+                                    pickingSearchLocation = pickingSearchLocationOnMap,
+                                    onSearchLocationPicked = { location ->
+                                        onManualLatChanged("%.4f".format(location.lat))
+                                        onManualLngChanged("%.4f".format(location.lng))
+                                        onSearchManualCoordinates()
+                                        pickingSearchLocationOnMap = false
+                                    },
+                                    onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                                ),
                                 // SearchEntryBar now overlays this tab directly (see searchBarSlot's
                                 // own doc comment below) rather than sitting above it in document
                                 // flow, so the strip/bubble/filter-chip positioning CompactMapTab
@@ -1158,7 +1204,7 @@ internal fun CompactMainScaffold(
                                 // it.
                                 topInset = safeAnimatedTopInset,
                                 // The L's top limit: the bar's bottom whether or not fullscreen is hiding it (Part B, A1 item 1).
-                                searchBarBottom = searchBarHeight,
+                                searchBarBottom = mapSearchBarHeight,
                                 // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
                                 searchNoticeBottom = if (searchNoticeMessage(uiState) != null && !isMapFullscreen()) {
                                     with(LocalDensity.current) { searchChromeHeightPx.toDp() }
@@ -1227,7 +1273,18 @@ internal fun CompactMainScaffold(
                                             // Landscape B1: clear of the overlaid rail and the
                                             // cut-out band (mapControlsPadding); zero in portrait.
                                             // Landscape B2 (S2): capped and on the punch-hole side.
-                                            modifier = if (landscapeSearchWidth != null) {
+                                            modifier = if (landscapeSearchWidth != null && barMeetsStrip && landscapeStripWidth > 0.dp) {
+                                                // RECORD -732: the rest of the room, by the strip's measured width as padding on the
+                                                // rail's side, so the bar ends on the strip's own first pixel whatever the rounding
+                                                // (the rounding fix of -729, carried over).
+                                                Modifier
+                                                    .padding(mapControlsPadding)
+                                                    .absolutePadding(
+                                                        left = if (portEdge == ScreenEdge.Left) landscapeStripWidth else 0.dp,
+                                                        right = if (portEdge == ScreenEdge.Right) landscapeStripWidth else 0.dp,
+                                                    )
+                                                    .fillMaxWidth()
+                                            } else if (landscapeSearchWidth != null) {
                                                 Modifier
                                                     .padding(mapControlsPadding)
                                                     .fillMaxWidth()
@@ -1254,6 +1311,8 @@ internal fun CompactMainScaffold(
                                                 // The Maps tab's own bar, over its map (map chrome at 80%;
                                                 // owner, "1 A": its suggestions stack over the 0.8 panel).
                                                 overMap = true,
+                                                // RECORD -729: the strip's height in landscape, not navigating; null keeps the bar's own.
+                                                landscapeHeight = mapSearchBarHeight.takeIf { barMeetsStrip && landscapeStripHeight > 0.dp },
                                             )
                                             // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
                                             // bar's bottom over this column, so the notice starts where the strip's own measured height ends.
@@ -1457,7 +1516,7 @@ internal fun CompactMainScaffold(
                                         // tab, where the nav lives in this Box; every other tab keeps it
                                         // in bottomBar again, so this is a no-op there.
                                         .padding(
-                                            top = if (compactTab() == CompactTab.MAP) searchBarHeight else 0.dp,
+                                            top = if (compactTab() == CompactTab.MAP) mapSearchBarHeight else 0.dp,
                                             bottom = if (compactTab() == CompactTab.MAP) bottomNavHeight else 0.dp,
                                         )
                                         // Landscape B2 (S2): off the overlaid rail, so a tap on the
@@ -1477,7 +1536,7 @@ internal fun CompactMainScaffold(
                             // one — Kotlin then refuses it ("cannot be called with an implicit
                             // receiver") since a BoxScope, not a ColumnScope, is this call's real one.
                             // fullscreen-fixes dispatch, Item 1 (third design): fed into heightIn below.
-                            val searchDropdownTopOffset = if (compactTab() == CompactTab.MAP) searchBarHeight + mapCompassStripHeight.coerceAtLeast(compassStripClearance) else 0.dp
+                            val searchDropdownTopOffset = if (compactTab() == CompactTab.MAP) mapSearchBarHeight + mapCompassStripHeight.coerceAtLeast(compassStripClearance) else 0.dp
                             // Part 1 layout fixes, item 3 (Part 1's device check, check 8): on the Maps tab
                             // this Box runs to the window's bottom, since the tab's contentWindowInsets
                             // reserve only the top and sides, so the keyboard does not shrink it. The panel's
