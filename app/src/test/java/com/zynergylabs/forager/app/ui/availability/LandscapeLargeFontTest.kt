@@ -231,15 +231,15 @@ class LandscapeLargeFontTest {
     @Test
     fun `font 1,0 the strip and the display are whole, one line each, and clear of the search bar`() {
         setScreen(Surface.ROTATION_90, navigating = false)
-        assertOneLineEach("font 1.0", STRIP_TAG, whole = true)
         assertClearOfSearchBar("font 1.0", STRIP_TAG)
+        assertOneLineEach("font 1.0", STRIP_TAG, whole = true)
     }
 
     @Test
     fun `font 1,0 the display is whole, one line each, and clear of the search bar`() {
         setScreen(Surface.ROTATION_90, navigating = true)
-        assertOneLineEach("font 1.0", NAVIGATION_HUD_TAG, whole = true)
         assertClearOfSearchBar("font 1.0", NAVIGATION_HUD_TAG)
+        assertOneLineEach("font 1.0", NAVIGATION_HUD_TAG, whole = true)
         assertAboveCentralThird("font 1.0")
     }
 
