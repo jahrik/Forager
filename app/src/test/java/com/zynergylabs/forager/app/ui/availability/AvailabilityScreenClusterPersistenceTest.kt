@@ -100,12 +100,12 @@ class AvailabilityScreenClusterPersistenceTest {
      * the main thread, or a touch's effect, is not always run by its polling. Idling first each time is
      * what lets the work the condition waits for actually happen.
      */
-    private fun awaitIdle(condition: () -> Boolean) {
+    private fun awaitIdle(what: String = "condition", condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + 5_000
         while (true) {
             composeRule.waitForIdle()
             if (condition()) return
-            check(System.currentTimeMillis() < deadline) { "condition still false after 5 s" }
+            check(System.currentTimeMillis() < deadline) { "still waiting after 5 s for: $what" }
             Thread.sleep(20)
         }
     }
@@ -118,7 +118,7 @@ class AvailabilityScreenClusterPersistenceTest {
      */
     private fun release(scope: Job) {
         scope.cancel()
-        awaitIdle { scope.isCompleted }
+        awaitIdle("the released store to close") { scope.isCompleted }
     }
 
     @Before
@@ -162,7 +162,7 @@ class AvailabilityScreenClusterPersistenceTest {
         val firstViewModel = mapLayersViewModel(errorLog = errorLog, clusterPlacements = firstRepository)
         var current by mutableStateOf(firstViewModel)
         composeRule.setContent { key(current) { MapLayersTestScreen(current, map.slot, AbsentForecastCellStore) } }
-        awaitIdle { clusterDrawn() }
+        awaitIdle("the cluster to be drawn") { clusterDrawn() }
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         val before = bar()
         assertTrue("it opens on the right ($before)", before.left.value > (root.left.value + root.right.value) / 2)
@@ -172,7 +172,7 @@ class AvailabilityScreenClusterPersistenceTest {
         val dragged = bar()
         assertTrue("it snapped to the left ($dragged)", dragged.right.value < (root.left.value + root.right.value) / 2)
         assertTrue("it moved down (top ${before.top} -> ${dragged.top})", dragged.top.value > before.top.value + 50f)
-        awaitIdle { stored(firstRepository)?.portraitOnLeft == true }
+        awaitIdle("the left side to be stored") { stored(firstRepository)?.portraitOnLeft == true }
 
         // Then minimises it, which is not stored.
         composeRule.onRoot().performTouchInput { click(centreOf(composeRule.onNodeWithTag(MINIMIZE_HANDLE_TAG).getUnclippedBoundsInRoot())) }
@@ -198,7 +198,7 @@ class AvailabilityScreenClusterPersistenceTest {
         assertEquals(0, composeRule.onAllNodesWithContentDescription(RESTORE_HANDLE_DESCRIPTION).fetchSemanticsNodes().size)
 
         held.release()
-        awaitIdle { clusterDrawn() }
+        awaitIdle("the cluster to be drawn") { clusterDrawn() }
         val restored = bar()
         assertTrue("on the left, where it was left (dragged $dragged, restored $restored)", abs(restored.left.value - dragged.left.value) <= 1f)
         assertTrue("at the height it was dragged to (dragged $dragged, restored $restored)", abs(restored.top.value - dragged.top.value) <= 1f)
@@ -217,7 +217,7 @@ class AvailabilityScreenClusterPersistenceTest {
         val (repository, repositoryScope) = launchRepository()
         val viewModel = mapLayersViewModel(errorLog = errorLog, clusterPlacements = repository)
         composeRule.setContent { MapLayersTestScreen(viewModel, map.slot, AbsentForecastCellStore) }
-        awaitIdle { clusterDrawn() }
+        awaitIdle("the cluster to be drawn") { clusterDrawn() }
         composeRule.waitForIdle()
 
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()

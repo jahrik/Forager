@@ -120,12 +120,12 @@ class AvailabilityScreenBasemapPersistenceTest {
      * the main thread, or a touch's effect, is not always run by its polling. Idling first each time is
      * what lets the work the condition waits for actually happen.
      */
-    private fun awaitIdle(condition: () -> Boolean) {
+    private fun awaitIdle(what: String = "condition", condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + 5_000
         while (true) {
             composeRule.waitForIdle()
             if (condition()) return
-            check(System.currentTimeMillis() < deadline) { "condition still false after 5 s" }
+            check(System.currentTimeMillis() < deadline) { "still waiting after 5 s for: $what" }
             Thread.sleep(20)
         }
     }
@@ -138,7 +138,7 @@ class AvailabilityScreenBasemapPersistenceTest {
      */
     private fun release(scope: Job) {
         scope.cancel()
-        awaitIdle { scope.isCompleted }
+        awaitIdle("the released store to close") { scope.isCompleted }
     }
 
     @Before
@@ -184,7 +184,7 @@ class AvailabilityScreenBasemapPersistenceTest {
         val (repository, repositoryScope) = launchRepository()
         val viewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = repository)
         composeRule.setContent { MapLayersTestScreen(viewModel, slot, AbsentForecastCellStore) }
-        awaitIdle { released().isNotEmpty() && stored(repository) == "topographic" }
+        awaitIdle("Topographical released and stored") { released().isNotEmpty() && stored(repository) == "topographic" }
 
         assertEquals(
             "every render mode the map may draw is Topographical",
@@ -207,12 +207,12 @@ class AvailabilityScreenBasemapPersistenceTest {
         val firstViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = firstRepository)
         var current by mutableStateOf(firstViewModel)
         composeRule.setContent { key(current) { MapLayersTestScreen(current, slot, AbsentForecastCellStore) } }
-        awaitIdle { released().isNotEmpty() }
+        awaitIdle("a style to be released to the map") { released().isNotEmpty() }
         assertEquals(Basemap.OPEN_TOPO_MAP, released().last().basemap)
 
         touchLayersRow()
         composeRule.onNodeWithText("Street").performTouchInput { click() }
-        awaitIdle { stored(firstRepository) == "street" }
+        awaitIdle("Street to be stored") { stored(firstRepository) == "street" }
         assertEquals(Basemap.OSM_STANDARD, released().last().basemap)
 
         // The process ends: the first repository lets go of the file.
@@ -233,7 +233,7 @@ class AvailabilityScreenBasemapPersistenceTest {
         assertEquals("nothing may draw while the stored basemap is unread", emptyList<MapRenderMode>(), released())
 
         held.release()
-        awaitIdle { released().isNotEmpty() }
+        awaitIdle("a style to be released to the map") { released().isNotEmpty() }
 
         assertEquals(
             "every render mode the map may draw is the restored Street",
