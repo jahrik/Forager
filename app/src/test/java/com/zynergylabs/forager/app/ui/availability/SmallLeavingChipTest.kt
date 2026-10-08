@@ -44,6 +44,12 @@ import org.robolectric.annotation.Config
  * node's hit area past the clip `leavingTakesNoTouches` relies on (motion Part 3's build found this on a leaving list card), so a
  * touch on, or just beside, a leaving chip could still be handed to it rather than to the map.
  *
+ * **What this test does not show (found at the build, by revert check R15).** It passes with the -691 change turned off as well,
+ * so it is a pin on the behaviour, not evidence for that change. Over the map, a near hit on a small leaving pop-up loses to the
+ * map's own direct hit beneath it, so the gap never reaches the map; it bit only where nothing beneath takes the touch directly
+ * (a list's background, the Entries card in ListMotionTest, revert check R16). The -691 change on the map pop-ups is kept as a
+ * guard for consistency, with that recorded.
+ *
  * Through the real [AvailabilityScreen]: "View on Map" from the List tab shows the chip, a real tap on its clear button makes it
  * leave, and real long-presses are made where it still is, with the clock stopped (state applied before frames are stepped).
  */
