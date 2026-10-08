@@ -486,3 +486,33 @@ in `NoTouchTargetExpansion` with its own leaving flag.
 `LeavingTheJournalFixesTest` F1, as above, untouched. `AvailabilityScreenSettingsPanelTest` passed. `./gradlew --stop` ran, and no
 Gradle or Kotlin daemon is left. Free disk stayed between 4.4 and 4.7 GB.
 
+## RECORD -692: the search bar returns after the slide, 2026-10-08
+
+The owner, verbatim: "Search bar returns after the slide (Recommended)" (option (a) above).
+
+- **Change** (`availability/AvailabilityCompactScaffold.kt`, beside `isEditingJournalEntry`).
+  - The rule that hides the Journal's search bar while an entry is open now also holds it from the frame the entry closes until no
+    Journal page is leaving. Then the bar appears at once, as before.
+  - The scaffold provides a `LeavingPages` count around the Journal (`motion/PageSlide.kt`, `LocalLeavingPages`). Every page that
+    is leaving counts itself in it.
+  - The hold starts on the composition the entry closes in, so the bar is not composed for even one frame in between.
+  - The Maps tab's own search slot reads the same held value where it read `isEditingJournalEntry`.
+  - Nothing else in the search behaviour changed.
+- **`LeavingTheJournalFixesTest` F1 passes unchanged.**
+- **New test `F1b`, in the same class (F1 untouched).** It leaves a new find by Back, with the clock stopped and the write
+  applied, then steps 60 frames:
+  - the search dropdown's scrim never shows;
+  - in every frame with a leaving page, the search bar is absent;
+  - the editor was seen leaving;
+  - after settling, the bar is back and the dropdown closed.
+- **Revert check R17:** the hold removed (`journalSearchHeld = isEditingJournalEntry`), run from a saved copy. The compile log was
+  clean, only fresh XML was read, and the file was restored with its checksum matching.
+  - F1b failed with "frame 0: no search bar while the editor slides out expected:<0> but was:<1>".
+  - F1 failed again with "no node ... 'Draft'".
+- **The diagnostic copy** `LeavingTheJournalFixesDebugTest.kt` was deleted before this work. `git log --all` finds no commit that
+  ever held it.
+- **Full suite:** 4,209 tests, 24 skipped, **0 failures**, all XML fresh from the run.
+  - That is 4,208 before plus F1b.
+  - `AvailabilityScreenJournalShortWindowTest`, `JournalShortWindowCardsTest` and `AvailabilityScreenSettingsPanelTest` all pass.
+- Same caps as every run here. Free disk was 4.4 to 4.7 GB. `./gradlew --stop` ran, and no Gradle or Kotlin daemon is left.
+
