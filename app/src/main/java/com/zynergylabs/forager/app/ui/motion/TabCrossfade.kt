@@ -121,15 +121,15 @@ fun <T> TabCrossfade(
     }
 }
 
-/** Back dispatchers that nothing presses, for a leaving tab's handlers (see [TabCrossfade]). Shares the screen's lifecycle. */
-private class InertBack(private val lifecycleOwner: LifecycleOwner) : OnBackPressedDispatcherOwner, NavigationEventDispatcherOwner {
+/** Back dispatchers that nothing presses, for a leaving tab's handlers (see [TabCrossfade]), and a leaving page's ([PageSlide]). Shares the screen's lifecycle. */
+internal class InertBack(private val lifecycleOwner: LifecycleOwner) : OnBackPressedDispatcherOwner, NavigationEventDispatcherOwner {
     override val onBackPressedDispatcher: OnBackPressedDispatcher = OnBackPressedDispatcher()
     override val navigationEventDispatcher: NavigationEventDispatcher = NavigationEventDispatcher()
     override val lifecycle: Lifecycle get() = lifecycleOwner.lifecycle
 }
 
 @Composable
-private fun rememberInertBackOwner(): InertBack {
+internal fun rememberInertBackOwner(): InertBack {
     val lifecycleOwner = LocalLifecycleOwner.current
     return remember(lifecycleOwner) { InertBack(lifecycleOwner) }
 }

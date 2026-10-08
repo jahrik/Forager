@@ -31,6 +31,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.WordSwap
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -111,6 +114,10 @@ internal fun RecordsLogbookList(
         offlineRegions = availabilityUiState.visibleOfflineRegions,
         zone = ZoneId.systemDefault(),
     )
+    // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt): a deleted track, waypoint or
+    // offline map row fades and shrinks while the rows below close up, and Undo brings it back the way it went. A day whose last
+    // record goes leaves the same way, header and all. Find tiles still re-pair at once (scout R5; not in this part).
+    val dayRows = rememberListRows(days, key = { it.date })
     val now = currentTime.nowEpochMillis()
     // J4b L6: one open row at a time across the logbook; a touch elsewhere or a scroll closes it.
     val swipeGroup = rememberSwipeRevealGroup()
@@ -133,10 +140,12 @@ internal fun RecordsLogbookList(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        if (days.isEmpty()) {
+        if (dayRows.isEmpty()) {
             Text("No records yet.", style = MaterialTheme.typography.bodyMedium)
         }
-        days.forEach { day ->
+        dayRows.forEach { dayRow -> key(dayRow.key) { ListRowMotion(dayRow) { day ->
+          // One column per day, with the list's own spacing, so a leaving day shrinks as one block.
+          Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             LogbookDayHeader(day)
             day.finds.chunked(FIND_COLUMNS).forEach { pair ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -153,9 +162,10 @@ internal fun RecordsLogbookList(
                     repeat(FIND_COLUMNS - pair.size) { Spacer(modifier = Modifier.weight(1f)) }
                 }
             }
-            day.timed.forEach { record ->
+            val timedRows = rememberListRows(day.timed, key = { it.rowKey() })
+            timedRows.forEach { timedRow -> key(timedRow.key) { ListRowMotion(timedRow) { record ->
                 when (record) {
-                    is TimedRecord.TrackRecord -> key(RecordType.TRACKS, record.track.id) {
+                    is TimedRecord.TrackRecord -> run {
                         val row: @Composable () -> Unit = {
                             BadgedRow(
                                 type = RecordType.TRACKS,
@@ -179,7 +189,7 @@ internal fun RecordsLogbookList(
                             row()
                         }
                     }
-                    is TimedRecord.WaypointRecord -> key(RecordType.WAYPOINTS, record.waypoint.id) {
+                    is TimedRecord.WaypointRecord -> run {
                         TwoStageSwipeRow(
                             testTag = swipeToDeleteTag(RecordType.WAYPOINTS, record.waypoint.id),
                             rowKey = RecordType.WAYPOINTS to record.waypoint.id,
@@ -197,7 +207,7 @@ internal fun RecordsLogbookList(
                             }
                         }
                     }
-                    is TimedRecord.OfflineRegionRecord -> key(RecordType.OFFLINE_MAPS, record.region.id) {
+                    is TimedRecord.OfflineRegionRecord -> run {
                         TwoStageSwipeRow(
                             testTag = swipeToDeleteTag(RecordType.OFFLINE_MAPS, record.region.id.toString()),
                             rowKey = RecordType.OFFLINE_MAPS to record.region.id,
@@ -222,23 +232,36 @@ internal fun RecordsLogbookList(
                         }
                     }
                 }
-            }
-        }
+            } } }
+          }
+        } } }
     }
 
+}
+
+/** A timed record's key in its day's list: its type and id, as the rows were keyed before motion Part 3. */
+private fun TimedRecord.rowKey(): Any = when (this) {
+    is TimedRecord.TrackRecord -> RecordType.TRACKS to track.id
+    is TimedRecord.WaypointRecord -> RecordType.WAYPOINTS to waypoint.id
+    is TimedRecord.OfflineRegionRecord -> RecordType.OFFLINE_MAPS to region.id
 }
 
 @Composable
 private fun LogbookDayHeader(day: LogbookDay) {
     val count = day.recordCount
-    Text(
-        "${DAY_HEADER_FORMAT.format(day.date)} · $count ${if (count == 1) "record" else "records"}",
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .padding(top = Spacing.sm)
-            .testTag(logbookDayTag(day.date)),
-    )
+    // Motion Part 3, item 3 (RECORD -651, "Numbers instant, words fade"; scout R7): the count changes at once, and "record"
+    // becoming "records" crossfades. The header takes no touch, so the crossfade moves no touch area.
+    WordSwap(
+        text = "${DAY_HEADER_FORMAT.format(day.date)} · $count ${if (count == 1) "record" else "records"}",
+        modifier = Modifier.padding(top = Spacing.sm),
+    ) { line ->
+        Text(
+            line,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(logbookDayTag(day.date)),
+        )
+    }
 }
 
 /**

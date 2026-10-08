@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.track
 
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -93,7 +95,10 @@ internal fun TrackExportList(
 ) {
     // One open row at a time, and a touch elsewhere on the list closes it (J4b L6).
     val swipeGroup = rememberSwipeRevealGroup()
-    if (tracks.isEmpty()) {
+    // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt): a deleted track's row fades and
+    // shrinks while the rows below close up, and Undo brings it back the way it went. The last one leaves before the empty text.
+    val rows = rememberListRows(tracks, key = { it.id })
+    if (rows.isEmpty()) {
         Text(
             "No recorded tracks yet.",
             style = MaterialTheme.typography.bodyMedium,
@@ -112,8 +117,8 @@ internal fun TrackExportList(
         if (errorMessage != null) {
             Text(errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }
-        tracks.forEach { track ->
-            key(track.id) {
+        rows.forEach { listRow ->
+            key(listRow.key) { ListRowMotion(listRow) { track ->
                 val row: @Composable () -> Unit = {
                     TrackExportRow(
                         track = track,
@@ -133,7 +138,7 @@ internal fun TrackExportList(
                 } else {
                     row()
                 }
-            }
+            } }
         }
     }
 }
