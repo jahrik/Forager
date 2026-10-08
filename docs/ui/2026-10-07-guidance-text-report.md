@@ -120,12 +120,12 @@ entry from `uiState.recentSearches`, then the same assertions as test 1.
 - `cached_searches` gains nullable `speciesIconicTaxonName` (`data/local/CachedSearchEntity.kt`), kept separate from
   `filterIconicTaxonName`, which still tells a category row from a species row. `ForagerDatabase` goes 18 to 19 with
   `MIGRATION_18_19`, `ALL_MIGRATIONS` and `SCHEMA_VERSION` updated, and `app/schemas/.../19.json` added.
-- **A deviation from the amendment, to be confirmed:** `MIGRATION_18_19` rebuilds the table rather than using
+- **A deviation from the amendment, accepted by the planner on 2026-10-08 (same result, the 12 to 13 and 17 to 18 precedent, no change to twelve fixtures):** `MIGRATION_18_19` rebuilds the table rather than using
   `ALTER TABLE ... ADD COLUMN`. Twelve `LegacyForagerDatabaseVn` fixtures declare `CachedSearchEntity` directly (for example
   `MushroomLogMigrationTest.kt:122`), so their tables are generated from the current class, already carry the new column,
   and an `ADD COLUMN` would fail on them with a duplicate column when they migrate through `ALL_MIGRATIONS`. This is the
   pitfall `MIGRATION_12_13` records, and 17 to 18 was a rebuild for the same reason. The result is the same: one nullable
-  column and no backfill.
+  column and no backfill. Rejected: `ALTER TABLE ... ADD COLUMN`, because it would fail on those fixtures; the other way to use it, changing all twelve fixtures to stop declaring the entity, was more change for the same schema.
 - `19.json` was written by hand, because no build may run. Its identity hash, `32bd752c...`, comes from a script that
   re-implements Room 2.8.5's `SchemaIdentityKey` (read from the compiler jar with `javap`). Run on `16.json`, `17.json` and
   `18.json`, that script reproduces each file's own hash exactly. The build's KSP pass rewrites the file, so after the
@@ -150,7 +150,7 @@ species reopened from a recent search shows the fungi pattern and no species not
   - `:792` live version during restore 18 to 19 (the version bump).
   - `:874` `SCHEMA_VERSION` 18 to 19 (the version bump).
 - The newer-backup refusal test's version goes 19 to 20 (manifest and logged text). At 19 it would no longer be newer
-  than the app, and would have stopped testing what it names.
+  than the app, and would have stopped testing what it names. Accepted by the planner with this reason.
 - `MushroomLogMigrationTest`'s fixture constructor gains `speciesIconicTaxonName = null`. This is not an assertion.
 - `RoomSearchCacheRepositoryTest`'s 18 `save` calls gain `speciesIconicTaxonName = null`. These are not assertions.
 
