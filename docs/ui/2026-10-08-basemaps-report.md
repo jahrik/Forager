@@ -341,3 +341,28 @@ layout code. Proposed fix, for the planner to approve: measure each chip's layou
 semantic bounds, or check that the two chips' centres are mirrored about the sheet's centre. Not changed, as instructed.
 
 **Gradle has stopped:** `./gradlew --stop` was run, and `pgrep` finds no Gradle daemon, Kotlin daemon or test worker.
+
+## RECORD -719: the chips centring test, fixed and green; supersedes the "one failure" above
+
+On the planner's go (RECORD -719), `MapChromeChipsTest` (`LayersChipsPortraitTest`, `LayersChipsLandscapeTest`) now makes two
+checks:
+
+1. **The laid-out boxes are centred within 1 dp.** These are the 48 dp touch-target boxes the Row lays out. Each box's width is
+   measured from the chip's layout node (`layoutInfo.width`). Its left edge is worked out from the drawn chip, because the
+   minimum-size modifier centres the chip in its box. A throwaway diagnostic (not committed) confirmed the measurements: the
+   layout nodes are 48 wide, and the drawn chips are 39 dp and 46 dp.
+2. **The drawn chips' visual centre is within 2 dp of the sheet's centre**, so a real centring bug still fails.
+
+The test's doc records why semantic bounds are off-centre by design: Street is 39 dp and Topographical 46 dp, the boxes are centred
+at 412.25, and the drawn chips at 414, on a sheet centred at 412. Commit `5fb02856`.
+
+**Revert checks.** Each was restored from a saved copy, the compile log had no errors, and the forward change was confirmed after:
+- **K1** (the Row aligned to `Start`): fails in both orientations. Landscape gives "the row of laid-out chip boxes [108.5, 208.0]
+  … expected:<412.0> but was:<158.25>"; portrait gives 66.08 against 192.
+- **K2** (the Row shifted 6 dp, `padding(start = 6.dp)`): fails in both. Landscape gives 415.25 against 412; portrait 195.08 against
+  192.
+- **Not proven:** the 2 dp drawn-chip check failing on its own. In both reverts the 1 dp box check fails first.
+
+**Full suite: 561 classes, 4,412 tests, 24 skipped, 0 failures**, all from fresh XML (results directory deleted first; the XML
+covers 09:34 to 09:41 UTC). It ran on a fresh daemon in its own capped scope, with no daemon reused across scopes, and
+`./gradlew --stop` was run afterwards. No Gradle daemon, Kotlin daemon or test worker is running. Free disk 2.6 GB.
