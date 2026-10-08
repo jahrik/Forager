@@ -404,3 +404,22 @@ second tween in `MotionTokens.kt`, or this one copied anywhere, fails the check 
 added). `MotionTokensTest` holds every other category to "no `TweenSpec`" and this one to the constant's duration. Rejected: an
 exception for "timed" animations in general, which would let durations back in one plea at a time.
 
+## Amendment, 2026-10-07: motion Part 3's prune and three new categories
+
+Dispatch 2026-09-28-676 (motion Part 3), under the owner's "Use it, then prune (Recommended)" (RECORD -655). Superseding, not
+rewriting: the table and reasoning above are left as they were written.
+
+- **Removed, with no production caller after the three motion parts:** `markerEntranceSpec`, `MARKER_CLUSTER_STAGGER_STEP_MS`,
+  `selectionPulseSpec`, `SELECTION_PULSE_MIN_SCALE`, `SELECTION_PULSE_MAX_SCALE`, `narrativeRevealSpec`, `ROUTE_REVEAL_MS_PER_KM`,
+  `routeRecalculationMorphSpec` and `dataLayerOverlaySpec` from `MotionTokens.kt`, and the whole of `MotionPrecedence.kt` (its
+  precedence order, degradation tiers, budget and clustering threshold) with `MotionPrecedenceTest.kt`. The rules they encoded
+  stay in `docs/motion-spec.md`; a later caller adds its category back with a reason here.
+- **Added:** `pageSlideSpec` and `listRowSpec` on `defaultEffectsSpec`, and `nightModeFadeSpec` on `fastEffectsSpec`. The first two
+  move bounds, which this ADR would put on a spatial spec; they are on the effects family **because it is critically damped**: an
+  underdamped slide-in overshoots and bares the page beneath at the right edge, and an underdamped list closes up past its place
+  and bounces every row below, the overshoot on a primary surface that ADR-0001 was written against. Rejected: the spatial specs
+  under `expressive()` (all underdamped). `nightModeFadeSpec` is read from the motion scheme the theme is about to provide,
+  because what it fades is the theme's own colours.
+- **Also removed (Amendment 1, RECORD -681):** `MotionTreatment`, `ReducedMotionTreatment` and `reducedMotionEquivalent` from
+  `ReduceMotion.kt`, which the reduced-motion section above discusses; none had a production caller. `docs/motion-spec.md` §4's
+  table is the rule they encoded.

@@ -96,6 +96,7 @@ import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.togetherWith
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.unit.IntSize
@@ -501,6 +502,8 @@ private fun CompassElevationStripContent(
                     contentAlignment = Alignment.Center,
                     label = "stripReadout",
                 ) { kind ->
+                    // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
+                    NoTouchTargetExpansion(active = kind != readoutKind) {
                     Box(
                         modifier = Modifier
                             .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
@@ -621,6 +624,7 @@ private fun CompassElevationStripContent(
                                 )
                             }
                         }
+                    }
                     }
                 }
             }

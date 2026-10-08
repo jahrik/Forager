@@ -21,6 +21,10 @@ package com.zynergylabs.forager.app.ui.availability
 // through ForagingWeatherGuidanceSection) in AvailabilityTripWindowsUi.kt; this file keeps the List tab.
 
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -187,9 +191,16 @@ private fun ResultsSection(
                     fontStyle = FontStyle.Italic,
                 )
                 Spacer(Modifier.height(Spacing.sm))
+                // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt; scout L4): when results
+                // update, a species that drops out fades and shrinks, a new one fades and grows in, and one that changes place
+                // glides there. A new search starts from the spinner, so its first results appear at once, as before.
+                val rows = rememberListRows(forecast.entries, key = { it.species.taxonId })
+                val glide = MotionTokens.listRowSpec<IntOffset>()
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    items(forecast.entries, key = { it.species.taxonId }) { entry ->
-                        SpeciesRow(entry, onViewOnMap = onViewOnMap)
+                    items(rows, key = { it.key }) { row ->
+                        ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null)) { entry ->
+                            SpeciesRow(entry, onViewOnMap = onViewOnMap)
+                        }
                     }
                 }
             }

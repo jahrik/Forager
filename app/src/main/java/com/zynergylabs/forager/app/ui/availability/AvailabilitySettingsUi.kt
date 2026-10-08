@@ -20,6 +20,9 @@ package com.zynergylabs.forager.app.ui.availability
 // is removed. Only the album remains, as on the phone"), and the list above records the move as it was.
 
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.PageSlideStyle
+import androidx.compose.ui.graphics.Color
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -217,9 +220,24 @@ private fun CompactSettingsTab(
         showDiagnostics = false
     }
 
+    // Amendment 2 (RECORD -682, "Push slide from the left"; scout T2): Crash logs or Diagnostics slides in from the left while
+    // Settings slides out to the right, and Back reverses it. No fill of their own, as in the drawer above.
+    val page = when {
+        showCrashLogs -> SettingsDrawerPage.CRASH_LOGS
+        showDiagnostics -> SettingsDrawerPage.DIAGNOSTICS
+        else -> SettingsDrawerPage.SETTINGS
+    }
     Column(modifier = modifier.fillMaxSize()) {
-        when {
-            showCrashLogs -> {
+        PageSlide(
+            targetState = page,
+            depthOf = { if (it == SettingsDrawerPage.SETTINGS) 0 else 1 },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            pageColor = Color.Transparent,
+            style = PageSlideStyle.PUSH_FROM_LEFT,
+        ) { shownPage ->
+        Column(modifier = Modifier.fillMaxSize()) {
+        when (shownPage) {
+            SettingsDrawerPage.CRASH_LOGS -> {
                 CrashLogPanel(
                     modifier = Modifier.weight(1f),
                     files = crashFileStore.list(),
@@ -227,14 +245,14 @@ private fun CompactSettingsTab(
                 )
             }
 
-            showDiagnostics -> {
+            SettingsDrawerPage.DIAGNOSTICS -> {
                 DiagnosticsPanel(
                     modifier = Modifier.weight(1f),
                     onBack = { showDiagnostics = false },
                 )
             }
 
-            else -> {
+            SettingsDrawerPage.SETTINGS -> {
                 SettingsContent(
                     modifier = Modifier.weight(1f),
                     distanceUnit = distanceUnit,
@@ -257,8 +275,13 @@ private fun CompactSettingsTab(
                 BuildIdentityFooter()
             }
         }
+        }
+        }
     }
 }
+
+/** Which page of [CompactSettingsTab] shows (motion Part 3, Amendment 2): one value, so the pages can slide between each other. */
+private enum class SettingsDrawerPage { SETTINGS, CRASH_LOGS, DIAGNOSTICS }
 
 /**
  * The Settings panel's body: [DistanceUnitSection], theme, night maps, and Crash Logs.
@@ -622,7 +645,17 @@ internal fun CompactToolsDrawerContent(
         showSettings = false
     }
 
-    if (showSettings) {
+    // Motion Part 3, Amendment 2 (RECORD -682; the owner: "Push slide from the left (Recommended)"; scout T1): Settings slides in
+    // from the drawer's left edge while the Tools list slides out to the right, side by side; Back reverses it. The pages draw no
+    // fill: the drawer's own is the one 80% layer over the map (MapChromeAlphaTest's rule).
+    PageSlide(
+        targetState = showSettings,
+        depthOf = { if (it) 1 else 0 },
+        modifier = Modifier.fillMaxSize(),
+        pageColor = Color.Transparent,
+        style = PageSlideStyle.PUSH_FROM_LEFT,
+    ) { settingsShown ->
+    if (settingsShown) {
         CompactSettingsTab(
             distanceUnit = distanceUnit,
             onDistanceUnitSelected = onDistanceUnitSelected,
@@ -641,9 +674,7 @@ internal fun CompactToolsDrawerContent(
             sundown = sundown,
             offTrackReminder = offTrackReminder,
         )
-        return
-    }
-
+    } else {
     Column(modifier = Modifier.fillMaxSize()) {
         DrawerHeader(onClose = onClose)
         SearchControls(
@@ -652,5 +683,7 @@ internal fun CompactToolsDrawerContent(
             onDeletePlannedTrip = onDeletePlannedTrip,
         )
         SettingsEntryRow(onClick = { showSettings = true })
+    }
+    }
     }
 }
