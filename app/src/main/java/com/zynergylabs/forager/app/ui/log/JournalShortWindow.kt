@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
@@ -124,6 +125,18 @@ internal fun ShortWindowNewEntryButton(onClick: () -> Unit) {
 }
 
 /**
+ * RECORD -753 (the owner: "Yes, match Entries (Recommended)"): Finds' "New find" as an icon button in the L1 row, doing what its
+ * floating button does, the same way [ShortWindowNewEntryButton] does for "New entry". The leaf is the floating button's (the
+ * Finds chip's; RECORD -751).
+ */
+@Composable
+internal fun ShortWindowNewFindButton(onClick: () -> Unit) {
+    BouncingIconButton(onClick = onClick, modifier = Modifier.testTag(SHORT_NEW_FIND_TAG)) {
+        Icon(Icons.Filled.Eco, contentDescription = "New find")
+    }
+}
+
+/**
  * L2: the album's "📷" as an icon button in the L1 row, opening the same Take photo / Import menu the
  * album's floating button opens (J2's `AddPhotoButton`), with the same two actions and item tags.
  * The launchers come from the caller, which holds one set for both buttons, so turning the phone
@@ -216,5 +229,6 @@ internal val SHORT_HEADER_HEIGHT = 48.dp
 internal const val SHORT_HEADER_TAG = "journal-short-header"
 internal const val SHORT_SEARCH_TAG = "journal-short-search"
 internal const val SHORT_NEW_TAG = "journal-short-new"
+internal const val SHORT_NEW_FIND_TAG = "journal-short-new-find"
 internal const val SHORT_PHOTO_TAG = "journal-short-photo"
 internal const val SHORT_DRAFTS_CHIP_TAG = "entries-drafts-chip"

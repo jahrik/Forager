@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.click
@@ -103,6 +104,16 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
     var mapResumeTrackingRequestId: Int = 0
         private set
 
+    /** RECORD -752: the camera memory the map was handed on its latest composition. */
+    var mapCameraMemory: com.zynergylabs.forager.app.ui.map.MapCameraMemory? = null
+        private set
+
+    /** RECORD -761: whether the map was ever handed `leavingTab` (the tab crossfade's outgoing side). */
+    var mapLeavingSeen = false
+
+    /** RECORD -752: every measure of the map slot, in order, with the remembered camera at that moment. */
+    val mapMeasures = mutableListOf<MapMeasure>()
+
     /** What the species lookup answers, for every query (RECORD -750 sets a long name). */
     var taxonResults: List<TaxonSearchResult> = listOf(CHANTERELLE)
 
@@ -167,12 +178,22 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
             getTodaysForecast = GetTodaysForecastUseCase(RigNoWeather),
         )
         val vm = viewModel
-        val mapSlot: MapSlot = { region, content, _, _, _, _, _, _, modifier ->
+        val mapSlot: MapSlot = { region, content, renderMode, _, _, _, _, _, modifier ->
             mapSightings = content.sightings
             mapRegion = region
             mapSearchFrameRequestId = content.searchFrameRequestId
             mapResumeTrackingRequestId = content.resumeTrackingRequestId
-            Box(modifier.testTag(LAYOUT_FIXES_MAP_TAG))
+            mapCameraMemory = renderMode.cameraMemory
+            if (renderMode.leavingTab) mapLeavingSeen = true
+            val memory = renderMode.cameraMemory
+            Box(
+                modifier.testTag(LAYOUT_FIXES_MAP_TAG).layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    // RECORD -752: every size the map is measured at, with the camera it holds then (what a new MapView restores).
+                    mapMeasures += MapMeasure(androidx.compose.ui.unit.IntSize(placeable.width, placeable.height), memory?.saved, composeRule.mainClock.currentTime)
+                    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                },
+            )
         }
         composeRule.setContent {
             val uiState by vm.uiState.collectAsState()
@@ -269,6 +290,9 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
         }
     }
 }
+
+/** RECORD -752: one measure of the map slot: its size in px, the remembered camera handed with it, and the test clock's time then. */
+internal data class MapMeasure(val size: androidx.compose.ui.unit.IntSize, val camera: com.zynergylabs.forager.app.ui.map.MapCameraSnapshot?, val atMs: Long)
 
 internal object RigNoWeather : WeatherProvider, TripPlanningWeatherProvider, HistoricalWeatherProvider {
     override suspend fun getRecentPrecipitation(region: Region) = Result.failure<ConditionsSummary>(UnsupportedOperationException("not exercised"))
