@@ -24,6 +24,8 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
+import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.time.LocalDate
 
@@ -210,6 +212,29 @@ data class AvailabilityUiState(
      * failure (logged, [nightModeMaps] left `false`), so it can never hold the map blank forever.
      */
     val nightModeMapsLoaded: Boolean = false,
+    /**
+     * The Maps tab's basemap (dispatch 2026-09-28-708): restored at start from
+     * [com.zynergylabs.forager.app.domain.BasemapPreferenceRepository] and kept in step with every pick
+     * ([AvailabilityViewModel.onMapModeSelected]). `null` until that read has finished, successfully or
+     * not, which is the second half of the cold-launch gate: `AvailabilityScreen` tells the map no style
+     * may load until this and [nightModeMapsLoaded] are both in, so a phone that left Street never draws
+     * a first frame of Topographical. A failed read, or a stored key naming no map type (Satellite's,
+     * after its removal), is logged and lands here as a real mode, so it can never hold the map blank.
+     */
+    val mapMode: MapMode? = null,
+    /**
+     * The Maps tab's icon cluster's side and height (RECORD -711), as stored: restored at start from
+     * [com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository] and kept in step with every
+     * drag that ends ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). `null` while the read is
+     * pending, and while it is `null` `AvailabilityScreen` does not draw the cluster, so a phone that left
+     * it on the left never shows a frame of it on the right. Every way the read ends (stored, nothing
+     * stored, failed and logged) lands a real placement here, so it cannot keep the cluster hidden.
+     *
+     * The default here is [MapIconClusterPlacement.DEFAULT], not `null`: the ViewModel starts its state
+     * with `null` explicitly (it has a read to wait for), while a host with no ViewModel (the screen tests
+     * that build this state directly) has nothing to wait for and shows the cluster where it always opened.
+     */
+    val mapIconClusterPlacement: MapIconClusterPlacement? = MapIconClusterPlacement.DEFAULT,
 
     /**
      * Settings' "Automatically Save Location to Photos" checkbox — see

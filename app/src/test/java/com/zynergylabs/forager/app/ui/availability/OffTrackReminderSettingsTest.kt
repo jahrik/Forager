@@ -52,7 +52,7 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * Settings > "Off-track reminder" (dispatch 2026-09-28-626, plan T14; Amendment 1, RECORD -627), on
+ * Tools > Sundown > "Off-track reminder" (in Settings until dispatch 2026-09-28-707) (dispatch 2026-09-28-626, plan T14; Amendment 1, RECORD -627), on
  * the real [AvailabilityScreen] and [AvailabilityViewModel] over the real DataStore repository: the
  * owner's words, on by default, flipped by real touches across the row, and read back by a
  * recreated repository, including the synchronous read the off-track rule uses.
@@ -137,9 +137,9 @@ class OffTrackReminderSettingsTest {
             )
         }
         composeRule.waitForIdle()
-        // Navigation to Settings is not the claim here; the touches on the row are.
+        // Opening Tools is not the claim here; the touches on the row are. One tap since dispatch
+        // 2026-09-28-707, where it was Tools then Settings.
         composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Settings").performClick()
         composeRule.waitForIdle()
     }
 

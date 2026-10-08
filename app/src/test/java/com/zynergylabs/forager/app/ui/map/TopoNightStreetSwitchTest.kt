@@ -352,39 +352,14 @@ class TopoNightStreetSwitchTest {
 
     @Test
     fun `day style JSON is byte-identical to before for every basemap`() {
-        assertEquals(SATELLITE_DAY, styleJsonFor(Basemap.USGS_IMAGERY_ONLY, night = false))
         assertEquals(TOPO_DAY, styleJsonFor(Basemap.OPEN_TOPO_MAP, night = false))
         assertEquals(STREET_DAY, styleJsonFor(Basemap.OSM_STANDARD, night = false))
-    }
-
-    @Test
-    fun `Satellite's night style JSON is byte-identical to its day JSON`() {
-        assertEquals(SATELLITE_DAY, styleJsonFor(Basemap.USGS_IMAGERY_ONLY, night = true))
     }
 
     @Test
     fun `Street's night style JSON is byte-identical to before`() {
         assertEquals(STREET_NIGHT, styleJsonFor(Basemap.OSM_STANDARD, night = true))
     }
-
-    private val SATELLITE_DAY = listOf(
-        "{",
-        "  \"version\": 8,",
-        "  \"glyphs\": \"https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf\",",
-        "  \"sources\": {",
-        "    \"basemap\": {",
-        "      \"type\": \"raster\",",
-        "      \"tiles\": [\"https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}\"],",
-        "      \"tileSize\": 256,",
-        "      \"maxzoom\": 15,",
-        "      \"attribution\": \"USGS The National Map, orthoimagery — public domain\"",
-        "    }",
-        "  },",
-        "  \"layers\": [",
-        "    {\"id\": \"basemap\", \"type\": \"raster\", \"source\": \"basemap\"}",
-        "  ]",
-        "}",
-    ).joinToString("\n")
 
     private val TOPO_DAY = listOf(
         "{",

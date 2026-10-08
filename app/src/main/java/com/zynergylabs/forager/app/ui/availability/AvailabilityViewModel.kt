@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository
 import com.zynergylabs.forager.app.domain.AvailabilitySearchResult
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
@@ -56,6 +59,7 @@ import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import com.zynergylabs.forager.app.domain.ForecastAvailability
 import com.zynergylabs.forager.app.domain.MapRecordKind
 import com.zynergylabs.forager.app.domain.isoWeekStart
+import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import com.zynergylabs.forager.app.ui.map.layers.LayerState
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
@@ -164,9 +168,15 @@ class AvailabilityViewModel(
     private val returnLeg: ReturnLeg = NoReturnLeg,
     /** Dispatch 2026-09-28-510: the platform's last known location, shown greyed until anything live arrives. */
     private val lastKnownLocation: LastKnownLocationSource = NoLastKnownLocation,
+    /** Dispatch 2026-09-28-708: where the Maps tab's basemap persists across restarts. */
+    private val basemapPreferenceRepository: BasemapPreferenceRepository = NoStoredBasemap,
+    /** RECORD -711: where the Maps tab's icon cluster's side and height persist across restarts. */
+    private val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = NoStoredMapIconClusterPlacement,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AvailabilityUiState())
+    // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
+    // wait for (loadMapIconClusterPlacement), and the screen draws no cluster until it lands. See the field.
+    private val _uiState = MutableStateFlow(AvailabilityUiState(mapIconClusterPlacement = null))
     val uiState: StateFlow<AvailabilityUiState> = _uiState.asStateFlow()
 
     /** The region+month+filter the current [AvailabilityUiState.sightings] were fetched for, or null if none fetched yet. */
@@ -212,6 +222,8 @@ class AvailabilityViewModel(
         loadMapFullscreenPreference()
         loadThemeModePreference()
         loadMapLayerPreferences()
+        loadBasemapPreference()
+        loadMapIconClusterPlacement()
         loadWaypointNavigation()
         // The compass strip's live coordinates are NOT started here any more. Construction-time
         // collection ran on viewModelScope, which cancels at onCleared() -- Activity destruction,
@@ -667,6 +679,93 @@ class AvailabilityViewModel(
                 },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read the map layer choices.", error) },
             )
+        }
+    }
+
+    /**
+     * The Maps tab's basemap was picked, from the Layers sheet or the quick-fire picker (dispatch
+     * 2026-09-28-708): shown at once, then stored. A failed write is logged; the choice still holds
+     * for this session, as a layer choice's does ([storeLayerChoice]).
+     */
+    fun onMapModeSelected(mode: MapMode) {
+        _uiState.update { it.copy(mapMode = mode) }
+        storeBasemap(mode)
+    }
+
+    /**
+     * RECORD -711: a drag of the icon cluster ended, so its side and height (both orientations) are
+     * stored, and kept here so a recreated screen restores the latest rather than the launch value. A
+     * failed write is logged; the placement still holds for this session.
+     */
+    fun onMapIconClusterPlacementChanged(placement: MapIconClusterPlacement) {
+        _uiState.update { it.copy(mapIconClusterPlacement = placement) }
+        viewModelScope.launch {
+            mapIconClusterPlacementRepository.setMapIconClusterPlacement(placement)
+                .onFailure { error -> errorLog.w(TAG, "Couldn't store the map icon cluster's position.", error) }
+        }
+    }
+
+    /**
+     * The stored icon cluster placement, at start (RECORD -711). Nothing stored is
+     * [MapIconClusterPlacement.DEFAULT], where it always opened; a failed read is logged and also opens
+     * there, storing nothing. Either way [AvailabilityUiState.mapIconClusterPlacement] is set, which is what
+     * lets the screen draw the cluster. A drag that ended before the read landed wins over it.
+     */
+    private fun loadMapIconClusterPlacement() {
+        viewModelScope.launch {
+            val restored = mapIconClusterPlacementRepository.getMapIconClusterPlacement().fold(
+                onSuccess = { it ?: MapIconClusterPlacement.DEFAULT },
+                onFailure = { error ->
+                    errorLog.w(TAG, "Couldn't read the map icon cluster's position; opening it where it always opened.", error)
+                    MapIconClusterPlacement.DEFAULT
+                },
+            )
+            _uiState.update { if (it.mapIconClusterPlacement == null) it.copy(mapIconClusterPlacement = restored) else it }
+        }
+    }
+
+    private fun storeBasemap(mode: MapMode) {
+        viewModelScope.launch {
+            basemapPreferenceRepository.setBasemapKey(mode.storageKey)
+                .onFailure { error -> errorLog.w(TAG, "Couldn't store the basemap choice.", error) }
+        }
+    }
+
+    /**
+     * The stored basemap, at start (dispatch 2026-09-28-708). Nothing stored opens on
+     * [MapMode.DEFAULT], as every launch did before the choice persisted. A stored key naming no map
+     * type (Satellite's, removed by the same dispatch, or anything else) opens on
+     * [MapMode.REPLACEMENT_FOR_UNKNOWN] (owner: "Topo (Recommended)"), is logged (CLAUDE.md: no unlogged
+     * fallback), and the replacement is stored, so the log line fires once, not on every launch. A
+     * failed read is logged and opens on [MapMode.DEFAULT], storing nothing: the stored value may be
+     * fine and the next launch may read it.
+     *
+     * Every outcome sets [AvailabilityUiState.mapMode], which is what releases the map's style gate,
+     * so it cannot hold the map blank. A pick made before the read lands wins over the read.
+     */
+    private fun loadBasemapPreference() {
+        viewModelScope.launch {
+            val restored = basemapPreferenceRepository.getBasemapKey().fold(
+                onSuccess = { key ->
+                    if (key == null) {
+                        MapMode.DEFAULT
+                    } else {
+                        MapMode.forStoredKey(key) ?: MapMode.REPLACEMENT_FOR_UNKNOWN.also { replacement ->
+                            errorLog.w(
+                                TAG,
+                                "The stored basemap \"$key\" names no map type; opening on ${replacement.label} and storing that.",
+                                IllegalStateException("unknown basemap key $key"),
+                            )
+                            storeBasemap(replacement)
+                        }
+                    }
+                },
+                onFailure = { error ->
+                    errorLog.w(TAG, "Couldn't read the stored basemap; opening on ${MapMode.DEFAULT.label}.", error)
+                    MapMode.DEFAULT
+                },
+            )
+            _uiState.update { if (it.mapMode == null) it.copy(mapMode = restored) else it }
         }
     }
 
@@ -1731,6 +1830,24 @@ private object NoStoredMapLayerPreferences : MapLayerPreferencesRepository {
     override suspend fun setLayerOpacity(layerId: String, opacity: Float): Result<Unit> = Result.success(Unit)
 
     override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = Result.success(Unit)
+}
+
+/**
+ * The default [BasemapPreferenceRepository] for the suites that construct this ViewModel and never
+ * touch the basemap: nothing stored, so the map opens on [MapMode.DEFAULT]; every write accepted.
+ * `MainActivity` passes the real `map_preferences` store.
+ */
+private object NoStoredBasemap : BasemapPreferenceRepository {
+    override suspend fun getBasemapKey(): Result<String?> = Result.success(null)
+
+    override suspend fun setBasemapKey(key: String): Result<Unit> = Result.success(Unit)
+}
+
+/** The default [MapIconClusterPlacementRepository] for suites that never move the cluster: nothing stored, every write accepted. */
+private object NoStoredMapIconClusterPlacement : MapIconClusterPlacementRepository {
+    override suspend fun getMapIconClusterPlacement(): Result<MapIconClusterPlacement?> = Result.success(null)
+
+    override suspend fun setMapIconClusterPlacement(placement: MapIconClusterPlacement): Result<Unit> = Result.success(Unit)
 }
 
 /**

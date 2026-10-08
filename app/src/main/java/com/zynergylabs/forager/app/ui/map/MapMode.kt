@@ -1,41 +1,62 @@
 package com.zynergylabs.forager.app.ui.map
 
 /**
- * The three basemap looks a user picks between from the map's own quick-fire "Map Mode" control —
- * replaces [MapService] entirely, per the project owner's own request: Street and Topographical no
- * longer offer a choice of tile provider (both are always OpenStreetMap-derived now), and Satellite
- * is new, always USGS.
+ * The two basemap looks a user picks between: Street and Topographical, both OpenStreetMap-derived,
+ * from the Layers sheet's "Map type" row (`MapLayersSheet`) or the quick-fire [MapModePicker].
+ * Replaced the deleted `MapService` entirely, per the project owner's own request.
  *
- * [MapService] used to split this choice into two decisions with two different lifetimes — which
+ * `MapService` used to split this choice into two decisions with two different lifetimes — which
  * *service* (occasional, Settings) and which *mode* that service was in (frequent, a quick-fire
- * icon over the map). That split existed because [Basemap.USGS_TOPO] and [Basemap.USGS_IMAGERY_TOPO]
+ * icon over the map). That split existed because `Basemap.USGS_TOPO` and `Basemap.USGS_IMAGERY_TOPO`
  * were live alternatives to OpenStreetMap's own topo/regular pair, worth choosing between. Neither
- * is any more: [STREET] and [TOPOGRAPHIC] are pinned to OpenStreetMap outright, and [SATELLITE] is
- * pinned to USGS outright, so there is exactly one decision now — which of the three looks this map
- * currently has — made from the map itself via [MapModePicker], not from Settings. The Settings
- * "Choose Maps Service" section this superseded is deleted, not left dead: nothing reads
- * [Basemap.USGS_TOPO] any more, so it is deleted from [Basemap] too, rather than kept unreachable.
+ * is any more: [STREET] and [TOPOGRAPHIC] are pinned to OpenStreetMap outright, so there is exactly
+ * one decision — which look this map currently has. The Settings "Choose Maps Service" section this
+ * superseded is deleted, not left dead.
  *
- * [SATELLITE] uses [Basemap.USGS_IMAGERY_ONLY] specifically, not [Basemap.USGS_IMAGERY_TOPO] —
- * pure aerial orthoimagery, not imagery with topo labels drawn over it, per the project owner's own
- * distinction ("not the USGS topo map, the other one"). Confirmed live before adding: `curl`
- * against `USGSImageryOnly/MapServer?f=json` returns a real service (`mapName: USGSImageryOnly`,
- * description "USGS Imagery Only is a tile cache base map service of orthoimagery"), and its tiles
- * behave exactly like its siblings' — real JPEGs through z16, 404 from z17, 404 outside the US
- * (Paris) — the same three-part check `scripts/verify-usgs-basemap.sh` already runs for the other
- * two USGS sources, extended to cover this one too.
+ * **Satellite was a third mode, removed by dispatch 2026-09-28-708**, to be revisited once the
+ * forecast's habitat layers are on the map. The owner: "Satellite loses quality fast and is less
+ * useful when zoomed in", then "Remove now, revisit later (Recommended)". See [Basemap]'s class doc.
+ *
+ * **The choice persists across restarts** (same dispatch). The owner, to the step path: "have the app
+ * remember which map modes you had it on last so we don't have to keep switching to the favorite".
+ * It is stored by [storageKey], not by enum name, so renaming an entry cannot orphan what a phone
+ * already holds; [forStoredKey] reads it back. Before this the mode was session-only and reset to
+ * [DEFAULT] on every launch.
  */
-enum class MapMode(val label: String, val basemap: Basemap) {
-    STREET(label = "Street", basemap = Basemap.OSM_STANDARD),
-    TOPOGRAPHIC(label = "Topographical", basemap = Basemap.OPEN_TOPO_MAP),
-    SATELLITE(label = "Satellite", basemap = Basemap.USGS_IMAGERY_ONLY),
+enum class MapMode(
+    val label: String,
+    val basemap: Basemap,
+    /**
+     * What `map_preferences` holds for this mode (`DataStoreMapPreferencesRepository`). Never change
+     * one: a stored key that stops matching reads as unknown and the user is moved to
+     * [REPLACEMENT_FOR_UNKNOWN].
+     */
+    val storageKey: String,
+) {
+    STREET(label = "Street", basemap = Basemap.OSM_STANDARD, storageKey = "street"),
+    TOPOGRAPHIC(label = "Topographical", basemap = Basemap.OPEN_TOPO_MAP, storageKey = "topographic"),
     ;
 
     companion object {
-        /** Topographical, via OpenStreetMap — the same basemap [MapService.DEFAULT]'s topo mode already opened on. */
+        /** Topographical, via OpenStreetMap: what the map opens on when nothing is stored. */
         val DEFAULT = TOPOGRAPHIC
+
+        /**
+         * Where a stored key that names no mode goes: Topographical. The case it was written for is a
+         * removed mode (Satellite, and any later removal), and the owner's answer for anyone who had
+         * Satellite chosen was "Topo (Recommended)". Named apart from [DEFAULT] because it is that
+         * answer, not the opening default; the two happen to be equal today.
+         */
+        val REPLACEMENT_FOR_UNKNOWN = TOPOGRAPHIC
 
         /** The mode that draws [basemap]; the two are one to one, so this is a lookup, not a choice. */
         fun forBasemap(basemap: Basemap): MapMode = entries.first { it.basemap == basemap }
+
+        /**
+         * The mode stored as [key], or `null` when no mode has that key (a removed mode such as
+         * Satellite's, or anything else). The caller decides what an unknown key becomes and logs it
+         * (CLAUDE.md: no unlogged fallback); see `AvailabilityViewModel`'s basemap load.
+         */
+        fun forStoredKey(key: String): MapMode? = entries.firstOrNull { it.storageKey == key }
     }
 }

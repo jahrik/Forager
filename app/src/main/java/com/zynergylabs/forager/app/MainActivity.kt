@@ -111,6 +111,8 @@ class MainActivity : ComponentActivity() {
                     waypointNavigationRepository = container.waypointNavigationRepository,
                     returnLeg = TrackRecordingReturnLeg(trackRecordingViewModel),
                     lastKnownLocation = container.lastKnownLocation,
+                    basemapPreferenceRepository = container.basemapPreferenceRepository,
+                    mapIconClusterPlacementRepository = container.mapIconClusterPlacementRepository,
                 )
             }
         }
@@ -564,6 +566,8 @@ class MainActivity : ComponentActivity() {
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     onMapShown = viewModel::onMapShown,
                     onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
+                    onMapModeSelected = viewModel::onMapModeSelected,
+                    onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
                     onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
                     onColourFieldMoved = viewModel::onColourFieldMoved,
                     forecastCellStore = container.forecastCellStore,

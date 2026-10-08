@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
@@ -444,9 +445,9 @@ fun AvailabilityScreen(
     onDeleteOfflineRegion: (Long) -> Unit,
     /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
     onNightModeMapsChanged: (Boolean) -> Unit,
-    /** Settings' "Automatically Save Location to Photos" checkbox — see [AvailabilityUiState.autoSaveLocationToPhotos]. Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
+    /** "Automatically Save Location to Photos" — see [AvailabilityUiState.autoSaveLocationToPhotos]; set from the camera's Location chip and its gear panel (Settings until dispatch 2026-09-28-707). Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
-    /** Settings' "Lock camera to portrait" checkbox — see [AvailabilityUiState.lockCameraToPortrait]. Defaulted like the one above. */
+    /** "Lock camera to portrait" — see [AvailabilityUiState.lockCameraToPortrait]; set from the camera's gear panel (Settings until dispatch 2026-09-28-707). Defaulted like the one above. */
     onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
     /** Settings' "Sundown alerts" (dispatch 2026-09-28-592) — see [AvailabilityUiState.sundownAlertsEnabled]. */
     onSundownAlertsEnabledChanged: (Boolean) -> Unit = {},
@@ -806,6 +807,16 @@ fun AvailabilityScreen(
     onMapLayerOpacityChanged: (String, Float) -> Unit = { _, _ -> },
     onColourFieldMoved: (String, ColourFieldMove) -> Unit = { _, _ -> },
     forecastCellStore: ForecastCellStore = AbsentForecastCellStore,
+    /**
+     * Dispatch 2026-09-28-708: the Maps tab's basemap was picked, so the ViewModel can store it
+     * ([AvailabilityViewModel.onMapModeSelected]). Defaulted, so no other caller changes.
+     */
+    onMapModeSelected: (MapMode) -> Unit = {},
+    /**
+     * RECORD -711: a drag of the Maps tab's icon cluster ended, so the ViewModel can store its side and
+     * height ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). Defaulted, so no other caller changes.
+     */
+    onMapIconClusterPlacementChanged: (MapIconClusterPlacement) -> Unit = {},
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //
@@ -911,7 +922,7 @@ fun AvailabilityScreen(
     var mapWaypointReopen by remember { mutableStateOf<WaypointNavigationOrigin?>(null) }
     var recordsWaypointReopen by remember { mutableStateOf<String?>(null) }
 
-    // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
+    // Local remembered state, same reasoning as selectedTab below: purely a display
     // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
     // this — see CompactMapTab's call site. Only reachable while on the
     // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
@@ -944,7 +955,24 @@ fun AvailabilityScreen(
     }
     // The icon cluster's position, held here rather than in CompactMapTab so it survives leaving
     // and returning to the Map tab — see MapIconClusterPositionState's own doc comment.
-    val mapIconClusterPosition = rememberMapIconClusterPositionState()
+    //
+    // RECORD -711: its side and height also persist across restarts (the owner: "have the map icon bar
+    // persist between restarts so left handed users don't need to change it every time they open the
+    // app", "Side and height (Recommended)"). The holder waits for uiState.mapIconClusterPlacement and is
+    // not drawn until it has applied it (first effect), so there is no frame on the default side. Every
+    // drag that ends is stored (second effect), keyed on the holder's own count of ended drags rather
+    // than on the position itself: a write per drag, not per frame of one, and never a write of the
+    // default before the read lands (the trap isMapFullscreen's comment above describes).
+    val mapIconClusterPosition = rememberMapIconClusterPositionState(awaitingPlacement = true)
+    val mapIconClusterDensity = LocalDensity.current
+    LaunchedEffect(uiState.mapIconClusterPlacement) {
+        uiState.mapIconClusterPlacement?.let { mapIconClusterPosition.applyPlacement(it, mapIconClusterDensity) }
+    }
+    LaunchedEffect(mapIconClusterPosition.settledCount) {
+        if (mapIconClusterPosition.settledCount > 0) {
+            onMapIconClusterPlacementChanged(mapIconClusterPosition.placement(mapIconClusterDensity))
+        }
+    }
     // Part 1 layout fixes, item 4 (planner message 2026-09-28-98, under CLAUDE.md's UX defaults): the
     // camera the user left on the Maps tab, held here for the same reason, since the map and its camera
     // leave composition with the tab. See MapCameraMemory. Session only.
@@ -953,17 +981,21 @@ fun AvailabilityScreen(
     // same reason as the camera. Session only, like the camera: a recreation forgets it and Back does what it did before.
     val mapReturnMemory = remember { MapReturnMemory() }
 
-    // Local remembered state, alongside selectedTab and for the same reason: which basemap is under
-    // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
-    // no domain type depends on it — it is purely what the tiles look like. Putting it in
-    // AvailabilityUiState would make the ViewModel the authority on a decision it has no part in.
-    // One MapMode value, not the earlier two-piece service+mode split — see MapMode's own doc
-    // comment for what that split used to buy and why it no longer applies.
+    // The Maps tab's basemap, one MapMode value (see MapMode's own doc comment for the two-piece
+    // service+mode split this replaced). Persisted across restarts since dispatch 2026-09-28-708 (the
+    // owner: "have the app remember which map modes you had it on last so we don't have to keep
+    // switching to the favorite"): uiState.mapMode is the stored choice, restored by the ViewModel
+    // and updated by onMapModeSelected. This comment used to argue the opposite, that the basemap was
+    // display-only state the ViewModel had no part in and that persisting it would be speculative;
+    // the owner's request is the real need that argument was waiting for.
     //
-    // The cost, stated rather than hidden: like selectedTab, this resets to its default on process
-    // death. Persisting it needs somewhere to persist *to*, and adding a Room table or a DataStore
-    // for one small piece of display-only state is the speculative build CLAUDE.md warns against.
-    var mapMode by remember { mutableStateOf(MapMode.DEFAULT) }
+    // chosenMapMode is the pick made on this screen, applied here as well as sent up. In the app the
+    // two agree from the pick on; it is kept so a host that does not wire onMapModeSelected (the test
+    // hosts that drive this screen without a ViewModel) still has a picker that changes the map, as
+    // every host had before the choice persisted. Until either is known the map is not drawn at all
+    // (the gate on mapRenderMode below), so DEFAULT here is never what a restored user sees first.
+    var chosenMapMode by remember { mutableStateOf<MapMode?>(null) }
+    val mapMode = chosenMapMode ?: uiState.mapMode ?: MapMode.DEFAULT
     val basemap = mapMode.basemap
 
     // Night mode: Settings' "Night Maps" checkbox, a direct persistent preference
@@ -1117,12 +1149,15 @@ fun AvailabilityScreen(
     val mapRenderMode = MapRenderMode(
         basemap = basemap,
         night = isNightMode,
-        nightModeLoaded = uiState.nightModeMapsLoaded,
+        // The cold-launch gate: no style until the Night Maps preference and the stored basemap are
+        // both in (colour build C1; dispatch 2026-09-28-708, "Restoring at launch must not flash the
+        // wrong basemap first"). The field is named for the first; see MapRenderMode.nightModeLoaded.
+        nightModeLoaded = uiState.nightModeMapsLoaded && (uiState.mapMode != null || chosenMapMode != null),
         layers = drawnMapLayers,
         forecast = forecastFeed,
     )
     // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
-    // comment. mapMode above is still session-local; see the observation in that same doc comment.
+    // comment. mapMode above is persisted the same way since dispatch 2026-09-28-708.
     val distanceUnit = uiState.distanceUnit
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val context = LocalContext.current
@@ -1630,7 +1665,7 @@ fun AvailabilityScreen(
             isOffTrack = isOffTrack,
             recordingSundownLine = recordingSundownLine,
             // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are
-            // Settings' own values and callbacks (the same two classes Settings is given below).
+            // the Tools drawer's own values and callbacks (the same two classes its Sundown section is given below).
             quickSettings = MapQuickSettings(
                 isRecording = isRecording,
                 backBy = recordingBackBy,
@@ -1705,7 +1740,10 @@ fun AvailabilityScreen(
             mapBubbleSources = mapBubbleSources,
             onStartLogEntry = onStartLogEntry,
             onViewSpeciesOnMap = onViewSpeciesOnMap,
-            onMapModeChange = { mapMode = it },
+            onMapModeChange = {
+                chosenMapMode = it
+                onMapModeSelected(it)
+            },
             onPlaceTripPin = onPlaceTripPin,
             onToggleRecording = onToggleRecording,
             onDropWaypoint = onDropWaypoint,
@@ -1867,10 +1905,6 @@ fun AvailabilityScreen(
                     onDeletePlannedTrip = onDeletePlannedTrip,
                     isNightMode = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
-                    autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
-                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-                    lockCameraToPortrait = uiState.lockCameraToPortrait,
-                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                     themeMode = uiState.themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     crashFileStore = crashFileStore,
@@ -1919,6 +1953,7 @@ fun AvailabilityScreen(
         onGridModeChanged = onCameraGridModeChanged,
         autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+        onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
         onLogEntryPhoto = onAddLogPhoto,
         onAlbumPhoto = onAddGalleryPhoto,
         onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,

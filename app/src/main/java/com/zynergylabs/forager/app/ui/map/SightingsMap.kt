@@ -227,10 +227,9 @@ fun SightingsMap(
     onCameraIdle: (LatLng) -> Unit = {},
     /**
      * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
-     * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; over the offline style, the same
-     * transform applied to its own layers after it loads (`applyOfflineNightRecolour`). Every
-     * overlay marker follows it on every basemap, Satellite included: the markers draw from
-     * [MapPalette.forMode] of this flag (colour build C2), so over Satellite only the markers switch.
+     * `NIGHT_RASTER_PAINT`); over the offline style, the same transform applied to its own layers
+     * after it loads (`applyOfflineNightRecolour`). Every overlay marker follows it: the markers draw
+     * from [MapPalette.forMode] of this flag (colour build C2).
      * It is the Night Maps setting and nothing else; no twilight trigger or long-press override
      * drives it (both were replaced by the setting, `MapPreferencesRepository`).
      *
@@ -303,8 +302,7 @@ fun SightingsMap(
 ) {
     val context = LocalContext.current
 
-    // The marker palette is MapPalette.forMode(nightMode) on every basemap, Satellite included
-    // (colour build C2). It is chosen inside requestedMapStyle, below, rather than here, so that a
+    // The marker palette is MapPalette.forMode(nightMode) on every basemap (colour build C2). It is chosen inside requestedMapStyle, below, rather than here, so that a
     // headless test reaches it (OfflineStyleSwapTest); the style effect reads requested.palette.
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -782,9 +780,8 @@ fun SightingsMap(
         // CameraMode.NONE if the user had already broken tracking by panning/zooming;
         // CameraMode.TRACKING if they hadn't. Restoring exactly this, rather than always
         // re-forcing TRACKING, is the fix for a real hardware report: switching basemap (or
-        // toggling night mode, which goes through this same style-swap path on every basemap:
-        // since colour build C2 the marker palette follows the toggle even over Satellite, whose
-        // basemap style stays day) was recentering the
+        // toggling night mode, which goes through this same style-swap path on every basemap)
+        // was recentering the
         // map on the user's location even after they had deliberately panned away — the
         // GPS/locate-me icon is the control for that, not this one.
         val previousCameraMode = if (map.locationComponent.isLocationComponentActivated) {
@@ -1578,8 +1575,7 @@ private fun refreshOverlayData(
  * unit-testable. Real hardware report this fixes: that effect is keyed on `loadedStyle` (needed so
  * [refreshOverlayData] above re-runs after a basemap swap blanks the style), but with no guard, it
  * also re-ran the camera move below whenever GPS tracking wasn't active — including on a basemap
- * or night-mode swap (a night toggle reloads the style on every basemap since colour build C2, over
- * Satellite for the marker palette alone) that changed neither `region` nor `focusOverride` — which read as "changing
+ * or night-mode swap (a night toggle reloads the style on every basemap) that changed neither `region` nor `focusOverride` — which read as "changing
  * map style brought the map back to my location" even though the GPS/locate-me icon is the only
  * control meant to do that. Comparing [target] against [lastAppliedCameraTarget] — what was
  * actually last applied, not merely that the effect ran again — is what tells "the search moved"
@@ -1824,7 +1820,7 @@ internal fun puckReplacementOptions(alreadyInitialised: Boolean, options: Locati
  *
  * [restoreCameraMode] is what this composable's own basemap-swap effect passes to avoid a real
  * hardware-reported bug: `setStyle` (any basemap change, or a night-mode toggle, which shares this
- * same path on every basemap, Satellite included since colour build C2) discards the LocationComponent outright, so this function has to run again on every
+ * same path on every basemap) discards the LocationComponent outright, so this function has to run again on every
  * such swap just to keep the puck visible — but always re-forcing [CameraMode.TRACKING] here, as
  * this used to do, snapped the camera back onto the user's location on every basemap switch even
  * after they had deliberately panned away, which the GPS/locate-me icon is the control for, not
