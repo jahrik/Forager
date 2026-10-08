@@ -634,6 +634,12 @@ internal fun SearchControls(
     modifier: Modifier = Modifier,
     uiState: AvailabilityUiState,
     onDeletePlannedTrip: (String) -> Unit,
+    /**
+     * Drawn above the Trip Planner, in the same scroll: the Tools page's Sundown section (dispatch
+     * 2026-09-28-707). A slot rather than a second scrolling column, because a scroll nested in a
+     * scroll on the same axis is measured with infinite height and cannot lay out.
+     */
+    leading: @Composable ColumnScope.() -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -641,6 +647,7 @@ internal fun SearchControls(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
+        leading()
         CollapsibleSection(title = "Trip Planner") {
             TripPlannerSection(uiState = uiState, onDeletePlannedTrip = onDeletePlannedTrip)
         }
