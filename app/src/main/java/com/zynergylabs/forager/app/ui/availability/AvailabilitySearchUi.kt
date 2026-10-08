@@ -56,6 +56,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -173,6 +174,14 @@ internal fun SearchEntryBar(
     onClearSearch: () -> Unit = {},
     /** Whether this bar is the Maps tab's, over its map: its species suggestions are then at the map chrome's alpha (owner, "1 A"). */
     overMap: Boolean = false,
+    /**
+     * RECORD -729: in a short landscape window, not navigating, the compass strip's measured height, which this bar takes so
+     * the two meet at one height (the owner: "The search bar height can change to meet the height of the strip"). The field is
+     * centred in what is above the divider. Since RECORD -736 the strip keeps its portrait height at every font, so at a large
+     * font the field and Clear are shorter than twice the line (rowFieldHeight). `null` keeps the bar's own height (portrait, the
+     * other tabs, navigating, and before the strip is first measured).
+     */
+    landscapeHeight: Dp? = null,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = mapChromeContentColor(isDarkTheme)
@@ -195,6 +204,10 @@ internal fun SearchEntryBar(
     // own fixed vertical padding around the text line regardless of style, not because the text
     // itself needs to be smaller. contentPadding below is the actual fix.
     val fieldContentPadding = OutlinedTextFieldDefaults.contentPadding(top = 2.dp, bottom = 2.dp)
+    // RECORD -736 (the owner: "Yes for landscape I'm willing to accept a shorter search bar. The compass strip must remain the
+    // same height as portrait"): with the strip's height, the field and Clear are at most what is above the divider, so at a
+    // large font they are shorter than twice the line rather than the strip growing to them. Unchanged at font 1.0 (32 dp in 35).
+    val rowFieldHeight = landscapeHeight?.let { minOf(fieldHeight, (it - DividerDefaults.Thickness).coerceAtLeast(0.dp)) } ?: fieldHeight
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = Color.Transparent,
         unfocusedBorderColor = Color.Transparent,
@@ -233,8 +246,18 @@ internal fun SearchEntryBar(
         // zone, making it look taller than it is"): the bottom padding sat below the divider, so 4 dp of this bar's fill hung
         // under its seam, against the strip. The padding is now above the divider (the Spacer below is 2 x xs), so the divider
         // is the bar's last 1 dp and the strip starts at it. The bar's height is unchanged (compactMainScaffold's searchBarHeight).
-        Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = if (landscapeHeight != null) {
+                Modifier.fillMaxWidth().height(landscapeHeight)
+            } else {
+                Modifier.fillMaxWidth().padding(top = Spacing.xs)
+            },
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                // RECORD -729: with the strip's height, the field row takes what is above the divider and centres in it.
+                modifier = if (landscapeHeight != null) Modifier.weight(1f) else Modifier,
+            ) {
                 Icon(
                     Icons.Filled.Search,
                     contentDescription = null,
@@ -247,7 +270,7 @@ internal fun SearchEntryBar(
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                        queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(fieldHeight),
+                        queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(rowFieldHeight),
                         onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
                         restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
                         fieldColors = fieldColors,
@@ -270,14 +293,14 @@ internal fun SearchEntryBar(
                             onClick = onClearSearch,
                             contentPadding = PaddingValues(horizontal = Spacing.md),
                             // RECORD -728, the owner: "Keep 29 dp tall, wide (Recommended)": the whole word and its padding, at least 48 dp.
-                            modifier = Modifier.padding(end = Spacing.xs).height(fieldHeight).widthIn(min = 48.dp).testTag(SEARCH_BAR_CLEAR_TAG),
+                            modifier = Modifier.padding(end = Spacing.xs).height(rowFieldHeight).widthIn(min = 48.dp).testTag(SEARCH_BAR_CLEAR_TAG),
                         ) {
                             Text("Clear", color = contentColor)
                         }
                     }
                 }
             }
-            Spacer(Modifier.height(Spacing.xs * 2))
+            if (landscapeHeight == null) Spacer(Modifier.height(Spacing.xs * 2))
             HorizontalDivider(
                 color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
                 modifier = Modifier.testTag(SEARCH_ENTRY_BAR_DIVIDER_TAG),
@@ -285,6 +308,37 @@ internal fun SearchEntryBar(
         }
     }
 }
+
+/**
+ * RECORD -732: the landscape search bar's floor, in pixels: never narrower than its field and Clear need. Measured as the bar
+ * lays them out: the search icon's start padding (Spacing.lg) and 18 dp, the field's own content padding (16 dp each side,
+ * OutlinedTextFieldDefaults), its resting text (the search summary, in the field's text style, bodyLarge) whole, and, while a
+ * search shows, Clear (its word and Spacing.md each side, at least Material's 58 dp button width, then Spacing.xs). The strip
+ * narrows before the bar goes under this (landscapeStripFit), down to its coordinates.
+ */
+@Composable
+internal fun rememberLandscapeBarFloorPx(uiState: AvailabilityUiState, distanceUnit: DistanceUnit): Int {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val fieldStyle = MaterialTheme.typography.bodyLarge
+    val clearStyle = MaterialTheme.typography.labelLarge
+    fun widthOf(text: String, style: androidx.compose.ui.text.TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    return with(density) {
+        val field = Spacing.lg.roundToPx() + 18.dp.roundToPx() + 2 * LANDSCAPE_BAR_FIELD_SIDE_PADDING.roundToPx() + widthOf(activeSearchSummary(uiState, distanceUnit), fieldStyle)
+        val clear = if (uiState.region != null) {
+            maxOf(LANDSCAPE_BAR_CLEAR_MIN_WIDTH.roundToPx(), widthOf("Clear", clearStyle) + 2 * Spacing.md.roundToPx()) + Spacing.xs.roundToPx()
+        } else {
+            0
+        }
+        field + clear
+    }
+}
+
+/** OutlinedTextFieldDefaults' horizontal content padding, which the bar's field keeps (it sets only top and bottom). */
+private val LANDSCAPE_BAR_FIELD_SIDE_PADDING = 16.dp
+
+/** Material3's minimum button width (ButtonDefaults.MinWidth), which Clear's TextButton keeps. */
+private val LANDSCAPE_BAR_CLEAR_MIN_WIDTH = 58.dp
 
 /**
  * Map/navigation redesign dispatch C: the compact window's entire search surface, floating over

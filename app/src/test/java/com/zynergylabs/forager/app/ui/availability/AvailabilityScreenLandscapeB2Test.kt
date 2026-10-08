@@ -101,7 +101,7 @@ class AvailabilityScreenLandscapeB2Test {
     /** Bumped to hand the screen a new [Configuration] object, so it re-reads the display's rotation (a turn from 90 to 270). */
     private var configurationTick by mutableStateOf(0)
 
-    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = B2_SEARCHED_STATE, isReturning: Boolean = false, now: Long = B2_DAY_NOW) {
+    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = B2_SEARCHED_STATE, isReturning: Boolean = false, now: Long = B2_DAY_NOW, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider? = null) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             val base = LocalConfiguration.current
@@ -116,7 +116,7 @@ class AvailabilityScreenLandscapeB2Test {
             }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
                 rotationSeenByScreen = LocalView.current.display?.rotation
-                B2Screen(uiState = uiState, mapSlot = map.slot, isReturning = isReturning, now = now)
+                B2Screen(uiState = uiState, mapSlot = map.slot, isReturning = isReturning, now = now, compassProvider = compassProvider)
             }
         }
         composeRule.waitForIdle()
@@ -158,16 +158,21 @@ class AvailabilityScreenLandscapeB2Test {
         val c = cluster()
         val r = root()
         val m = mapBounds()
-        val farEdgeClear = 8.dp
+        // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): the bar no longer stops 8 dp short of the
+        // centre; it reaches the compass strip's inner edge, and does not reach the opposite edge. It stopped short of the
+        // centre before -729.
+        val strip = tagBounds(B2_STRIP_TAG)
         when (punchHole) {
             ScreenEdge.Left -> {
                 assertEquals("the search bar is on the punch-hole edge, the left", r.left.value, bar.left.value, 0.5f)
-                assertTrue("the search bar $bar stays clear of the far half of the map $m", bar.right <= (m.left + m.right) / 2 - farEdgeClear + 0.5.dp)
+                assertEquals("the search bar $bar ends at the strip's inner edge $strip", strip.left.value, bar.right.value, 0.5f)
+                assertTrue("the search bar $bar does not reach the far edge ${m.right}", bar.right < m.right)
                 assertTrue("the cluster $c defaults to the punch-hole half, the left", c.centreXv() < r.centreXv())
             }
             ScreenEdge.Right -> {
                 assertEquals("the search bar is on the punch-hole edge, the right", r.right.value, bar.right.value, 0.5f)
-                assertTrue("the search bar $bar stays clear of the far half of the map $m", bar.left >= (m.left + m.right) / 2 + farEdgeClear - 0.5.dp)
+                assertEquals("the search bar $bar starts at the strip's inner edge $strip", strip.right.value, bar.left.value, 0.5f)
+                assertTrue("the search bar $bar does not reach the far edge ${m.left}", bar.left > m.left)
                 assertTrue("the cluster $c defaults to the punch-hole half, the right", c.centreXv() > r.centreXv())
             }
             else -> throw AssertionError("a landscape window's punch-hole edge is left or right, not $punchHole")
@@ -188,40 +193,33 @@ class AvailabilityScreenLandscapeB2Test {
     private fun cluster(): DpRect = tagBounds(MAP_ICON_CLUSTER_TAG)
     private fun railExists(): Boolean = composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes().isNotEmpty()
 
-    /** The search bar's expected width: min(384dp, distance from the punch-hole-side controls edge to the map's centre - 8dp). */
-    private fun expectedSearchWidth(punchHoleControlsEdge: Dp): Float {
-        val m = mapBounds()
-        val centre = (m.left + m.right) / 2
-        val distance = if (punchHoleControlsEdge <= centre) centre - punchHoleControlsEdge else punchHoleControlsEdge - centre
-        return minOf(384f, (distance - 8.dp).value)
-    }
-
     // ── S2: search bar ──
 
+    // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): S2's "min(384, centre distance - 8)", capped short
+    // of the centre line, is replaced: not navigating, the bar runs from the punch-hole edge to the compass strip's inner edge,
+    // the strip as wide as its readouts need (LandscapeBarStripJoinTest measures that, with native graphics).
     @Test
-    fun `S2 at ROTATION_90 the search bar sits at the top on the punch-hole side, left, capped short of the centre line`() {
+    fun `S2 at ROTATION_90 the search bar sits at the top on the punch-hole side, left, up to the strip's inner edge`() {
         setScreen(Surface.ROTATION_90)
         val bar = searchBar()
         val m = mapBounds()
-        val centre = (m.left + m.right) / 2
+        val strip = tagBounds(B2_STRIP_TAG)
 
         assertEquals("the bar starts at the punch-hole-side (left) edge", root().left.value, bar.left.value, 0.5f)
         assertEquals("the bar is at the top of the map", m.top.value, bar.top.value, 0.5f)
-        assertEquals("the bar's width is min(384, centre distance - 8)", expectedSearchWidth(root().left), bar.width.value, 0.5f)
-        assertTrue("the bar ends before the centre line: right ${bar.right} vs centre $centre", bar.right <= centre - 8.dp + 0.5.dp)
+        assertEquals("the bar ends at the strip's inner edge: bar $bar, strip $strip", strip.left.value, bar.right.value, 0.5f)
     }
 
     @Test
-    fun `S2 at ROTATION_270 the search bar sits at the top on the punch-hole side, right, capped short of the centre line`() {
+    fun `S2 at ROTATION_270 the search bar sits at the top on the punch-hole side, right, up to the strip's inner edge`() {
         setScreen(Surface.ROTATION_270)
         val bar = searchBar()
         val m = mapBounds()
-        val centre = (m.left + m.right) / 2
+        val strip = tagBounds(B2_STRIP_TAG)
 
         assertEquals("the bar ends at the punch-hole-side (right) edge", root().right.value, bar.right.value, 0.5f)
         assertEquals("the bar is at the top of the map", m.top.value, bar.top.value, 0.5f)
-        assertEquals("the bar's width is min(384, centre distance - 8)", expectedSearchWidth(root().right), bar.width.value, 0.5f)
-        assertTrue("the bar starts after the centre line: left ${bar.left} vs centre $centre", bar.left >= centre + 8.dp - 0.5.dp)
+        assertEquals("the bar starts at the strip's inner edge: bar $bar, strip $strip", strip.right.value, bar.left.value, 0.5f)
     }
 
     @Test
@@ -342,7 +340,10 @@ class AvailabilityScreenLandscapeB2Test {
 
     @Test
     fun `S5 in landscape the strip's heading, elevation and coordinate text use tabular figures`() {
-        setScreen(Surface.ROTATION_90, B2_FIX_STATE)
+        // RECORD -735: with no compass, the landscape heading slot shows the crossed-out compass, which has no figures, so this
+        // half is given a fixed compass and checks the heading value's figures. The claim is unchanged; only the setup gains a
+        // compass. (The portrait half has none: there the heading reads "Compass unavailable", text in the same style.)
+        setScreen(Surface.ROTATION_90, B2_FIX_STATE, compassProvider = B2FixedCompass)
         assertStripTextUsesTabularFigures(composeRule)
     }
 
@@ -783,13 +784,62 @@ private class B2RecordingMapSlot {
 }
 
 @Composable
-private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long = B2_DAY_NOW) {
+private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long = B2_DAY_NOW, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider? = null) {
+    if (compassProvider != null) {
+        B2ScreenWith(uiState, mapSlot, isReturning, now, compassProvider)
+        return
+    }
     AvailabilityScreen(
         // A pinned clock: the HUD's sundown line follows it (RECORD -621).
         currentTime = { now },
         uiState = uiState,
         isRecording = isReturning,
         isReturning = isReturning,
+        onUseCurrentLocation = {},
+        onManualLatChanged = {},
+        onManualLngChanged = {},
+        onSearchManualCoordinates = {},
+        onRadiusChanged = {},
+        onMonthSelected = {},
+        onMapTabSelected = {},
+        onSeasonalTabSelected = {},
+        onTaxonSearchQueryChanged = {},
+        onTaxonSearchResultSelected = {},
+        onDismissTaxonSuggestions = {},
+        onReopenTaxonSuggestions = {},
+        onPlaceTripPin = { _, _, _ -> },
+        onDeletePlannedTrip = {},
+        onRecentSearchSelected = {},
+        onOfflineMapLatChanged = {},
+        onOfflineMapLngChanged = {},
+        onOfflineMapRadiusChanged = {},
+        onOfflineMapNameChanged = {},
+        onOfflineMapsOpened = {},
+        onDownloadOfflineMaps = {},
+        onDeleteOfflineRegion = {},
+        onNightModeMapsChanged = {},
+        onThemeModeChanged = {},
+        mapSlot = mapSlot,
+    )
+}
+
+/** RECORD -735: a fixed 315 degree compass with tight uncertainty, so the strip shows a heading value. */
+private object B2FixedCompass : com.zynergylabs.forager.app.domain.CompassProvider {
+    override val heading: kotlinx.coroutines.flow.Flow<com.zynergylabs.forager.app.domain.CompassReading?> =
+        kotlinx.coroutines.flow.MutableStateFlow(
+            com.zynergylabs.forager.app.domain.CompassReading(315f, com.zynergylabs.forager.app.domain.HeadingUncertainty.Estimated(2f), 0L),
+        )
+}
+
+/** [B2Screen] with a [compassProvider] (RECORD -735); otherwise the same arguments. */
+@Composable
+private fun B2ScreenWith(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider) {
+    AvailabilityScreen(
+        currentTime = { now },
+        uiState = uiState,
+        isRecording = isReturning,
+        isReturning = isReturning,
+        compassProvider = compassProvider,
         onUseCurrentLocation = {},
         onManualLatChanged = {},
         onManualLngChanged = {},
