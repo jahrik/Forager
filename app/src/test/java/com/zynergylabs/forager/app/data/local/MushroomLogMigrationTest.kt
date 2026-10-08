@@ -68,6 +68,7 @@ class MushroomLogMigrationTest {
             filterIconicTaxonName = "Fungi",
             filterTaxonId = null,
             filterExcludedTaxonId = 54743L,
+            speciesIconicTaxonName = null,
             entriesJson = "[]",
             fetchedAtEpochMillis = 1_000_000L,
             lastAccessedAtEpochMillis = 1_000_000L,
