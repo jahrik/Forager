@@ -500,7 +500,7 @@ class AvailabilityViewModel(
             return
         }
         val region = Region(lat, lng, state.radiusKm)
-        _uiState.update { it.copy(region = region, locationPermissionDenied = false) }
+        _uiState.update { it.copy(region = region, locationPermissionDenied = false, searchFrameSerial = it.searchFrameSerial + 1) }
         refresh(region, state.selectedMonth, state.taxonFilter)
     }
 
@@ -516,6 +516,7 @@ class AvailabilityViewModel(
                             locationPermissionDenied = false,
                             manualLatText = result.lat.toString(),
                             manualLngText = result.lng.toString(),
+                            searchFrameSerial = it.searchFrameSerial + 1,
                         )
                     }
                     refresh(region, _uiState.value.selectedMonth, _uiState.value.taxonFilter)
@@ -1030,11 +1031,18 @@ class AvailabilityViewModel(
      * back to 'Search a location', and leaves recent searches untouched." The search's region and every result
      * fetched for it go: the map's sightings, the ranked list, rainfall, today's forecast, trip windows and the
      * seasonal pattern, so no tab goes on showing results for a search the bar says is not there. Fetches still
-     * running are cancelled first ([searchJobs]). Kept: recent searches, the month, the radius, the species
-     * selection and the coordinate fields, which are the user's settings for the next search, not results.
+     * running are cancelled first ([searchJobs]). Kept: recent searches, the month, the radius and the coordinate
+     * fields, which are the user's settings for the next search, not results.
+     *
+     * RECORD -750, item 3 (the owner: "simply reset the search panel back to default and clear the name"), replacing
+     * -728's "Clear keeps the species": the species or category selection goes back to the default a fresh start has
+     * ([TaxonFilter.FUNGI], its [ForagingSelection]), with the species field's text, its suggestions and the query a
+     * suggestion was picked from, so the bar's summary reads its default again ("<month> · Search a location").
      */
     fun clearSearch() {
         searchJobs.cancel()
+        // RECORD -750, item 3: a species lookup still running would put its suggestions back over a reset field.
+        taxonSearchJob?.cancel()
         searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
         activeSearch = null
         loadedSightingsQuery = null
@@ -1062,6 +1070,15 @@ class AvailabilityViewModel(
                 seasonalPattern = null,
                 isLoadingSeasonalPattern = false,
                 seasonalPatternErrorMessage = null,
+                // RECORD -750, item 3: the selection back to a fresh start's default.
+                taxonFilter = DEFAULT_STATE.taxonFilter,
+                foragingSelection = DEFAULT_STATE.foragingSelection,
+                taxonSearchQuery = DEFAULT_STATE.taxonSearchQuery,
+                taxonSearchResults = DEFAULT_STATE.taxonSearchResults,
+                isSearchingTaxa = false,
+                taxonSearchErrorMessage = null,
+                taxonSearchHasNoResults = false,
+                lastTaxonSearchQuery = DEFAULT_STATE.lastTaxonSearchQuery,
             )
         }
     }
@@ -1080,6 +1097,7 @@ class AvailabilityViewModel(
                 taxonSearchQuery = "",
                 taxonSearchResults = emptyList(),
                 locationPermissionDenied = false,
+                searchFrameSerial = it.searchFrameSerial + 1,
             )
         }
         refresh(region, summary.month, summary.filter)
@@ -1862,6 +1880,8 @@ class AvailabilityViewModel(
     }
 
     private companion object {
+        /** RECORD -750, item 3: what a fresh start shows, which Clear puts the species selection back to. */
+        val DEFAULT_STATE = AvailabilityUiState()
         const val SEARCH_DEBOUNCE_MS = 300L
         const val TAG = "AvailabilityViewModel"
     }

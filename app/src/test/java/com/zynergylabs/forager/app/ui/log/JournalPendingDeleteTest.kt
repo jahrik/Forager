@@ -695,7 +695,7 @@ class JournalPendingDeleteTest {
         deleteFromReport()
 
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
         assertTileGone("2026-09-20")
         assertTileShown("2026-09-21")
         composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
@@ -780,7 +780,7 @@ class JournalPendingDeleteTest {
     @Test
     fun `Delete in a new find's form, with no committed original, still says Find deleted`() {
         setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A))
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Delete this entry").assertIsDisplayed()
 

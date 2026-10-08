@@ -354,7 +354,7 @@ class JournalShortWindowCardsTest {
         composeRule.waitForIdle()
         node("records-chip-finds").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         assertEquals(0, incidentalExits)
