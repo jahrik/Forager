@@ -526,10 +526,6 @@ private fun CompassElevationStripContent(
                 // it. Also still what this composable's own regression test targets directly.
                 .testTag("compass-elevation-strip")
                 .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
-            // RECORD -729: in a landscape window the strip can be held taller than its row (at least the search bar's content,
-            // which at a large font is the taller); the row then sits at its middle. Elsewhere the Box wraps the row and this
-            // changes nothing.
-            contentAlignment = Alignment.CenterStart,
         ) {
             // Dispatch 2026-09-28-645 (Amendment 2, the owner: "Taller strip (Recommended)"; Amendment 3,
             // RECORD -648: "a 3 dot menu at the far right", 36 dp): a Row so the quick-settings button
