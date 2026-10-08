@@ -536,6 +536,7 @@ class MainActivity : ComponentActivity() {
                     onPlaceTripPin = viewModel::onPlaceTripPin,
                     onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                     onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                    onClearSearch = viewModel::clearSearch,
                     currentTime = container.currentTimeProvider,
                     onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
                     onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,

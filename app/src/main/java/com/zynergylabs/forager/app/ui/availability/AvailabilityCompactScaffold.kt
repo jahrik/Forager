@@ -364,6 +364,8 @@ internal fun CompactMainScaffold(
     /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
     tracksErrorMessage: String? = null,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
+    /** RECORD -723: the search bar's Clear; see AvailabilityScreen's own parameter. */
+    onClearSearch: () -> Unit,
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
     /**
@@ -964,9 +966,12 @@ internal fun CompactMainScaffold(
                             distanceUnit = distanceUnit,
                             onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                             onTaxonSearchResultSelected = { result ->
+                                // RECORD -725/-726, the owner: "just keep the keyboard open and fill it in, no search yet"; "The
+                                // keyboard and the search bar". Only the suggestion list closes (the ViewModel empties it); the
+                                // dropdown, the field's focus and the keyboard stay. It closed the dropdown here before.
                                 onTaxonSearchResultSelected(result)
-                                showSearchDropdown = false
                             },
+                            onClearSearch = onClearSearch,
                             onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                             onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
                         )
@@ -1238,9 +1243,12 @@ internal fun CompactMainScaffold(
                                                 distanceUnit = distanceUnit,
                                                 onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                                                 onTaxonSearchResultSelected = { result ->
+                                                    // RECORD -725/-726, the owner: "just keep the keyboard open and fill it in, no search yet"; "The
+                                                    // keyboard and the search bar". Only the suggestion list closes (the ViewModel empties it); the
+                                                    // dropdown, the field's focus and the keyboard stay. It closed the dropdown here before.
                                                     onTaxonSearchResultSelected(result)
-                                                    showSearchDropdown = false
                                                 },
+                                                onClearSearch = onClearSearch,
                                                 onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                                                 onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
                                                 // The Maps tab's own bar, over its map (map chrome at 80%;
