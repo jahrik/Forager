@@ -1081,10 +1081,22 @@ internal fun CompactMainScaffold(
                                 clusterPosition = mapIconClusterPosition,
                                 cameraMemory = mapCameraMemory,
                                 returnMemory = mapReturnMemory,
-                                // Landscape B2: the punch-hole side, and the search bar's capped
-                                // width there (the chip sits under it, within it).
-                                punchHoleEdge = if (showRail) punchHoleEdge else null,
-                                landscapeSearchWidth = landscapeSearchWidth,
+                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapLandscape).
+                                landscape = CompactMapLandscape(
+                                    // Landscape B1: in a short landscape window this tab overlays
+                                    // the rail on the port edge in place of its bottom bar, and pads
+                                    // its controls clear of it (showRail, mapControlsPadding).
+                                    railPortEdge = if (showRail) portEdge else null,
+                                    // Landscape B2: the punch-hole side, and the search bar's capped
+                                    // width there (the chip sits under it, within it).
+                                    punchHoleEdge = if (showRail) punchHoleEdge else null,
+                                    landscapeSearchWidth = landscapeSearchWidth,
+                                    onRailWidthMeasured = { mapRailWidthPx = it },
+                                    // RECORD -729: the landscape strip's height, which the bar takes (mapSearchBarHeight).
+                                    onLandscapeStripHeightMeasured = { landscapeStripHeight = it },
+                                    // RECORD -732: and its width; the bar takes the rest of the room (landscapeSearchWidth).
+                                    onLandscapeStripWidthMeasured = { landscapeStripWidth = it },
+                                ),
                                 // Attribution must rise above the floating bottom nav while the nav
                                 // is there — fullscreen-fixes dispatch, Item 1 (third design) — and
                                 // follow it off screen while it isn't: safeAttributionBottomInset
@@ -1123,62 +1135,62 @@ internal fun CompactMainScaffold(
                                 isDrawerOpen = isDrawerOpen(),
                                 onBottomNavTabSelected = onBottomNavTabSelected,
                                 onBottomNavHeightMeasured = { bottomNavHeightPx = it },
-                                // Landscape B1: in a short landscape window this tab overlays
-                                // the rail on the port edge in place of its bottom bar, and pads
-                                // its controls clear of it (showRail, mapControlsPadding).
-                                railPortEdge = if (showRail) portEdge else null,
-                                onRailWidthMeasured = { mapRailWidthPx = it },
-                                // RECORD -729: the landscape strip's height, which the bar takes (mapSearchBarHeight).
-                                onLandscapeStripHeightMeasured = { landscapeStripHeight = it },
-                                // RECORD -732: and its width; the bar takes the rest of the room (landscapeSearchWidth).
-                                onLandscapeStripWidthMeasured = { landscapeStripWidth = it },
                                 controlsPadding = mapControlsPadding,
                                 onLocateMe = onLocateMe,
-                                isRecording = isRecording,
-                                onToggleRecording = onToggleRecording,
-                                startRecordingErrorMessage = startRecordingErrorMessage,
-                                breadcrumbPoints = breadcrumbPoints,
-                                waypoints = mapWaypoints,
-                                onDropWaypoint = onDropWaypoint,
-                                returnToStart = returnToStart,
-                                isReturning = isReturning,
-                                isNavigating = isNavigating,
-                                isOffTrack = isOffTrack,
+                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapRecording).
+                                recording = CompactMapRecording(
+                                    isRecording = isRecording,
+                                    onToggleRecording = onToggleRecording,
+                                    startRecordingErrorMessage = startRecordingErrorMessage,
+                                    breadcrumbPoints = breadcrumbPoints,
+                                    waypoints = mapWaypoints,
+                                    onDropWaypoint = onDropWaypoint,
+                                ),
+                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapNavigation).
+                                navigation = CompactMapNavigation(
+                                    returnToStart = returnToStart,
+                                    isReturning = isReturning,
+                                    isNavigating = isNavigating,
+                                    isOffTrack = isOffTrack,
+                                    onToggleReturning = onToggleReturning,
+                                    navigationTarget = navigationTarget,
+                                    returnRoute = returnRoute,
+                                    routeLine = routeLine,
+                                    onRetryRoute = onRetryRoute,
+                                    isNavigatingToWaypoint = waypointNavigate.isNavigatingToWaypoint,
+                                    waypointStraightLine = waypointNavigate.straightLine,
+                                    waypointReopen = waypointNavigate.mapReopen,
+                                    onWaypointReopenConsumed = waypointNavigate.onMapReopenConsumed,
+                                    navigationFollowing = navigationFollowing,
+                                    navigationViewRequestId = navigationViewRequestId,
+                                    onLeftNavigationView = onLeftNavigationView,
+                                    onReturnToRoute = onReturnToRoute,
+                                    navigationZoomPending = navigationZoomPending,
+                                    onNavigationZoomApplied = onNavigationZoomApplied,
+                                ),
                                 recordingSundownLine = recordingSundownLine,
                                 quickSettings = quickSettings,
-                                onToggleReturning = onToggleReturning,
                                 compassProvider = compassProvider,
                                 computeTrueHeading = computeTrueHeading,
-                                navigationTarget = navigationTarget,
-                                returnRoute = returnRoute,
-                                routeLine = routeLine,
-                                onRetryRoute = onRetryRoute,
-                                isNavigatingToWaypoint = waypointNavigate.isNavigatingToWaypoint,
-                                waypointStraightLine = waypointNavigate.straightLine,
-                                waypointReopen = waypointNavigate.mapReopen,
-                                onWaypointReopenConsumed = waypointNavigate.onMapReopenConsumed,
                                 showDecimalDegrees = showDecimalDegrees,
                                 onToggleCoordinateFormat = onToggleCoordinateFormat,
-                                navigationFollowing = navigationFollowing,
-                                navigationViewRequestId = navigationViewRequestId,
-                                onLeftNavigationView = onLeftNavigationView,
-                                onReturnToRoute = onReturnToRoute,
-                                navigationZoomPending = navigationZoomPending,
-                                onNavigationZoomApplied = onNavigationZoomApplied,
                                 currentTime = currentTime,
                                 taxonFilter = mapTaxonFilter(),
                                 onClearTaxonFilter = onClearMapTaxonFilter,
-                                // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
-                                // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
-                                // pickingSearchLocationOnMap doc comment.
-                                pickingSearchLocation = pickingSearchLocationOnMap,
-                                onSearchLocationPicked = { location ->
-                                    onManualLatChanged("%.4f".format(location.lat))
-                                    onManualLngChanged("%.4f".format(location.lng))
-                                    onSearchManualCoordinates()
-                                    pickingSearchLocationOnMap = false
-                                },
-                                onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapSearchLocationPick).
+                                searchLocationPick = CompactMapSearchLocationPick(
+                                    // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
+                                    // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
+                                    // pickingSearchLocationOnMap doc comment.
+                                    pickingSearchLocation = pickingSearchLocationOnMap,
+                                    onSearchLocationPicked = { location ->
+                                        onManualLatChanged("%.4f".format(location.lat))
+                                        onManualLngChanged("%.4f".format(location.lng))
+                                        onSearchManualCoordinates()
+                                        pickingSearchLocationOnMap = false
+                                    },
+                                    onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
+                                ),
                                 // SearchEntryBar now overlays this tab directly (see searchBarSlot's
                                 // own doc comment below) rather than sitting above it in document
                                 // flow, so the strip/bubble/filter-chip positioning CompactMapTab

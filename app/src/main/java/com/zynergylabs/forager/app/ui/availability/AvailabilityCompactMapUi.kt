@@ -333,34 +333,6 @@ internal fun CompactMapTab(
     onBottomNavTabSelected: (CompactTab) -> Unit,
     onBottomNavHeightMeasured: (Float) -> Unit,
     /**
-     * Landscape B1 (Resolutions R12/R13, as revised on the owner's correction). Non-null in a
-     * short landscape window: the charger-port edge, where this tab overlays
-     * [ForagerNavigationRail] at 80% in place of its [ForagerBottomNav], in the same layer the
-     * bottom bar occupies. The map under it stays full-bleed and never changes size; the rail is
-     * absent in fullscreen, with no animation. Null everywhere else, which is today's behaviour.
-     */
-    railPortEdge: ScreenEdge? = null,
-    /**
-     * Landscape B2 (S1): the punch-hole edge (`punchHoleEdgeFor`), non-null exactly when
-     * [railPortEdge] is. The search bar, its filter chip and the cluster's landscape default sit
-     * on this side.
-     */
-    punchHoleEdge: ScreenEdge? = null,
-    /** Landscape B2 (S2/S3): the search bar's capped width on the punch-hole side; null in portrait. */
-    landscapeSearchWidth: Dp? = null,
-    /** Reports the overlaid rail's measured width up, as [onBottomNavHeightMeasured] does the bar's. */
-    onRailWidthMeasured: (Float) -> Unit = {},
-    /**
-     * RECORD -729: the compass strip's measured height in a landscape window, while it shows and is not leaving; 0 otherwise.
-     * The scaffold gives the search bar this height, so the two meet at the centre at one height.
-     */
-    onLandscapeStripHeightMeasured: (Dp) -> Unit = {},
-    /**
-     * RECORD -732: the compass strip's measured width in a landscape window, while it shows and is not leaving; 0 otherwise.
-     * The scaffold gives the search bar the rest of the room, so the bar ends where the strip begins.
-     */
-    onLandscapeStripWidthMeasured: (Dp) -> Unit = {},
-    /**
      * Landscape B1: what this tab's controls are padded by, and never the map itself —
      * [compactMainScaffold]'s `mapControlsPadding` (the rail's measured width or, in fullscreen,
      * the navigation-bar inset on the port side; the cut-out inset on the sides). Applied to each
@@ -376,24 +348,6 @@ internal fun CompactMapTab(
      */
     controlsPadding: PaddingValues = PaddingValues(0.dp),
     onLocateMe: () -> Unit,
-    isRecording: Boolean,
-    onToggleRecording: () -> Unit,
-    startRecordingErrorMessage: String?,
-    breadcrumbPoints: List<LatLng>,
-    waypoints: List<Waypoint>,
-    onDropWaypoint: (LatLng, String) -> Unit,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    /**
-     * Whether *any* navigation mode is active — [AvailabilityScreen]'s one `isNavigating`, see its
-     * doc comment. Gates the HUD's presence and the compass strip's absence together, so heading,
-     * elevation and coordinates are on screen exactly once in either state. Distinct from
-     * [isReturning], which is one such mode (the only one in stage one) and still drives the
-     * control pill's lit return toggle and the off-track heuristic.
-     */
-    isNavigating: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
     /**
      * The recording's sundown line (dispatch 2026-09-28-592, plan task T3; placement RECORD -421,
      * "Strip, then HUD"): in the strip while recording, in the HUD while navigating. Navigating with no
@@ -406,67 +360,26 @@ internal fun CompactMapTab(
      * reminder; its Back by also gives the strip's and the HUD's "Back by" line. `null` draws no button.
      */
     quickSettings: MapQuickSettings? = null,
+    /** RECORD -739: the navigation inputs, grouped to keep this signature small enough for ART; see [CompactMapNavigation]. */
+    navigation: CompactMapNavigation,
+    /** RECORD -739: the recording and its waypoints; see [CompactMapRecording]. */
+    recording: CompactMapRecording,
+    /** RECORD -739: the short-landscape-window inputs, portrait by default; see [CompactMapLandscape]. */
+    landscape: CompactMapLandscape = CompactMapLandscape(),
+    /** RECORD -739: the search's "Set on map" pick; see [CompactMapSearchLocationPick]. */
+    searchLocationPick: CompactMapSearchLocationPick = CompactMapSearchLocationPick(),
     compassProvider: CompassProvider,
     /** See [AvailabilityScreen]'s own `computeTrueHeading` doc comment. */
     computeTrueHeading: ComputeTrueHeadingUseCase,
-    /** See [AvailabilityScreen]'s own `navigationTarget` doc comment. */
-    navigationTarget: Waypoint?,
-    /** See [AvailabilityScreen]'s own `returnRoute` doc comment. */
-    returnRoute: ReturnRoute,
-    /** The way back to draw while navigating (dispatch 2026-09-28-497). */
-    routeLine: RouteLine?,
-    /** See [AvailabilityScreen]'s own `onRetryRoute` doc comment. */
-    onRetryRoute: () -> Unit,
-    /**
-     * Dispatch 2026-09-28-502: the navigation on is to a chosen waypoint, [navigationTarget]. The HUD is
-     * then the straight-line one (decision D2: no route given), the map draws the dashed line from the
-     * walker to the waypoint instead of the return's way back, and the return control is the X-circle
-     * whether or not a track is recording.
-     */
-    isNavigatingToWaypoint: Boolean = false,
-    /**
-     * Dispatch 2026-09-28-502, step 3: the dashed line from the walker to the waypoint, current or kept faded after the
-     * fix was lost (the owner's "Keep the last line, faded"). Worked out and held in [AvailabilityScreen], above the tab
-     * switch; `null` draws none.
-     */
-    waypointStraightLine: StraightLine? = null,
-    /**
-     * Dispatch 2026-09-28-502, Amendment 1: Back ended a waypoint navigation started from this tab's bubble
-     * or the details sheet opened from it, and that step is opened again here, once; then
-     * [onWaypointReopenConsumed]. `null` asks for nothing.
-     */
-    waypointReopen: WaypointNavigationOrigin? = null,
-    onWaypointReopenConsumed: () -> Unit = {},
     /** MGRS or decimal degrees, shared by the strip and the HUD; held in `AvailabilityScreen` (dispatch 2026-09-28-422). */
     showDecimalDegrees: Boolean,
     /** Flips [showDecimalDegrees]. */
     onToggleCoordinateFormat: () -> Unit,
-    /** Dispatch 2026-09-28-430: whether the map follows in the navigation view; false once the user has moved it away. */
-    navigationFollowing: Boolean,
-    /** Dispatch 2026-09-28-430: counts "Return to Route" (and locate while navigating) requests. */
-    navigationViewRequestId: Int,
-    /** Dispatch 2026-09-28-430: the map reports the user moving it away from the navigation view. */
-    onLeftNavigationView: () -> Unit,
-    /** Dispatch 2026-09-28-430: "Return to Route", and locate while navigating. */
-    onReturnToRoute: () -> Unit,
-    /** Dispatch 2026-09-28-440: the set zoom is still to be applied in this navigation. */
-    navigationZoomPending: Boolean,
-    /** Dispatch 2026-09-28-440: the map has applied the set zoom. */
-    onNavigationZoomApplied: () -> Unit,
     /** The HUD's fix-age clock — [AvailabilityScreen]'s own `currentTime`, so a test can pin an old fix as stale. */
     currentTime: CurrentTimeProvider,
     /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
     taxonFilter: Long?,
     onClearTaxonFilter: () -> Unit,
-    /**
-     * True while [AdvancedSearchDropdown]'s "Set on map" is active — a [compactMainScaffold]-owned
-     * state, not local to this tab, since the dropdown that triggers it lives above the bottom-nav
-     * switch and can be reached from any tab. Shows [CentrePinLocationPickerOverlay] over this same
-     * map the same way [pendingAction] already does, rather than a second picker.
-     */
-    pickingSearchLocation: Boolean = false,
-    onSearchLocationPicked: (LatLng) -> Unit = {},
-    onCancelSearchLocationPick: () -> Unit = {},
     /**
      * Extra top clearance beyond the compass strip's own row, for chrome this tab doesn't know
      * about that now floats above it — SearchEntryBar, on the compact scaffold's own Map tab (see
@@ -524,6 +437,41 @@ internal fun CompactMapTab(
      */
     bubbleSources: MapRecordSources = MapRecordSources(),
 ) {
+    // RECORD -739: the grouped inputs, unpacked under their old parameter names so the body below is unchanged.
+    val returnToStart = navigation.returnToStart
+    val isReturning = navigation.isReturning
+    val isNavigating = navigation.isNavigating
+    val isOffTrack = navigation.isOffTrack
+    val onToggleReturning = navigation.onToggleReturning
+    val navigationTarget = navigation.navigationTarget
+    val returnRoute = navigation.returnRoute
+    val routeLine = navigation.routeLine
+    val onRetryRoute = navigation.onRetryRoute
+    val isNavigatingToWaypoint = navigation.isNavigatingToWaypoint
+    val waypointStraightLine = navigation.waypointStraightLine
+    val waypointReopen = navigation.waypointReopen
+    val onWaypointReopenConsumed = navigation.onWaypointReopenConsumed
+    val navigationFollowing = navigation.navigationFollowing
+    val navigationViewRequestId = navigation.navigationViewRequestId
+    val onLeftNavigationView = navigation.onLeftNavigationView
+    val onReturnToRoute = navigation.onReturnToRoute
+    val navigationZoomPending = navigation.navigationZoomPending
+    val onNavigationZoomApplied = navigation.onNavigationZoomApplied
+    val isRecording = recording.isRecording
+    val onToggleRecording = recording.onToggleRecording
+    val startRecordingErrorMessage = recording.startRecordingErrorMessage
+    val breadcrumbPoints = recording.breadcrumbPoints
+    val waypoints = recording.waypoints
+    val onDropWaypoint = recording.onDropWaypoint
+    val railPortEdge = landscape.railPortEdge
+    val punchHoleEdge = landscape.punchHoleEdge
+    val landscapeSearchWidth = landscape.landscapeSearchWidth
+    val onRailWidthMeasured = landscape.onRailWidthMeasured
+    val onLandscapeStripHeightMeasured = landscape.onLandscapeStripHeightMeasured
+    val onLandscapeStripWidthMeasured = landscape.onLandscapeStripWidthMeasured
+    val pickingSearchLocation = searchLocationPick.pickingSearchLocation
+    val onSearchLocationPicked = searchLocationPick.onSearchLocationPicked
+    val onCancelSearchLocationPick = searchLocationPick.onCancelSearchLocationPick
     var showActionMenu by remember { mutableStateOf(false) }
     var showLayersSheet by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
