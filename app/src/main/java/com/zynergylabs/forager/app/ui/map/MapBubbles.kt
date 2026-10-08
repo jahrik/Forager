@@ -319,7 +319,7 @@ private fun mgrsOf(location: LatLng): String? = (MgrsConverter.convert(location)
  * find does not count, as the find badge does not) and how many journal entries keep it.
  *
  * While the bubble shows J8's keeping-entry lines ([keepingEntriesShown]), the line leaves out its
- * "Kept in" part, so "Kept in" is said once, by J8's lines (dispatch `2026-09-28-70`; the owner:
+ * "In N journal entries" part (it said "Kept in" until the owner's RECORD -671), so it is said once, by J8's lines (dispatch `2026-09-28-70`; the owner:
  * "Option B"). The two counts differ: this one is every entry keeping the photo, J8's only the entries
  * shown on the map. With nothing else left the line is left out (`null`), so a photo a shown entry
  * keeps is never called "Not in a find or a journal entry".
@@ -327,15 +327,18 @@ private fun mgrsOf(location: LatLng): String? = (MgrsConverter.convert(location)
 private fun photoAttachmentLine(gallery: GalleryPhoto, sources: MapRecordSources, keepingEntriesShown: Boolean): String? {
     val finds = gallery.referencingEntryIds.mapNotNull { id -> sources.finds.firstOrNull { it.id == id } }
     val entries = sources.photoEntryReferenceCounts[gallery.photo.id] ?: 0
+    // The owner, RECORD -673 ("'Chanterelle · 2 journal entries' (Recommended)"): a line naming both a
+    // find and journal entries says "In" for neither; a line naming only one keeps its "In".
     val parts = buildList {
         when (finds.size) {
             0 -> Unit
-            1 -> add("In ${finds.single().ownIdentification?.takeIf { it.isNotBlank() } ?: findDateLabel(finds.single())}")
-            else -> add("In ${finds.size} finds")
+            1 -> add(finds.single().ownIdentification?.takeIf { it.isNotBlank() } ?: findDateLabel(finds.single()))
+            else -> add("${finds.size} finds")
         }
-        if (entries > 0 && !keepingEntriesShown) add("Kept in ${journalEntryCountLabel(entries)}")
+        if (entries > 0 && !keepingEntriesShown) add(journalEntryCountLabel(entries))
     }
     return when {
+        parts.size == 1 -> "In ${parts.single()}"
         parts.isNotEmpty() -> parts.joinToString(" · ")
         keepingEntriesShown -> null
         else -> PHOTO_NOT_ATTACHED
