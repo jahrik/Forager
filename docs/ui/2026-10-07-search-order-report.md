@@ -467,3 +467,57 @@ reported a failure that its edit could not cause.
 - the keyboard over the dropdown's bottom row;
 - the dropdown's look at the 80% fill;
 - the grouped Finds grid's look, and a day's heading going at once while its last tile fades.
+
+## After the build: the planner's answers (RECORD -717)
+
+### 1. The 7 existing tests: option (a)
+
+The Finds grid has a test tag, `FINDS_GRID_TAG` (`ui/log/FindsGalleryScreen.kt`). Each change below cites -717 and the
+measurement: the second day's heading sat at 1240 to 1280 px of a 1280 px window, and its tile was not composed. Apart from the
+scroll, every assertion is unchanged.
+
+- **`JournalPendingDeleteTest`.**
+  - `openFindReport` and `findTile` scroll the grid to the tile (`performScrollToNode`) before touching or reading it.
+  - `findTiles(d).assertCountEquals(1)` became `assertTileShown(d)`: scroll to the tile, then the same count of 1.
+  - `findTiles(d).assertCountEquals(0)` became `assertTileGone(d)`. It checks the grid exists, scrolls through the whole grid
+    without finding the tile, and then makes the same count of 0. So "gone" cannot pass on a tile that was never composed.
+  - Three gone checks and six shown checks changed.
+- **`LeavingTheJournalFixesTest`.** `openFindReport` scrolls the grid to the tile before its click, which affects F1 and F3 in
+  short landscape. I measured the window on `JournalPendingDeleteTest`, not on this class's short-landscape window; that the
+  same cause applies here is an inference.
+- **Revert check (r17), does the gone check bite?** I left a pending-deleted find visible (`MushroomLogUiState.hidingPendingDelete`
+  keeps it). Four tests failed, among them "no tile for 2026-09-20 anywhere in the grid", for the tile that sits below the fold.
+
+### 2. Finding 1 was wrong about its cause; corrected here, no app change
+
+The build's finding said a dropdown **button** leaves the search field focused. The planner asked for a fix: any button should
+clear focus, as Back does. Before writing one I measured both closes. The cause is the window's mode, not the button:
+
+- **In touch mode** (a finger on a phone; `setInTouchMode(true)`, as `AvailabilityScreenBubbleAndDropdownBackTest` does): after
+  Search coordinates, Search, or Set on map then Cancel, a tap on the bar opens the dropdown again, **on the existing code**.
+  These are the new `SearchDropdownReopenTest`'s three tests, each with a positive control that the window is in touch mode.
+- **Out of touch mode** (Robolectric's default, and on a phone a hardware keyboard or D-pad), measured with a temporary test
+  class that I then deleted:
+  - after a button closed the dropdown, the field was still focused and the tap opened nothing;
+  - after **Back**, exactly the same.
+  
+  Every close runs the same `clearFocus`, and out of touch mode Android hands focus straight back to the first focusable view.
+  The app's `appClearFocusInProgress` (dispatch -312, item 12) deliberately keeps that hand-back from reopening the dropdown.
+- So any button already clears focus the same as Back, and in touch mode the bar reopens after every button. I made no app
+  change, and my earlier tests' comments now give the right cause.
+- **Revert check (r16):** I removed `clearFocus` from the close. All three `SearchDropdownReopenTest` tests failed with "a tap
+  on the bar after the button closed it opened the dropdown again". The new test is tied to the close's focus handling.
+- **Left for the owner, if wanted:** with a hardware keyboard or D-pad, after any close (Back included) a tap on the bar does
+  not reopen the dropdown. Changing that would weigh against -312 item 12's ruling, so it is not mine to make.
+
+### 3. Known gap
+
+The scroll-to-end-on-open revert (r03) fails only the short-landscape test. In portrait the panel fits, so there is nothing to
+scroll and `SearchDropdownKeyboardTest` T3b cannot fail on it. No change, as directed.
+
+### Counts
+
+- The affected classes after the changes: 11 classes, 258 tests, 0 failures.
+- **Full suite: 4,387 tests, 0 failures, 24 skipped** (555 classes, `BUILD SUCCESSFUL`), on `5124945f`. That commit contains
+  `origin/main` at `0f5cf0e5` (back-by).
+- `./gradlew --stop` ran afterwards, and no Gradle or Kotlin daemon is left. Free disk stayed above 3.1 GB.
