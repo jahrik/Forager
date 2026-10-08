@@ -641,8 +641,11 @@ class JournalPendingDeleteTest {
     }
     // ── Finds, from the report (D4) ──
 
+    /** The tile title of the fixture find dated [date]: its given name. */
+    private fun findTileName(date: String): String = listOf(PD_FIND_A, PD_FIND_B).single { it.foundOn.toString() == date }.ownIdentification!!
+
     private fun openFindReport(date: String) {
-        composeRule.onNodeWithText("Find on $date", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText(findTileName(date), useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
     }
@@ -653,7 +656,7 @@ class JournalPendingDeleteTest {
         composeRule.waitForIdle()
     }
 
-    private fun findTiles(date: String) = composeRule.onAllNodesWithText("Find on $date", useUnmergedTree = true)
+    private fun findTiles(date: String) = composeRule.onAllNodesWithText(findTileName(date), useUnmergedTree = true)
 
     @Test
     fun `deleting a find from its report closes the report, hides the find, says Find deleted, and deletes nothing yet`() {
@@ -1135,7 +1138,7 @@ class JournalPendingDeleteTest {
     // (The owner's "grids long-press": find tiles and album photos keep long-press.) Real
     // long-presses at several points of each tile; the menu's items chosen by coordinate touches.
 
-    private fun findTile(date: String) = composeRule.onNodeWithText("Find on $date")
+    private fun findTile(date: String) = composeRule.onNodeWithText(findTileName(date))
 
     private fun menuItems() = composeRule.onAllNodes(hasClickAction() and hasAnyAncestor(isPopup()))
 
@@ -1198,7 +1201,7 @@ class JournalPendingDeleteTest {
     fun `a find tile's Edit and Delete accessibility actions, and its long-press label`() {
         setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
         val node = findTile("2026-09-20").fetchSemanticsNode()
-        assertEquals("Options for Find on 2026-09-20", node.config[SemanticsActions.OnLongClick].label)
+        assertEquals("Options for Morel", node.config[SemanticsActions.OnLongClick].label)
         assertEquals(listOf("Edit", "Delete"), node.config[SemanticsActions.CustomActions].map { it.label })
 
         val delete = node.config[SemanticsActions.CustomActions].single { it.label == "Delete" }
@@ -1510,8 +1513,10 @@ private object PendingDeleteTheme : AppThemePreferenceRepository {
     override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
 
-private val PD_FIND_A = MushroomLogEntry.draft(id = "find-a", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
-private val PD_FIND_B = MushroomLogEntry.draft(id = "find-b", location = null, date = LocalDate.of(2026, 9, 21)).copy(isDraft = false)
+// Named, because a find tile shows the name the user gave it, not its date (data part D, RECORD -702); these tests tell the two
+// tiles apart by it ([findTileName]). Before that they were unnamed and told apart by "Find on <date>".
+private val PD_FIND_A = MushroomLogEntry.draft(id = "find-a", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false, ownIdentification = "Morel")
+private val PD_FIND_B = MushroomLogEntry.draft(id = "find-b", location = null, date = LocalDate.of(2026, 9, 21)).copy(isDraft = false, ownIdentification = "Oyster")
 
 /**
  * Finds kept in memory, and (J4b L3) gallery photos; every [delete] and [deletePhotoFromGallery]

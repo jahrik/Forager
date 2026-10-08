@@ -20,6 +20,7 @@ class ImportedTrackBubbleTest {
         val content = mapBubbleContentFor(
             MapBubbleTarget.FeatureTarget(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, track.id, LatLng(45.5, -122.6)),
             MapRecordSources(tracks = listOf(track)),
+            is24HourClock = false,
         ) as MapBubbleContent.TrackContent
         return content.duration
     }

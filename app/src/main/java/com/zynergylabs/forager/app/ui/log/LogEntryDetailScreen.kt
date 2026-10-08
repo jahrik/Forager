@@ -57,6 +57,7 @@ import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
@@ -152,7 +153,7 @@ internal fun LogEntryDetailScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
                 Text(
-                    "Find on ${entry.foundOn}",
+                    "Find on ${displayDate(entry.foundOn)}",
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

@@ -209,7 +209,7 @@ class JournalPageSlideTest {
         settle()
     }
 
-    private fun findTile() = composeRule.onNodeWithText("Find on ${find.foundOn}").getUnclippedBoundsInRoot()
+    private fun findTile() = composeRule.onNodeWithText(UNNAMED_FIND_NO_TIME).getUnclippedBoundsInRoot()
 
     @Test
     fun `a find's report slides in from the right over the gallery, which takes no touch while it is covered`() {

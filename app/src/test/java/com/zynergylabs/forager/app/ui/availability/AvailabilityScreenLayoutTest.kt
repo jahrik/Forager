@@ -58,6 +58,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * Measured layout invariants for [AvailabilityScreen], run headlessly on the JVM.
@@ -907,7 +908,7 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithContentDescription("Directions to ${trip.name}")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Remove planned trip for ${trip.date}")
+        composeRule.onNodeWithContentDescription("Remove planned trip for ${displayDate(trip.date)}")
             .performScrollTo()
             .assertIsDisplayed()
     }

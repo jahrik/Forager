@@ -53,6 +53,7 @@ import com.zynergylabs.forager.app.domain.model.StipeSection
 import com.zynergylabs.forager.app.domain.model.VeilSection
 import com.zynergylabs.forager.app.domain.model.valueOrNull
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The Journal gallery's default view for an *existing* entry — a compiled, readable report of
@@ -120,7 +121,7 @@ internal fun LogEntryReportScreen(
                 BouncingIconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
-                Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.titleMedium)
+                Text("Find on ${displayDate(entry.foundOn)}", style = MaterialTheme.typography.titleMedium)
             }
             Box {
                 BouncingIconButton(onClick = { menuExpanded = true }) {

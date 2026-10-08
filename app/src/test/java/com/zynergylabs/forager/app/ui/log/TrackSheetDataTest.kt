@@ -13,6 +13,9 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -219,9 +222,12 @@ class TrackSheetDataTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
         Settings.System.putString(context.contentResolver, Settings.System.TIME_12_24, "24")
         setScreen()
+        val expected = DateTimeFormatter.ofPattern("MMM d, yyyy, HH:mm").format(Instant.ofEpochMilli(FLAT.startedAtEpochMillis).atZone(ZoneId.systemDefault()))
+        // Data part D (RECORD -702): the Records row's title follows the same setting, so the row and the sheet agree on a
+        // 24-hour phone (data part B's report, item 8, recorded the mismatch this closes).
+        composeRule.onNode(hasText(expected) and hasAnyAncestor(hasTestTag("track-row-${FLAT.id}")), useUnmergedTree = true).assertExists()
         openSheet(FLAT)
 
-        val expected = DateTimeFormatter.ofPattern("MMM d, yyyy, HH:mm").format(Instant.ofEpochMilli(FLAT.startedAtEpochMillis).atZone(ZoneId.systemDefault()))
         composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals(expected)
         field(FIELD_STARTED).assertTextEquals("Started", expected)
     }
