@@ -76,9 +76,9 @@ class SearchDropdownSearchesTheFieldsTest {
         composeRule.waitForIdle()
     }
 
-    // One touch per test: under Robolectric the search field keeps its focus after a dropdown button closes the dropdown,
-    // so a second touch on it opens nothing (measured at the build; reported as a finding). The touch is sampled across
-    // the button in AvailabilityScreenLayoutTest, one sample per test.
+    // One touch per test: this window is out of touch mode, where closing the dropdown hands focus back to the search field,
+    // so a second tap on it opens nothing (RECORD -717; SearchDropdownReopenTest covers the reopen in touch mode). The touch
+    // is sampled across the button in AvailabilityScreenLayoutTest, one sample per test.
 
     @Test
     fun `Search coordinates with the fields left as they are searches the coordinates they hold`() {
