@@ -29,4 +29,10 @@ class StripReadoutsShownTest {
     @Test
     fun `a readout narrower than the minimum needs only its own width`() =
         assertEquals(StripReadoutsShown(heading = true, elevation = true), shown(200 + 40 + 30 + 20, heading = 30, elevation = 20))
+
+    @Test
+    fun `the general rule drops from the front and keeps a lone readout when it fits`() {
+        assertEquals(listOf(true), readoutsKeptBeside(availablePx = 200 + 20 + 48, coordinatesPx = 200, readoutsPx = listOf(100), separatorPx = 20, minimumPx = 48))
+        assertEquals(listOf(false), readoutsKeptBeside(availablePx = 200 + 20 + 47, coordinatesPx = 200, readoutsPx = listOf(100), separatorPx = 20, minimumPx = 48))
+    }
 }

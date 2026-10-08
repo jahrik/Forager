@@ -149,14 +149,25 @@ internal fun stripReadoutsShown(
     separatorPx: Int,
     minimumPx: Int,
 ): StripReadoutsShown {
+    val kept = readoutsKeptBeside(availablePx, coordinatesPx, listOf(headingPx, elevationPx), separatorPx, minimumPx)
+    return StripReadoutsShown(heading = kept[0], elevation = kept[1])
+}
+
+/**
+ * The general rule behind [stripReadoutsShown], shared with the navigation display's second row (dispatch
+ * 2026-09-28-685, the planner's extension of Amendment 2, RECORD -699): coordinates first and whole, then the readouts
+ * ([readoutsPx], in the order they give way, facing first), each with its separator. The fewest readouts are dropped,
+ * from the front, so that each one kept can have at least [minimumPx] (or its own width, if narrower).
+ */
+internal fun readoutsKeptBeside(availablePx: Int, coordinatesPx: Int, readoutsPx: List<Int>, separatorPx: Int, minimumPx: Int): List<Boolean> {
     val left = availablePx.toLong() - coordinatesPx
-    val bothFit = left - 2L * separatorPx >= minOf(headingPx, minimumPx).toLong() + minOf(elevationPx, minimumPx)
-    val altitudeFits = left - separatorPx >= minOf(elevationPx, minimumPx).toLong()
-    return when {
-        bothFit -> StripReadoutsShown(heading = true, elevation = true)
-        altitudeFits -> StripReadoutsShown(heading = false, elevation = true)
-        else -> StripReadoutsShown(heading = false, elevation = false)
+    for (dropped in 0..readoutsPx.size) {
+        val kept = readoutsPx.drop(dropped)
+        if (left - kept.size.toLong() * separatorPx >= kept.sumOf { minOf(it, minimumPx).toLong() }) {
+            return List(readoutsPx.size) { it >= dropped }
+        }
     }
+    return List(readoutsPx.size) { false }
 }
 
 /**

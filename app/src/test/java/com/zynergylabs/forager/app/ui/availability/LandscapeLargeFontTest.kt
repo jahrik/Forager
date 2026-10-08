@@ -215,6 +215,12 @@ class LandscapeLargeFontTest {
             layout.isLineEllipsized(0) || layout.getLineEnd(0, visibleEnd = true) == textOf(status).length,
         )
         assertAboveCentralThird("font 2.0, rotation $rotation")
+        // The planner's extension of -699 to the display: the grid reference shows whole.
+        val coordinates = composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        val coordinatesLayout = layoutOf(coordinates)
+        println("MEASURED font 2.0, rotation $rotation display coordinates <${textOf(coordinates)}>: visible ${coordinatesLayout.getLineEnd(0, visibleEnd = true)} of ${textOf(coordinates).length}")
+        assertFalse("font 2.0, rotation $rotation: the display's coordinates are not ellipsised", coordinatesLayout.isLineEllipsized(0))
+        assertEquals("font 2.0, rotation $rotation: every character of the coordinates shows", textOf(coordinates).length, coordinatesLayout.getLineEnd(0, visibleEnd = true))
     }
 
     @Test
