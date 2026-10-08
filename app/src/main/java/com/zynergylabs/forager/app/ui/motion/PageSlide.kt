@@ -22,6 +22,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidedValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -270,6 +273,15 @@ private fun LeavingPageFrame(leaving: Boolean, inertBack: InertBack, pageColor: 
     // focus at the start of the leave, and moving it to the slide's own container. With either, and with neither, focus ends on
     // the search field that has come back above the Journal, which opens its dropdown; only when it moves differs (the first
     // frame, or the frame the page goes).
+    // RECORD -692: counted while it leaves, for a screen that waits on its pages (the Journal's search bar, which returns only
+    // once a closed entry has finished sliding out; LeavingPages).
+    val leavingPages = LocalLeavingPages.current
+    if (leavingPages != null) {
+        DisposableEffect(leaving) {
+            if (leaving) leavingPages.count++
+            onDispose { if (leaving) leavingPages.count-- }
+        }
+    }
     CompositionLocalProvider(*inertProvided) {
         NoTouchTargetExpansion(active = leaving) {
         Box(
@@ -282,4 +294,16 @@ private fun LeavingPageFrame(leaving: Boolean, inertBack: InertBack, pageColor: 
         }
     }
 }
+
+/**
+ * How many pages are leaving under one screen, for a screen that waits on them (RECORD -692; the owner: "Search bar returns after
+ * the slide (Recommended)"): the compact scaffold provides one around the Journal ([LocalLeavingPages]), and every [PageSlide] or
+ * [SlideOverPage] page inside counts itself while it leaves.
+ */
+class LeavingPages {
+    var count by mutableIntStateOf(0)
+}
+
+/** The [LeavingPages] a leaving page counts itself in; `null` (the default) counts nothing. */
+val LocalLeavingPages = staticCompositionLocalOf<LeavingPages?> { null }
 

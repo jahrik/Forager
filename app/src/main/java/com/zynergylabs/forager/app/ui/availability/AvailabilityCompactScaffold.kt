@@ -112,6 +112,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -165,6 +167,8 @@ import com.zynergylabs.forager.app.ui.motion.PressHighlight
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
 import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
 import com.zynergylabs.forager.app.ui.motion.TabCrossfade
+import com.zynergylabs.forager.app.ui.motion.LeavingPages
+import com.zynergylabs.forager.app.ui.motion.LocalLeavingPages
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.Animatable
@@ -511,6 +515,24 @@ internal fun CompactMainScaffold(
         // level down in CartographyScreen.kt/JournalTab.kt, invisible at this scope. Owner decision:
         // hiding while merely viewing is acceptable rather than lifting that mode into shared state.
         val isEditingJournalEntry = logUiState.editingEntry != null || cartographyUiState.editingEntry != null
+        // RECORD -692 (the owner: "Search bar returns after the slide (Recommended)"): the rule above, extended through the
+        // slide-out. Once the entry closes, its page slides away for a moment (motion Part 3), and the bar stays hidden until no
+        // Journal page is leaving any more; then it appears, at once, as before. Without this, the bar came back while the
+        // closing editor still held focus, and when the editor went, focus fell to the bar's field and opened its dropdown over
+        // the Journal (LeavingTheJournalFixesTest F1, measured frame by frame at motion Part 3's build). The hold starts on the
+        // composition the entry closes in (entryJustClosed), so the bar is not composed for even one frame in between.
+        val journalLeavingPages = remember { LeavingPages() }
+        val wasEditingJournalEntry = remember { booleanArrayOf(false) }
+        val entryJustClosed = wasEditingJournalEntry[0] && !isEditingJournalEntry
+        var holdSearchAfterEntry by remember { mutableStateOf(false) }
+        SideEffect {
+            wasEditingJournalEntry[0] = isEditingJournalEntry
+            if (entryJustClosed) holdSearchAfterEntry = true
+        }
+        LaunchedEffect(holdSearchAfterEntry, journalLeavingPages.count) {
+            if (holdSearchAfterEntry && journalLeavingPages.count == 0) holdSearchAfterEntry = false
+        }
+        val journalSearchHeld = isEditingJournalEntry || entryJustClosed || (holdSearchAfterEntry && journalLeavingPages.count > 0)
         // Search-focus-and-hide dispatch, Item 1: tried and deliberately NOT built here. The natural
         // generalization of the established LaunchedEffect(showSearchDropdown) pattern just above
         // — LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus(force = true) }, firing on
@@ -935,7 +957,7 @@ internal fun CompactMainScaffold(
                     LaunchedEffect(journalHidesSearchHeader) {
                         if (journalHidesSearchHeader) showSearchDropdown = false
                     }
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !isEditingJournalEntry && !journalHidesSearchHeader) {
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld && !journalHidesSearchHeader) {
                         SearchEntryBar(
                             uiState = uiState,
                             distanceUnit = distanceUnit,
@@ -1173,7 +1195,7 @@ internal fun CompactMainScaffold(
                                 // compactTab()`), so it still leaves at once and no field stays focusable through the fade: the
                                 // scout's recorded "appears and vanishes on purpose" item stays instant, and the gate above still
                                 // reads compactTab(), so leaving Maps for an open entry unmounts the bar at once, as before.
-                                searchBarSlot = if ((isEditingJournalEntry && compactTab() == CompactTab.JOURNAL) || tab != compactTab()) {
+                                searchBarSlot = if ((journalSearchHeld && compactTab() == CompactTab.JOURNAL) || tab != compactTab()) {
                                     { _ -> }
                                 } else {
                                     { compassStripHeight ->
@@ -1236,7 +1258,7 @@ internal fun CompactMainScaffold(
                                 modifier = Modifier.fillMaxSize(),
                             )
                             CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
-                            CompactTab.JOURNAL -> JournalTab(
+                            CompactTab.JOURNAL -> CompositionLocalProvider(LocalLeavingPages provides journalLeavingPages) { JournalTab(
                                 uiState = logUiState,
                                 onOpenCameraForLogEntry = { onOpenCamera(InAppCameraTarget.LOG_ENTRY) },
                                 onOpenCameraForAlbum = { onOpenCamera(InAppCameraTarget.ALBUM) },
@@ -1362,7 +1384,7 @@ internal fun CompactMainScaffold(
                                 onReopenWaypointDetailsConsumed = waypointNavigate.onRecordsReopenConsumed,
                                 onGpxFilePicked = onGpxFilePicked,
                                 pendingTrackId = pendingJournalTrackId(),
-                            )
+                            ) }
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
                             // see that entry's own doc comment. Kept as a real branch (not an else) so
                             // this stays an exhaustive, honest `when` rather than one that silently
