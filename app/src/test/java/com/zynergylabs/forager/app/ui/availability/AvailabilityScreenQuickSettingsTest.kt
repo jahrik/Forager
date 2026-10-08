@@ -251,6 +251,43 @@ class AvailabilityScreenQuickSettingsTest {
 
     // ── Real touches on the button ──
 
+    /**
+     * RECORD -709 (the planner): in a landscape window the button always gets its 36 dp. Before, at 780 x 360 dp the readings
+     * column took all of the strip's capped width and the button was laid out 0 dp wide at the strip's edge. Real touches
+     * across its square open the menu, at the S22's 780 x 360 and at 823 x 384.
+     */
+    @Test
+    @Config(qualifiers = "w780dp-h360dp-land-xxhdpi")
+    fun `landscape 780 x 360, the button keeps its 36 dp and real touches across it open the menu`() = landscapeTouchesOpenTheMenu()
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
+    fun `landscape 823 x 384, the button keeps its 36 dp and real touches across it open the menu`() = landscapeTouchesOpenTheMenu()
+
+    private fun landscapeTouchesOpenTheMenu() {
+        setScreen()
+        val strip = bounds(STRIP_TAG)
+        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        assertEquals("36 dp wide: $button", 36f, (button.right - button.left).value, 0.5f)
+        assertEquals("36 dp tall: $button", 36f, (button.bottom - button.top).value, 0.5f)
+        assertTrue("at the strip's far right, inside it: $button in $strip", strip.right - button.right < 1.dp && button.left >= strip.left)
+        val inset = 3.dp
+        val points = listOf(
+            (button.left + button.right) / 2 to (button.top + button.bottom) / 2,
+            button.left + inset to button.top + inset,
+            button.right - inset to button.top + inset,
+            button.left + inset to button.bottom - inset,
+            button.right - inset to button.bottom - inset,
+        )
+        for ((x, y) in points) {
+            touchAt(x, y)
+            assertTrue("a real touch at (${x.value}, ${y.value}) in $button opened the menu", shown(MAP_QUICK_SETTINGS_MENU_TAG))
+            composeRule.runOnIdle { screenGeneration++ }
+            composeRule.waitForIdle()
+            assertFalse("a fresh screen before the next touch", shown(MAP_QUICK_SETTINGS_MENU_TAG))
+        }
+    }
+
     /** A finger is not a point (CLAUDE.md): touches sampled across the 36 dp square, corners included, each open the menu. */
     @Test
     fun `real touches across the button's square each open the menu`() {
