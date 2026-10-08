@@ -27,7 +27,8 @@ this session re-ran itself. Evidence (logcat, screenshots, dumps, build logs) is
 |---|---|
 | dc4b6c2e | `scripts/s22-launch-check.sh` (new) and `scripts/verify-dex-register-budget.sh` made report-only, both left uncommitted by the first coder; reviewed and finished here |
 | 6ccb7b9e | the register report's baseline, recorded from the S22-verified build |
-| (this commit) | this report and its index row |
+| 622ef316 | this report's draft, pushed before the suite finished |
+| (next) | this report finished, and its index row |
 
 Changes made to the first coder's uncommitted script: two pipelines that ended in `grep -q` under
 `set -o pipefail` (the attached-device check and the dexopt status check) now capture output before searching
@@ -127,7 +128,24 @@ only for install failure. Its crash detection is the same `logcat -b crash` read
 
 ## 5. Full suite
 
-SUITE_PLACEHOLDER
+`testDebugUnitTest` at 6ccb7b9e, read from the JUnit XML of a run whose results directory was emptied first:
+**576 classes, 4,454 tests, 0 failures, 0 errors, 24 skipped** (`31-suite-6ccb7b9e-tests-only.log`, BUILD SUCCESSFUL in
+7m 48s). The same total as #203's suite at 8904d8ff (4,454, 24 skipped, 0 failures, its index row), which is what a
+refactor with no new tests should give. Among them, #203's join and strip tests all pass: LandscapeBarStripJoin780Test
+and 823Test 13 + 13, the six StripHeight classes (-736) 10, LandscapeHeadingIconFit Font1 and Font2 1 + 1. No existing
+test broke, so none was touched.
+
+The first attempt (`30-suite-6ccb7b9e.log`, `assembleDebug testDebugUnitTest` in one scope) was killed by the
+5G cap: journalctl, "run-p1219344-i1219216.scope: The kernel OOM killer killed some processes in this unit" and
+"Failed with result 'oom-kill'", 5G peak, during `testDebugUnitTest`, after `assembleDebug` had finished. The Kotlin
+daemon (2g) from compiling stays up beside Gradle (1.5g) and the Robolectric worker. Running the tests in a scope of
+their own passed under the same cap, though that run recompiled main and test Kotlin too (the version stamp changed with
+the report's commit), so the split is not what made it fit; the earlier run's leftover Kotlin daemon is the likelier
+difference, not confirmed. The forward APK that run built (12:53:13, D8 9.3.31, 1.0.3094+g6ccb7b9e) was installed and
+checked after the revert check, so the phone is back on the pinned build: `22-forward-6ccb7b9e-s22-launch-check.txt`,
+PASS, `compile -m verify -f: Success`, `status=verify`, crash buffer 0 bytes, `12:56:42.787 ... Displayed
+com.zynergylabs.forager.app/.MainActivity for user 0: +807ms`. Gradle stopped at the end (`./gradlew --stop`: "No
+Gradle daemons are running.").
 
 ## Not done, or left for others
 
