@@ -12,22 +12,21 @@
 # bytecode was correct, so Robolectric, the 4,454-test suite and CI were all green, and only ART's
 # verifier on a phone saw it.
 #
-# WORK IN PROGRESS, NOT ADEQUATE AS WRITTEN (2026-10-08, RECORD -739): the first fix grouped
-# CompactMapTab's parameters and brought it to 249 registers, which this script passes, and that
-# build was still rejected by ART on the S22 with a different message ("[0x1E20] copy-reference
-# v12<-v197 type=BooleanConstant"). So the 256-register line is not the cause, only where the
-# first symptom showed. Not wired into CI; kept on the branch so the work is not lost. The
-# baseline beside it is an empty placeholder.
+# REPORT ONLY. NOT A GUARD (RECORD -741). It always exits 0 once it has read the APK. It was written as
+# a guard and shown not to be one: the first fix grouped CompactMapTab's parameters to 249 registers,
+# which this passes, and that build was still rejected by ART on the S22 ("[0x1E20] copy-reference
+# v12<-v197 type=BooleanConstant"). The 256-register line is not the cause, only where the first
+# symptom showed. The guard is scripts/s22-launch-check.sh, run on the phone. This stays as a cheap
+# way to see which methods are large, and how large, when deciding what to split. Not wired into CI.
 #
-# What this checks. There is no offline ART verifier in the Android SDK (build-tools ships dexdump
+# What this reports. There is no offline ART verifier in the Android SDK (build-tools ships dexdump
 # and d8, neither of which verifies the way ART does), so this checks the condition that exposed the
 # miscompile rather than the miscompile itself: it lists every app method in the APK's dex files
-# with more than 256 registers, and fails on any that is not in the baseline beside this script.
+# with more than 256 registers, marked against the baseline beside this script.
 # A method over the line is not necessarily miscompiled -- the ones in the baseline launch fine on
 # the S22 at the commit that recorded them -- but every one of them is a frame where D8 has to
-# shuffle arguments, which is where this crash came from. A baselined method that grows is reported
-# but does not fail, so ordinary edits to those composables are not blocked; whether to shrink
-# them is the owner's decision, not this script's.
+# shuffle arguments, which is where this crash came from. Whether to shrink one is the owner's
+# decision, not this script's. Set REGISTER_REPORT_LIMIT to list methods over a lower count.
 #
 # Usage: scripts/verify-dex-register-budget.sh [path/to/app-debug.apk]
 # Needs dexdump from build-tools: $ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION, or else the
@@ -38,7 +37,7 @@ cd "$(dirname "$0")/.."
 
 APK="${1:-app/build/outputs/apk/debug/app-debug.apk}"
 BASELINE="scripts/dex-register-budget-baseline.txt"
-LIMIT=256
+LIMIT="${REGISTER_REPORT_LIMIT:-256}"
 
 [ -f "$APK" ] || { echo "FAIL: no APK at $APK (build it first: ./gradlew assembleDebug)"; exit 1; }
 [ -f "$BASELINE" ] || { echo "FAIL: no baseline at $BASELINE"; exit 1; }
@@ -83,24 +82,15 @@ done
 sort -k2 "$WORK/over.txt" -o "$WORK/over.txt"
 echo "Scanned $scanned methods in $dex_count dex files; $(wc -l < "$WORK/over.txt") app methods over $LIMIT registers."
 
-failed=0
 while read -r regs method; do
   base="$(awk -v m="$method" '$1 !~ /^#/ && $2 == m { print $1; exit }' "$BASELINE")"
   if [ -z "$base" ]; then
-    echo "  FAIL  $method: $regs registers (limit $LIMIT, not in the baseline)"
-    failed=1
+    echo "  NEW   $method: $regs registers (over $LIMIT, not in the baseline)"
   elif [ "$regs" -gt "$base" ]; then
-    echo "  GREW  $method: $regs registers (baseline $base); not failing, see this script's header"
+    echo "  GREW  $method: $regs registers (baseline $base)"
   else
     echo "  OK    $method: $regs registers (baseline $base)"
   fi
 done < "$WORK/over.txt"
 
-if [ "$failed" -ne 0 ]; then
-  echo
-  echo "A method over $LIMIT registers is where D8 miscompiled CompactMapTab and ART refused to load"
-  echo "the app (RECORD -739). Shrink it -- group parameters into holder classes, or split it -- and"
-  echo "confirm it launches on a phone. Adding it to $BASELINE needs that phone launch as evidence."
-  exit 1
-fi
-echo "PASS"
+echo "Report only: this is not a guard (see the header). The launch guard is scripts/s22-launch-check.sh."
