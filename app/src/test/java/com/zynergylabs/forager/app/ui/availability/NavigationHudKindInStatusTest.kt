@@ -35,14 +35,18 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * RECORD -713 (the owner: "Move it into the status line (Recommended)"). On a 360 dp window with Back by's three-dot button
- * in the display's first row, the figure and what it measures ("1280 ft" and "by trail") no longer fit side by side. The
- * kind then starts the status line, capitalised ("By trail · …"), whole, below the figure, and the display is exactly as tall
- * as without the button, where the kind fits beside the figure: the row stays the X's 48 dp. Native graphics, as the
- * width test beside this one.
+ * RECORD -713 (the owner: "Move it into the status line (Recommended)"). When the figure and what it measures ("1280 ft",
+ * "by trail") cannot share the first row, the kind starts the status line, capitalised ("By trail · …"), whole, below the
+ * figure, and the first row stays the X's 48 dp: the status line ends inside it.
+ *
+ * Reworked with RECORD -714, which moved the three-dot button to the second row at 360 dp: there the kind fits beside the
+ * figure again, so the case is set up at 320 dp, where it does not (measured: the figure and kind need about 97 dp, the
+ * distance column has about 95). The earlier claim, the display as tall with the button as without, no longer holds
+ * anywhere the button sits in the second row, which is one 36 dp line taller than the 24 dp coordinates line it shares; the
+ * row-height claim is made on the first row instead. Native graphics, as the width test beside this one.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi")
+@Config(sdk = [36], qualifiers = "w320dp-h780dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class NavigationHudKindInStatusTest {
 
@@ -146,7 +150,7 @@ class NavigationHudKindInStatusTest {
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().single().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
 
     @Test
-    fun `at 360 dp with the button, the kind starts the status line, whole, and the display is no taller`() {
+    fun `at 320 dp the kind starts the status line, whole, and the first row stays 48 dp`() {
         val longest = cases.single { it.name == "Sharp right, by trail" }
         composeRule.setContent {
             val c = case ?: return@setContent
@@ -166,12 +170,7 @@ class NavigationHudKindInStatusTest {
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        composeRule.runOnIdle { case = longest; withButton = false }
-        composeRule.waitForIdle()
-        assertEquals("without the button the kind is beside the figure, as data part B laid it out", "by trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
-        val heightWithout = bounds(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
-
-        composeRule.runOnIdle { withButton = true }
+        composeRule.runOnIdle { case = longest; withButton = true }
         composeRule.waitForIdle()
         assertEquals("By trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         assertEquals("the kind is whole", null, clipped(NAVIGATION_HUD_DISTANCE_KIND_TAG))
@@ -179,9 +178,13 @@ class NavigationHudKindInStatusTest {
         val kind = bounds(NAVIGATION_HUD_DISTANCE_KIND_TAG)
         val figure = bounds(NAVIGATION_HUD_DISTANCE_TAG)
         val status = bounds(NAVIGATION_HUD_STATUS_TAG)
+        val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
+        val hud = bounds(NAVIGATION_HUD_TAG)
         assertTrue("the kind $kind is below the figure $figure", kind.top >= figure.bottom - 0.5.dp)
         assertTrue("the kind $kind starts the status line $status", kind.right <= status.left && kind.top < status.bottom && kind.bottom > status.top)
-        val heightWith = bounds(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
-        assertEquals("the display is as tall as without the button", heightWithout.value, heightWith.value, 0.5f)
+        // The first row is the X's 48 dp touch box, centred on the X: the status line must end inside it.
+        val firstRowBottom = (exit.top + exit.bottom) / 2 + 24.dp
+        assertTrue("the status line $status ends inside the 48 dp first row (bottom $firstRowBottom)", status.bottom <= firstRowBottom + 0.5.dp)
+        assertEquals("the first row is 48 dp from the display's top padding", 48f, (firstRowBottom - hud.top - 4.dp).value, 0.5f)
     }
 }

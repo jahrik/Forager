@@ -125,57 +125,13 @@ internal const val COMPASS_STRIP_ELEVATION_TAG = "compass-strip-elevation"
 /** The compass strip's coordinates, the tap that switches their format (dispatch 2026-09-28-685, Amendment 2). */
 internal const val COMPASS_STRIP_COORDINATES_TAG = "compass-strip-coordinates"
 
-/**
- * The narrowest a facing or altitude readout is drawn before it drops out of the strip (dispatch 2026-09-28-685,
- * Amendment 2, RECORD -699): about a short label and "…". Chosen, not measured on a phone.
- */
-internal val STRIP_READOUT_MIN_WIDTH = 48.dp
-
-/** Which of the strip's two readouts are drawn beside its coordinates; see [stripReadoutsShown]. */
-internal data class StripReadoutsShown(val heading: Boolean, val elevation: Boolean)
-
-/**
- * Which readouts the strip draws in [availablePx] (dispatch 2026-09-28-685, Amendment 2; the owner: "Coordinates take
- * priority (Recommended)"). The coordinates always stay, measured first. What is left after them is for the readouts, each
- * with its separator ([separatorPx], the dot and its two gaps). Both stay when each can have at least [minimumPx] (they
- * shorten with "…" if they cannot have their whole width); with room for one, facing drops and altitude stays; with room
- * for neither, both drop.
- */
-internal fun stripReadoutsShown(
-    availablePx: Int,
-    coordinatesPx: Int,
-    headingPx: Int,
-    elevationPx: Int,
-    separatorPx: Int,
-    minimumPx: Int,
-): StripReadoutsShown {
-    val kept = readoutsKeptBeside(availablePx, coordinatesPx, listOf(headingPx, elevationPx), separatorPx, minimumPx)
-    return StripReadoutsShown(heading = kept[0], elevation = kept[1])
-}
-
-/**
- * The general rule behind [stripReadoutsShown], shared with the navigation display's second row (dispatch
- * 2026-09-28-685, the planner's extension of Amendment 2, RECORD -699): coordinates first and whole, then the readouts
- * ([readoutsPx], in the order they give way, facing first), each with its separator. The fewest readouts are dropped,
- * from the front, so that each one kept can have at least [minimumPx] (or its own width, if narrower).
- */
-internal fun readoutsKeptBeside(availablePx: Int, coordinatesPx: Int, readoutsPx: List<Int>, separatorPx: Int, minimumPx: Int): List<Boolean> {
-    val left = availablePx.toLong() - coordinatesPx
-    for (dropped in 0..readoutsPx.size) {
-        val kept = readoutsPx.drop(dropped)
-        if (left - kept.size.toLong() * separatorPx >= kept.sumOf { minOf(it, minimumPx).toLong() }) {
-            return List(readoutsPx.size) { it >= dropped }
-        }
-    }
-    return List(readoutsPx.size) { false }
-}
 
 /** What [readoutsFitBeside] keeps: whether the readouts' labels are drawn, and which readouts are. */
 internal data class ReadoutsFit(val labels: Boolean, val shown: List<Boolean>)
 
 /**
  * RECORD -713 (the owner: "Drop labels, then values (Recommended)"), for the strip and the navigation display's second row
- * alike. Replaces [readoutsKeptBeside]'s shortening with "…" in both places. The coordinates are measured first and stay
+ * alike. Replaces the earlier rule (readoutsKeptBeside, which shortened them with "…"; deleted with RECORD -714) in both places. The coordinates are measured first and stay
  * whole. Then, in order, the first arrangement that fits whole is kept:
  * every readout with its label; every readout without labels ("315° NW · 9843 ft · grid ref"); then readouts dropped from
  * the front (facing first, then altitude), still without labels; then none. A readout is never cut and never ends in "…".
@@ -560,7 +516,7 @@ private fun CompassElevationStripContent(
             // RECORD -709 (the planner): in a landscape window the strip is content-width under the small fixes' cap, and this
             // column took all of it before the button was measured, leaving the three-dot button 0 dp wide at 780 x 360 dp. Weighted,
             // not filling, it is measured after the button, which always keeps its QUICK_SETTINGS_TAP_TARGET; the readouts then give
-            // way inside what is left (stripReadoutsShown), coordinates first.
+            // way inside what is left (readoutsFitBeside), coordinates first.
             Column(modifier = if (contentWidth) Modifier.weight(1f, fill = false) else Modifier.weight(1f)) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
@@ -696,10 +652,10 @@ private fun CompassElevationStripContent(
                             // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
                             // Dispatch 2026-09-28-685, Amendment 2 (RECORD -699; the owner: "Coordinates take priority
                             // (Recommended)"): when the strip runs short, the facing and altitude readouts give way first,
-                            // shortening with "…" and then dropping out, and the coordinates stay whole. Measured here, in the
-                            // width this row is offered, by stripReadoutsShown; the coordinates are measured first (no weight)
-                            // and the two readouts share what is left (weight, not filling). Facing drops before altitude: the
-                            // needle beside it still shows the direction.
+                            // shortening with "…" and then dropping out, and the coordinates stay whole. Since RECORD -713 the
+                            // shortening is gone: labels drop first, then facing, then altitude, each shown value whole. Measured
+                            // here, in the width this row is offered, by readoutsFitBeside; the coordinates are measured first.
+                            // Facing drops before altitude: the needle beside it still shows the direction.
                             val readoutStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
                             val readoutLabelStyle = MaterialTheme.typography.labelMedium
                             val readoutMeasurer = rememberTextMeasurer()
@@ -724,7 +680,6 @@ private fun CompassElevationStripContent(
                                     valuesPx = listOf(widthOf(headingText, readoutStyle), widthOf(elevationText, readoutStyle)),
                                     separatorPx = separatorPx,
                                 )
-                                val shown = StripReadoutsShown(heading = fit.shown[0], elevation = fit.shown[1])
                             Row(
                                 // Landscape B2 (S4): no weight when content-width.
                                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
@@ -741,7 +696,7 @@ private fun CompassElevationStripContent(
                                 // Dispatch 2026-09-28-677 (the owner, RECORD -656: "heading and altitude labelled"): each
                                 // reading after its short label, as on the navigation display (LabelledReadout); a status
                                 // ("Compass unavailable", "Elevation unavailable") names itself and has none.
-                                if (shown.heading) {
+                                if (fit.shown[0]) {
                                     Box {
                                         LabelledReadout(label = headingLabel.takeIf { fit.labels }) {
                                             WordSwap(text = headingText) { shownText ->
@@ -761,7 +716,7 @@ private fun CompassElevationStripContent(
                                     Text("·", style = readoutLabelStyle)
                                 }
                                 // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
-                                if (shown.elevation) {
+                                if (fit.shown[1]) {
                                     Box {
                                         LabelledReadout(label = elevationLabel.takeIf { fit.labels }) {
                                             WordSwap(text = elevationText) { shownText ->
