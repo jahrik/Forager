@@ -5,8 +5,9 @@ Branch `followup-1008`. It was cut from `origin/landscape-search-fixes` (eb4932c
 to `origin/main` 34fd5deb once PR #206 merged (no merge commit was needed). No PR. Paths are relative to
 `app/src/main/java/com/zynergylabs/forager/app/ui/` unless they start with `app/` or `docs/`.
 
-**Status:** items 1, 2 and 3 are built, tested and revert-checked. Item 4's cause was found on the S22, and it is not ours to fix
-without a decision: logging only (see item 4). The full suite and the S22 launch check results are below.
+**Status:** all four items are built, tested and revert-checked. Item 4's cause was found on the S22 first. The owner then
+chose (RECORD -761) "Picture cover, this build (Recommended)" and, for the heading, "Keep last reading (Recommended)". Both are
+built and seen working on the S22. The full suite and the S22 launch check results are below.
 
 ## 1. The bar after a turn into landscape (RECORD -754)
 
@@ -100,16 +101,62 @@ screenrecords in `~/Zynergy/device-evidence/2026-10-08/`, not in the repo):
 
 **Cause:** the blank is the `MapView` being rebuilt on every return, inside MapLibre. Our camera restore and the screen's sizing
 are right. The fixes are either to cover a returning map with a picture of the one that left until the new one renders fully
-(B), or to keep one `MapView` alive across tab changes (C). Per the coordinator, that is a stop: the cause was reported and B or C was offered (B, a picture over the returning map, recommended as the smaller), and **no fix is built here**. Item 4 waits on the owner's choice.
+(B), or to keep one `MapView` alive across tab changes (C). I stopped there and reported it. The owner chose B (RECORD -761).
 
-**Logging kept** (`map/SightingsMap.kt`, tag `ForagerMapsComeback`): a new map's first 8 rendered frames and its two camera
-restores, about 10 lines per return to Maps, nothing otherwise.
+**Fix 1, the picture cover** (`map/MapReturnCover.kt`, `map/SightingsMap.kt`, `map/MapCameraMemory.kt`; the leaving flag through
+`MapRenderMode.leavingTab`, set by the scaffold as `tab != compactTab()` on the tab crossfade's outgoing side):
+- **Taking the picture.** As Maps starts to leave, the map takes a picture of itself with MapLibre's own `snapshot` (it reads the
+  GL surface; a Compose capture cannot read a SurfaceView), together with the camera it shows. It is kept on the camera memory,
+  one at a time, and a new picture recycles the old one.
+- **Showing it.** The map that comes back takes the picture off the memory as it is made. If `coverDecision` says SHOW, the
+  picture is drawn over the map. At the map's first fully rendered frame after its style has loaded (the camera was restored
+  before that), the picture fades out on the state-crossfade motion token, or is cut under reduced motion, and is then released
+  (the reference is dropped).
+- **Falling back.** Each fallback is logged under `ForagerMapsComeback` and leaves the map drawing itself as before:
+  - no picture (the first map, or the snapshot had not arrived);
+  - no remembered camera;
+  - the picture shows another camera than the one being restored (zoom off by more than 0.05, bearing or tilt by more than 2
+    degrees, or the centre by more than 16 px);
+  - a move is pending: a search frame, a new search region or locate target while not following, or a camera request;
+  - the window is not the picture's size (the phone turned since);
+  - no full frame within 1.5 s (the cover then hands over anyway).
+- **Touches.** The cover has no pointer input and no semantics, so touches go to the map.
+- **Memory.** One full-window ARGB picture (1440 x 2988, about 17 MB on the S22), held from leaving Maps until the hand-over.
+
+**Fix 2, the heading kept** (`map/TrueHeading.kt`, `HeadingMemory`, kept on the camera memory above the tab): every reading is
+recorded, and a strip coming back starts from the last heading, if there is a fix and that heading is under 10 s old, instead of
+"—". **Stale, as chosen: older than 10 s** (`HEADING_KEPT_FOR_MS`). The compass reports about 16 times a second, so on the phone a
+new reading replaces the kept one within a frame or two. 10 s covers a quick look at another tab; after longer the phone may well
+have turned, and "—" until the compass reports is the honest answer. "—" still shows when there was never a reading, when the
+last report was not a heading (no fix, unreliable, no sensor), or when there is no fix now.
+
+**Tests:**
+- `map/MapReturnCoverTest`: the decision cases. The cover over a stand-in map that records touches: five real taps at the centre
+  and the corners, and a real drag, all reach the map while the cover stays up. On hand-over the cover is still drawn two frames
+  later, then gone and released once. Under reduced motion it is gone on the first frame.
+- `availability/MapsReturnTest`: a real touch leaving Maps hands the map `leavingTab`.
+- `availability/HeadingKeptAcrossTabsTest`, through the real `AvailabilityScreen` with real nav touches and a compass that
+  reports only when told: after 2 s on List, Maps shows "315° NW", not "—", and a new reading replaces it. After 11 s it shows
+  "—". A positive control: with no reading ever, it shows "—".
+
+**On the S22 after the fix** (build 1.0.3111+gaae61004; List to Maps three times and Journal to Maps once, the same as before;
+screenrecords `s22-followup-1008-*-after-cover*.mp4` in `~/Zynergy/device-evidence/2026-10-08/`):
+- Every return logged "picture kept 1440x2988", then "cover: SHOW", the two restores, "handed over at the first full frame,
+  zoom=12.0" about 210 to 290 ms after SHOW, and "gone, picture released" about 130 to 160 ms after that.
+- In every recording, every frame that differs from the one before shows the map at its place, with no background, no black
+  frame and no magnified frame, and the strip reads a heading (281° W, 291° W, 284° W, 282° W), never "—".
+- **Not exercised on the phone:** the fallback paths (a search, a turn or a delay before returning) and a touch during the
+  roughly 0.3 s cover. These are covered headless only.
+
+**Logging kept** (`map/SightingsMap.kt`, tag `ForagerMapsComeback`): a new map's first 8 rendered frames, its two camera
+restores and the cover's lines, about 15 lines per return to Maps and nothing otherwise. It is cheap and quiet, and it is how the
+fallbacks are seen.
 
 ## Revert checks
 
 The runner saves each file to a copy, applies the edit, runs only the named classes in a fresh capped Gradle run, refuses results
 if the build log has an `e: ` line, reads only JUnit XML written after the run started, and restores from the saved copy (never
-from git), confirming the restore is byte-identical. All four compiled, all four restored identical, and `git status` was clean
+from git), confirming the restore is byte-identical. All nine compiled, all nine restored identical, and `git status` was clean
 afterwards.
 
 | # | Edit | Failed | Message |
@@ -118,16 +165,32 @@ afterwards.
 | R2 | `FindsGalleryScreen`: floating button in every window | 1 of 16 | "no floating New find button in a short window" |
 | R3 | `ColorSchemeFade.kt` and `Theme.kt` as at c0ec942a | 1 of 4 | "every composition is at one end or the other, never a scheme part-way: [... 0.729 ..., 0.431 ...]" |
 | R4 | `CompactMapTopStrip`: no reset out of landscape | 4 of 36 | "the bar is the strip's height after the second turn expected:<36.0> but was:<45.0>" |
+| R5 | `CompactMapTab`: no heading memory passed | 1 of 3 | "the last reading, kept across the tab change expected:<[315° NW]> but was:<[—]>" |
+| R6 | cover takes taps (a `detectTapGestures` on it) | 1 of 5 | "the tap at Offset(0.5, 0.5) reached the map expected:<1> but was:<0>" |
+| R7 | cover ignores reduced motion | 1 of 5 | "gone on the first frame after hand-over" |
+| R8 | `coverDecision` ignores a pending search frame | 1 of 5 | "a search frame to fly to expected:<MOVE_PENDING> but was:<SHOW>" |
+| R9 | scaffold does not pass `leavingTab` | 2 of 2 | "leaving Maps by a real touch tells the map it is leaving" |
 
 R3's other three tests pass under the old code. The blend test cannot see frame cost under Robolectric (the old code also drew
 smooth frames there), so the composition count is the test that holds the cause. `MapsReturnTest` and the open-state item 1
-tests have no revert: there is no fix behind them.
+tests have no revert: there is no fix behind them. The heading's stale and never-a-reading tests pass under R5, as they should
+(they assert the dash).
 
 ## Full suite
 
-Run 22:48 to 22:57 UTC on the code at `5c693fe5` (every later commit adds only this report and its index row). The results directory was emptied first and only XML written after the start was counted: **4,502 tests in 581 classes, 24 skipped, 0 failures, 0 errors** (Gradle: BUILD SUCCESSFUL). That is 17 more than #206's 4,485: item 1's 12 (6 in each window class: 4 open-state, 2 second-turn), item 2's 3, item 3's net 0 (4 rewritten), and item 4's 2 (MapsReturnTest, portrait and landscape), counted from each class's XML. Two test cases were changed: `JournalShortWindowCardsTest`'s incidental-exit test (item 2), and `NightModeFadeTest`, rewritten (item 3).
+Final run 23:37 to 23:45 UTC on the code at `aae61004` (later commits add only this report and its index row): **4,510 tests in
+583 classes, 24 skipped, 0 failures, 0 errors**. That is 8 more than the run below: `MapReturnCoverTest` 5 and
+`HeadingKeptAcrossTabsTest` 3. The results directory was emptied first.
+
+Earlier run, 22:48 to 22:57 UTC, on the code at `5c693fe5`, before item 4's fix. The results directory was emptied first and only XML written after the start was counted: **4,502 tests in 581 classes, 24 skipped, 0 failures, 0 errors** (Gradle: BUILD SUCCESSFUL). That is 17 more than #206's 4,485: item 1's 12 (6 in each window class: 4 open-state, 2 second-turn), item 2's 3, item 3's net 0 (4 rewritten), and item 4's 2 (MapsReturnTest, portrait and landscape), counted from each class's XML. Two test cases were changed: `JournalShortWindowCardsTest`'s incidental-exit test (item 2), and `NightModeFadeTest`, rewritten (item 3).
 
 ## S22 launch check
+
+**Final:** the debug APK built from `aae61004` (installed versionName `1.0.3111+gaae61004`): install Success, `compile -m verify -f`
+Success, dexopt `status=verify`, cold launch, **PASS**, process alive after 8 s, crash buffer empty. The item 4 recordings after
+the fix were made on this install. The phone was left on this build.
+
+Earlier:
 
 `scripts/s22-launch-check.sh` on the S22 (SM-S908U, R5CT321008R), the debug APK built from `5c693fe5` (installed versionName `1.0.3107+g5c693fe5`): install Success, `compile -m verify -f` Success, dexopt `status=verify`, cold launch, **PASS**, process alive after 8 s, crash buffer empty. The same install was then used, as the coordinator asked, for item 4's returns to Maps (screenrecords and logcat only; nothing uninstalled or cleared). The phone was left on that build.
 
@@ -138,7 +201,9 @@ Run 22:48 to 22:57 UTC on the code at `5c693fe5` (every later commit adds only t
 2. Item 2: Journal > Records > Finds in landscape: "New find" at the row's end. Touching it opens a new find.
 3. Item 3: Night mode on and off on the S22: a quick, smooth blend with no grey middle frame. The fade holds for about two frames
    before it starts. Over the map only the chrome fades.
-4. Item 4: depends on the decision.
+4. Item 4: a return to Maps after a search made from List (the cover should log MOVE_PENDING and not show); after turning the
+   phone on List (logs "dropped"); a tap or a pan during the brief cover. Also how the cover's fade reads.
+5. The heading on return after more than 10 s away: "—" until the compass reports.
 
 ## Gradle
 
