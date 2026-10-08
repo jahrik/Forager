@@ -80,7 +80,7 @@ class JournalEntriesOnMapTest {
         val four = listOf(onMap("a", 12), onMap("b", 5), onMap("c", 3), onMap("d", 1))
         assertEquals(
             KeptInEntriesLines.Count(
-                "Kept in 4 journal entries",
+                "In 4 journal entries",
                 four.map { EntryLine(it.entryId, it.date.toString(), "Open entry ${it.date}") },
             ),
             keptInEntriesLines(four),

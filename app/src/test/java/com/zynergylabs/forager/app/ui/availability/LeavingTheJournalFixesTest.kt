@@ -11,7 +11,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
@@ -116,7 +120,13 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.photo.FilePhotoStore
+import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
+import com.zynergylabs.forager.app.ui.log.entryGroupRowTag
+import com.zynergylabs.forager.app.ui.log.entryItemSwitchTag
+import com.zynergylabs.forager.app.ui.log.entryWaypointCoordinatesTag
+import com.zynergylabs.forager.app.ui.log.entryWaypointRowTag
+import com.zynergylabs.forager.app.ui.log.waypointItemKey
 import com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG
 import com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG
 import com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG
@@ -345,6 +355,7 @@ class LeavingTheJournalFixesTest {
                 onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
                 onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
                 onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                onSetEntryGroupIncluded = cartographyViewModel::onSetEntryGroupIncluded,
                 onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
                 onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
                 onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
@@ -713,28 +724,55 @@ class LeavingTheJournalFixesTest {
         assertEquals(false, cartographyViewModel.uiState.value.hasUnsavedChanges)
     }
 
-    /** Ported from the investigation's withheld-waypoint test, with its assertion inverted: the editor comes back, the choice still pending in it. */
+    /**
+     * Ported from the investigation's withheld-waypoint test, with its assertion inverted: the editor comes back, the choice still pending in it.
+     * Data part A (dispatch 2026-09-28-667): the waypoint is now behind its group in the "In this entry" panel, and "Withhold" is its
+     * switch turned off ("Leave out"). The group opened before the tab change is still open after it (CLAUDE.md, UX defaults).
+     */
     @Test
     fun `F2 a committed day entry's editor left with a waypoint withheld comes back in its editor with the waypoint still withheld`() {
         setScreen()
         openCommittedDayEntryEditor()
-        composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Withhold").performScrollTo().performClick()
+        composeRule.onNodeWithTag(entryGroupRowTag(EntryGroup.WAYPOINTS)).performScrollTo().performTouchInput { click(Offset(width * 0.25f, height / 2f)) }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Keep").assertExists()
+        composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(entryItemSwitchTag(waypointItemKey(DAY_WAYPOINT.id))).performScrollTo().assertIsOn().performTouchInput { click() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(entryItemSwitchTag(waypointItemKey(DAY_WAYPOINT.id))).assertIsOff()
 
         touchNavItem("Maps")
         touchNavItem("Journal")
 
         assertDayEntryEditorShowing("back on Journal")
         composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Keep").assertExists()
+        composeRule.onNodeWithTag(entryItemSwitchTag(waypointItemKey(DAY_WAYPOINT.id))).assertIsOff()
         assertEquals(
             "the store still keeps the waypoint",
             listOf(true),
             storedDayEntry(COMMITTED_DAY_ENTRY.id)?.waypointDecisions?.map { it.kept },
         )
         assertEquals(true, cartographyViewModel.uiState.value.hasUnsavedChanges)
+    }
+
+    /**
+     * RECORD -671 (the planner's call under CLAUDE.md's UX defaults): a waypoint row the user opened in an entry report to show its
+     * coordinates is still open after leaving for Maps and coming back, as the editor panel's open groups are. Coordinate touches.
+     */
+    @Test
+    fun `an entry report's waypoint row opened to its coordinates is still open after a tab change`() {
+        setScreen()
+        openCommittedDayEntry()
+        val coordinates = entryWaypointCoordinatesTag(DAY_WAYPOINT.id)
+        composeRule.onAllNodesWithTag(coordinates, useUnmergedTree = true).assertCountEquals(0)
+        composeRule.onNodeWithTag(entryWaypointRowTag(DAY_WAYPOINT.id)).performScrollTo().performTouchInput { click(Offset(width * 0.3f, height * 0.3f)) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(coordinates, useUnmergedTree = true).assertTextEquals("Coordinates: 45.3200, -122.6400")
+
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+
+        assertDayEntryReportView()
+        composeRule.onNodeWithTag(coordinates, useUnmergedTree = true).performScrollTo().assertTextEquals("Coordinates: 45.3200, -122.6400")
     }
 
     /** Ported from the investigation's new-draft test, with its assertion inverted: a draft comes back in its editor, Finish entry and all. */
