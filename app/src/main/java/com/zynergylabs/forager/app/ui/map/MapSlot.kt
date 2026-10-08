@@ -290,6 +290,12 @@ data class MapForecastFeed(
     val week: LocalDate,
     val groupsByLayer: Map<String, String>,
     val onCellsShown: (Map<String, ForecastCellsShown>) -> Unit = {},
+    /**
+     * Data part C (dispatch -668): told at each camera idle whether the camera is below the colour
+     * fields' minimum zoom ([isBelowForecastZoom]), so the legend can say "Zoom in to see the forecast"
+     * instead of showing an empty field with nothing said.
+     */
+    val onZoomedOutChanged: (Boolean) -> Unit = {},
 )
 
 /**
