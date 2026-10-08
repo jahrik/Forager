@@ -1,6 +1,12 @@
 package com.zynergylabs.forager.app.ui.motion
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ProvidedValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
@@ -72,4 +78,29 @@ fun Modifier.leavingTakesNoTouches(leaving: Boolean): Modifier {
 private object OffBoundsOutlineShape : Shape {
     override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: LayoutDirection, density: Density): Outline =
         Outline.Rectangle(Rect(left = -2f, top = -2f, right = -1f, bottom = -1f))
+}
+
+/**
+ * While [active], gives [content] a view configuration with no minimum touch target, so nothing inside it is hit "near" a touch
+ * that lands outside it. Put it around whatever carries [leavingTakesNoTouches], with the same flag.
+ *
+ * **Why (found at motion Part 3's build, 2026-10-08, by a failing test and a semantics dump, not by reasoning).** Compose widens
+ * the hit area of anything smaller than the minimum touch target (48 dp): a touch that misses a small node can still be given to
+ * it "near". That path runs even when the touch misses a clipping layer, so [leavingTakesNoTouches]'s off-bounds clip did not stop
+ * a leaving list row once it had shrunk below 48 dp tall: `ListMotionTest`'s lazy-list case saw a touch on a leaving Entries card,
+ * 41.7 dp tall at that moment, open it. A row of 76 dp (the waypoint case) was not affected, which is why only one of the two
+ * tests caught it. With no minimum, a leaving node and everything in it is hit only inside its own bounds, which the clip already
+ * refuses. Not active, the configuration is the caller's, unchanged, so no touch area changes outside a leaving moment.
+ */
+@Composable
+fun NoTouchTargetExpansion(active: Boolean, content: @Composable () -> Unit) {
+    val base = LocalViewConfiguration.current
+    val none = remember(base) {
+        object : ViewConfiguration by base {
+            override val minimumTouchTargetSize: DpSize get() = DpSize.Zero
+        }
+    }
+    // One provider call either way, so starting to leave does not rebuild the content.
+    val provided: Array<ProvidedValue<*>> = if (active) arrayOf(LocalViewConfiguration provides none) else emptyArray()
+    CompositionLocalProvider(*provided, content = content)
 }

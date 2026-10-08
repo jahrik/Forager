@@ -7,6 +7,10 @@ import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -48,10 +52,8 @@ import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
  * on their way to where they settle. Their settled touch areas are unchanged. This is the one place this part moves a touch area
  * while it moves, and it is reported as a stop for the owner rather than decided here.
  *
- * **Not verified anywhere** (nothing here has been compiled or run): that [ExitTransition.None] keeps the covered page composed
- * and drawn, still, until the slide-in ends. That rests on AnimatedContent removing an outgoing page only when its whole transition
- * has finished, which waits for the incoming slide; read as my understanding of the library, not from its source in this session.
- * `JournalPageSlideTest` reads the covered page mid-slide, so it will show it.
+ * **The covered page is held by a fade that stays at full until the slide is done** ([pageCoverHold]). The first build showed
+ * that with [ExitTransition.None] AnimatedContent drops it at once.
  */
 
 /** Whether a page is the one leaving a [PageSlide] or a [SlideOverPage], readable in tests. */
@@ -88,6 +90,8 @@ fun <T> PageSlide(
 ) {
     val reduceMotion = LocalReduceMotion.current
     val slide = MotionTokens.pageSlideSpec<IntOffset>()
+    val slideAsFloat = MotionTokens.pageSlideSpec<Float>()
+    val coverHold = remember(slideAsFloat) { pageCoverHold(slideAsFloat) }
     val inertBack = rememberInertBackOwner()
     val targetKey = contentKey(targetState)
     AnimatedContent(
@@ -95,7 +99,7 @@ fun <T> PageSlide(
         modifier = modifier.clipToBounds(),
         transitionSpec = {
             when (style) {
-                PageSlideStyle.OVER -> pageSlideTransform(reduceMotion, depthOf(initialState), depthOf(targetState), slide)
+                PageSlideStyle.OVER -> pageSlideTransform(reduceMotion, depthOf(initialState), depthOf(targetState), slide, coverHold)
                 PageSlideStyle.PUSH_FROM_LEFT -> pagePushTransform(reduceMotion, depthOf(initialState), depthOf(targetState), slide)
             }
         },
@@ -117,12 +121,13 @@ internal fun pageSlideTransform(
     fromDepth: Int,
     toDepth: Int,
     slide: FiniteAnimationSpec<IntOffset>,
+    coverHold: FiniteAnimationSpec<Float>,
 ): ContentTransform = when {
     reduceMotion -> ContentTransform(EnterTransition.None, ExitTransition.None, targetContentZIndex = 0f, sizeTransform = null)
-    // In: the new page slides in over the one beneath, which stays still until it is covered.
+    // In: the new page slides in over the one beneath, which stays still and fully drawn until it is covered ([pageCoverHold]).
     toDepth >= fromDepth -> ContentTransform(
         targetContentEnter = slideInHorizontally(animationSpec = slide) { fullWidth -> fullWidth },
-        initialContentExit = ExitTransition.None,
+        initialContentExit = fadeOut(animationSpec = coverHold),
         targetContentZIndex = PAGE_ON_TOP,
         sizeTransform = null,
     )
@@ -169,6 +174,24 @@ internal fun pagePushTransform(
         sizeTransform = null,
     )
 }
+
+/**
+ * How the page being covered stays: fully drawn and still, for as long as the slide over it can take, then gone (a fade held at
+ * full and then dropped at once, [snap] with a delay). The length is the slide spring's own settling time over a distance no
+ * screen reaches ([COVER_DISTANCE_PX]), read from the spec, so it is never shorter than the slide and changes with it.
+ *
+ * **Why not `ExitTransition.None`** (the first build, 2026-10-08): with no exit animation, AnimatedContent dropped the covered page
+ * at once, so the arriving page slid in over nothing (`JournalPageSlideTest` found no leaving page mid-slide, in all three forward
+ * cases). `ExitTransition.KeepUntilTransitionsFinished`, which does exactly this, is `internal` to the animation library (1.12.1).
+ */
+internal fun pageCoverHold(slideAsFloat: FiniteAnimationSpec<Float>): FiniteAnimationSpec<Float> {
+    val nanos = slideAsFloat.vectorize(Float.VectorConverter)
+        .getDurationNanos(AnimationVector1D(COVER_DISTANCE_PX), AnimationVector1D(0f), AnimationVector1D(0f))
+    return snap(delayMillis = (nanos / 1_000_000L).toInt() + 1)
+}
+
+/** Further than any page slides, in pixels, so [pageCoverHold] is never shorter than the slide it waits for. */
+private const val COVER_DISTANCE_PX = 4000f
 
 /** Z orders for [pageSlideTransform]: an arriving page goes over what it covers, and a page uncovered by Back goes under the one leaving. */
 private const val PAGE_ON_TOP = 1f
@@ -239,6 +262,7 @@ private fun LeavingPageFrame(leaving: Boolean, inertBack: InertBack, pageColor: 
         emptyArray<ProvidedValue<*>>()
     }
     CompositionLocalProvider(*inertProvided) {
+        NoTouchTargetExpansion(active = leaving) {
         Box(
             Modifier
                 .fillMaxSize()
@@ -246,5 +270,6 @@ private fun LeavingPageFrame(leaving: Boolean, inertBack: InertBack, pageColor: 
                 .leavingTakesNoTouches(leaving)
                 .then(if (leaving) Modifier.clearAndSetSemantics { pageLeaving = true } else Modifier.semantics { pageLeaving = false }),
         ) { content() }
+        }
     }
 }

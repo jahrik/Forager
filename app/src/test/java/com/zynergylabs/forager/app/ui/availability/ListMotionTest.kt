@@ -139,6 +139,11 @@ class ListMotionTest {
     }
 
     private fun creekTag() = swipeToDeleteTag(RecordType.WAYPOINTS, creek.id)
+
+    /** The creek row's own enter-and-exit box (not leaving), whose height is what is drawn of the row. */
+    private fun creekBox(): DpRect = composeRule.onNode(
+        SemanticsMatcher.expectValue(ListRowLeavingKey, false) and androidx.compose.ui.test.hasAnyDescendant(androidx.compose.ui.test.hasTestTag(creekTag())),
+    ).getUnclippedBoundsInRoot()
     private fun stumpTag() = swipeToDeleteTag(RecordType.WAYPOINTS, stump.id)
 
     @Test
@@ -200,14 +205,20 @@ class ListMotionTest {
         composeRule.runOnUiThread { waypoints.value = listOf(oak, creek, stump) }
         applyWrites()
         frame()
-        frame()
         assertEquals("no longer leaving", 0, leavingRows().fetchSemanticsNodes().size)
-        val growing = bounds(creekTag()).height
-        assertTrue("growing back from where it had got to, not from nothing: $growing vs $shrunkTo", growing >= shrunkTo - 1.dp)
-        assertTrue("not yet back to its own height: $growing < ${creekAt.height}", growing < creekAt.height - 0.5.dp)
-
+        // The same row turned round: its spring carries on a little the way it was going before it turns (the critically damped
+        // spring keeps its speed when retargeted), so the heights are read frame by frame. It never starts again from nothing,
+        // and it opens back to its own height.
+        val heights = mutableListOf<Dp>()
+        repeat(30) {
+            frame()
+            heights += creekBox().height
+        }
+        assertTrue("never back to nothing, as a new row would start: $heights (shrunk to $shrunkTo)", heights.all { it > 1.dp })
+        assertTrue("it turned and grew: $heights", heights.last() > heights.min() + 4.dp)
+        assertTrue("caught part-way back: $heights", heights.any { it < creekAt.height - 1.dp })
         settle()
-        assertEquals(creekAt.height.value, bounds(creekTag()).height.value, 1f)
+        assertEquals(creekAt.height.value, creekBox().height.value, 1f)
     }
 
     @Test

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
 
 /*
@@ -172,15 +173,17 @@ fun <T> ListRowMotion(
             exit = fadeOut(animationSpec = fade) + scaleOut(animationSpec = fade, targetScale = LIST_TILE_ENTER_SCALE)
         }
     }
-    AnimatedVisibility(
-        visibleState = row.visible,
-        modifier = modifier
-            .leavingTakesNoTouches(row.leaving)
-            .then(if (row.leaving) Modifier.clearAndSetSemantics { listRowLeaving = true } else Modifier),
-        enter = enter,
-        exit = exit,
-        label = "listRow",
-    ) { content(row.item) }
+    NoTouchTargetExpansion(active = row.leaving) {
+        AnimatedVisibility(
+            visibleState = row.visible,
+            modifier = modifier
+                .leavingTakesNoTouches(row.leaving)
+                .then(if (row.leaving) Modifier.clearAndSetSemantics { listRowLeaving = true } else Modifier.semantics { listRowLeaving = false }),
+            enter = enter,
+            exit = exit,
+            label = "listRow",
+        ) { content(row.item) }
+    }
 }
 
 /** Where a grid tile grows from as it arrives, and shrinks to as it leaves. Chosen, not measured, like the pop-ups' scale. */
