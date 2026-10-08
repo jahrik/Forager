@@ -93,6 +93,34 @@ class AvailabilityScreenClusterPersistenceTest {
     private fun stored(repository: MapIconClusterPlacementRepository): MapIconClusterPlacement? =
         runBlocking { repository.getMapIconClusterPlacement().getOrNull() }
 
+    /**
+     * Waits for [condition], letting the main looper run between checks. `composeRule.waitUntil` alone
+     * timed out here with the condition already true once the looper had run (seen at the -710 build:
+     * after `waitForIdle()` the store held "street" at once), because a ViewModel coroutine resuming on
+     * the main thread, or a touch's effect, is not always run by its polling. Idling first each time is
+     * what lets the work the condition waits for actually happen.
+     */
+    private fun awaitIdle(condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + 5_000
+        while (true) {
+            composeRule.waitForIdle()
+            if (condition()) return
+            check(System.currentTimeMillis() < deadline) { "condition still false after 5 s" }
+            Thread.sleep(20)
+        }
+    }
+
+    /**
+     * Lets a launch's repository go of the file: cancels its scope and waits for it to finish, idling
+     * the main looper meanwhile. A `runBlocking { cancelAndJoin() }` here hung the -710 build for ten
+     * minutes (thread dump: the test thread parked in `joinBlocking`), the main thread blocked while the
+     * scope waited to finish; this cannot hang, it fails after five seconds.
+     */
+    private fun release(scope: Job) {
+        scope.cancel()
+        awaitIdle { scope.isCompleted }
+    }
+
     @Before
     fun setUp() {
         dataStoreFile().delete()
@@ -134,7 +162,7 @@ class AvailabilityScreenClusterPersistenceTest {
         val firstViewModel = mapLayersViewModel(errorLog = errorLog, clusterPlacements = firstRepository)
         var current by mutableStateOf(firstViewModel)
         composeRule.setContent { key(current) { MapLayersTestScreen(current, map.slot, AbsentForecastCellStore) } }
-        composeRule.waitUntil(5_000) { clusterDrawn() }
+        awaitIdle { clusterDrawn() }
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         val before = bar()
         assertTrue("it opens on the right ($before)", before.left.value > (root.left.value + root.right.value) / 2)
@@ -144,7 +172,7 @@ class AvailabilityScreenClusterPersistenceTest {
         val dragged = bar()
         assertTrue("it snapped to the left ($dragged)", dragged.right.value < (root.left.value + root.right.value) / 2)
         assertTrue("it moved down (top ${before.top} -> ${dragged.top})", dragged.top.value > before.top.value + 50f)
-        composeRule.waitUntil(5_000) { stored(firstRepository)?.portraitOnLeft == true }
+        awaitIdle { stored(firstRepository)?.portraitOnLeft == true }
 
         // Then minimises it, which is not stored.
         composeRule.onRoot().performTouchInput { click(centreOf(composeRule.onNodeWithTag(MINIMIZE_HANDLE_TAG).getUnclippedBoundsInRoot())) }
@@ -152,7 +180,7 @@ class AvailabilityScreenClusterPersistenceTest {
         composeRule.onNodeWithContentDescription(RESTORE_HANDLE_DESCRIPTION).assertExists()
 
         // The process ends.
-        runBlocking { firstScope.cancelAndJoin() }
+        release(firstScope)
         val file = rawCluster()
         assertEquals("the file holds the left side", true, file.first)
         assertTrue("the file holds a height below centre, in dp (${file.second})", file.second!! > 50f)
@@ -170,7 +198,7 @@ class AvailabilityScreenClusterPersistenceTest {
         assertEquals(0, composeRule.onAllNodesWithContentDescription(RESTORE_HANDLE_DESCRIPTION).fetchSemanticsNodes().size)
 
         held.release()
-        composeRule.waitUntil(5_000) { clusterDrawn() }
+        awaitIdle { clusterDrawn() }
         val restored = bar()
         assertTrue("on the left, where it was left (dragged $dragged, restored $restored)", abs(restored.left.value - dragged.left.value) <= 1f)
         assertTrue("at the height it was dragged to (dragged $dragged, restored $restored)", abs(restored.top.value - dragged.top.value) <= 1f)
@@ -189,7 +217,7 @@ class AvailabilityScreenClusterPersistenceTest {
         val (repository, repositoryScope) = launchRepository()
         val viewModel = mapLayersViewModel(errorLog = errorLog, clusterPlacements = repository)
         composeRule.setContent { MapLayersTestScreen(viewModel, map.slot, AbsentForecastCellStore) }
-        composeRule.waitUntil(5_000) { clusterDrawn() }
+        awaitIdle { clusterDrawn() }
         composeRule.waitForIdle()
 
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
@@ -197,13 +225,17 @@ class AvailabilityScreenClusterPersistenceTest {
         val addRowBottom = composeRule.onNodeWithContentDescription(ADD_ROW_DESCRIPTION).getUnclippedBoundsInRoot().bottom
         assertTrue("on the stored left side (${bar()})", bar().right.value < (root.left.value + root.right.value) / 2)
         assertTrue("the add row's bottom ($addRowBottom) is at or above the nav's top ($navTop)", addRowBottom.value <= navTop.value + 1f)
-        val barCentreY = (bar().top.value + bar().bottom.value) / 2
-        val mapMiddleY = (root.top.value + navTop.value) / 2
-        assertTrue("and it is held low, not reset to centre (bar centre $barCentreY, map middle $mapMiddleY)", barCentreY > mapMiddleY + 40f)
-
         // Nothing was dragged, so nothing was written: the stored height is kept as the memory.
-        runBlocking { repositoryScope.cancelAndJoin() }
+        release(repositoryScope)
         assertEquals(5_000f, rawCluster().second)
+
+        // And it opened at this window's lowest: a real drag far down from there moves it no further.
+        val restored = bar()
+        dragHandle(dxDp = 0.dp, dyDp = 2_000.dp)
+        assertTrue("held at the window's lowest (restored $restored, after a drag down ${bar()})", abs(bar().top.value - restored.top.value) <= 1f)
+        // Guard: the drag is real, so the line above is not passing on a drag that never registered.
+        dragHandle(dxDp = 0.dp, dyDp = (-100).dp)
+        assertTrue("a drag up does move it (restored $restored, after ${bar()})", bar().top.value < restored.top.value - 50f)
     }
 
     /** The portrait side and height as the file holds them, read with no repository in between. */
