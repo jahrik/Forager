@@ -29,6 +29,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * J8's headless half on the UI side (`prompts/preserved/2026-09-28-52.md`, J8-3 and J8-4, with the
@@ -81,7 +82,7 @@ class JournalEntriesOnMapTest {
         assertEquals(
             KeptInEntriesLines.Count(
                 "In 4 journal entries",
-                four.map { EntryLine(it.entryId, it.date.toString(), "Open entry ${it.date}") },
+                four.map { EntryLine(it.entryId, displayDate(it.date), "Open entry ${displayDate(it.date)}") },
             ),
             keptInEntriesLines(four),
         )

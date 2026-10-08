@@ -977,74 +977,86 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.waitForIdle()
     }
 
+    // One touch per test, each on a fresh screen. A button in the dropdown closes it and, under Robolectric, the search field
+    // keeps its focus afterwards (measured at the build: focused before the second touch, and the touch opened nothing), so a
+    // second touch on the field in the same test does not reopen the dropdown. Whether that happens on a phone is reported as a
+    // finding (search-order report, the build section), not worked around here.
+
     /**
      * RECORD -700, the owner: "Search is the same as "Use current location" just renamed and relocated."
      * Search, on the right of the bottom row, calls the one [AvailabilityScreen] callback "Use current
      * location" called, `onUseCurrentLocation` (permission, one fix, the fields written, a search; see
-     * MainActivity), and never the typed-coordinates search. Real touches at screen coordinates, sampled
-     * across the button, each on a freshly opened dropdown (Search closes it); each must reach Search.
+     * MainActivity), and never the typed-coordinates search. A real touch at screen coordinates at sample [i]
+     * of [touchSamples]; it must reach Search and close the dropdown.
      */
-    @Test
-    fun `real touches across the Search button run the current-location path and close the dropdown`() {
+    private fun checkSearchTouch(i: Int) {
+        val (fx, fy) = touchSamples[i]
         var currentLocation = 0
         var coordinateSearches = 0
         setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { coordinateSearches++ })
-
-        touchSamples.forEachIndexed { i, (fx, fy) ->
-            openSearchDropdown()
-            composeRule.waitForIdle()
-            touchTagged(SEARCH_DROPDOWN_SEARCH_TAG, fx, fy)
-            assertEquals("touch ${i + 1} at ($fx, $fy) of Search ran the current-location path", i + 1, currentLocation)
-            composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
-        }
+        openSearchDropdown()
+        composeRule.waitForIdle()
+        touchTagged(SEARCH_DROPDOWN_SEARCH_TAG, fx, fy)
+        assertEquals("a touch at ($fx, $fy) of Search ran the current-location path", 1, currentLocation)
         assertEquals("Search never runs the typed-coordinates search", 0, coordinateSearches)
+        composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
     }
+
+    @Test fun `a real touch at the centre of Search runs the current-location path`() = checkSearchTouch(0)
+    @Test fun `a real touch at Search's upper left runs the current-location path`() = checkSearchTouch(1)
+    @Test fun `a real touch at Search's upper right runs the current-location path`() = checkSearchTouch(2)
+    @Test fun `a real touch at Search's lower left runs the current-location path`() = checkSearchTouch(3)
+    @Test fun `a real touch at Search's lower right runs the current-location path`() = checkSearchTouch(4)
 
     /**
      * RECORD -700, the owner on typed coordinates: "Small button under the fields". "Search coordinates"
      * calls `onSearchManualCoordinates`, the path "Search this location" called, and never the
-     * current-location path. Real touches sampled across it, each on a freshly opened dropdown.
+     * current-location path. A real touch at sample [i] of [touchSamples].
      */
-    @Test
-    fun `real touches across Search coordinates run the typed-coordinates search and close the dropdown`() {
+    private fun checkSearchCoordinatesTouch(i: Int) {
+        val (fx, fy) = touchSamples[i]
         var currentLocation = 0
         var coordinateSearches = 0
         setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { coordinateSearches++ })
-
-        touchSamples.forEachIndexed { i, (fx, fy) ->
-            openSearchDropdown()
-            composeRule.waitForIdle()
-            touchTagged(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG, fx, fy)
-            assertEquals("touch ${i + 1} at ($fx, $fy) of Search coordinates ran the coordinate search", i + 1, coordinateSearches)
-            composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
-        }
+        openSearchDropdown()
+        composeRule.waitForIdle()
+        touchTagged(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG, fx, fy)
+        assertEquals("a touch at ($fx, $fy) of Search coordinates ran the coordinate search", 1, coordinateSearches)
         assertEquals("Search coordinates never runs the current-location path", 0, currentLocation)
+        composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
     }
+
+    @Test fun `a real touch at the centre of Search coordinates runs the coordinate search`() = checkSearchCoordinatesTouch(0)
+    @Test fun `a real touch at Search coordinates' upper left runs the coordinate search`() = checkSearchCoordinatesTouch(1)
+    @Test fun `a real touch at Search coordinates' upper right runs the coordinate search`() = checkSearchCoordinatesTouch(2)
+    @Test fun `a real touch at Search coordinates' lower left runs the coordinate search`() = checkSearchCoordinatesTouch(3)
+    @Test fun `a real touch at Search coordinates' lower right runs the coordinate search`() = checkSearchCoordinatesTouch(4)
 
     /**
      * Set on map, on the left of the bottom row, keeps its behaviour (dispatch 2026-09-28-697: "Keep
      * everything that works today ... Set on map's behaviour"): the dropdown closes and the centre-pin
-     * picker's OK and Cancel come up over the map. Real touches sampled across the button, each on a
-     * freshly opened dropdown, the picker cancelled between them.
+     * picker's OK and Cancel come up over the map. A real touch at sample [i] of [touchSamples].
      */
-    @Test
-    fun `real touches across Set on map close the dropdown and open the centre-pin picker`() {
+    private fun checkSetOnMapTouch(i: Int) {
+        val (fx, fy) = touchSamples[i]
         var searches = 0
         var currentLocation = 0
         setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { searches++ })
-
-        touchSamples.forEachIndexed { i, (fx, fy) ->
-            openSearchDropdown()
-            composeRule.waitForIdle()
-            touchTagged(SEARCH_DROPDOWN_SET_ON_MAP_TAG, fx, fy)
-            composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
-            composeRule.onNodeWithText("OK").assertIsDisplayed()
-            composeRule.onNodeWithText("Cancel").assertIsDisplayed().performClick()
-            composeRule.waitForIdle()
-            assertEquals("touch ${i + 1} at ($fx, $fy) of Set on map ran no coordinate search", 0, searches)
-            assertEquals("touch ${i + 1} at ($fx, $fy) of Set on map ran no current-location search", 0, currentLocation)
-        }
+        openSearchDropdown()
+        composeRule.waitForIdle()
+        touchTagged(SEARCH_DROPDOWN_SET_ON_MAP_TAG, fx, fy)
+        composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
+        composeRule.onNodeWithText("OK").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+        assertEquals("a touch at ($fx, $fy) of Set on map ran no coordinate search", 0, searches)
+        assertEquals("a touch at ($fx, $fy) of Set on map ran no current-location search", 0, currentLocation)
     }
+
+    @Test fun `a real touch at the centre of Set on map opens the centre-pin picker`() = checkSetOnMapTouch(0)
+    @Test fun `a real touch at Set on map's upper left opens the centre-pin picker`() = checkSetOnMapTouch(1)
+    @Test fun `a real touch at Set on map's upper right opens the centre-pin picker`() = checkSetOnMapTouch(2)
+    @Test fun `a real touch at Set on map's lower left opens the centre-pin picker`() = checkSetOnMapTouch(3)
+    @Test fun `a real touch at Set on map's lower right opens the centre-pin picker`() = checkSetOnMapTouch(4)
 }
 
 /**
