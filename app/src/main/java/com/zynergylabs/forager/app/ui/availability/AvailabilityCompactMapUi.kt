@@ -947,6 +947,8 @@ private fun CompactMapMapSlot(
             // (TrackRecordingViewModel.stopReturn), so nothing here has to hide it.
             route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true, waypointStraightLine?.isOffline ?: false) else null,
             resumeTrackingRequestId = resumeTrackingRequestId,
+            // RECORD -750, item 5: each location search frames its region, following or not.
+            searchFrameRequestId = uiState.searchFrameSerial,
             resetOrientationRequestId = resetOrientationRequestId,
             focusedObservationId = tapped.focusedObservationId,
             focusedFeature = tapped.focusedFeature,

@@ -52,6 +52,14 @@ data class AvailabilityUiState(
      * nothing new").
      */
     val searchSerial: Int = 0,
+    /**
+     * RECORD -750, item 5 (the owner: "Yes, fly to the search (Recommended)"): counts the location searches the user ran (a
+     * recent search, coordinates, Set on map, Search with the current location), each bumped in the same update that sets
+     * [region]. The Maps tab hands it to the map as [com.zynergylabs.forager.app.ui.map.MapOverlayContent.searchFrameRequestId],
+     * and each new value stops the camera following the GPS fix and frames the searched region. Not [searchSerial]: a month
+     * change re-runs the search for the same place, and that does not move the camera the user may have moved.
+     */
+    val searchFrameSerial: Int = 0,
     val isLoadingSightings: Boolean = false,
     val sightingsErrorMessage: String? = null,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,

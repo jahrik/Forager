@@ -345,6 +345,15 @@ data class MapOverlayContent(
      */
     val resumeTrackingRequestId: Int = 0,
     /**
+     * RECORD -750, item 5 (the owner: "Yes, fly to the search (Recommended)"): a changing token, one per location search the
+     * user ran (a recent search, coordinates, Set on map, Search with the current location). Each new value stops the camera
+     * following the GPS fix and moves it to frame [region], which following otherwise blocks ([shouldMoveCameraToTarget]).
+     * Applied once per value, the applied value kept in [MapRenderMode.cameraMemory] where there is one, so a map that comes
+     * back after a tab change does not fly again over a camera the user has since moved. 0, the default, asks for nothing.
+     * The locate button resumes following ([resumeTrackingRequestId]).
+     */
+    val searchFrameRequestId: Int = 0,
+    /**
      * Same changing-token shape as [resumeTrackingRequestId], for the same reason — a `Boolean`
      * can't represent "do it again" when the value wouldn't otherwise change. This one resets the
      * camera's bearing to north, the map redesign's own custom replacement for MapLibre's native
@@ -552,6 +561,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         breadcrumbPoints = content.breadcrumbPoints,
         waypoints = content.waypoints,
         resumeTrackingRequestId = content.resumeTrackingRequestId,
+        searchFrameRequestId = content.searchFrameRequestId,
         resetOrientationRequestId = content.resetOrientationRequestId,
         focusedObservationId = content.focusedObservationId,
         focusedFeature = content.focusedFeature,

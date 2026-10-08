@@ -5,6 +5,7 @@ import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -72,7 +73,7 @@ class FindsGalleryScreenTest {
             FindsGalleryScreen(entries = listOf(entryWithoutPhoto), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
         composeRule.onAllNodesWithContentDescription("Log photo").assertCountEquals(0)
     }
 
@@ -91,7 +92,7 @@ class FindsGalleryScreenTest {
         }
 
         composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Aug 2, 2026").assertDoesNotExist()
         composeRule.onNodeWithText("Draft").assertDoesNotExist()
     }
@@ -110,7 +111,7 @@ class FindsGalleryScreenTest {
         composeRule.onNodeWithText("Aug 2, 2026").assertIsDisplayed()
         composeRule.onNodeWithText("Draft").assertIsDisplayed()
         composeRule.onNodeWithText("Aug 1, 2026").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertDoesNotExist()
     }
 
     /** [LogPanel]'s own usage — no "+" tile inside this list at all, matching the former `LogEntryListScreen`'s shape (the expanded window starts a find via the map's "Log a find" flow instead). */
@@ -123,7 +124,7 @@ class FindsGalleryScreenTest {
         }
 
         composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertDoesNotExist()
     }
 
     @Test

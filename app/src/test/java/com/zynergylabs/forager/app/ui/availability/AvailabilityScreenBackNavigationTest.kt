@@ -522,7 +522,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Records").performClick()
         // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
         pressBack()
@@ -530,7 +530,7 @@ class AvailabilityScreenBackNavigationTest {
         // Back on the gallery (JournalTab's `when` mounts only one at a time, so the edit form is
         // fully unmounted, not merely hidden), and still on the Journal tab — not bounced to Maps.
         composeRule.onNodeWithText("Photos").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).assertIsDisplayed()
     }
 
     // --- Back-nav-and-save-flow dispatch, Items 1-3: Cartography's own back-navigation gap -------
@@ -1050,7 +1050,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Records").performClick()
         // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
 

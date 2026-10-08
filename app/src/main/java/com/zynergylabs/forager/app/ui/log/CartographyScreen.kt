@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -686,18 +685,13 @@ internal fun CartographyScreen(
             }
             }
             if (viewMode == EntriesViewMode.TIMELINE && !shortWindow) {
-                // The content-lambda overload, not the (icon, text) one: under material3 1.5.0-alpha26
-                // the (icon, text) overload wraps its label in clearAndSetSemantics, so the button's
-                // merged semantics, what TalkBack reads, carry no label at all (seen in a Robolectric
-                // semantics dump while building this; the content overload exposes the Text).
-                ExtendedFloatingActionButton(
+                // RECORD -751: the shared Journal button, which Finds' "New find" reuses (JournalNewItemButton's doc comment).
+                JournalNewItemButton(
+                    text = "New entry",
+                    icon = Icons.Filled.Edit,
                     onClick = startNewEntry,
                     modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).testTag(ENTRIES_FAB_TAG),
-                ) {
-                    Icon(Icons.Filled.Edit, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.md))
-                    Text("New entry")
-                }
+                )
             }
         }
     }
