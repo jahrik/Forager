@@ -140,10 +140,12 @@ fun ForagerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = if (darkTheme) DarkColors else LightColors
     // Dispatch 2026-09-28-652, item 1: the phone's reduce-motion setting, provided here because this is the app's one
     // theme root (MainActivity's only one), so every screen reads it without asking. See ProvideReduceMotion.
     ProvideReduceMotion {
+        // Motion Part 3, item 4 (RECORD -651, "Fade the colours"; RECORD -652, "fast and smooth"): a change of night mode blends
+        // every colour quickly from the old scheme to the new, or changes at once under reduced motion (ColorSchemeFade.kt).
+        val colorScheme = fadingColorScheme(darkTheme)
         CompositionLocalProvider(LocalForagerDarkTheme provides darkTheme) {
             MaterialExpressiveTheme(
                 colorScheme = colorScheme,

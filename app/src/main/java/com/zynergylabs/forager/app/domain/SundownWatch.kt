@@ -278,12 +278,12 @@ class SundownWatch(
         }
         if (!stillThisRecording) return@withLock
         val outcome = alertDelivery.deliverReporting(
-            Alert(kind, overridesSilence = true, sundown = SundownAlertDetail(countdown.sunsetAtEpochMillis, walkBack, decision.leaveByAtEpochMillis ?: countdown.turnaroundAtEpochMillis)),
+            Alert(kind, overridesSilence = true, sundown = SundownAlertDetail(countdown.sunsetAtEpochMillis, walkBack, decision.leaveByAtEpochMillis ?: countdown.turnaroundAtEpochMillis, decidedAtEpochMillis = now)),
         )
         if (outcome != null && (!outcome.notificationPosted || !outcome.vibrated)) {
             errorLog.w(
                 TAG,
-                "The $kind alert was only partly delivered: notification ${outcome.notificationProblem ?: "posted"}, vibration ${outcome.vibrationProblem ?: "issued"}.",
+                "The $kind alert was only partly delivered: notification ${outcome.notificationProblem ?: "posted"}, vibration ${outcome.vibrationProblem ?: outcome.vibrationSkipped?.let { "skipped: $it" } ?: "issued"}.",
                 IllegalStateException("partial delivery of $kind"),
             )
         }

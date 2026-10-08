@@ -75,6 +75,8 @@ fun MapPopUp(
     val reduceMotion = LocalReduceMotion.current
     val fade = MotionTokens.mapPopUpFadeSpec<Float>()
     val grow = MotionTokens.mapPopUpGrowSpec<Float>()
+    // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
+    NoTouchTargetExpansion(active = !state.targetState) {
     AnimatedVisibility(
         visibleState = state,
         modifier = modifier.leavingTakesNoTouches(leaving = !state.targetState),
@@ -93,6 +95,7 @@ fun MapPopUp(
                 .drawGrow(scaleNow = { scale }, pivot = pivot)
                 .semantics { mapPopUpScale = current },
         ) { content() }
+    }
     }
 }
 
