@@ -1,5 +1,12 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.motion.PressHighlightShapeKey
+import com.zynergylabs.forager.app.ui.motion.PressBounceScaleKey
+import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.foundation.shape.CircleShape
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -8,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
@@ -117,6 +125,8 @@ class AvailabilityScreenQuickSettingsTest {
         viewModel.onEnteredForeground()
         composeRule.setContent {
             val state by viewModel.uiState.collectAsState()
+            // key: a new screen for each sample of the touch test below (see screenGeneration).
+            key(screenGeneration) {
             CompositionLocalProvider(LocalSundownClock provides clock) {
                 AvailabilityScreen(
                     uiState = state,
@@ -162,11 +172,23 @@ class AvailabilityScreenQuickSettingsTest {
                     currentTime = CurrentTimeProvider { now },
                 )
             }
+            }
         }
         composeRule.waitForIdle()
     }
 
+    /**
+     * Bumped to compose the screen afresh, which takes the open menu down with it. The touch test's samples use it between
+     * touches: under Robolectric neither Back sent to the activity nor a touch on the map's window reaches the menu's own
+     * popup window, so neither closes it there (first run, RECORD -687: "closed before the next touch"). On a phone both do;
+     * that is the device's to show.
+     */
+    private var screenGeneration by mutableStateOf(0)
+
     private fun shown(tag: String) = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+
+    /** The dot is drawn inside the button's clickable square, so its node is merged into the button's: read unmerged. */
+    private fun dotShown() = composeRule.onAllNodesWithTag(MAP_QUICK_SETTINGS_DOT_TAG, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
     private fun text(tag: String): String =
         composeRule.onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
@@ -183,15 +205,6 @@ class AvailabilityScreenQuickSettingsTest {
     private fun touchCentreOf(tag: String) {
         composeRule.onNodeWithTag(tag).performTouchInput { click(center) }
         composeRule.waitForIdle()
-    }
-
-    private fun closeMenu() {
-        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
-        composeRule.waitForIdle()
-        if (shown(MAP_QUICK_SETTINGS_MENU_TAG)) {
-            // A popup's own window takes Back; a touch on the map outside it closes it as the owner's path says.
-            touchAt(20.dp, 600.dp)
-        }
     }
 
     private fun recordingWithBackBy(at: Long?, publishedAt: Long = now) {
@@ -254,9 +267,37 @@ class AvailabilityScreenQuickSettingsTest {
         for ((x, y) in points) {
             touchAt(x, y)
             assertTrue("a real touch at (${x.value}, ${y.value}) in $button opened the menu", shown(MAP_QUICK_SETTINGS_MENU_TAG))
-            closeMenu()
-            assertFalse("closed before the next touch", shown(MAP_QUICK_SETTINGS_MENU_TAG))
+            composeRule.runOnIdle { screenGeneration++ }
+            composeRule.waitForIdle()
+            assertFalse("a fresh screen before the next touch", shown(MAP_QUICK_SETTINGS_MENU_TAG))
         }
+    }
+
+    /**
+     * Motion Part 1 on the three-dot button (RECORD -687): held down, the icon dips and its press is drawn as a circle over
+     * the button's own square; lifted, it springs back. The touch area is the test above's: the whole square, corners too.
+     */
+    @Test
+    fun `held down, the three-dot icon dips under a round press, and springs back on release`() {
+        setScreen()
+        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        val icon = composeRule.onNode(hasContentDescription(MAP_QUICK_SETTINGS_DESCRIPTION) and hasAnyAncestor(hasTestTag(MAP_QUICK_SETTINGS_BUTTON_TAG)), useUnmergedTree = true)
+        fun scale() = icon.fetchSemanticsNode().config[PressBounceScaleKey]
+        assertEquals("at rest", 1f, scale(), 0.001f)
+        val highlight = composeRule.onNode(hasTestTag(MAP_QUICK_SETTINGS_PRESS_HIGHLIGHT_TAG), useUnmergedTree = true)
+        assertEquals("the press is drawn round", CircleShape, highlight.fetchSemanticsNode().config[PressHighlightShapeKey])
+        val drawn = highlight.getUnclippedBoundsInRoot()
+        assertEquals("over the button's square: $drawn, button $button", (button.right - button.left).value, (drawn.right - drawn.left).value, 0.5f)
+        val at = with(composeRule.density) { Offset(((button.left + button.right) / 2).toPx(), ((button.top + button.bottom) / 2).toPx()) }
+        composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { down(at) }
+        composeRule.mainClock.advanceTimeBy(300)
+        composeRule.waitForIdle()
+        val pressed = scale()
+        assertTrue("dipped while pressed: $pressed", pressed < 0.97f && pressed >= MotionTokens.PRESS_BOUNCE_SCALE - 0.05f)
+        composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { up() }
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.waitForIdle()
+        assertEquals("back at rest", 1f, scale(), 0.001f)
     }
 
     /**
@@ -348,9 +389,9 @@ class AvailabilityScreenQuickSettingsTest {
     fun `with a time set, the menu's top line shows it, Clear clears it, and the button carries a dot`() {
         setScreen()
         recordingWithBackBy(null)
-        assertFalse("no dot with none set", shown(MAP_QUICK_SETTINGS_DOT_TAG))
+        assertFalse("no dot with none set", dotShown())
         recordingWithBackBy(now + 2 * 60 * minute)
-        assertTrue("a dot while set", shown(MAP_QUICK_SETTINGS_DOT_TAG))
+        assertTrue("a dot while set", dotShown())
         touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
         assertEquals("Back by ${clock.full(now + 2 * 60 * minute)}", text(QUICK_BACK_BY_SET_TAG))
         touchCentreOf(QUICK_BACK_BY_CLEAR_TAG)

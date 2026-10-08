@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +25,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,7 +54,8 @@ import com.zynergylabs.forager.app.ui.map.journalMenuContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
-import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.PressHighlight
+import com.zynergylabs.forager.app.ui.motion.pressBounce
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import java.time.Instant
@@ -97,6 +98,8 @@ internal const val MAP_QUICK_SETTINGS_BUTTON_TAG = "map-quick-settings-button"
 internal val QUICK_SETTINGS_TAP_TARGET = 36.dp
 
 internal const val MAP_QUICK_SETTINGS_DOT_TAG = "map-quick-settings-dot"
+/** The three-dot button's round press (motion Part 1), for tests. */
+internal const val MAP_QUICK_SETTINGS_PRESS_HIGHLIGHT_TAG = "map-quick-settings-press-highlight"
 internal const val MAP_QUICK_SETTINGS_MENU_TAG = "map-quick-settings-menu"
 internal const val QUICK_BACK_BY_SET_TAG = "quick-back-by-set"
 internal const val QUICK_BACK_BY_CLEAR_TAG = "quick-back-by-clear"
@@ -134,11 +137,13 @@ internal fun backByLineText(backBy: BackByShown?, clock: SundownClock): String? 
  * nowhere else (CLAUDE.md, the `Surface` pitfall). A dot at its corner while a Back by time is set
  * (Q3: "Menu shows it + dot (Recommended)"; kept by Amendment 3).
  *
- * Motion Part 1 (RECORD -687): the press goes through [BouncingIconButton], as every icon button in the
- * app does: the icon dips and springs back, and Material's own press is drawn clipped to the button's
- * round shape, not as a square. Material's icon button would otherwise claim its 48 dp minimum touch
- * size around the 36 dp the owner set; [LocalMinimumInteractiveComponentSize] is 0 dp for this one
- * button so its touch area stays exactly the [QUICK_SETTINGS_TAP_TARGET] square.
+ * Motion Part 1 (RECORD -687): the press bounce and the rounded press, from Part 1's own pieces, as the map bar's
+ * rows have them (`MapBarIconButton`): the icon dips and springs back ([pressBounce]), and the press is drawn
+ * in a circle ([PressHighlight]), not a square. Not through `BouncingIconButton`, which the planner named: that
+ * is Material's `IconButton`, which clips itself to a circle, and a clip is part of hit testing, so the corners
+ * of the owner's 36 dp square stopped taking touches. Measured on the first build: a real touch 3 dp in from
+ * the top-left corner did not open the menu. Here the `clickable` is on the unclipped square, exactly as
+ * before, and only the drawn press is round.
  */
 @Composable
 internal fun MapQuickSettingsButton(
@@ -150,24 +155,20 @@ internal fun MapQuickSettingsButton(
     var expanded by rememberSaveable { mutableStateOf(false) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
     val backBy = settings.backBy
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
-        modifier = modifier.size(QUICK_SETTINGS_TAP_TARGET),
+        modifier = modifier
+            .size(QUICK_SETTINGS_TAP_TARGET)
+            .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClickLabel = MAP_QUICK_SETTINGS_DESCRIPTION) { expanded = true }
+            .testTag(MAP_QUICK_SETTINGS_BUTTON_TAG),
         contentAlignment = Alignment.Center,
     ) {
-        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-            BouncingIconButton(
-                onClick = { expanded = true },
-                modifier = Modifier
-                    .size(QUICK_SETTINGS_TAP_TARGET)
-                    .testTag(MAP_QUICK_SETTINGS_BUTTON_TAG),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = if (backBy != null) "$MAP_QUICK_SETTINGS_DESCRIPTION, Back by set" else MAP_QUICK_SETTINGS_DESCRIPTION,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
+        Icon(
+            imageVector = Icons.Filled.MoreVert,
+            contentDescription = if (backBy != null) "$MAP_QUICK_SETTINGS_DESCRIPTION, Back by set" else MAP_QUICK_SETTINGS_DESCRIPTION,
+            modifier = Modifier.size(20.dp).pressBounce(interactionSource),
+        )
+        PressHighlight(interactionSource = interactionSource, shape = CircleShape, testTag = MAP_QUICK_SETTINGS_PRESS_HIGHLIGHT_TAG)
         if (backBy != null) {
             Box(
                 modifier = Modifier
