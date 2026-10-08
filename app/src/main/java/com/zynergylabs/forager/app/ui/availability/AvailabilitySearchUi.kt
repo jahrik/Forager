@@ -83,6 +83,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -423,8 +424,15 @@ internal fun SearchDropdown(
     modifier: Modifier = Modifier,
     /** Whether this panel opens over the Maps tab's map; its Month menu is then at the map chrome's alpha (owner, "1 A"). */
     overMap: Boolean = false,
+    /**
+     * RECORD -750, item 2: whether a keyboard is up over the panel, read by the scaffold from the real IME insets (docked: a
+     * bottom inset; floating: visible with none). On each rise, the panel scrolls to its end, as on a viewport shrink, until
+     * the user drags it. False keeps the viewport-shrink rule alone (portrait, and every test that does not set it).
+     */
+    keyboardUp: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
+    val currentKeyboardUp by rememberUpdatedState(keyboardUp)
     CompositionLocalProvider(LocalContentColor provides mapChromeContentColor(isDarkTheme)) {
         Box(
             modifier = modifier
@@ -483,6 +491,18 @@ internal fun SearchDropdown(
                     launch {
                         scrollState.interactionSource.interactions.first { it is DragInteraction.Start }
                         bottomRowKeptInView = false
+                    }
+                    // RECORD -750, item 2: the keyboard's own rise, read from its insets, not only the shrink it may cause. A
+                    // floating keyboard shrinks nothing, and a panel opened with the keyboard already up never sees a shrink.
+                    // On each rise (false to true) the panel goes to its end; the shrink rule below then follows a docked
+                    // keyboard's inset as it grows, and a later growth of the viewport clamps to the new end. Only on a rise,
+                    // never on a content change, so opening Recent searches still does not pull the view to the end.
+                    launch {
+                        var wasUp = false
+                        snapshotFlow { currentKeyboardUp }.collect { up ->
+                            if (up && !wasUp) scrollState.scrollTo(scrollState.maxValue)
+                            wasUp = up
+                        }
                     }
                     var previousViewport = scrollState.viewportSize
                     snapshotFlow { scrollState.viewportSize }.collect { viewport ->

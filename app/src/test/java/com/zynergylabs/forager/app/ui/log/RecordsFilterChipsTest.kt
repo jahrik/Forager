@@ -263,7 +263,7 @@ class RecordsFilterChipsTest {
     fun `touching Finds shows the finds gallery`() {
         setScreen()
         touchChipAcrossItsBounds(FINDS_CHIP) {
-            composeRule.onNodeWithContentDescription("New log entry").assertExists()
+            composeRule.onNodeWithTag(FINDS_FAB_TAG).assertExists()
             // The gallery's tile for the one find, and its day heading (data part D, RECORD -702).
             composeRule.onNodeWithContentDescription(findBlankTitleLabel(CHIPS_FIND)).assertExists()
             composeRule.onNodeWithTag(findsDayHeaderTag(CHIPS_FIND.foundOn)).assertExists()
@@ -313,7 +313,7 @@ class RecordsFilterChipsTest {
     fun `leaving the Finds chip while editing is an incidental exit`() {
         setScreen()
         touchChip(FINDS_CHIP, Offset(0.5f, 0.5f))
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         assertEquals(0, incidentalExitCount)
 
@@ -474,7 +474,7 @@ class RecordsFilterChipsTest {
             pressBack()
             chip(FINDS_CHIP).assertIsSelected()
             composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
-            composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+            composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
 
             pressBack()
             chip(ALL_CHIP).assertIsSelected()

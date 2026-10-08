@@ -91,6 +91,21 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
     var mapSightings: List<Sighting> = emptyList()
         private set
 
+    /** RECORD -750, item 5: the region the map was handed on its latest composition. */
+    var mapRegion: Region? = null
+        private set
+
+    /** RECORD -750, item 5: the search frame request the map was handed on its latest composition (0 is none). */
+    var mapSearchFrameRequestId: Int = 0
+        private set
+
+    /** RECORD -750, item 5: the locate button's resume-following token the map was handed on its latest composition. */
+    var mapResumeTrackingRequestId: Int = 0
+        private set
+
+    /** What the species lookup answers, for every query (RECORD -750 sets a long name). */
+    var taxonResults: List<TaxonSearchResult> = listOf(CHANTERELLE)
+
     /** What [LocationProvider.getCurrentLocation] answers; counted in [locationRequests]. */
     var location: LocationResult = LocationResult.Success(45.0, -122.0)
     var locationRequests = 0
@@ -118,7 +133,7 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
             return Result.success(SightingsPage(sightings = listOf(sightingAt(region)), totalResults = 1))
         }
 
-        override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> = Result.success(listOf(CHANTERELLE))
+        override suspend fun searchTaxa(query: String): Result<List<TaxonSearchResult>> = Result.success(taxonResults)
     }
 
     lateinit var viewModel: AvailabilityViewModel
@@ -152,8 +167,11 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
             getTodaysForecast = GetTodaysForecastUseCase(RigNoWeather),
         )
         val vm = viewModel
-        val mapSlot: MapSlot = { _, content, _, _, _, _, _, _, modifier ->
+        val mapSlot: MapSlot = { region, content, _, _, _, _, _, _, modifier ->
             mapSightings = content.sightings
+            mapRegion = region
+            mapSearchFrameRequestId = content.searchFrameRequestId
+            mapResumeTrackingRequestId = content.resumeTrackingRequestId
             Box(modifier.testTag(LAYOUT_FIXES_MAP_TAG))
         }
         composeRule.setContent {

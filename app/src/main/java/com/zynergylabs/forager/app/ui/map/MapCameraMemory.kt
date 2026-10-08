@@ -33,4 +33,11 @@ data class MapCameraSnapshot(
  */
 class MapCameraMemory {
     var saved: MapCameraSnapshot? = null
+
+    /**
+     * RECORD -750, item 5: the last [MapOverlayContent.searchFrameRequestId] a map applied, kept here rather than with the
+     * `MapView`, so the map that comes back after a tab change (or after the search's loading spinner replaced it) applies
+     * a search's frame once, not again over the camera the user has moved since.
+     */
+    var appliedSearchFrameId: Int = 0
 }

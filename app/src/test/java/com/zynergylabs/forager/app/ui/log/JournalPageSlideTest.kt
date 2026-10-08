@@ -216,20 +216,23 @@ class JournalPageSlideTest {
         setScreen()
         goToFinds()
         val tile = findTile()
-        val plus = composeRule.onNodeWithContentDescription("New log entry").getUnclippedBoundsInRoot()
-        val (plusX, plusY) = centreOf(plus)
+        // RECORD -751: the "New find" button replaced the "+" tile as the gallery's own control, so the touch goes to the
+        // button's left end, which the arriving report reaches last of it (the button sits at the bottom end).
+        val plus = composeRule.onNodeWithTag(FINDS_FAB_TAG).getUnclippedBoundsInRoot()
+        val plusX = plus.left + 12.dp
+        val plusY = (plus.top + plus.bottom) / 2
 
         pause()
         val (tileX, tileY) = centreOf(tile)
         tapAt(tileX, tileY)
         applyWrites()
-        stepUntil("the report part-way in, the + tile not yet covered") {
+        stepUntil("the report part-way in, the New find button's left end not yet covered") {
             val arriving = pageSlidingIn()
             arriving != null && leftOf(arriving) < width() - 1.dp && leftOf(arriving) > plusX + 4.dp
         }
         assertTrue("the gallery is still there beneath, leaving", leavingPages().isNotEmpty())
 
-        // A real touch on the gallery's + tile, where it is still drawn and not yet covered: the gallery is leaving, so nothing.
+        // A real touch on the gallery's New find button, where it is still drawn and not yet covered: the gallery is leaving, so nothing.
         tapAt(plusX, plusY)
         applyWrites()
         frame()

@@ -245,6 +245,8 @@ fun SightingsMap(
     waypoints: List<Waypoint> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.resumeTrackingRequestId]'s own doc comment. */
     resumeTrackingRequestId: Int = 0,
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.searchFrameRequestId]'s own doc comment. */
+    searchFrameRequestId: Int = 0,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.resetOrientationRequestId]'s own doc comment. */
     resetOrientationRequestId: Int = 0,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.focusedObservationId]'s own doc comment. */
@@ -487,6 +489,10 @@ fun SightingsMap(
     // frame): kept with the MapView, so a request arriving again on a later recomposition, after a
     // fullscreen switch or a find overlay's Back, does not move the camera the user has since moved.
     var lastAppliedCameraRequestId by remember { mutableStateOf<String?>(null) }
+
+    // RECORD -750, item 5: the last search frame this map applied, for a map with no camera memory; one with memory keeps it
+    // there (MapCameraMemory.appliedSearchFrameId), so it outlives the MapView.
+    val localAppliedSearchFrameId = remember { intArrayOf(0) }
 
     // Part 1 layout fixes, item 5: MapLibre's own attribution margins, read once the map is ready, which
     // the caption's insets are added to below.
@@ -868,6 +874,7 @@ fun SightingsMap(
     LaunchedEffect(
         loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
         keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest, journalHighlights,
+        searchFrameRequestId,
     ) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
@@ -884,9 +891,27 @@ fun SightingsMap(
         // view back to the search center out from under a walker watching their live position. Once
         // a pan/zoom/the CameraMode.NONE break in activateLiveLocationIfPermitted's own doc comment
         // drops tracking, this resumes controlling the camera exactly as it did before that existed.
-        val isGpsTracking = map.locationComponent.isLocationComponentActivated &&
+        val isGpsTrackingBefore = map.locationComponent.isLocationComponentActivated &&
             map.locationComponent.cameraMode != CameraMode.NONE
         val target = region to focusOverride
+        // RECORD -750, item 5 (the owner: "Yes, fly to the search (Recommended)"): a new search's frame stops the camera
+        // following the GPS fix, which would otherwise block the move below, and frames the searched region. Once per id.
+        val appliedSearchFrameId = currentCameraMemory?.appliedSearchFrameId ?: localAppliedSearchFrameId[0]
+        val searchFrame = searchFrameMove(isGpsTrackingBefore, searchFrameRequestId, appliedSearchFrameId)
+        if (searchFrame != SearchFrameMove.NONE) {
+            cameraMoveClassifier.markAppMove()
+            if (searchFrame == SearchFrameMove.STOP_FOLLOWING_AND_FRAME) map.locationComponent.cameraMode = CameraMode.NONE
+            map.cameraPosition = CameraPosition.Builder()
+                .target(MapLibreLatLng(region.lat, region.lng))
+                .zoom(zoomForRadiusKm(region.radiusKm))
+                .build()
+            lastAppliedCameraTarget = target
+            localAppliedSearchFrameId[0] = searchFrameRequestId
+            currentCameraMemory?.appliedSearchFrameId = searchFrameRequestId
+            Log.i(SEARCH_FRAME_LOG_TAG, "search frame $searchFrameRequestId applied ($searchFrame) at ${region.lat}, ${region.lng}")
+            return@LaunchedEffect
+        }
+        val isGpsTracking = isGpsTrackingBefore
         // A one-shot frame (the entry map's opening frame) stands in for this target's move: the
         // target is recorded as applied too, so the region move below does not follow it and undo it.
         // A later target change (a locate-me pan) still moves the camera, as before.
@@ -1601,6 +1626,32 @@ internal fun shouldMoveCameraToTarget(
  * Whether [request] moves the camera now: a request is applied once per id, and never while GPS
  * tracking owns the camera (the rule [shouldMoveCameraToTarget] follows).
  */
+/** RECORD -750, item 5: what a search's frame request does to the camera. */
+internal enum class SearchFrameMove {
+    /** No new request: the region move below follows its own rule. */
+    NONE,
+
+    /** A new request while the camera is not following: frame the region. */
+    FRAME,
+
+    /** A new request while the camera follows the GPS fix: stop following, then frame the region. */
+    STOP_FOLLOWING_AND_FRAME,
+}
+
+/**
+ * RECORD -750, item 5: a search's frame request ([MapOverlayContent.searchFrameRequestId]) is applied once per id, and, unlike
+ * [shouldMoveCameraToTarget] and [shouldApplyCameraRequest], also while GPS tracking owns the camera, which it ends: the user
+ * asked to see the searched place. 0 is no request.
+ */
+internal fun searchFrameMove(isGpsTracking: Boolean, requestId: Int, lastAppliedId: Int): SearchFrameMove = when {
+    requestId == 0 || requestId == lastAppliedId -> SearchFrameMove.NONE
+    isGpsTracking -> SearchFrameMove.STOP_FOLLOWING_AND_FRAME
+    else -> SearchFrameMove.FRAME
+}
+
+/** RECORD -750, item 5: the log tag for a search frame applied, so a device check can read it. */
+internal const val SEARCH_FRAME_LOG_TAG = "ForagerSearchFrame"
+
 internal fun shouldApplyCameraRequest(
     isGpsTracking: Boolean,
     request: MapCameraRequest?,
