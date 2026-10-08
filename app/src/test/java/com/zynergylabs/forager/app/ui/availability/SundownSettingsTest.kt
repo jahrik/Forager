@@ -13,6 +13,8 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -52,11 +54,13 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * Settings > "Sundown" (dispatch 2026-09-28-592, plan task T4; the owner's step path, RECORD -592),
- * on the real [AvailabilityScreen] and the real [AvailabilityViewModel] over the real DataStore
- * repository: "Sundown alerts" on by default, "Dark under trees" at 1 h with the owner's sentence,
- * each changed by real touches across its row, and both read back by a recreated repository and a
- * new ViewModel, the way a restart reads them.
+ * Tools > "Sundown" (dispatch 2026-09-28-592, plan task T4; the owner's step path, RECORD -592; in
+ * Settings until dispatch 2026-09-28-707 moved it to the Tools drawer), on the real
+ * [AvailabilityScreen] and the real [AvailabilityViewModel] over the real DataStore repository:
+ * "Sundown alerts" on by default, "Dark under trees" at 1 h with the owner's sentence, each changed
+ * by real touches across its row, and both read back by a recreated repository and a new ViewModel,
+ * the way a restart reads them. Since -707 the rows are reached with one tap, Tools, and Settings
+ * no longer shows them.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -142,9 +146,9 @@ class SundownSettingsTest {
             )
         }
         composeRule.waitForIdle()
-        // Navigation to Settings is not the claim here; the touches on the Sundown rows are.
+        // Opening Tools is not the claim here; the touches on the Sundown rows are. One tap since
+        // dispatch 2026-09-28-707, where it was Tools then Settings.
         composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Settings").performClick()
         composeRule.waitForIdle()
     }
 
@@ -242,6 +246,44 @@ class SundownSettingsTest {
         }
         assertEquals("a new ViewModel shows 45 min (state ${next.uiState.value.darknessMarginMinutes}, errors $errors)", 45, next.uiState.value.darknessMarginMinutes)
         assertEquals("and alerts off", false, next.uiState.value.sundownAlertsEnabled)
+    }
+
+    /**
+     * Dispatch 2026-09-28-707, step 1: the section is near the top of the Tools page, the next thing
+     * under the Trip Planner's one-line header (collapsed when the drawer opens), inside the open
+     * drawer sheet and in its upper third, with the Off-track reminder as its last row.
+     */
+    @Test
+    fun `Tools shows the Sundown section near the top, under the Trip Planner's header, with the off-track reminder in it`() {
+        val (repository, _) = repository()
+        setScreen(viewModelOver(repository))
+
+        val sheet = composeRule.onNodeWithTag(TOOLS_DRAWER_SHEET_TAG).getBoundsInRoot()
+        val section = composeRule.onNodeWithTag(TOOLS_SUNDOWN_SECTION_TAG).getBoundsInRoot()
+        val tripPlanner = composeRule.onNodeWithText("Trip Planner").getBoundsInRoot()
+        assertTrue("the section is inside the open sheet: $section in $sheet", section.left >= sheet.left && section.right <= sheet.right && section.top >= sheet.top)
+        assertTrue("the section is under the Trip Planner's header: $section, $tripPlanner", section.top >= tripPlanner.bottom)
+        assertTrue("and near the top, in the sheet's upper third: ${section.top} of $sheet", section.top - sheet.top <= sheet.height / 3)
+        val offTrack = composeRule.onNodeWithTag(OFF_TRACK_REMINDER_TAG).getBoundsInRoot()
+        assertTrue("the off-track reminder is in the section: $offTrack in $section", offTrack.top >= section.top && offTrack.bottom <= section.bottom)
+    }
+
+    /** Dispatch 2026-09-28-707, step 2: Settings no longer shows the section, its explanation or the off-track reminder. */
+    @Test
+    fun `Settings no longer shows the Sundown section or the off-track reminder`() {
+        val (repository, _) = repository()
+        setScreen(viewModelOver(repository))
+        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.waitForIdle()
+
+        // Settings is the page now showing: one of its own rows is there.
+        assertTrue(composeRule.onAllNodesWithText("Night Maps").fetchSemanticsNodes().isNotEmpty())
+        assertEquals(0, composeRule.onAllNodesWithTag(SUNDOWN_ALERTS_TAG).fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithTag(OFF_TRACK_REMINDER_TAG).fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithText(DARK_UNDER_TREES_EXPLANATION).fetchSemanticsNodes().size)
+        for (minutes in listOf(30, 45, 60, 90)) {
+            assertEquals(0, composeRule.onAllNodesWithTag(darknessMarginTag(minutes)).fetchSemanticsNodes().size)
+        }
     }
 
     private object FixedCompass : CompassProvider {

@@ -23,10 +23,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -46,6 +46,10 @@ import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import com.zynergylabs.forager.app.ui.log.CAMERA_GRID_CHIP_TAG
 import com.zynergylabs.forager.app.ui.log.CAMERA_LOCATION_CHIP_TAG
+import com.zynergylabs.forager.app.ui.log.CAMERA_SETTINGS_CHIP_TAG
+import com.zynergylabs.forager.app.ui.log.CAMERA_SETTINGS_LOCK_PORTRAIT_TAG
+import com.zynergylabs.forager.app.ui.log.CAMERA_SETTINGS_PANEL_TAG
+import com.zynergylabs.forager.app.ui.log.CAMERA_SETTINGS_PHOTO_LOCATION_TAG
 import com.zynergylabs.forager.app.ui.log.LOCATION_OFF_LABEL
 import com.zynergylabs.forager.app.ui.log.LOCATION_ON_LABEL
 import com.zynergylabs.forager.app.ui.log.CAMERA_SHUTTER_TAG
@@ -114,7 +118,7 @@ class AvailabilityScreenInAppCameraTest {
 
     private val boxMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onLockCameraToPortraitChanged, onPhotoCaptured, onDismiss ->
         slotSawLockToPortrait = lockToPortrait
         val session = remember { FakeCameraCaptureSession() }
         InAppCameraDialog(
@@ -127,6 +131,7 @@ class AvailabilityScreenInAppCameraTest {
             onGridModeChanged = onGridModeChanged,
             autoSaveLocationToPhotos = autoSaveLocationToPhotos,
             onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+            onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
             levelProvider = FakeLevelProvider(),
             viewfinder = { modifier -> Box(modifier) },
         )
@@ -142,7 +147,12 @@ class AvailabilityScreenInAppCameraTest {
     private var autoSaveLocation by mutableStateOf(true)
     private val autoSaveLocationRequests = mutableListOf<Boolean>()
 
+    /** "Lock camera to portrait" as the screen sees it, and every value its handler was asked for, stored the same way (dispatch 2026-09-28-707). */
+    private var lockCamera by mutableStateOf(false)
+    private val lockCameraRequests = mutableListOf<Boolean>()
+
     private fun setScreen(cameraPermissionGranted: Boolean = true, lockCameraToPortrait: Boolean = false, cameraGridMode: GridMode = GridMode.Off) {
+        lockCamera = lockCameraToPortrait
         if (cameraPermissionGranted) {
             Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>()).grantPermissions(Manifest.permission.CAMERA)
         }
@@ -155,7 +165,7 @@ class AvailabilityScreenInAppCameraTest {
             val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
                 AvailabilityScreen(
-                    uiState = SEARCHED_STATE.copy(lockCameraToPortrait = lockCameraToPortrait, autoSaveLocationToPhotos = autoSaveLocation),
+                    uiState = SEARCHED_STATE.copy(lockCameraToPortrait = lockCamera, autoSaveLocationToPhotos = autoSaveLocation),
                     onUseCurrentLocation = {},
                     onManualLatChanged = {},
                     onManualLngChanged = {},
@@ -183,6 +193,10 @@ class AvailabilityScreenInAppCameraTest {
                     onAutoSaveLocationToPhotosChanged = { requested ->
                         autoSaveLocationRequests += requested
                         autoSaveLocation = requested
+                    },
+                    onLockCameraToPortraitChanged = { requested ->
+                        lockCameraRequests += requested
+                        lockCamera = requested
                     },
                     mapSlot = boxMapSlot,
                     inAppCameraTarget = target,
@@ -417,22 +431,63 @@ class AvailabilityScreenInAppCameraTest {
         assertEquals("nothing was asked of the handler", emptyList<Boolean>(), autoSaveLocationRequests)
     }
 
-    /** The chip and Settings are one value: turned off on the camera's strip, Settings' checkbox reads off. */
+    /**
+     * The chip and the gear panel are one value: turned off on the camera's strip, the panel's
+     * checkbox reads off. Until dispatch 2026-09-28-707 this closed the camera and read Settings'
+     * checkbox, which is where the row was; the row is the gear panel's now, so the claim, one value
+     * seen in two places, is read there.
+     */
     @Test
-    fun `after a tap on the camera's chip, Settings' checkbox shows the same value`() {
+    fun `after a tap on the camera's chip, the gear panel's checkbox shows the same value`() {
         autoSaveLocation = true
         setScreen()
         openEditorCamera()
         composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).performClick()
         composeRule.waitForIdle()
-        composeRule.pressBackOnCamera()
-        composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)
 
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performScrollTo()
-
+        touchCentreOf(CAMERA_SETTINGS_CHIP_TAG)
         composeRule.onNode(isToggleable() and hasAnySibling(hasText(PHOTO_LOCATION_SETTING_LABEL)), useUnmergedTree = true).assertIsOff()
+    }
+
+    /**
+     * Dispatch 2026-09-28-707, through the screen: real touches open the gear panel, its two rows reach
+     * the screen's own handlers with the toggled values (the ones `MainActivity` wires to
+     * `AvailabilityViewModel`), the value each shows is the screen's, and Back closes the panel
+     * without closing the camera; a second Back closes the camera as before.
+     */
+    @Test
+    fun `the gear opens the panel, its two rows write the screen's values, and Back closes only the panel`() {
+        autoSaveLocation = true
+        setScreen(lockCameraToPortrait = false)
+        openEditorCamera()
+        composeRule.onAllNodesWithTag(CAMERA_SETTINGS_PANEL_TAG).assertCountEquals(0)
+
+        touchCentreOf(CAMERA_SETTINGS_CHIP_TAG)
+        composeRule.onAllNodesWithTag(CAMERA_SETTINGS_PANEL_TAG).assertCountEquals(1)
+
+        touchCentreOf(CAMERA_SETTINGS_PHOTO_LOCATION_TAG)
+        assertEquals("the photo-location row asked for off", listOf(false), autoSaveLocationRequests)
+        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).assertContentDescriptionEquals(LOCATION_OFF_LABEL)
+
+        touchCentreOf(CAMERA_SETTINGS_LOCK_PORTRAIT_TAG)
+        assertEquals("the lock row asked for on", listOf(true), lockCameraRequests)
+        assertEquals("and the slot was handed the stored value", true, slotSawLockToPortrait)
+        composeRule.onNode(isToggleable() and hasAnySibling(hasText(LOCK_CAMERA_SETTING_LABEL)), useUnmergedTree = true).assertIsOn()
+
+        composeRule.pressBackOnCamera()
+        composeRule.onAllNodesWithTag(CAMERA_SETTINGS_PANEL_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
+        assertEquals("Back closed the panel, not the camera", 0, closed)
+
+        composeRule.pressBackOnCamera()
+        assertEquals("the next Back closes the camera", 1, closed)
+        composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)
+    }
+
+    /** A real touch at the centre of the node tagged [tag], hit-tested from the root. */
+    private fun touchCentreOf(tag: String) {
+        val bounds = composeRule.onNodeWithTag(tag).getBoundsInRoot()
+        tapAtRoot((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2)
     }
 
     /** The holder is what closes it: clearing the target from outside, as the ViewModel would, removes the dialog. */

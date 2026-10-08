@@ -35,7 +35,7 @@ enum class InAppCameraTarget {
  */
 typealias InAppCameraSlot = @Composable (
     cameraCaptureFiles: CameraCaptureFiles,
-    /** Settings' "Lock camera to portrait", handed to the session at creation — see `effectiveDeviceRotation`. */
+    /** "Lock camera to portrait", handed to the session at creation — see `effectiveDeviceRotation`. */
     lockToPortrait: Boolean,
     /** The persisted grid mode and the way to change it — see `CameraGridModeViewModel`. */
     gridMode: GridMode,
@@ -43,6 +43,8 @@ typealias InAppCameraSlot = @Composable (
     /** Settings' "Automatically Save Location to Photos" and its handler — see `AvailabilityViewModel.onAutoSaveLocationToPhotosChanged`. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    /** The gear panel's "Lock camera to portrait" handler (dispatch 2026-09-28-707) — see `AvailabilityViewModel.onLockCameraToPortraitChanged`. */
+    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
 ) -> Unit
@@ -53,12 +55,14 @@ typealias InAppCameraSlot = @Composable (
  * viewfinder it draws into. Moved here from `PhotoAcquisitionLaunchers` on 2026-09-15 when the
  * dialog was hoisted; unchanged otherwise.
  */
-internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
+internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onLockCameraToPortraitChanged, onPhotoCaptured, onDismiss ->
     val context = LocalContext.current.applicationContext
     // One provider per open camera; it registers a sensor listener only while the level is shown.
     val levelProvider = remember { AndroidLevelProvider(context) }
-    // Keyed on the setting so a session never carries a stale value; in practice it cannot change
-    // while the camera is open, since the dialog covers Settings.
+    // Keyed on the setting so a session never carries a stale value. Since dispatch 2026-09-28-707 it
+    // can change while the camera is open, from the gear panel: the key then makes a new session, and
+    // the dialog's DisposableEffect closes the old one and opens this. Until then the dialog covered
+    // Settings, so it could not; the rebind on a live change is a device check, not shown by any test.
     val session = remember(lockToPortrait) { CameraXCaptureSession(context, lockToPortrait) }
     InAppCameraDialog(
         session = session,
@@ -70,6 +74,7 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToP
         onGridModeChanged = onGridModeChanged,
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+        onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
         levelProvider = levelProvider,
         viewfinder = { modifier -> session.Viewfinder(modifier) },
     )
@@ -101,7 +106,7 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToP
 internal fun InAppCameraHost(
     target: InAppCameraTarget?,
     cameraCaptureFiles: CameraCaptureFiles,
-    /** Settings' "Lock camera to portrait", from `AvailabilityUiState`; passed straight to the slot. */
+    /** "Lock camera to portrait", from `AvailabilityUiState`; passed straight to the slot. */
     lockToPortrait: Boolean,
     /** The persisted grid mode, from `CameraGridModeViewModel`; passed straight to the slot. */
     gridMode: GridMode,
@@ -109,6 +114,8 @@ internal fun InAppCameraHost(
     /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`, and Settings' own handler; passed straight to the slot. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
+    /** The gear panel's "Lock camera to portrait" handler, the screen's own; passed straight to the slot. */
+    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     onLogEntryPhoto: (PhotoSource) -> Unit,
     onAlbumPhoto: (PhotoSource) -> Unit,
     onCartographyEntryPhoto: (PhotoSource) -> Unit,
@@ -121,5 +128,5 @@ internal fun InAppCameraHost(
         InAppCameraTarget.ALBUM -> onAlbumPhoto
         InAppCameraTarget.CARTOGRAPHY_ENTRY -> onCartographyEntryPhoto
     }
-    camera(cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss)
+    camera(cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onLockCameraToPortraitChanged, onPhotoCaptured, onDismiss)
 }

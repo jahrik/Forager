@@ -444,9 +444,9 @@ fun AvailabilityScreen(
     onDeleteOfflineRegion: (Long) -> Unit,
     /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
     onNightModeMapsChanged: (Boolean) -> Unit,
-    /** Settings' "Automatically Save Location to Photos" checkbox — see [AvailabilityUiState.autoSaveLocationToPhotos]. Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
+    /** "Automatically Save Location to Photos" — see [AvailabilityUiState.autoSaveLocationToPhotos]; set from the camera's Location chip and its gear panel (Settings until dispatch 2026-09-28-707). Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
-    /** Settings' "Lock camera to portrait" checkbox — see [AvailabilityUiState.lockCameraToPortrait]. Defaulted like the one above. */
+    /** "Lock camera to portrait" — see [AvailabilityUiState.lockCameraToPortrait]; set from the camera's gear panel (Settings until dispatch 2026-09-28-707). Defaulted like the one above. */
     onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
     /** Settings' "Sundown alerts" (dispatch 2026-09-28-592) — see [AvailabilityUiState.sundownAlertsEnabled]. */
     onSundownAlertsEnabledChanged: (Boolean) -> Unit = {},
@@ -1854,10 +1854,6 @@ fun AvailabilityScreen(
                     onDeletePlannedTrip = onDeletePlannedTrip,
                     isNightMode = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
-                    autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
-                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-                    lockCameraToPortrait = uiState.lockCameraToPortrait,
-                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                     themeMode = uiState.themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     crashFileStore = crashFileStore,
@@ -1906,6 +1902,7 @@ fun AvailabilityScreen(
         onGridModeChanged = onCameraGridModeChanged,
         autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+        onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
         onLogEntryPhoto = onAddLogPhoto,
         onAlbumPhoto = onAddGalleryPhoto,
         onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,
