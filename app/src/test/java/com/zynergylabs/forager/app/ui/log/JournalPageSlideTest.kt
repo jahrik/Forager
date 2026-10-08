@@ -394,6 +394,73 @@ class JournalPageSlideTest {
         composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertDoesNotExist()
         composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertExists()
     }
+
+    // Amendment 1 (RECORD -681).
+
+    @Test
+    fun `a Records chip's list slides in over All, and Back slides it out with All in place`() {
+        setScreen()
+        composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.RECORDS)).let { node ->
+            val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
+            tapAt(x, y)
+        }
+        settle()
+        // Records opens on All when nothing else was chosen; select All to be sure of the start.
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).let { node ->
+            val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
+            tapAt(x, y)
+        }
+        settle()
+        val chipRowTop = composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).getUnclippedBoundsInRoot().top
+
+        pause()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).let { node ->
+            val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
+            tapAt(x, y)
+        }
+        applyWrites()
+        stepUntil("the Waypoints list part-way in") {
+            val arriving = pageSlidingIn()
+            arriving != null && leftOf(arriving) < width() - 1.dp
+        }
+        assertTrue("All is still there, leaving", leavingPages().isNotEmpty())
+        assertEquals("the chip row stays still", chipRowTop.value, composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).getUnclippedBoundsInRoot().top.value, 0.5f)
+        settle()
+
+        pause()
+        back()
+        applyWrites()
+        stepUntil("the Waypoints list part-way out") {
+            leavingPages().any { leftOf(it) > 1.dp && leftOf(it) < width() - 1.dp }
+        }
+        assertEquals(0f, composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).getUnclippedBoundsInRoot().left.value, 1f)
+        settle()
+        composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `in a short window the switch row stays still while only the page below it slides`() {
+        setScreen()
+        val switchBefore = composeRule.onNodeWithTag(JOURNAL_SWITCH_TAG).getUnclippedBoundsInRoot()
+        val records = composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.RECORDS)).getUnclippedBoundsInRoot()
+
+        pause()
+        val (rx, ry) = centreOf(records)
+        tapAt(rx, ry)
+        applyWrites()
+        stepUntil("Records part-way in") {
+            val arriving = pageSlidingIn()
+            arriving != null && leftOf(arriving) < width() - 1.dp
+        }
+        val switchMid = composeRule.onNodeWithTag(JOURNAL_SWITCH_TAG).getUnclippedBoundsInRoot()
+        assertEquals("the switch has not moved sideways", switchBefore.left.value, switchMid.left.value, 0.5f)
+        assertEquals("nor up or down", switchBefore.top.value, switchMid.top.value, 0.5f)
+        // One switch, not one in each page.
+        assertEquals(1, composeRule.onAllNodes(androidx.compose.ui.test.hasTestTag(JOURNAL_SWITCH_TAG)).fetchSemanticsNodes().size)
+        settle()
+        composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.RECORDS)).assertIsSelected()
+    }
 }
 
 private val NO_MAP_DATA = CartographyEntryMapData(
