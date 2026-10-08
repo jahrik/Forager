@@ -87,6 +87,7 @@ abstract class LandscapeBarStripJoinTests {
         Box(modifier.testTag(MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }) })
     }
     private var generation by mutableStateOf(0)
+    private var compass: CompassProvider by mutableStateOf(FixedCompass(315f))
     private var rotationSeen: Int? = null
 
     private fun setScreen(rotation: Int, uiState: AvailabilityUiState = AvailabilityUiState(liveFix = fix)) {
@@ -96,7 +97,7 @@ abstract class LandscapeBarStripJoinTests {
             key(generation) {
                 AvailabilityScreen(
                     uiState = uiState,
-                    compassProvider = FixedCompass(315f),
+                    compassProvider = compass,
                     computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                     currentTime = CurrentTimeProvider { t + 1_000L },
                     mapSlot = map,
@@ -358,6 +359,49 @@ abstract class LandscapeBarStripJoinTests {
         println("MEASURED rotation $rotation bar ${bar.d()} (${(bar.right - bar.left).value} wide) resting text <$text>: lines ${layout.lineCount}, visible ${layout.getLineEnd(0, visibleEnd = true)} of ${text.length}")
         assertEquals("<$text> is one line", 1, layout.lineCount)
         assertEquals("<$text> shows every character", text.length, layout.getLineEnd(0, visibleEnd = true))
+    }
+
+    // ── RECORD -733: the short heading words, in the room the value takes ──
+
+    /**
+     * The owner: "Short words, same room (Recommended)". With no compass, then an unreliable one, the heading slot reads
+     * "No compass" and "Compass?", whole, beside the altitude and the coordinates, and the join sits exactly where it does with
+     * a heading (the strip is sized from the value form only). The same screen is composed afresh for each compass.
+     */
+    private fun assertShortWords(rotation: Int) {
+        setScreen(rotation)
+        val withHeading = bounds(STRIP_TAG)
+        val headingText = layoutOf(COMPASS_STRIP_HEADING_TAG).first
+        assertEquals("positive control: a heading value first", "315° NW", headingText)
+        for ((provider, word) in listOf(NoCompass to LANDSCAPE_NO_COMPASS_TEXT, UnreliableCompass to LANDSCAPE_COMPASS_UNRELIABLE_TEXT)) {
+            composeRule.runOnIdle { compass = provider; generation++ }
+            composeRule.waitForIdle()
+            composeRule.mainClock.advanceTimeBy(2_000)
+            composeRule.waitForIdle()
+            val strip = bounds(STRIP_TAG)
+            assertAllThree(word)
+            val shownReadouts = readoutsShown()
+            println("MEASURED rotation $rotation <$word>: strip ${strip.d()}, with a heading ${withHeading.d()}, readouts $shownReadouts")
+            assertEquals("the heading slot reads <$word>", word, shownReadouts.first())
+            assertEquals("<$word>: the strip's left edge is where it is with a heading", withHeading.left.value, strip.left.value, 0.5f)
+            assertEquals("<$word>: the strip's right edge is where it is with a heading", withHeading.right.value, strip.right.value, 0.5f)
+            val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+            val join = if (barOnLeft(rotation)) strip.left else strip.right
+            assertEquals("<$word>: the bar still ends at the join", join.value, (if (barOnLeft(rotation)) bar.right else bar.left).value, 0.5f)
+        }
+    }
+
+    @Test fun `at ROTATION_90 with no compass or an unreliable one the short words show whole and the join stays put`() = assertShortWords(Surface.ROTATION_90)
+
+    @Test fun `at ROTATION_270 with no compass or an unreliable one the short words show whole and the join stays put`() = assertShortWords(Surface.ROTATION_270)
+
+    private object NoCompass : CompassProvider {
+        override val heading: Flow<CompassReading?> = MutableStateFlow(null)
+    }
+
+    /** 90 degrees of estimated uncertainty, well past CompassTrustJudge's 15 degree entry: unreliable. */
+    private object UnreliableCompass : CompassProvider {
+        override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(315f, HeadingUncertainty.Estimated(90f), 0L))
     }
 
     private class FixedCompass(degrees: Float) : CompassProvider {

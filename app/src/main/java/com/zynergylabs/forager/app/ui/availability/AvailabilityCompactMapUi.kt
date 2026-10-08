@@ -76,7 +76,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -696,9 +695,6 @@ internal fun CompactMapTab(
             // Dispatch 2026-09-28-510: at the best position there is (AvailabilityUiState.headingFix), so the
             // HUD's needle and the strip's heading work while the position is approximate or last known.
             val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.headingFix)
-            // RECORD -732: the heading's status words, if it has no value; the landscape strip's width allows for them. Derived,
-            // so this tab recomposes only when the kind of reading changes, never at sensor rate.
-            val headingStatus by remember(trueHeading) { derivedStateOf { stripHeadingStatusText(trueHeading.value) } }
             // Dispatch 2026-09-28-510: what is shown in place of GPS, for the strip. Read only in its leaf.
             val positionNote = rememberPositionNote(LocalMapPosition.current, currentTime)
             // Dispatch 2026-09-28-430: which way the map faces while navigating, from the same heading.
@@ -1046,7 +1042,7 @@ internal fun CompactMapTab(
                             .landscapeStripFit(
                                 railPortEdge,
                                 punchHoleEdge,
-                                rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, showDecimalDegrees, quickSettings != null, headingStatus),
+                                rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, showDecimalDegrees, quickSettings != null),
                                 rememberLandscapeBarFloorPx(uiState, uiState.distanceUnit),
                             )
                     } else {
@@ -1089,8 +1085,10 @@ internal fun CompactMapTab(
                                 // The strip's own height (item 2), and not while it leaves (motion Part 2).
                                 .onSizeChanged { if (!isNavigating) compassStripHeightPx = it.height }
                         }.then(if (!isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
-                        // RECORD -729: full width of its half in landscape too, so the readouts take the whole half.
+                        // RECORD -729: full width in landscape too, so the readouts take the whole strip.
                         contentWidth = false,
+                        // RECORD -733: "No compass" and "Compass?" in a short landscape window; portrait keeps the full words.
+                        shortHeadingStatus = railPortEdge != null,
                         positionNote = positionNote,
                         // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
                         sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
