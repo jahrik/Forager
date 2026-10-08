@@ -243,9 +243,9 @@ class GpxImportRecordsTest {
         val imported = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a").format(Instant.ofEpochMilli(importNow).atZone(ZoneId.systemDefault()))
         composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_STARTED)).assertTextEquals("Started", "No times in file")
         composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_ENDED)).assertTextEquals("Ended", "No times in file")
-        // Dispatch -677 changed this: Duration is the Time tile, and Avg speed, which also needs times, says so too.
+        // Dispatch -677 changed this: Duration is the Time tile, and Moving speed, which also needs times, says so too.
         composeRule.onNodeWithTag(trackTileTag(TRACK_TILE_TIME)).assertTextEquals("Time", "No times in file")
-        composeRule.onNodeWithTag(trackTileTag(TRACK_TILE_AVG_SPEED)).assertTextEquals("Avg speed", "No times in file")
+        composeRule.onNodeWithTag(trackTileTag(TRACK_TILE_MOVING_SPEED)).assertTextEquals("Moving speed", "No times in file")
         composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_IMPORTED)).assertTextEquals("Imported", imported)
     }
 }

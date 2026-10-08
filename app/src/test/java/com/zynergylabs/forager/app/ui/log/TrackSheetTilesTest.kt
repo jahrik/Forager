@@ -36,9 +36,10 @@ class TrackSheetTilesTest {
 
     @Test
     fun `the five tiles in order, each labelled, in miles and feet`() {
-        // 2223.9 m = 1.38 mi; 30 m = 98 ft; 12 m = 39 ft; 2223.9 m / 4200 s = 0.5295 m/s = 1.18 mph.
+        // 2223.9 m = 1.38 mi; 30 m = 98 ft; 12 m = 39 ft. Both intervals move (1111.95 m in 2100 s, 0.5295 m/s, past the
+        // 0.5 m/s floor), 70 min of moving time: 0.5295 m/s = 1.18 mph.
         assertEquals(
-            listOf("Distance" to "1.4 mi", "Time" to "1 h 10 min", "Climb" to "98 ft", "Descent" to "39 ft", "Avg speed" to "1.2 mph"),
+            listOf("Distance" to "1.4 mi", "Time" to "1 h 10 min", "Climb" to "98 ft", "Descent" to "39 ft", "Moving speed" to "1.2 mph"),
             tiles(track()),
         )
     }
@@ -47,7 +48,7 @@ class TrackSheetTilesTest {
     fun `in kilometres and metres`() {
         // 0.5295 m/s = 1.906 km/h.
         assertEquals(
-            listOf("Distance" to "2.2 km", "Time" to "1 h 10 min", "Climb" to "30 m", "Descent" to "12 m", "Avg speed" to "1.9 km/h"),
+            listOf("Distance" to "2.2 km", "Time" to "1 h 10 min", "Climb" to "30 m", "Descent" to "12 m", "Moving speed" to "1.9 km/h"),
             tiles(track(), DistanceUnit.KILOMETERS),
         )
     }
@@ -60,18 +61,40 @@ class TrackSheetTilesTest {
     }
 
     @Test
-    fun `a file with no times has no Time and no Avg speed, and says so`() {
+    fun `a file with no times has no Time and no Moving speed, and says so`() {
         val values = tiles(track(importedWithoutTimes = true)).toMap()
         assertEquals("No times in file", values["Time"])
-        assertEquals("No times in file", values["Avg speed"])
+        assertEquals("No times in file", values["Moving speed"])
         assertEquals("the distance does not need times", "1.4 mi", values["Distance"])
     }
 
     @Test
     fun `points that share one time have no speed, a dash`() {
         val values = tiles(track(spacingMillis = 0L)).toMap()
-        assertEquals("—", values["Avg speed"])
+        assertEquals("—", values["Moving speed"])
         assertEquals("Under 1 min", values["Time"])
+    }
+
+    /**
+     * Amendment 1 (RECORD -680; the owner: "Moving speed (Recommended)"): a long stop does not slow the figure. 1111.95 m in
+     * 10 min, an hour stopped, 1111.95 m in 10 min: moving, 2223.9 m in 20 min, 1.853 m/s = 4.15 mph. Distance over the
+     * whole 80 min would read 1.0 mph; that is the figure this replaced.
+     */
+    @Test
+    fun `a walk with a long stop reads its moving speed, not distance over the whole time`() {
+        val points = listOf(0L to 45.00, 10L to 45.01, 70L to 45.01, 80L to 45.02).map { (atMinute, lat) ->
+            TrackPoint(lat = lat, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t0 + atMinute * minute)
+        }
+        val stopped = Track(id = "s", name = "Stop", startedAtEpochMillis = t0, endedAtEpochMillis = t0 + 80 * minute, points = points)
+        val values = tiles(stopped).toMap()
+        assertEquals("4.1 mph", values["Moving speed"])
+        assertEquals("the time is still the whole walk", "1 h 20 min", values["Time"])
+    }
+
+    @Test
+    fun `under five minutes of moving there is no figure, not the walk-back estimate's assumed pace`() {
+        val values = tiles(track(spacingMillis = 2 * minute)).toMap()
+        assertEquals("—", values["Moving speed"])
     }
 
     @Test

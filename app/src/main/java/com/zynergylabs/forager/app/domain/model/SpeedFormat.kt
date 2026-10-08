@@ -4,7 +4,7 @@ import java.util.Locale
 
 /**
  * An average walking speed in the user's display unit, one decimal: "1.9 mph", "3.1 km/h" (dispatch 2026-09-28-677, data
- * part B: the track sheet's Avg speed tile). The value stays metres per second ([TrackStatistics.averageSpeedMetersPerSecond]);
+ * part B: the track sheet's Moving speed tile). The value stays metres per second;
  * only the label converts, the rule [formatWholeLength] follows. One decimal because walking speeds sit between 1 and 5 in
  * either unit, where a whole number would round a slow walk and a brisk one to the same figure. `Locale.US` for the decimal
  * point, as [formatRainfall] and [formatSoilTemperature] use. There was no speed formatter in the app before this.

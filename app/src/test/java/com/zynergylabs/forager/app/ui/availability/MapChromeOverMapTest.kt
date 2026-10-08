@@ -208,7 +208,7 @@ internal fun MapChromeTestScreen(
 }
 
 /** The track sheet's five tiles (dispatch -677), by label. */
-private val TRACK_SHEET_TILE_LABELS = listOf("Distance", "Time", "Climb", "Descent", "Avg speed")
+private val TRACK_SHEET_TILE_LABELS = listOf("Distance", "Time", "Climb", "Descent", "Moving speed")
 
 internal fun mapChromeHostActivityRule() = object : ExternalResource() {
     override fun before() {

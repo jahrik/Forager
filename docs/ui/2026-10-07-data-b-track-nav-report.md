@@ -239,3 +239,80 @@ How the tests reach the code:
   - how the outlined tiles read over satellite imagery.
 - **Robolectric's 24-hour setting** is read through `Settings.System.TIME_12_24`, as `SundownLineTextTest` already
   does. That this reaches `DateFormat.is24HourFormat` in a Compose test is assumed from that precedent.
+
+## Amendment 1 (RECORD -680), applied
+
+Written 2026-10-07 (UTC). This section supersedes stops 1 to 9 above where it says so. The text above is left as it was
+written.
+
+**origin/main merged in.** origin/main is at `bc85fd29`, which includes motion Part 2. It is merged into this branch
+(`9cd05528`) with no conflicts. Not compiled.
+
+**The owner's answers, verbatim:**
+
+1. Turn bands: "As proposed (Recommended)". No change.
+2. Heading: "Move it, labelled (Recommended)". No change.
+3. Decimal coordinates: "Shorter decimals, no labels (Recommended)". **Built.**
+4. Labels: "'Facing' and 'Alt' (Recommended)". No change.
+5. Avg speed: "Moving speed (Recommended)". **Built.**
+6. Sheet order: "Keep -618's order (Recommended)". No change.
+
+The planner kept the fold's session-only state and accepted the 24-hour title mismatch until part D. The merge order
+(stop 5) is noted.
+
+### Shorter decimals
+
+`coordinatesStripText` (`ui/availability/AvailabilityPureFunctions.kt`) now writes the pair as "45.3262, -122.6340",
+where it wrote "Lat. 45.3262 Long. -122.6340".
+
+- The strip and the display both read this one function, so both change. The tap to switch format is unchanged.
+- The pair is formatted in `Locale.US`, so a phone set to a comma-decimal language cannot print "45,3262, -122,6340".
+  Before, it used the phone's locale. That is a coder's choice, and it is new.
+- Estimated fit: the pair is about 115 dp. The full strip line "Facing 315° NW · Alt 9843 ft · 45.5200, -122.6800"
+  is about 316 dp, inside the strip's 326 and the display row's 344 (Noto Sans estimate, as above).
+- New tests:
+  - 360 dp portrait: the display's decimal pair fits whole beside the longest lines, and a second tap switches back to
+    MGRS.
+  - 360 dp portrait: the strip's decimal pair fits whole beside its labels.
+  - The landscape test now checks MGRS and then decimal, after a real touch switches the format.
+
+### Moving speed
+
+New `domain/TrackMovingSpeed.kt` holds `trackMovingSpeedMetersPerSecond`. It returns `movingPace(points)` (the
+walk-back estimate's own figure), except that it returns `null` when that pace is `PaceSource.DEFAULT`, meaning under 5
+minutes of moving time. The estimate assumes 2 mph in that case. A record must not show an assumed pace as measured
+(CLAUDE.md), so the sheet shows "—" there.
+
+**That null case is the coder's call, for the planner.** The alternative is to show the estimate's default.
+
+The tile is labelled "Moving speed"; it was "Avg speed".
+
+- **Unit-tested with a long stop** (`TrackMovingSpeedTest`): 1112 m in 10 min, an hour stopped, then 1112 m in 10 min.
+  The moving speed reads 1.853 m/s. Over the whole time the walk averages 0.463 m/s.
+- `TrackSheetTilesTest` covers the same case at sheet level: "4.1 mph" where distance over time would give "1.0 mph".
+  It also covers the dash under 5 minutes of moving time.
+
+### Tests whose assertions changed in this amendment
+
+- `AvailabilityScreenMapIconStackTest`:
+  - "Lat. 45.5152 Long. -122.6784" becomes "45.5152, -122.6784" (7 places, one of them in an already-`@Ignore`d test,
+    whose ignore is untouched).
+  - The no-fix test's check that no "Lat. " text appears became a check that no decimal pair appears, matched by
+    pattern. Otherwise the old check could no longer fail.
+- `NavigationHudReadoutTest`: the decimal pair, in the new format.
+- `RecordDetailsSheetTest`: T1's speed is now "Moving speed" "1.4 mph". The 40-minute interval is under the 0.5 m/s
+  floor and drops out. It was "Avg speed" "1.2 mph".
+- `TrackSheetDataTest`: the hill walk's points are now a minute apart, so it has measured moving time. Time "11 min",
+  "Moving speed" "4.1 mph". Before, Time was "55 min" and "Avg speed" was "0.8 mph".
+- `TrackSheetTilesTest`, `GpxImportRecordsTest`, `MapChromeOverMapTest`: the label "Avg speed" becomes "Moving speed".
+  The figures in `TrackSheetTilesTest` are unchanged, since every interval there moves.
+- `SpeedFormatTest`: doc comment only.
+
+Revert checks to add at the build:
+
+- `trackMovingSpeedMetersPerSecond` returning `movingPace(points).speedMetersPerSecond` unconditionally: the
+  under-5-minutes tests expect `null` and "—".
+- The tile reading `stats.averageSpeedMetersPerSecond` again: the long-stop tile test expects "4.1 mph".
+- `coordinatesStripText` writing "Lat." again: every decimal assertion fails.
+
+Still unverified: everything above. Nothing is compiled or run.

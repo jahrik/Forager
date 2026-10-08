@@ -546,7 +546,7 @@ class NavigationHudReadoutTest {
         // Dispatch 2026-09-28-549: under metric the elevation reads exactly as before.
         assertEquals("50 m", readout(unit = DistanceUnit.KILOMETERS).elevationText)
         assertEquals("Elevation unavailable", readout(liveFix = portland, unit = DistanceUnit.KILOMETERS).elevationText)
-        assertEquals("Lat. 45.5152 Long. -122.6784", readout(liveFix = portland, showDecimalDegrees = true).coordinatesText)
+        assertEquals("45.5152, -122.6784", readout(liveFix = portland, showDecimalDegrees = true).coordinatesText)
     }
 
     // ── Dispatch 2026-09-28-677 (data part B): words, kinds and labels ──────────────────────────

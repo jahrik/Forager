@@ -235,7 +235,7 @@ class RecordDetailsSheetTest {
     }
 
     // Dispatch 2026-09-28-677 changed this: Distance and Duration were fields; they are tiles now, Duration as "Time" in data
-    // part A's words, with Climb, Descent and Avg speed beside them; Points is in the Details fold.
+    // part A's words, with Climb, Descent and Moving speed beside them; Points is in the Details fold.
     private fun assertTrackT1Content() {
         field("started").assertTextEquals("Started", stamp(TRACK_T1.startedAtEpochMillis))
         field("ended").assertTextEquals("Ended", stamp(TRACK_T1.endedAtEpochMillis!!))
@@ -244,8 +244,10 @@ class RecordDetailsSheetTest {
         // No point carries a height.
         tile("Climb").assertTextEquals("Climb", "Not recorded")
         tile("Descent").assertTextEquals("Descent", "Not recorded")
-        // 2223.9 m over 4200 s = 0.5295 m/s = 1.18 mph.
-        tile("Avg speed").assertTextEquals("Avg speed", "1.2 mph")
+        // Amendment 1 (RECORD -680): the moving speed. The first interval is 1111.95 m in 30 min (0.618 m/s, moving); the second
+        // 1111.95 m in 40 min (0.463 m/s) is under the 0.5 m/s floor and drops out. 30 min of moving time is past the 5 min bar:
+        // 0.618 m/s = 1.38 mph.
+        tile("Moving speed").assertTextEquals("Moving speed", "1.4 mph")
         composeRule.onNodeWithTag("entry-height-profile-line").assertTextEquals("No height profile: the phone recorded too few heights on this walk.")
         composeRule.onNodeWithTag(NOTE).assertTextEquals("12 more not shown (network fixes)")
         openDetailsFold()

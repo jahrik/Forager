@@ -47,9 +47,10 @@ import org.robolectric.shadows.ShadowDialog
  * Journal, Records, the Tracks chip, a real touch on the track's row. The fold is opened and closed by real touches across
  * its header (CLAUDE.md: a semantic click asserts wiring, not routing).
  *
- * The walk: twelve points 0.001° of latitude apart (11 x 111.2 m = 1223 m, 0.76 mi), five minutes apart (55 min), every one
+ * The walk: twelve points 0.001° of latitude apart (11 x 111.2 m = 1223 m, 0.76 mi), a minute apart (11 min), every one
  * with a height: 100 m rising by 10 m to 150 m, then down by 10, 10, 10, 10, 5 and 5 m to 100 m. Every step is past the 4 m
- * hysteresis, so the climb and the descent are 50 m each, 164 ft. 1223 m in 3300 s is 0.371 m/s, 0.8 mph.
+ * hysteresis, so the climb and the descent are 50 m each, 164 ft. Every interval moves (1.85 m/s, past the 0.5 m/s floor),
+ * 11 min of moving time is past the 5 min bar, and 1223 m in 660 s is 1.853 m/s, 4.1 mph.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp")
@@ -141,15 +142,15 @@ class TrackSheetDataTest {
     private fun foldOpen(): Boolean = exists(recordDetailsFieldTag(FIELD_POINTS))
 
     @Test
-    fun `a walk's sheet shows Distance, Time, Climb, Descent and Avg speed as labelled tiles`() {
+    fun `a walk's sheet shows Distance, Time, Climb, Descent and Moving speed as labelled tiles`() {
         setScreen()
         openSheet(HILL)
 
         tile("Distance").assertTextEquals("Distance", "0.8 mi")
-        tile("Time").assertTextEquals("Time", "55 min")
+        tile("Time").assertTextEquals("Time", "11 min")
         tile("Climb").assertTextEquals("Climb", "164 ft")
         tile("Descent").assertTextEquals("Descent", "164 ft")
-        tile("Avg speed").assertTextEquals("Avg speed", "0.8 mph")
+        tile("Moving speed").assertTextEquals("Moving speed", "4.1 mph")
         assertFalse("the old Distance and Duration fields are gone", exists(recordDetailsFieldTag(FIELD_DISTANCE)) || exists(recordDetailsFieldTag(FIELD_DURATION)))
     }
 
@@ -246,9 +247,9 @@ private val HILL = Track(
     id = "hill",
     name = "Hill loop",
     startedAtEpochMillis = NOW - 2 * 86_400_000L,
-    endedAtEpochMillis = NOW - 2 * 86_400_000L + 55 * MINUTE,
+    endedAtEpochMillis = NOW - 2 * 86_400_000L + 11 * MINUTE,
     points = HILL_ALTITUDES.mapIndexed { i, altitude ->
-        TrackPoint(lat = 45.0 + i * 0.001, lng = -122.0, altitude = altitude, accuracyMeters = 5f, timestampEpochMillis = NOW - 2 * 86_400_000L + i * 5 * MINUTE)
+        TrackPoint(lat = 45.0 + i * 0.001, lng = -122.0, altitude = altitude, accuracyMeters = 5f, timestampEpochMillis = NOW - 2 * 86_400_000L + i * MINUTE)
     },
 )
 

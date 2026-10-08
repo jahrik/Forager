@@ -3,7 +3,7 @@ package com.zynergylabs.forager.app.domain.model
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** The track sheet's Avg speed figure (dispatch 2026-09-28-677). Literals worked by hand. */
+/** The track sheet's Moving speed figure (dispatch 2026-09-28-677). Literals worked by hand. */
 class SpeedFormatTest {
 
     @Test
