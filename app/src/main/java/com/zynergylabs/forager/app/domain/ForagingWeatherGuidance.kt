@@ -42,7 +42,7 @@ data class ForagingSelection(
          * does file lichens under Fungi, but the general pattern this app states — fleshy fungi
          * fruiting some weeks after sustained rain — is about fruiting bodies, and reusing it for
          * lichenized fungi would present it as a claim about organisms it was not written about.
-         * Forager has no sourced guidance for lichens, so it says so; see
+         * Forager has no sourced guidance for lichens, so it shows none; see
          * [ForagingWeatherGuidance].
          */
         fun forChip(filter: TaxonFilter): ForagingSelection = when (filter) {
@@ -55,29 +55,39 @@ data class ForagingSelection(
 /**
  * Interpretation text for a selection: a general pattern, stated as a general pattern.
  *
- * Three rules this file exists to enforce, all of them load-bearing:
+ * Two rules this file exists to enforce, both load-bearing:
  *
  * 1. **Nothing here is species-specific.** iNaturalist returns thousands of species this app has
  *    no sourced information about, and writing confident fruiting triggers for an arbitrary one
- *    would be fabricating expertise. Guidance is keyed to broad groups only.
+ *    would be fabricating expertise. Guidance is keyed to broad groups only, and a species gets
+ *    its group's text unchanged.
  * 2. **Groups do not share text.** Fungi and plants have genuinely different relationships to
- *    rainfall, and a group with nothing useful to say gets told so rather than padded.
- * 3. **A specific taxon always gets [Guidance.speciesDataCaveat].** That sentence is what stops a
- *    general pattern being read as a claim about the species the user picked, and it is the seam a
- *    later data-derived per-species feature fills in.
+ *    rainfall, and a group this file has written nothing for gets no guidance at all rather than
+ *    another group's.
+ *
+ * What was removed, and why (dispatch 2026-09-28-695, the owner on a phone screenshot of Trip
+ * Windows for Fly Agaric: "remove the bottom text about "No weather guidance for this section" and
+ * the text below it. That seems like a placeholder and users might get confused"; then, shown
+ * that the text was deliberate, "Both, everywhere"). Two texts used to sit here: a "No weather
+ * guidance for this selection" block for a selection with no written group, and an italic "No
+ * species-specific data is available for ..." sentence under every specific taxon. Both were
+ * honest, and both read to the owner as placeholders. With no group there is now no heading and
+ * no paragraph, and Trip Windows ends at its measurements; a species shows its group's pattern
+ * with no sentence under it. Rule 1 is what still keeps that pattern from being a claim about the
+ * species: the fungi text itself says the lag "varies with species" and that Forager has measured
+ * nothing.
  */
 object ForagingWeatherGuidance {
 
     /**
      * Guidance to show for a selection.
      *
-     * @param paragraphs the general pattern, or an explicit statement that there isn't one.
-     * @param speciesDataCaveat non-null exactly when a specific taxon is selected.
+     * @param paragraphs the general pattern for the selection's group, or, for plants, the plain
+     *   statement that there is no weather pattern to offer.
      */
     data class Guidance(
         val heading: String,
         val paragraphs: List<String>,
-        val speciesDataCaveat: String?,
     )
 
     /** iNaturalist's iconic taxon name for fungi, as it appears in `iconic_taxon_name`. */
@@ -86,18 +96,17 @@ object ForagingWeatherGuidance {
     /** iNaturalist's iconic taxon name for plants. */
     private const val PLANTAE = "Plantae"
 
-    /** [unitSystem] is the Units setting, which the soil temperature band follows (dispatch 2026-09-28-549). */
-    fun forSelection(selection: ForagingSelection, unitSystem: UnitSystem): Guidance {
-        val group = groupGuidance(selection.iconicTaxonName, unitSystem)
-        return when (val filter = selection.filter) {
-            is TaxonFilter.IconicCategory -> group
-            is TaxonFilter.SpecificTaxon -> group.copy(
-                speciesDataCaveat = speciesCaveat(filter.label, selection.iconicTaxonName),
-            )
-        }
-    }
+    /**
+     * The guidance for [selection]'s group, the same for a category and for a species within it, or
+     * null when no guidance is written for that group (or the group is not known), in which case
+     * nothing is shown.
+     *
+     * [unitSystem] is the Units setting, which the soil temperature band follows (dispatch 2026-09-28-549).
+     */
+    fun forSelection(selection: ForagingSelection, unitSystem: UnitSystem): Guidance? =
+        groupGuidance(selection.iconicTaxonName, unitSystem)
 
-    private fun groupGuidance(iconicTaxonName: String?, unitSystem: UnitSystem): Guidance = when (iconicTaxonName) {
+    private fun groupGuidance(iconicTaxonName: String?, unitSystem: UnitSystem): Guidance? = when (iconicTaxonName) {
         FUNGI -> Guidance(
             heading = "Rain and fungi: the general pattern",
             paragraphs = listOf(
@@ -121,7 +130,6 @@ object ForagingWeatherGuidance {
                     "deliberately does not rank the days for you, because it has nothing to rank " +
                     "them with.",
             ),
-            speciesDataCaveat = null,
         )
 
         PLANTAE -> Guidance(
@@ -136,35 +144,10 @@ object ForagingWeatherGuidance {
                     "attached. The month filter on the ranked list is the seasonality signal " +
                     "Forager does have, and it is built on real observation counts.",
             ),
-            speciesDataCaveat = null,
         )
 
-        else -> Guidance(
-            heading = "No weather guidance for this selection",
-            paragraphs = listOf(
-                "Forager only has a general weather pattern written for fungi, and an explicit " +
-                    "\"no pattern\" for plants. It has nothing sourced for this selection, so it " +
-                    "is not going to offer an interpretation of the measurements below.",
-            ),
-            speciesDataCaveat = null,
-        )
-    }
-
-    private fun speciesCaveat(label: String, iconicTaxonName: String?): String {
-        val group = when (iconicTaxonName) {
-            FUNGI -> "fungi in general"
-            PLANTAE -> "plants in general"
-            else -> null
-        }
-        return if (group == null) {
-            "No species-specific data is available for $label. Forager has no per-species " +
-                "fruiting or growth data at all, and nothing above is a statement about $label."
-        } else {
-            "No species-specific data is available for $label. Anything above is the general " +
-                "pattern for $group — it is not a claim about $label. Forager has no per-species " +
-                "fruiting or growth data, and iNaturalist returns thousands of species this app " +
-                "has no sourced information for."
-        }
+        // No heading and no paragraph for any other group: see this object's doc comment.
+        else -> null
     }
 
     /**

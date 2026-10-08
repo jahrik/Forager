@@ -19,9 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.domain.ForagingSelection
 import com.zynergylabs.forager.app.domain.ForagingWeatherGuidance
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatRainfall
@@ -67,8 +65,12 @@ internal fun TripWindowsCard(uiState: AvailabilityUiState) {
                 uiState.tripWindowReport != null -> TripWindowReportContent(uiState.tripWindowReport, uiState.unitSystem)
             }
 
-            HorizontalDivider()
-            ForagingWeatherGuidanceSection(uiState.foragingSelection, uiState.unitSystem)
+            // No guidance written for the selection's group means no section and no divider above
+            // it: the card ends at its measurements (dispatch 2026-09-28-695).
+            ForagingWeatherGuidance.forSelection(uiState.foragingSelection, uiState.unitSystem)?.let { guidance ->
+                HorizontalDivider()
+                ForagingWeatherGuidanceSection(guidance)
+            }
         }
     }
 }
@@ -133,8 +135,7 @@ private fun TripWindowRow(window: TripWindow, unitSystem: UnitSystem) {
  * [ForagingWeatherGuidance]'s doc comment for the rules this enforces.
  */
 @Composable
-private fun ForagingWeatherGuidanceSection(selection: ForagingSelection, unitSystem: UnitSystem) {
-    val guidance = ForagingWeatherGuidance.forSelection(selection, unitSystem)
+private fun ForagingWeatherGuidanceSection(guidance: ForagingWeatherGuidance.Guidance) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         // labelMedium + a muted color, not titleSmall/labelLarge: Material3 sizes titleSmall and
         // labelLarge identically (14sp/500), so this heading and the card's own "Trip Windows"
@@ -147,9 +148,6 @@ private fun ForagingWeatherGuidanceSection(selection: ForagingSelection, unitSys
         )
         guidance.paragraphs.forEach { paragraph ->
             Text(paragraph, style = MaterialTheme.typography.bodySmall)
-        }
-        guidance.speciesDataCaveat?.let { caveat ->
-            Text(caveat, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
         }
     }
 }
