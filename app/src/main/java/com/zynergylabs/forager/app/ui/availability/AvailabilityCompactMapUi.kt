@@ -91,11 +91,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CompassProvider
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -180,8 +182,16 @@ import kotlin.reflect.KProperty
  * the memory under the bounds then in force (the tab change also exited fullscreen), so a position
  * chosen low in fullscreen comes back above the nav, and re-entering fullscreen glides it down
  * again — the same behaviour a fullscreen exit already has, now also across a tab change.
+ *
+ * **Side and height persist across restarts since RECORD -711** (the owner: "have the map icon bar persist
+ * between restarts so left handed users don't need to change it every time they open the app", then
+ * "Side and height (Recommended)"); the minimised flags stay session-only. [placement] reads the four
+ * stored values out, [applyPlacement] puts a stored set back once at launch, and [settledCount] counts
+ * the drags that have ended, which is what `AvailabilityScreen` stores on. Until [placementApplied] is
+ * true the cluster is not drawn at all (`MapIconCluster` returns early), so a restored left side is never
+ * preceded by a frame on the right. A holder made with nothing to wait for starts applied.
  */
-internal class MapIconClusterPositionState {
+internal class MapIconClusterPositionState(awaitingPlacement: Boolean = false) {
     var userChosenOffsetPx by mutableStateOf(0f)
     val displayedOffsetPx = Animatable(0f)
     var isOnLeftSide by mutableStateOf(false)
@@ -197,10 +207,65 @@ internal class MapIconClusterPositionState {
     var landscapeUserChosenOffsetPx by mutableStateOf(0f)
     val landscapeDisplayedOffsetPx = Animatable(0f)
     var landscapeIsMinimized by mutableStateOf(false)
+
+    /** False until a stored placement has been applied; the cluster is not drawn before. See the class doc. */
+    var placementApplied by mutableStateOf(!awaitingPlacement)
+        private set
+
+    /** Increments each time a drag of the cluster ends (or is cancelled after moving it): the moment its side and height are stored. */
+    var settledCount by mutableIntStateOf(0)
+        private set
+
+    fun onDragSettled() {
+        settledCount++
+    }
+
+    /**
+     * Set by [applyPlacement] for each orientation, cleared by the cluster once it has clamped that
+     * orientation's restored height against measured bounds: the first fit of a restored height is a
+     * snap, not the glide a bounds change gets, so a height stored in a taller window does not visibly
+     * slide in from beyond the current one's limits.
+     */
+    var snapRestoredPortrait = false
+    var snapRestoredLandscape = false
+
+    /** The side and height of both orientations as stored values, the heights in dp. */
+    fun placement(density: Density): MapIconClusterPlacement = with(density) {
+        MapIconClusterPlacement(
+            portraitOnLeft = isOnLeftSide,
+            portraitOffsetDp = userChosenOffsetPx.toDp().value,
+            landscapeOnPortSide = landscapeOnPortSide,
+            landscapeOffsetDp = landscapeUserChosenOffsetPx.toDp().value,
+        )
+    }
+
+    /**
+     * Puts a stored [placement] back, once: the sides as stored, the heights as the user-chosen memory and
+     * as what is drawn. The heights are not clamped here, because no bounds are measured yet; the cluster
+     * clamps what it draws against the window it is in (`MapIconCluster`'s bounds effect), with a snap the
+     * first time ([snapRestoredPortrait]). The memory keeps the stored height, as it keeps a drag's height
+     * through a fullscreen change, so a larger window later gets it back. Does nothing once applied.
+     */
+    suspend fun applyPlacement(placement: MapIconClusterPlacement, density: Density) {
+        if (placementApplied) return
+        val portraitPx = with(density) { placement.portraitOffsetDp.dp.toPx() }
+        val landscapePx = with(density) { placement.landscapeOffsetDp.dp.toPx() }
+        isOnLeftSide = placement.portraitOnLeft
+        userChosenOffsetPx = portraitPx
+        displayedOffsetPx.snapTo(portraitPx)
+        landscapeOnPortSide = placement.landscapeOnPortSide
+        landscapeUserChosenOffsetPx = landscapePx
+        landscapeDisplayedOffsetPx.snapTo(landscapePx)
+        snapRestoredPortrait = true
+        snapRestoredLandscape = true
+        placementApplied = true
+    }
 }
 
+/** [awaitingPlacement]: `true` only for a host that will apply a stored placement (`AvailabilityScreen`); see [MapIconClusterPositionState]. */
 @Composable
-internal fun rememberMapIconClusterPositionState(): MapIconClusterPositionState = remember { MapIconClusterPositionState() }
+internal fun rememberMapIconClusterPositionState(awaitingPlacement: Boolean = false): MapIconClusterPositionState =
+    remember { MapIconClusterPositionState(awaitingPlacement) }
 
 /**
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:

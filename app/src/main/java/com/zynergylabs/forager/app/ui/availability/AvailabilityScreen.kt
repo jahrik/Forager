@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
@@ -801,6 +802,11 @@ fun AvailabilityScreen(
      * ([AvailabilityViewModel.onMapModeSelected]). Defaulted, so no other caller changes.
      */
     onMapModeSelected: (MapMode) -> Unit = {},
+    /**
+     * RECORD -711: a drag of the Maps tab's icon cluster ended, so the ViewModel can store its side and
+     * height ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). Defaulted, so no other caller changes.
+     */
+    onMapIconClusterPlacementChanged: (MapIconClusterPlacement) -> Unit = {},
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //
@@ -939,7 +945,24 @@ fun AvailabilityScreen(
     }
     // The icon cluster's position, held here rather than in CompactMapTab so it survives leaving
     // and returning to the Map tab — see MapIconClusterPositionState's own doc comment.
-    val mapIconClusterPosition = rememberMapIconClusterPositionState()
+    //
+    // RECORD -711: its side and height also persist across restarts (the owner: "have the map icon bar
+    // persist between restarts so left handed users don't need to change it every time they open the
+    // app", "Side and height (Recommended)"). The holder waits for uiState.mapIconClusterPlacement and is
+    // not drawn until it has applied it (first effect), so there is no frame on the default side. Every
+    // drag that ends is stored (second effect), keyed on the holder's own count of ended drags rather
+    // than on the position itself: a write per drag, not per frame of one, and never a write of the
+    // default before the read lands (the trap isMapFullscreen's comment above describes).
+    val mapIconClusterPosition = rememberMapIconClusterPositionState(awaitingPlacement = true)
+    val mapIconClusterDensity = LocalDensity.current
+    LaunchedEffect(uiState.mapIconClusterPlacement) {
+        uiState.mapIconClusterPlacement?.let { mapIconClusterPosition.applyPlacement(it, mapIconClusterDensity) }
+    }
+    LaunchedEffect(mapIconClusterPosition.settledCount) {
+        if (mapIconClusterPosition.settledCount > 0) {
+            onMapIconClusterPlacementChanged(mapIconClusterPosition.placement(mapIconClusterDensity))
+        }
+    }
     // Part 1 layout fixes, item 4 (planner message 2026-09-28-98, under CLAUDE.md's UX defaults): the
     // camera the user left on the Maps tab, held here for the same reason, since the map and its camera
     // leave composition with the tab. See MapCameraMemory. Session only.

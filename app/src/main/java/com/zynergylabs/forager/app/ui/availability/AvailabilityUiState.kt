@@ -24,6 +24,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.time.LocalDate
@@ -221,6 +222,19 @@ data class AvailabilityUiState(
      * after its removal), is logged and lands here as a real mode, so it can never hold the map blank.
      */
     val mapMode: MapMode? = null,
+    /**
+     * The Maps tab's icon cluster's side and height (RECORD -711), as stored: restored at start from
+     * [com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository] and kept in step with every
+     * drag that ends ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). `null` while the read is
+     * pending, and while it is `null` `AvailabilityScreen` does not draw the cluster, so a phone that left
+     * it on the left never shows a frame of it on the right. Every way the read ends (stored, nothing
+     * stored, failed and logged) lands a real placement here, so it cannot keep the cluster hidden.
+     *
+     * The default here is [MapIconClusterPlacement.DEFAULT], not `null`: the ViewModel starts its state
+     * with `null` explicitly (it has a read to wait for), while a host with no ViewModel (the screen tests
+     * that build this state directly) has nothing to wait for and shows the cluster where it always opened.
+     */
+    val mapIconClusterPlacement: MapIconClusterPlacement? = MapIconClusterPlacement.DEFAULT,
 
     /**
      * Settings' "Automatically Save Location to Photos" checkbox — see
