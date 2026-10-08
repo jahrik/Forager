@@ -145,7 +145,10 @@ class MapReturnCoverTest {
     fun `on hand-over the cover fades out over several frames, then is gone and released`() {
         setCover()
         composeRule.mainClock.autoAdvance = false
-        handedOver.value = true
+        composeRule.runOnUiThread {
+            handedOver.value = true
+            androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        }
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.advanceTimeByFrame()
         assertTrue("still drawn a moment after hand-over (the fade)", coverShown())
@@ -160,7 +163,10 @@ class MapReturnCoverTest {
         Settings.Global.putFloat(resolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
         setCover()
         composeRule.mainClock.autoAdvance = false
-        handedOver.value = true
+        composeRule.runOnUiThread {
+            handedOver.value = true
+            androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        }
         composeRule.mainClock.advanceTimeByFrame()
         assertTrue("gone on the first frame after hand-over", !coverShown())
         composeRule.mainClock.advanceTimeByFrame()
