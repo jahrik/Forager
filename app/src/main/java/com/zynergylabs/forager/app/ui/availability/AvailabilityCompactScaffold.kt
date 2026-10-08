@@ -163,6 +163,7 @@ import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.zynergylabs.forager.app.ui.motion.PressHighlight
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
 import com.zynergylabs.forager.app.ui.motion.TabCrossfade
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import androidx.compose.animation.core.VectorConverter
@@ -1452,6 +1453,8 @@ internal fun CompactMainScaffold(
                             // includes the keyboard) shrinks this Box already. Robolectric reports no
                             // keyboard, so this is device-only by construction.
                             val searchDropdownImeBottom = with(LocalDensity.current) { WindowInsets.ime.getBottom(this).toDp() }
+                            // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
+                            NoTouchTargetExpansion(active = !showSearchDropdown) {
                             androidx.compose.animation.AnimatedVisibility(
                                 visible = showSearchDropdown,
                                 enter = expandVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
@@ -1538,6 +1541,7 @@ internal fun CompactMainScaffold(
                                     // Over the Maps tab's map only; on the other tabs its Month menu stays solid.
                                     overMap = compactTab() == CompactTab.MAP,
                                 )
+                            }
                             }
                         }
                     }

@@ -145,6 +145,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.ui.draw.clipToBounds
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
 import com.zynergylabs.forager.app.ui.motion.MapPopUp
 import com.zynergylabs.forager.app.ui.motion.PopUpPivot
 import com.zynergylabs.forager.app.ui.motion.isOnScreen
@@ -916,6 +917,8 @@ internal fun CompactMapTab(
                 // reduced motion each only fades. A leaving strip takes no touch (item 5) and gives up its keep-out and its
                 // measured height at once, so nothing waits on it. It is still composed for the length of its exit, so for that
                 // moment it reads the heading at sensor rate beside the HUD (the paragraph above): bounded, and the S22's to judge.
+                // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
+                NoTouchTargetExpansion(active = isNavigating) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !isNavigating,
                     enter = navigationChromeEnter,
@@ -965,6 +968,7 @@ internal fun CompactMapTab(
                         sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
+                }
                 }
                 // Motion Part 2: the strip's measured height goes the moment it starts to leave, as it did when it left at once.
                 LaunchedEffect(isNavigating) { if (isNavigating) compassStripHeightPx = 0 }
@@ -1055,6 +1059,8 @@ internal fun CompactMapTab(
                 // because those still clear the strip while not navigating. Never touches mapSlot.
                 // Motion Part 2, item 3: slides down and in from under the search bar as the strip above slides out, and back up
                 // and out on stop (the strip's comment above). Leaving, it takes no touch and gives up its keep-out at once.
+                // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
+                NoTouchTargetExpansion(active = !isNavigating) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = isNavigating,
                     enter = navigationChromeEnter,
@@ -1101,6 +1107,7 @@ internal fun CompactMapTab(
                             .fillMaxWidth()
                             .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
                     )
+                }
                 }
 
                 // Dispatch 2026-09-28-430 (plan task T22): "Return to Route", while navigating once the

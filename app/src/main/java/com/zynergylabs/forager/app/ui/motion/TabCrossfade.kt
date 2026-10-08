@@ -108,6 +108,8 @@ fun <T> TabCrossfade(
             emptyArray<ProvidedValue<*>>()
         }
         CompositionLocalProvider(*inertProvided) {
+            // RECORD -691: no minimum touch target while it leaves (NoTouchTargetExpansion).
+            NoTouchTargetExpansion(active = leaving) {
             Box(
                 Modifier
                     .holdWhileLeaving(leaving)
@@ -117,6 +119,7 @@ fun <T> TabCrossfade(
                     // one that takes no touch. Only the marker that it is leaving stays.
                     .then(if (leaving) Modifier.clearAndSetSemantics { tabLeaving = true } else Modifier.semantics { tabLeaving = false }),
             ) { content(tab) }
+            }
         }
     }
 }
@@ -206,12 +209,15 @@ fun TabChromeFade(
     when {
         shown -> Box(Modifier.graphicsLayer { this.alpha = alpha }.semantics { tabChromeAlpha = currentAlpha }) { content() }
         // Leaving: no room, no touch, and no semantics but its fade (Amendment 2), so a screen reader finds the arriving bar alone.
-        state.currentState -> Box(
-            zeroRoom
-                .leavingTakesNoTouches(true)
-                .graphicsLayer { this.alpha = alpha }
-                .clearAndSetSemantics { tabChromeAlpha = currentAlpha },
-        ) { content() }
+        // RECORD -691: no minimum touch target while it leaves (NoTouchTargetExpansion).
+        state.currentState -> NoTouchTargetExpansion(active = true) {
+            Box(
+                zeroRoom
+                    .leavingTakesNoTouches(true)
+                    .graphicsLayer { this.alpha = alpha }
+                    .clearAndSetSemantics { tabChromeAlpha = currentAlpha },
+            ) { content() }
+        }
         else -> Unit
     }
 }
