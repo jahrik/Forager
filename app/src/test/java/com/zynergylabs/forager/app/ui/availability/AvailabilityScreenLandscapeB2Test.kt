@@ -158,16 +158,21 @@ class AvailabilityScreenLandscapeB2Test {
         val c = cluster()
         val r = root()
         val m = mapBounds()
-        val farEdgeClear = 8.dp
+        // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): the bar no longer stops 8 dp short of the
+        // centre; it reaches the compass strip's inner edge, and does not reach the opposite edge. It stopped short of the
+        // centre before -729.
+        val strip = tagBounds(B2_STRIP_TAG)
         when (punchHole) {
             ScreenEdge.Left -> {
                 assertEquals("the search bar is on the punch-hole edge, the left", r.left.value, bar.left.value, 0.5f)
-                assertTrue("the search bar $bar stays clear of the far half of the map $m", bar.right <= (m.left + m.right) / 2 - farEdgeClear + 0.5.dp)
+                assertEquals("the search bar $bar ends at the strip's inner edge $strip", strip.left.value, bar.right.value, 0.5f)
+                assertTrue("the search bar $bar does not reach the far edge ${m.right}", bar.right < m.right)
                 assertTrue("the cluster $c defaults to the punch-hole half, the left", c.centreXv() < r.centreXv())
             }
             ScreenEdge.Right -> {
                 assertEquals("the search bar is on the punch-hole edge, the right", r.right.value, bar.right.value, 0.5f)
-                assertTrue("the search bar $bar stays clear of the far half of the map $m", bar.left >= (m.left + m.right) / 2 + farEdgeClear - 0.5.dp)
+                assertEquals("the search bar $bar starts at the strip's inner edge $strip", strip.right.value, bar.left.value, 0.5f)
+                assertTrue("the search bar $bar does not reach the far edge ${m.left}", bar.left > m.left)
                 assertTrue("the cluster $c defaults to the punch-hole half, the right", c.centreXv() > r.centreXv())
             }
             else -> throw AssertionError("a landscape window's punch-hole edge is left or right, not $punchHole")
@@ -188,40 +193,33 @@ class AvailabilityScreenLandscapeB2Test {
     private fun cluster(): DpRect = tagBounds(MAP_ICON_CLUSTER_TAG)
     private fun railExists(): Boolean = composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes().isNotEmpty()
 
-    /** The search bar's expected width: min(384dp, distance from the punch-hole-side controls edge to the map's centre - 8dp). */
-    private fun expectedSearchWidth(punchHoleControlsEdge: Dp): Float {
-        val m = mapBounds()
-        val centre = (m.left + m.right) / 2
-        val distance = if (punchHoleControlsEdge <= centre) centre - punchHoleControlsEdge else punchHoleControlsEdge - centre
-        return minOf(384f, (distance - 8.dp).value)
-    }
-
     // ── S2: search bar ──
 
+    // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): S2's "min(384, centre distance - 8)", capped short
+    // of the centre line, is replaced: not navigating, the bar runs from the punch-hole edge to the compass strip's inner edge,
+    // the strip as wide as its readouts need (LandscapeBarStripJoinTest measures that, with native graphics).
     @Test
-    fun `S2 at ROTATION_90 the search bar sits at the top on the punch-hole side, left, capped short of the centre line`() {
+    fun `S2 at ROTATION_90 the search bar sits at the top on the punch-hole side, left, up to the strip's inner edge`() {
         setScreen(Surface.ROTATION_90)
         val bar = searchBar()
         val m = mapBounds()
-        val centre = (m.left + m.right) / 2
+        val strip = tagBounds(B2_STRIP_TAG)
 
         assertEquals("the bar starts at the punch-hole-side (left) edge", root().left.value, bar.left.value, 0.5f)
         assertEquals("the bar is at the top of the map", m.top.value, bar.top.value, 0.5f)
-        assertEquals("the bar's width is min(384, centre distance - 8)", expectedSearchWidth(root().left), bar.width.value, 0.5f)
-        assertTrue("the bar ends before the centre line: right ${bar.right} vs centre $centre", bar.right <= centre - 8.dp + 0.5.dp)
+        assertEquals("the bar ends at the strip's inner edge: bar $bar, strip $strip", strip.left.value, bar.right.value, 0.5f)
     }
 
     @Test
-    fun `S2 at ROTATION_270 the search bar sits at the top on the punch-hole side, right, capped short of the centre line`() {
+    fun `S2 at ROTATION_270 the search bar sits at the top on the punch-hole side, right, up to the strip's inner edge`() {
         setScreen(Surface.ROTATION_270)
         val bar = searchBar()
         val m = mapBounds()
-        val centre = (m.left + m.right) / 2
+        val strip = tagBounds(B2_STRIP_TAG)
 
         assertEquals("the bar ends at the punch-hole-side (right) edge", root().right.value, bar.right.value, 0.5f)
         assertEquals("the bar is at the top of the map", m.top.value, bar.top.value, 0.5f)
-        assertEquals("the bar's width is min(384, centre distance - 8)", expectedSearchWidth(root().right), bar.width.value, 0.5f)
-        assertTrue("the bar starts after the centre line: left ${bar.left} vs centre $centre", bar.left >= centre + 8.dp - 0.5.dp)
+        assertEquals("the bar starts at the strip's inner edge: bar $bar, strip $strip", strip.right.value, bar.left.value, 0.5f)
     }
 
     @Test

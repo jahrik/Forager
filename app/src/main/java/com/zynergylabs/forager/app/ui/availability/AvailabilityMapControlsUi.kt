@@ -572,7 +572,7 @@ private fun CompassElevationStripContent(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(18.dp)
+                            .size(STRIP_NEEDLE_SIZE)
                             .rotate((heading as? TrueHeadingReading.Available)?.degrees ?: 0f),
                     )
                 }
@@ -847,6 +847,58 @@ private fun CompassElevationStripContent(
         }
     }
 }
+
+/**
+ * RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): what the landscape strip needs to show its readout
+ * line whole, in pixels, measured the way the strip and readoutsFitBeside measure it: the row's padding (Spacing.sm each side),
+ * the needle's 18 dp, the three-dot button's square when there is one, and the readouts without labels (heading, altitude,
+ * coordinates, each after its separator). The heading is measured as its widest form ("000°" and the widest compass point,
+ * tabular figures), not its current one, so the join does not move as the phone turns. With no fix, the no-fix line. Read by
+ * [landscapeStripFit]; the coordinates-only figure is the narrowest the strip may be (coordinates never drop).
+ */
+@Composable
+internal fun rememberLandscapeStripNeed(
+    elevationMeters: Double?,
+    unitSystem: UnitSystem,
+    location: LatLng?,
+    showDecimalDegrees: Boolean,
+    hasQuickSettings: Boolean,
+    /** The heading's status words while it has no value ("Compass unavailable"), else null: [stripHeadingStatusText]. */
+    headingStatus: String? = null,
+): LandscapeStripNeed {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val readoutStyle = stripReadoutStyle().copy(fontFeatureSettings = "tnum")
+    val labelStyle = stripReadoutStyle()
+    fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    return with(density) {
+        val chrome = 2 * Spacing.sm.roundToPx() + STRIP_NEEDLE_SIZE.roundToPx() + if (hasQuickSettings) QUICK_SETTINGS_TAP_TARGET.roundToPx() else 0
+        if (location == null) {
+            val noFix = chrome + widthOf(NO_FIX_MESSAGE, labelStyle)
+            LandscapeStripNeed(noFix, noFix)
+        } else {
+            val coordinates = widthOf(coordinatesStripText(location, showDecimalDegrees), readoutStyle)
+            val separator = widthOf("·", labelStyle) + 2 * Spacing.sm.roundToPx()
+            val heading = maxOf(
+                (0 until 8).maxOf { widthOf("000° ${cardinalDirection(it * 45f)}", readoutStyle) },
+                headingStatus?.let { widthOf(it, readoutStyle) } ?: 0,
+            )
+            val elevation = widthOf(elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT, readoutStyle)
+            LandscapeStripNeed(fullPx = chrome + coordinates + 2 * separator + heading + elevation, coordinatesOnlyPx = chrome + coordinates)
+        }
+    }
+}
+
+/**
+ * RECORD -732: what the strip's heading says while it has no value (no sensor, unreliable, waiting for a fix), else null. The
+ * landscape strip's width allows for it, so a status is not dropped where a value would fit. Changes only when the kind of
+ * reading changes, so a caller reading it through derivedStateOf does not recompose at sensor rate.
+ */
+internal fun stripHeadingStatusText(heading: TrueHeadingReading): String? =
+    if (heading is TrueHeadingReading.Available) null else stripHeadingText(heading)
+
+/** The strip's compass needle (RECORD -732 measures the strip's need with it). */
+internal val STRIP_NEEDLE_SIZE = 18.dp
 
 /** The strip's back-by line (dispatch 2026-09-28-645). */
 internal const val STRIP_BACK_BY_LINE_TAG = "strip-back-by-line"

@@ -305,6 +305,37 @@ internal fun SearchEntryBar(
 }
 
 /**
+ * RECORD -732: the landscape search bar's floor, in pixels: never narrower than its field and Clear need. Measured as the bar
+ * lays them out: the search icon's start padding (Spacing.lg) and 18 dp, the field's own content padding (16 dp each side,
+ * OutlinedTextFieldDefaults), its resting text (the search summary, in the field's text style, bodyLarge) whole, and, while a
+ * search shows, Clear (its word and Spacing.md each side, at least Material's 58 dp button width, then Spacing.xs). The strip
+ * narrows before the bar goes under this (landscapeStripFit), down to its coordinates.
+ */
+@Composable
+internal fun rememberLandscapeBarFloorPx(uiState: AvailabilityUiState, distanceUnit: DistanceUnit): Int {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val fieldStyle = MaterialTheme.typography.bodyLarge
+    val clearStyle = MaterialTheme.typography.labelLarge
+    fun widthOf(text: String, style: androidx.compose.ui.text.TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    return with(density) {
+        val field = Spacing.lg.roundToPx() + 18.dp.roundToPx() + 2 * LANDSCAPE_BAR_FIELD_SIDE_PADDING.roundToPx() + widthOf(activeSearchSummary(uiState, distanceUnit), fieldStyle)
+        val clear = if (uiState.region != null) {
+            maxOf(LANDSCAPE_BAR_CLEAR_MIN_WIDTH.roundToPx(), widthOf("Clear", clearStyle) + 2 * Spacing.md.roundToPx()) + Spacing.xs.roundToPx()
+        } else {
+            0
+        }
+        field + clear
+    }
+}
+
+/** OutlinedTextFieldDefaults' horizontal content padding, which the bar's field keeps (it sets only top and bottom). */
+private val LANDSCAPE_BAR_FIELD_SIDE_PADDING = 16.dp
+
+/** Material3's minimum button width (ButtonDefaults.MinWidth), which Clear's TextButton keeps. */
+private val LANDSCAPE_BAR_CLEAR_MIN_WIDTH = 58.dp
+
+/**
  * Map/navigation redesign dispatch C: the compact window's entire search surface, floating over
  * whatever tab content is currently showing (usually the map) from where quick species search used
  * to sit — the quick panel is gone rather than kept alongside this one. Started as just item 1's "advanced search" (location/radius/month); a

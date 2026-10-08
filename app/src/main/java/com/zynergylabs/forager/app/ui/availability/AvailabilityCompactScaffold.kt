@@ -97,6 +97,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBars
@@ -431,10 +432,12 @@ internal fun CompactMainScaffold(
         // has things follow the strip's measured bottom in portrait. Equal heights mean the bar's bottom is the strip's too.
         // 0 until the strip is measured, and while navigating, where the bar keeps searchBarHeight. Portrait never sets it.
         var landscapeStripHeight by remember { mutableStateOf(0.dp) }
+        // RECORD -732: the strip's measured width there; the bar takes the rest of the room. 0 until measured.
+        var landscapeStripWidth by remember { mutableStateOf(0.dp) }
         val barMeetsStrip = isLandscapeWindow && compactTab() == CompactTab.MAP && !isNavigating
         val mapSearchBarHeight = if (barMeetsStrip && landscapeStripHeight > 0.dp) landscapeStripHeight else searchBarHeight
         // A height left over from an earlier landscape Maps tab is not reused: it is measured again on the way back.
-        LaunchedEffect(barMeetsStrip) { if (!barMeetsStrip) landscapeStripHeight = 0.dp }
+        LaunchedEffect(barMeetsStrip) { if (!barMeetsStrip) { landscapeStripHeight = 0.dp; landscapeStripWidth = 0.dp } }
         // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): the Maps tab's compass strip as measured,
         // handed up through searchBarSlot; 0 while it is not measured (before its first layout, while navigating, in a landscape
         // window), where the dropdown keeps the one-line clearance above. See CompactMapTab's compassStripBottomClearance.
@@ -1031,11 +1034,20 @@ internal fun CompactMainScaffold(
                             } else {
                                 mapControlsPadding.calculateRightPadding(searchLayoutDirection)
                             }
-                            if (!isNavigating) {
-                                // RECORD -729: not navigating, the bar takes the punch-hole-side half exactly and ends at the
-                                // window's centre, where the strip starts (CompactMapTab's landscapeStripHalf). No 384 dp cap and no
-                                // gap. While navigating it keeps the capped width below, which the navigation display is placed
-                                // beside (RECORD -694, -715; the owner, on navigation: "Strip only").
+                            val railInset = if (portEdge == ScreenEdge.Left) {
+                                mapControlsPadding.calculateLeftPadding(searchLayoutDirection)
+                            } else {
+                                mapControlsPadding.calculateRightPadding(searchLayoutDirection)
+                            }
+                            if (!isNavigating && landscapeStripWidth > 0.dp) {
+                                // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): not navigating, the bar
+                                // takes the room the strip leaves and ends where the strip begins (CompactMapTab's
+                                // landscapeStripFit, which keeps the bar's floor). No 384 dp cap and no gap. While navigating it
+                                // keeps the capped width below, which the navigation display is placed beside (RECORD -694, -715;
+                                // the owner, on navigation: "Strip only").
+                                (maxWidth - punchHoleInset - railInset - landscapeStripWidth).coerceAtLeast(0.dp)
+                            } else if (!isNavigating) {
+                                // Before the strip is first measured: RECORD -729's half, for that frame.
                                 (maxWidth / 2 - punchHoleInset).coerceAtLeast(0.dp)
                             } else {
                                 minOf(LANDSCAPE_SEARCH_MAX_WIDTH, maxWidth / 2 - punchHoleInset - LANDSCAPE_SEARCH_CENTRE_GAP).coerceAtLeast(0.dp)
@@ -1118,6 +1130,8 @@ internal fun CompactMainScaffold(
                                 onRailWidthMeasured = { mapRailWidthPx = it },
                                 // RECORD -729: the landscape strip's height, which the bar takes (mapSearchBarHeight).
                                 onLandscapeStripHeightMeasured = { landscapeStripHeight = it },
+                                // RECORD -732: and its width; the bar takes the rest of the room (landscapeSearchWidth).
+                                onLandscapeStripWidthMeasured = { landscapeStripWidth = it },
                                 controlsPadding = mapControlsPadding,
                                 onLocateMe = onLocateMe,
                                 isRecording = isRecording,
@@ -1247,7 +1261,18 @@ internal fun CompactMainScaffold(
                                             // Landscape B1: clear of the overlaid rail and the
                                             // cut-out band (mapControlsPadding); zero in portrait.
                                             // Landscape B2 (S2): capped and on the punch-hole side.
-                                            modifier = if (landscapeSearchWidth != null) {
+                                            modifier = if (landscapeSearchWidth != null && barMeetsStrip && landscapeStripWidth > 0.dp) {
+                                                // RECORD -732: the rest of the room, by the strip's measured width as padding on the
+                                                // rail's side, so the bar ends on the strip's own first pixel whatever the rounding
+                                                // (the rounding fix of -729, carried over).
+                                                Modifier
+                                                    .padding(mapControlsPadding)
+                                                    .absolutePadding(
+                                                        left = if (portEdge == ScreenEdge.Left) landscapeStripWidth else 0.dp,
+                                                        right = if (portEdge == ScreenEdge.Right) landscapeStripWidth else 0.dp,
+                                                    )
+                                                    .fillMaxWidth()
+                                            } else if (landscapeSearchWidth != null) {
                                                 Modifier
                                                     .padding(mapControlsPadding)
                                                     .fillMaxWidth()

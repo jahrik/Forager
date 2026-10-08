@@ -58,6 +58,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.background
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -75,6 +76,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -356,6 +358,11 @@ internal fun CompactMapTab(
      * The scaffold gives the search bar this height, so the two meet at the centre at one height.
      */
     onLandscapeStripHeightMeasured: (Dp) -> Unit = {},
+    /**
+     * RECORD -732: the compass strip's measured width in a landscape window, while it shows and is not leaving; 0 otherwise.
+     * The scaffold gives the search bar the rest of the room, so the bar ends where the strip begins.
+     */
+    onLandscapeStripWidthMeasured: (Dp) -> Unit = {},
     /**
      * Landscape B1: what this tab's controls are padded by, and never the map itself —
      * [compactMainScaffold]'s `mapControlsPadding` (the rail's measured width or, in fullscreen,
@@ -689,6 +696,9 @@ internal fun CompactMapTab(
             // Dispatch 2026-09-28-510: at the best position there is (AvailabilityUiState.headingFix), so the
             // HUD's needle and the strip's heading work while the position is approximate or last known.
             val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.headingFix)
+            // RECORD -732: the heading's status words, if it has no value; the landscape strip's width allows for them. Derived,
+            // so this tab recomposes only when the kind of reading changes, never at sensor rate.
+            val headingStatus by remember(trueHeading) { derivedStateOf { stripHeadingStatusText(trueHeading.value) } }
             // Dispatch 2026-09-28-510: what is shown in place of GPS, for the strip. Read only in its leaf.
             val positionNote = rememberPositionNote(LocalMapPosition.current, currentTime)
             // Dispatch 2026-09-28-430: which way the map faces while navigating, from the same heading.
@@ -723,6 +733,8 @@ internal fun CompactMapTab(
             var compassStripHeightPx by remember { mutableIntStateOf(0) }
             // RECORD -729: the strip's measured height in a landscape window (the search bar is given it); 0 elsewhere.
             var landscapeStripHeightPx by remember { mutableIntStateOf(0) }
+            // RECORD -732: and its measured width (the scaffold gives the bar the rest of the room); 0 elsewhere.
+            var landscapeStripWidthPx by remember { mutableIntStateOf(0) }
             val compassStripClearance = remember(compassStripLabelStyle, compassStripDensity) {
                 with(compassStripDensity) {
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
@@ -1028,9 +1040,15 @@ internal fun CompactMapTab(
                         Modifier
                             .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                             .padding(controlsPadding)
-                            // RECORD -729: the rail-side half exactly, from the window's centre, where the search bar ends. It
+                            // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"; -729 had it at the window's
+                            // centre): as wide as its readouts need whole, the bar keeping its floor (landscapeStripFit). It
                             // replaced the content width capped beside the bar (RECORD -694), which the navigation display keeps.
-                            .landscapeStripHalf(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
+                            .landscapeStripFit(
+                                railPortEdge,
+                                punchHoleEdge,
+                                rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, showDecimalDegrees, quickSettings != null, headingStatus),
+                                rememberLandscapeBarFloorPx(uiState, uiState.distanceUnit),
+                            )
                     } else {
                         Modifier
                             .align(Alignment.TopCenter)
@@ -1064,7 +1082,7 @@ internal fun CompactMapTab(
                             Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = landscapeBarContentFloor)
-                                .onSizeChanged { if (!isNavigating) landscapeStripHeightPx = it.height }
+                                .onSizeChanged { if (!isNavigating) { landscapeStripHeightPx = it.height; landscapeStripWidthPx = it.width } }
                         } else {
                             Modifier
                                 .fillMaxWidth()
@@ -1081,21 +1099,29 @@ internal fun CompactMapTab(
                         // not the screen (RECORD -649): the strip's own right end in every orientation.
                         quickSettings = quickSettings,
                     )
-                    DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0 } }
+                    DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
                 }
                 }
                 // Motion Part 2: the strip's measured height goes the moment it starts to leave, as it did when it left at once.
-                LaunchedEffect(isNavigating) { if (isNavigating) { compassStripHeightPx = 0; landscapeStripHeightPx = 0 } }
+                LaunchedEffect(isNavigating) { if (isNavigating) { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
                 // RECORD -729: the landscape strip's measured height, up to the scaffold, which gives the search bar that height; 0
                 // while it is not measured (portrait, navigating, before its first layout), where the bar keeps its own.
                 LaunchedEffect(landscapeStripHeightPx) { onLandscapeStripHeightMeasured(with(compassStripDensity) { landscapeStripHeightPx.toDp() }) }
-                // RECORD -729, item 4: a 1 dp vertical line at the window's centre, where the bar and the strip meet, in the bar's
-                // divider colour, as tall as the two. Drawn over their join and nothing else, so it adds no fill over the map, and
-                // it takes no touch (a Box with a background has no pointer input). Not in fullscreen, where the bar is away.
-                if (railPortEdge != null && punchHoleEdge != null && railPortEdge != punchHoleEdge && !isNavigating && !isFullscreen && landscapeStripHeightPx > 0) {
+                LaunchedEffect(landscapeStripWidthPx) { onLandscapeStripWidthMeasured(with(compassStripDensity) { landscapeStripWidthPx.toDp() }) }
+                // RECORD -729, item 4: a 1 dp vertical line where the bar and the strip meet, in the bar's divider colour, as tall
+                // as the two; since RECORD -732 at the strip's inner edge, not the window's centre. Drawn over their join and
+                // nothing else, so it adds no fill over the map, and it takes no touch (a Box with a background has no pointer
+                // input). Not in fullscreen, where the bar is away.
+                if (railPortEdge != null && punchHoleEdge != null && railPortEdge != punchHoleEdge && !isNavigating && !isFullscreen && landscapeStripHeightPx > 0 && landscapeStripWidthPx > 0) {
+                    val joinFromRailEdge = with(compassStripDensity) { landscapeStripWidthPx.toDp() } - 0.5.dp
                     Box(
                         modifier = Modifier
-                            .align(Alignment.TopCenter)
+                            .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                            .padding(controlsPadding)
+                            .absolutePadding(
+                                left = if (railPortEdge == ScreenEdge.Left) joinFromRailEdge else 0.dp,
+                                right = if (railPortEdge == ScreenEdge.Right) joinFromRailEdge else 0.dp,
+                            )
                             .width(1.dp)
                             .height(with(compassStripDensity) { landscapeStripHeightPx.toDp() })
                             .background(mapIconStackBorderColor())
