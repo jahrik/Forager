@@ -248,3 +248,47 @@ Not done, because the behaviour they would guard is not in place: the revert che
 size the room from the widest of the value and the two words (always 26 dp wider at font 1.0; the bar narrows by that, about
 359 dp at 823, which wraps T7's two chips); shorter words (under 58.33 dp at 14 sp, about seven narrow characters); or a
 symbol in the heading slot instead of a word.
+
+## RECORD -734 stopped, RECORD -735: the crossed-out compass
+
+**-734 stopped before building.** It asked for "315° NW?" when the compass is unreliable; `TrueHeadingReading.Unreliable`
+(`ui/map/TrueHeading.kt:27-44`) carries no heading on purpose ("a heading the app has just said cannot be trusted is not a value
+to hand anyone"), and `rememberTrueHeading` resets the smoother then ("Reset, not pause, not carry (owner decision)"). Showing
+a value would reverse that ruling. Measured for the decision (probe, removed): the value form plus "?" is 65.67 dp at font 1.0
+(121.67 at 2.0), 7.33 dp (13.67) wider than the value.
+
+**-735, the owner verbatim: "Same crossed-out icon (Recommended)".** Commit `93d729ae`. In a short landscape window, no compass
+and an unreliable compass both show Material's `Icons.Filled.ExploreOff` (material-icons-extended 1.7.8, already a dependency)
+in the heading slot, a square the strip readout's line height: **20 dp at font 1.0, 34 dp at 2.0**. Content descriptions
+"Compass unavailable" and "Compass unreliable". No value is carried; `TrueHeading` is untouched. Portrait keeps the words. The
+slot stays at the value width, **58.33 dp at font 1.0, 108 dp at 2.0**, so the join is the same in every compass state
+(measured: 342.33 dp at 780 / 90, 437.67 at 780 and 823 / 270, 385.33 at 823 / 90, with a heading, with no compass and with an
+unreliable one). The -733 short words, `LANDSCAPE_NO_COMPASS_TEXT`, `LANDSCAPE_COMPASS_UNRELIABLE_TEXT` and
+`LandscapeHeadingShortWordsTest` are removed.
+
+**Tests.** `LandscapeHeadingIconFitTest` (fonts 1.0 and 2.0): the icon fits the value width (20 ≤ 58.33; 34 ≤ 108). In
+`LandscapeBarStripJoinTest` (13 per window), at 780 and 823, both rotations: a heading first (positive control, no icon), then no
+compass, then an unreliable one; the icon shows, 20 dp, whole inside the strip, labelled for its state; no heading words;
+altitude and coordinates shown; the strip's edges and the bar's end where they were with a heading. `LandscapeLRulingsTest` B1
+and `LayoutFixesChipRowLandscapeTest` T7 pass as written.
+
+**Revert checks** (same runner; compiled, fresh, restored byte-identical; `git status` clean; forward lines present after):
+
+| # | Edit | Failed | Message |
+|---|---|---|---|
+| R8 | words back (`headingIcon = false`) | 2/13 each window | "could not find any node ... 'compass-strip-heading-icon'" |
+| R9a | slot sized from "Compass unavailable" | Join 0/13; LRulings 2/18; ChipRow 1/28 | "the notice [112, 36][302, 116] is still wide enough to read (at least 200 dp)"; "the journal chip ... not under it" |
+| R9b | slot sized 0 | 6/13 each window | "MGRS: compass-strip-heading is shown" (the heading dropped), and the icon cases' positive control |
+
+R9a passes the join tests, as it should: they hold the join unmoved across compass states, and a slot sized from the words is
+also the same in every state. What catches a slot sized wider than the value is B1 and T7.
+
+**Full suite at `93d729ae`: 4,444 tests in 570 classes, 24 skipped, 1 failure, 0 errors** (JUnit XML; Gradle agrees):
+`AvailabilityScreenLandscapeB2Test` S5, "in landscape the strip's heading, elevation and coordinate text use tabular figures":
+no `compass-strip-heading` node. That harness has no compass, so in landscape the slot now shows the icon (tagged
+`compass-strip-heading-icon`), which has no text and no figures. Its claim needs to change: either give S5 a fixed compass so it
+checks a heading value's figures (as the portrait half does), or assert the icon in the slot and check figures on elevation and
+coordinates only. Not changed here.
+
+`t6b-night` inactive before every run, not touched; `./gradlew --stop` after every scope; no Gradle process left; free disk
+3.1 GB.
