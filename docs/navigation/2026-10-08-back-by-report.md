@@ -422,3 +422,91 @@ with the button.**
   - relax these tests' claim to the status line's existing "…" rule;
   - move the three-dot button out of the first row on narrow screens.
 - **None of the three tests was touched.**
+
+## RECORD -714: the display's button moves to the second row when the first row is too narrow
+
+The owner, verbatim: "Button moves to second row (Recommended)".
+
+### Built
+
+**Where the button goes, from a measured fit (`firstRowHoldsTheButton`, `NavigationHud.kt`).**
+- **The reference line.** The fit is measured against one fixed reference line: data part B's longest route line.
+  It is "Sharp right · 169°", then "1280 ft" with "by trail", then "≈ 1250 ft straight".
+- **How the column is worked out.** The first row's distance column, with the button in it, is the display's width
+  minus the row's fixed parts:
+  - its padding;
+  - the north arrow (22 dp) and the turn column (measured);
+  - the X's 48 dp touch box and the button's 36 dp;
+  - four 12 dp gaps.
+- **The test.** The figure, its kind and the status are measured in their own type at the current font scale. The
+  button stays left of the X only if the status is whole, either beside the figure and kind or with the kind leading it
+  (RECORD -713). Otherwise the button ends the second row.
+- **Why one reference, not what is on screen now:** the button does not move between rows, and the display does not
+  change height, as statuses come and go during a walk.
+
+**Where that puts it (measured):**
+- 320 dp and 360 dp portrait: the second row.
+- 384 dp portrait (the S22): left of the X.
+- **780 × 360 and 823 × 384 landscape: the second row.** The display there is capped at 318 dp and 359 dp, and the
+  distance column left beside the button is about 45 dp. **This is contrary to the planner's expectation that it stays
+  left of the X in landscape.** I followed the measured fit, as asked.
+
+**The second row with the button in it:**
+- The button's 36 dp and its gap come out first. `readoutsFitBeside` then gives way within what is left.
+- The row is shown even where it had nothing else to show (no fix), so the button keeps a place.
+- The row becomes 36 dp tall, against the 24 dp coordinates line. So wherever the button sits there, the display is
+  12 dp taller than before. In landscape the display is 108 dp, still above the central third at 120 dp.
+
+**Tests:**
+- `NavigationHudButtonPlacementTest`, two classes:
+  - at 360 dp, the button ends the second row, below the X's row, and the status line reads "≈ 1250 ft straight",
+    whole;
+  - at 384 dp, it is left of the X in the X's row.
+  - Both: 36 × 36, and five real touches across the square, corners included, open the menu.
+- `NavigationHudKindInStatusTest`, my own from -713, reworked. At 360 dp the kind now fits beside the figure, so the
+  "kind leads the status" case is set up at 320 dp. Its height claim is now that the status line ends inside the 48 dp
+  first row. The old claim, that the display is as tall as without the button, no longer holds where the button is in
+  the second row.
+
+**Deleted (the planner's call):** `readoutsKeptBeside`, `stripReadoutsShown`, `StripReadoutsShown`,
+`STRIP_READOUT_MIN_WIDTH` and `StripReadoutsShownTest`.
+
+**Kept:** "Unable to calculate route" takes the status size only when it does not fit the large slot.
+
+### Revert checks (saved-copy restore, compile log checked, forward change confirmed after each)
+
+| Revert | Failures |
+|---|---|
+| R19 button always left of the X | the 360 dp placement test: "below the X's row: button … top=10.0 …"; `NavigationHudQuickSettingsWidthTest`, the status lines cut again ("Location services unava", "…findi") |
+| R20 button always in the second row | the 384 dp placement test: "left of the X: button DpRect(left=340.0 …)" |
+
+### Full suite after -714
+
+Read from the JUnit XML (550 files): **4,313 tests, 4 failures, 0 errors, 24 skipped.** No `@Ignore` added. The count
+is down from 4,317 because `StripReadoutsShownTest` was deleted, and the new placement tests were added.
+
+**The status lines are now whole at 360 dp.** "Location services unavailable", "Last seen 23 h ago, finding GPS…" and
+"≈ 1250 ft straight" are no longer cut with the button.
+
+**The four failures are claims these tests make that -714 contradicts or never addressed. None was touched.**
+
+1. **Data B's three display tests at 360 dp** expect the "Facing" and "Alt" labels in the second row:
+   - "on the route the display reads the turn in words, the route by trail, the straight line straight, and labels its
+     heading and altitude";
+   - "at 360 dp the longest lines fit whole";
+   - "at 360 dp the display's decimal coordinates fit whole beside the longest lines".
+
+   Each fails with no node "Facing" in the display.
+   - **The arithmetic:** the button's 36 dp plus its gap now come out of the second row, leaving about 300 dp.
+     "Facing 281° W · Alt 9843 ft · " plus the MGRS reference needs about 311 dp. These are widths measured earlier in
+     this branch, not re-measured in this configuration.
+   - **So:** the owner's -713 rule drops the labels and keeps every value whole, which is what happens.
+   - **The change these would need:** "labels may drop under -713" in place of "labels drawn". That is the same claim
+     change as the strip test changed under -713.
+2. **`NavigationHudQuickSettingsWidthTest`** now fails only on "No origin waypoint for this track", which shows "No
+   origin waypoint for this tr".
+   - The test files this under "clipped either way": it is cut with no button at all, so not by the button.
+   - The test's claim includes that any status it lists is whole at 360 dp, button or not. That is about a state
+     -714 did not touch.
+   - This is back-by's own test, written by the first coder; it has never passed.
+   - **The change it would need:** drop the "clipped either way" half, or decide that status separately.
