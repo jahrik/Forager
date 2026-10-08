@@ -71,6 +71,14 @@ class TrackRecordingServiceWatchFailureTest {
     fun `a return watch that throws on every kept point leaves every point saved`() =
         recordsThroughAThrowing(Throwing.RETURN_ON_KEPT_POINT)
 
+    /**
+     * Dispatch 2026-09-28-645 (RECORD -674 and -687): the back-by watch's fix call is guarded the same
+     * way. Without its guard the first fix's throw cancels the collector and no point is stored.
+     */
+    @Test
+    fun `a back-by watch that throws on every fix leaves every point saved`() =
+        recordsThroughAThrowing(Throwing.BACK_BY_ON_FIX)
+
     private fun recordsThroughAThrowing(which: Throwing) {
         var controller: ServiceController<TrackRecordingService>? = null
         val watches = ThrowingWatches(container, which)
@@ -97,7 +105,7 @@ class TrackRecordingServiceWatchFailureTest {
         }
     }
 
-    private enum class Throwing { RETURN_ON_FIX, SUNDOWN_ON_FIX, RETURN_ON_KEPT_POINT }
+    private enum class Throwing { RETURN_ON_FIX, SUNDOWN_ON_FIX, RETURN_ON_KEPT_POINT, BACK_BY_ON_FIX }
 
     /** The container's watches, except that [which] throws every time it is called. */
     private class ThrowingWatches(container: AppContainer, private val which: Throwing) : RecordingWatches(container) {
@@ -120,6 +128,12 @@ class TrackRecordingServiceWatchFailureTest {
             if (which == Throwing.RETURN_ON_KEPT_POINT) fail()
             passedThrough.incrementAndGet()
             super.returnOnKeptPoint(point)
+        }
+
+        override fun backByOnFix(point: TrackPoint, provider: FixProvider) {
+            if (which == Throwing.BACK_BY_ON_FIX) fail()
+            passedThrough.incrementAndGet()
+            super.backByOnFix(point, provider)
         }
 
         private fun fail(): Nothing {

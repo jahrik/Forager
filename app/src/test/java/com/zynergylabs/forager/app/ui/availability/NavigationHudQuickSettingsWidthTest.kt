@@ -75,6 +75,8 @@ class NavigationHudQuickSettingsWidthTest {
         val route: ReturnRoute?,
         val approximateFix: LocationFix.Update? = null,
         val lastKnownFix: LocationFix.Update? = null,
+        /** The phone's heading; the start is due south of every fix here, so 11 degrees puts it 169 degrees to the right. */
+        val headingDegrees: Float = 10f,
     )
 
     private val cases = listOf(
@@ -85,6 +87,10 @@ class NavigationHudQuickSettingsWidthTest {
         Case("Approaching · last fix 4 min ago", fixAt(50.0, at = now - 4 * 60_000L - 30_000L), start, ReturnRoute.Ahead(LatLng(start.lat, start.lng), 60.0)),
         Case("Last seen 23 h ago, finding GPS…", null, start, ReturnRoute.Pending, lastKnownFix = fixAt(1_500.0, at = now - 23 * 3_600_000L)),
         Case("Approximate, finding GPS…", null, start, ReturnRoute.Pending, approximateFix = fixAt(1_500.0).copy(accuracyMeters = 60f, provider = FixProvider.NETWORK)),
+        // Data part B (dispatch 2026-09-28-677, merged into back-by with RECORD -687): its longest first row, the turn in
+        // words ("Sharp right · 169°") beside a four-digit figure in feet with "by trail", which that part fitted at 360 dp
+        // before this button was in the row.
+        Case("Sharp right, by trail", fixAt(380.0), start, ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0), headingDegrees = 11f),
     )
 
     private val quickSettings = MapQuickSettings(
@@ -125,7 +131,13 @@ class NavigationHudQuickSettingsWidthTest {
                 withButton = button
             }
             composeRule.waitForIdle()
-            found[c.name] = listOfNotNull(clipped(NAVIGATION_HUD_DISTANCE_TAG), clipped(NAVIGATION_HUD_STATUS_TAG))
+            // The turn and the distance's kind since data part B (RECORD -687): both share the first row with the button.
+            found[c.name] = listOfNotNull(
+                clipped(NAVIGATION_HUD_DISTANCE_TAG),
+                clipped(NAVIGATION_HUD_DISTANCE_KIND_TAG),
+                clipped(NAVIGATION_HUD_TARGET_TAG),
+                clipped(NAVIGATION_HUD_STATUS_TAG),
+            )
         }
         return found
     }
@@ -135,7 +147,7 @@ class NavigationHudQuickSettingsWidthTest {
         composeRule.setContent {
             val c = case ?: return@setContent
             NavigationHud(
-                heading = mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(10f)),
+                heading = mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(c.headingDegrees)),
                 liveFix = c.liveFix,
                 approximateFix = c.approximateFix,
                 lastKnownFix = c.lastKnownFix,

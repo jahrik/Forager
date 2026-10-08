@@ -24,6 +24,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.BACK_BY_QUICK_HOURS
 import com.zynergylabs.forager.app.domain.BackByChoice
@@ -53,6 +55,7 @@ import com.zynergylabs.forager.app.ui.map.journalMenuContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import java.time.Instant
@@ -128,9 +131,15 @@ internal fun backByLineText(backBy: BackByShown?, clock: SundownClock): String? 
 /**
  * The three-dot button (Amendment 3, RECORD -648): a [QUICK_SETTINGS_TAP_TARGET] square inside the
  * strip, which grows to fit it and nothing hangs over the map (Q2, "Taller strip (Recommended)", with
- * Amendment 3's 36 dp in place of 48). A plain clickable [Box], not a `Surface`, so it takes touches
- * in its own square and nowhere else (CLAUDE.md, the `Surface` pitfall). A dot at its corner while a
- * Back by time is set (Q3: "Menu shows it + dot (Recommended)"; kept by Amendment 3).
+ * Amendment 3's 36 dp in place of 48). Not a `Surface`, so it takes touches in its own square and
+ * nowhere else (CLAUDE.md, the `Surface` pitfall). A dot at its corner while a Back by time is set
+ * (Q3: "Menu shows it + dot (Recommended)"; kept by Amendment 3).
+ *
+ * Motion Part 1 (RECORD -687): the press goes through [BouncingIconButton], as every icon button in the
+ * app does: the icon dips and springs back, and Material's own press is drawn clipped to the button's
+ * round shape, not as a square. Material's icon button would otherwise claim its 48 dp minimum touch
+ * size around the 36 dp the owner set; [LocalMinimumInteractiveComponentSize] is unset for this one
+ * button so its touch area stays exactly the [QUICK_SETTINGS_TAP_TARGET] square.
  */
 @Composable
 internal fun MapQuickSettingsButton(
@@ -143,17 +152,23 @@ internal fun MapQuickSettingsButton(
     var pickingTime by rememberSaveable { mutableStateOf(false) }
     val backBy = settings.backBy
     Box(
-        modifier = modifier
-            .size(QUICK_SETTINGS_TAP_TARGET)
-            .clickable(role = Role.Button, onClickLabel = MAP_QUICK_SETTINGS_DESCRIPTION) { expanded = true }
-            .testTag(MAP_QUICK_SETTINGS_BUTTON_TAG),
+        modifier = modifier.size(QUICK_SETTINGS_TAP_TARGET),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Filled.MoreVert,
-            contentDescription = if (backBy != null) "$MAP_QUICK_SETTINGS_DESCRIPTION, Back by set" else MAP_QUICK_SETTINGS_DESCRIPTION,
-            modifier = Modifier.size(20.dp),
-        )
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+            BouncingIconButton(
+                onClick = { expanded = true },
+                modifier = Modifier
+                    .size(QUICK_SETTINGS_TAP_TARGET)
+                    .testTag(MAP_QUICK_SETTINGS_BUTTON_TAG),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = if (backBy != null) "$MAP_QUICK_SETTINGS_DESCRIPTION, Back by set" else MAP_QUICK_SETTINGS_DESCRIPTION,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
         if (backBy != null) {
             Box(
                 modifier = Modifier
