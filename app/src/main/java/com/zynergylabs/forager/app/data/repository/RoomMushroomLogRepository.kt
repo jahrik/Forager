@@ -289,6 +289,7 @@ private fun MushroomLogEntry.toEntity(): MushroomLogEntryEntity {
 
         isDraft = isDraft,
         draftOfEntryId = draftOfEntryId,
+        foundAtEpochMillis = foundAtEpochMillis,
     )
 }
 
@@ -437,4 +438,5 @@ private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): Mushr
     },
     isDraft = isDraft,
     draftOfEntryId = draftOfEntryId,
+    foundAtEpochMillis = foundAtEpochMillis,
 )

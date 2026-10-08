@@ -8,6 +8,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.zynergylabs.forager.app.ui.format.displayDateTime
 
 /**
  * The track sheet's figures (dispatch 2026-09-28-677), headless: every tile's label and value, the cases that have no figure,
@@ -105,7 +106,7 @@ class TrackSheetTilesTest {
     @Test
     fun `the sheet's clock follows the 12- or 24-hour setting, with the date as Oct 7, 2026`() {
         val at = Instant.parse("2026-10-07T14:05:00Z").toEpochMilli()
-        assertEquals("Oct 7, 2026, 2:05 PM", formatSheetTimestamp(at, is24Hour = false, zone = ZoneOffset.UTC))
-        assertEquals("Oct 7, 2026, 14:05", formatSheetTimestamp(at, is24Hour = true, zone = ZoneOffset.UTC))
+        assertEquals("Oct 7, 2026, 2:05 PM", displayDateTime(at, is24HourClock = false, zone = ZoneOffset.UTC))
+        assertEquals("Oct 7, 2026, 14:05", displayDateTime(at, is24HourClock = true, zone = ZoneOffset.UTC))
     }
 }

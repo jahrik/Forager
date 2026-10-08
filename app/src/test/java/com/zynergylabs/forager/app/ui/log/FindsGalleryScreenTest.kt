@@ -90,9 +90,9 @@ class FindsGalleryScreenTest {
             FindsGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
-        composeRule.onNodeWithText("Find on 2026-08-02").assertDoesNotExist()
+        composeRule.onNodeWithText("Aug 2, 2026").assertDoesNotExist()
         composeRule.onNodeWithText("Draft").assertDoesNotExist()
     }
 
@@ -107,9 +107,9 @@ class FindsGalleryScreenTest {
 
         composeRule.onNodeWithText("Drafts (1)").performClick()
 
-        composeRule.onNodeWithText("Find on 2026-08-02").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 2, 2026").assertIsDisplayed()
         composeRule.onNodeWithText("Draft").assertIsDisplayed()
-        composeRule.onNodeWithText("Find on 2026-08-01").assertDoesNotExist()
+        composeRule.onNodeWithText("Aug 1, 2026").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
     }
 
@@ -122,7 +122,7 @@ class FindsGalleryScreenTest {
             FindsGalleryScreen(entries = listOf(committed), isLoading = false, onOpenEntry = {}, onAddEntry = null)
         }
 
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
     }
 
@@ -143,7 +143,7 @@ class FindsGalleryScreenTest {
             FindsGalleryScreen(entries = listOf(committed), isLoading = false, onOpenEntry = {}, loadErrorMessage = "Log entries unavailable.")
         }
 
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
     }
 
     /** Stage 2b follow-up dispatch, point 3 — Album lives in [CartographyScreen] only now. */
@@ -159,17 +159,20 @@ class FindsGalleryScreenTest {
     /**
      * Owner ruling, 2026-09-13: the "Incomplete" badge is gone. This entry has every morphology
      * field unrecorded — exactly what used to earn the badge — and is committed, not a draft, so
-     * nothing else may take the badge's place: the date stands alone.
+     * nothing else may take the badge's place. Since data part D (RECORD -702) the tile shows the find's name or the time it
+     * was found, and the date is the heading above it; this find has neither name, saved time nor photo, so its tile has no title text and says "Find, Aug 1, 2026" to a screen
+     * reader (RECORD -703).
      */
     @Test
-    fun `a committed find with nothing recorded shows its date alone, no Incomplete badge`() {
+    fun `a committed find with nothing recorded shows its title alone under its date, no Incomplete badge`() {
         val bare = MushroomLogEntry.draft(id = "entry-1", location = null, date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(bare), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Find, Aug 1, 2026").assertIsDisplayed()
         composeRule.onNodeWithText("Incomplete").assertDoesNotExist()
         composeRule.onNodeWithText("Draft").assertDoesNotExist()
     }

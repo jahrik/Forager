@@ -38,6 +38,7 @@ import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.IntOffset
 import java.time.YearMonth
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The Entries/Drafts submenus' shared list — Journal Stage 2b. A grid, the same shape
@@ -268,7 +269,7 @@ private fun SidewaysEntryItem(
     }
     if (onDelete != null) {
         LongPressOptionsBox(
-            longClickLabel = "Options for entry on ${entry.date}",
+            longClickLabel = "Options for entry on ${displayDate(entry.date)}",
             onEdit = onEdit,
             onDelete = onDelete,
         ) { options -> item(options) }

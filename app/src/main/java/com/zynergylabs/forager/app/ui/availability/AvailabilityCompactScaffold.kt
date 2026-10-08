@@ -390,15 +390,9 @@ internal fun CompactMainScaffold(
         // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
         // display decision the ViewModel has no part in, same reasoning as mapMode/drawerPanel above.
         var showSearchDropdown by remember { mutableStateOf(false) }
-        // The search bar's one-shot "open the manual coordinates" (continuation 2026-09-28-40); see
-        // SearchDropdown's expandManualCoordinatesRequested. Armed once per opening of the dropdown,
-        // when showSearchDropdown goes from false to true, never on a focus gain (continuation
-        // 2026-09-28-42, "once, on the tap"): the dropdown's scroll clears the field's focus, and
-        // re-arming on the focus coming back looped under Robolectric (547 s, OutOfMemoryError).
-        var expandManualCoordinatesRequested by remember { mutableStateOf(false) }
-        LaunchedEffect(showSearchDropdown) {
-            if (showSearchDropdown) expandManualCoordinatesRequested = true
-        }
+        // The search bar's one-shot "open the manual coordinates" request (continuation 2026-09-28-40)
+        // was armed here; dispatch 2026-09-28-697 put the coordinates at the top of SearchDropdown with
+        // no fold, so there is nothing left to open and the request is gone.
         // Same measured clearance [CompactMapTab] already computes for its own compass strip (see
         // that composable's own compassStripClearance doc comment) — recomputed here rather than
         // threaded through as a parameter, since it depends only on MaterialTheme.typography and
@@ -1509,7 +1503,7 @@ internal fun CompactMainScaffold(
                                 // this sits in never held anything sensitive in the overflow region.
                                 // Now that the Map tab's own bottom nav lives inside that same Box (see
                                 // CompactMapTab's own doc comment), an unbounded panel here — expanded
-                                // via "Enter coordinates manually," exactly what
+                                // via "Enter coordinates manually" (a fold dispatch 2026-09-28-697 removed), exactly what
                                 // AvailabilityScreenMapIconStackTest's own searchAReferenceRegion()
                                 // helper does — measured tall enough to physically reach into the nav's
                                 // own screen band and, being composed after it, won every tap there:
@@ -1567,8 +1561,6 @@ internal fun CompactMainScaffold(
                                         onSelectedTabChange(ResultsTab.MAP)
                                         pickingSearchLocationOnMap = true
                                     },
-                                    expandManualCoordinatesRequested = expandManualCoordinatesRequested,
-                                    onManualCoordinatesExpandConsumed = { expandManualCoordinatesRequested = false },
                                     // Over the Maps tab's map only; on the other tabs its Month menu stays solid.
                                     overMap = compactTab() == CompactTab.MAP,
                                 )

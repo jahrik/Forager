@@ -63,14 +63,12 @@ import com.zynergylabs.forager.app.ui.map.MapChromeSheetNavigationBar
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
-import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
 import com.zynergylabs.forager.app.ui.track.canBeDeleted
 import com.zynergylabs.forager.app.ui.track.shareTrackGpx
 import com.zynergylabs.forager.app.ui.track.trackTitle
 import com.zynergylabs.forager.app.ui.track.IMPORTED_LABEL
 import com.zynergylabs.forager.app.ui.track.NO_TIMES_IN_FILE
 import kotlinx.coroutines.launch
-import android.text.format.DateFormat
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.runtime.MutableState
@@ -88,9 +86,8 @@ import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatSpeed
 import com.zynergylabs.forager.app.domain.model.formatTimeSpan
 import com.zynergylabs.forager.app.domain.model.formatWholeLength
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import com.zynergylabs.forager.app.ui.format.displayDateTime
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * Which Records row's details sheet is open (journal redesign J5c; the owner: "have them display info
@@ -352,6 +349,7 @@ private fun RecordDetailsBody(
 @Composable
 private fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceCounts: Map<String, Int>, onNavigate: ((String) -> Unit)?) {
     val context = LocalContext.current
+    val is24Hour = is24HourClock()
     val location = LatLng(waypoint.lat, waypoint.lng)
     DetailsTitle(waypoint.name)
     when (val mgrs = MgrsConverter.convert(location)) {
@@ -360,12 +358,12 @@ private fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceCo
         is MgrsCoordinate.Unsupported -> Unit
     }
     DetailField(FIELD_COORDINATES, "Coordinates", decimalDegreesLabel(waypoint.lat, waypoint.lng))
-    DetailField(FIELD_CREATED, "Created", formatRecordTimestamp(waypoint.createdAtEpochMillis))
+    DetailField(FIELD_CREATED, "Created", displayDateTime(waypoint.createdAtEpochMillis, is24Hour))
     waypoint.trackId?.let { trackId ->
         // The track list is loaded at the ViewModel's init; a link to a track not in it is said
         // plainly rather than guessed at.
         val parent = tracks.firstOrNull { it.id == trackId }
-        DetailField(FIELD_TRACK, "Track", parent?.let(::trackTitle) ?: "Not loaded")
+        DetailField(FIELD_TRACK, "Track", parent?.let { trackTitle(it, is24Hour) } ?: "Not loaded")
     }
     referenceCounts[waypoint.id]?.let { count -> DetailField(FIELD_USED_IN, "Used in", journalEntryCountLabel(count)) }
     DetailsActions {
@@ -404,11 +402,12 @@ private fun TrackDetails(
     // The same derivation the entry editor's candidate rows use for a live track
     // (CartographyEntryEditScreen's TracksSection), from the points already in memory.
     val stats = ComputeTrackStatisticsUseCase()(track.points)
-    // Dispatch 2026-09-28-677 (data part B): times follow the phone's 12- or 24-hour setting on this sheet.
-    val is24Hour = DateFormat.is24HourFormat(context)
-    val stamp = { epochMillis: Long -> formatSheetTimestamp(epochMillis, is24Hour) }
+    // Dispatch 2026-09-28-677 (data part B): times follow the phone's 12- or 24-hour setting on this sheet; data part D
+    // (RECORD -702) moved the formatter to ui/format and the Records rows onto the same setting, so the two titles agree.
+    val is24Hour = is24HourClock()
+    val stamp = { epochMillis: Long -> displayDateTime(epochMillis, is24Hour) }
     // Plan T16: an imported track wears "Imported" beside its title, as a stale region wears "Stale".
-    DetailsTitle(track.name ?: stamp(track.startedAtEpochMillis), label = IMPORTED_LABEL.takeIf { track.importedAtEpochMillis != null })
+    DetailsTitle(trackTitle(track, is24Hour), label = IMPORTED_LABEL.takeIf { track.importedAtEpochMillis != null })
     // Dispatch -616 as amended by -618: the drawing carries start, end and dropped-waypoint dots, and the
     // list of those waypoints sits under it.
     WalkThumbnail(
@@ -505,6 +504,7 @@ private fun WalkWaypointsSection(dropped: List<Waypoint>, onOpen: ((String) -> U
 
 @Composable
 private fun OfflineRegionDetails(region: OfflineRegionSummary, distanceUnit: DistanceUnit, nowEpochMillis: Long, staleThresholdDays: Int) {
+    val is24Hour = is24HourClock()
     val stale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays)
     DetailsTitle(region.name, stale = stale)
     DetailField(FIELD_RADIUS, "Radius", formatDistanceKm(region.region.radiusKm, distanceUnit))
@@ -514,7 +514,7 @@ private fun OfflineRegionDetails(region: OfflineRegionSummary, distanceUnit: Dis
     DetailField(
         FIELD_DOWNLOADED,
         "Downloaded",
-        "${formatRecordTimestamp(region.createdAtEpochMillis)} (${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)})",
+        "${displayDateTime(region.createdAtEpochMillis, is24Hour)} (${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)})",
     )
     Text(offlineRegionZoomNote(region), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(RECORD_DETAILS_ZOOM_TAG))
 }
@@ -679,16 +679,6 @@ internal fun trackHeightProfile(track: Track): HeightProfile = heightProfileOf(l
 
 /** "45 of 120 points": how many of the walk's points carry a height, the figure the Climb and the profile rest on. */
 internal fun heightsRecordedLabel(pointsWithHeight: Int, totalPoints: Int): String = "$pointsWithHeight of $totalPoints points"
-
-/**
- * A moment on the track sheet, "Oct 7, 2026, 2:14 PM", or "Oct 7, 2026, 14:14" when the phone is set to 24-hour time
- * (dispatch 2026-09-28-677; the owner, RECORD -656: dates read "Oct 7, 2026" and times follow the phone's setting). The
- * 12-hour form is the Records rows' own ([formatRecordTimestamp]), so on a 12-hour phone the two agree exactly; the rows
- * themselves are data part D's. The phone's language names the month, as there.
- */
-internal fun formatSheetTimestamp(epochMillis: Long, is24Hour: Boolean, zone: ZoneId = ZoneId.systemDefault()): String =
-    DateTimeFormatter.ofPattern(if (is24Hour) "MMM d, yyyy, HH:mm" else "MMM d, yyyy, h:mm a")
-        .format(Instant.ofEpochMilli(epochMillis).atZone(zone))
 
 private val FIELD_LABEL_WIDTH = 112.dp
 private val DETAILS_FOLD_MIN_HEIGHT = 48.dp

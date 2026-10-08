@@ -50,6 +50,7 @@ import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The Trip Planner drawer section's content: the planned-trips list (see [PlannedTripsList])
@@ -144,7 +145,7 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
                     )
                 }
                 Text(trip.name, style = MaterialTheme.typography.titleSmall)
-                Text(TRIP_WINDOW_DATE_FORMAT.format(trip.date), style = MaterialTheme.typography.bodyMedium)
+                Text(displayDate(trip.date), style = MaterialTheme.typography.bodyMedium)
                 when (val mgrs = MgrsConverter.convert(trip.location)) {
                     is MgrsCoordinate.Grid -> Text(mgrs.value, style = MaterialTheme.typography.bodySmall)
                     // No line at all rather than a wrong or truncated one — see MgrsCoordinate's
@@ -160,7 +161,7 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${trip.name}")
             }
             BouncingIconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Remove planned trip for ${trip.date}")
+                Icon(Icons.Filled.Delete, contentDescription = "Remove planned trip for ${displayDate(trip.date)}")
             }
         }
     }

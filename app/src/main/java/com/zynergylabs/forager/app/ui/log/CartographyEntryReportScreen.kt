@@ -100,6 +100,7 @@ import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.launch
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The Cartography Entries list's default view for a **committed** entry — Journal Stage 2c. Recounts
@@ -427,7 +428,7 @@ internal fun CartographyEntryReportScreen(
                     BouncingIconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Cartography")
                     }
-                    Text(formatEntryDate(entry.date), style = MaterialTheme.typography.titleMedium)
+                    Text(displayDate(entry.date), style = MaterialTheme.typography.titleMedium)
                 }
                 Box {
                     BouncingIconButton(onClick = { menuExpanded = true }) {
@@ -703,7 +704,7 @@ internal fun CartographyEntryReportScreen(
                     )
                     ReportItemsSection(
                         title = "Finds",
-                        items = entry.findDecisions.filter { it.kept }.map { ReportItem(title = "Find on ${formatEntryDate(it.foundOn)}", subtitle = it.ownIdentification) },
+                        items = entry.findDecisions.filter { it.kept }.map { ReportItem(title = "Find on ${displayDate(it.foundOn)}", subtitle = it.ownIdentification) },
                     )
                     ReportItemsSection(
                         title = "Offline maps",

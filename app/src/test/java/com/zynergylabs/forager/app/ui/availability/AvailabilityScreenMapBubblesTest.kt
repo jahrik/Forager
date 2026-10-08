@@ -406,7 +406,7 @@ class AvailabilityScreenMapBubblesTest {
         tapGlyph("trip-1")
 
         composeRule.onNodeWithText("Saddle loop", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Oct 3", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Oct 3, 2026", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
         composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
 
@@ -486,7 +486,7 @@ class AvailabilityScreenMapBubblesTest {
         composeRule.onNodeWithTag(MAP_BUBBLE_CHANCE_TAG, useUnmergedTree = true).assertTextIs("37%")
         composeRule.onNodeWithText("Uncertainty 21% to 58%", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("rain, last 14 days: 62 mm", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-26", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Week of Sep 28, 2026, weather to Sep 26, 2026", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS, useUnmergedTree = true).assertExists()
         assertTrue("the cell was re-read from the store (${store.reads} after $readsBefore)", store.reads > readsBefore)
     }

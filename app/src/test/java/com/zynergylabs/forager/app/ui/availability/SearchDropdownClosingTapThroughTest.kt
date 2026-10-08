@@ -15,7 +15,6 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.DpRect
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -36,8 +35,12 @@ import org.robolectric.annotation.Config
  *
  * The search dropdown's dismiss scrim goes the moment it starts closing, while the panel is still shrinking; before the fix a tap
  * on the shrinking panel landed on its buttons. Here the panel is opened, closed with Back, and caught mid-close with the clock
- * stopped; a real touch on its "Use current location" button must reach the map beneath and not the button. The positive
+ * stopped; a real touch on its Search button must reach the map beneath and not the button. The positive
  * control is the same touch on the open panel, which must reach the button, so the mid-close result is not just a miss.
+ *
+ * Dispatch 2026-09-28-697 moved "Use current location", the button this test first touched (at the panel's top), to the
+ * panel's bottom row and renamed it Search (RECORD -700: the same path). Touching Search there, the mid-close test also asserts the touch point is still inside
+ * the shrinking panel when it lands: a point the panel had already shrunk away from would reach the map whatever the fix did.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -49,7 +52,7 @@ class SearchDropdownClosingTapThroughTest {
     val rules: RuleChain = RuleChain.outerRule(layoutFixesHostActivityRule()).around(composeRule)
 
     private var mapTaps = 0
-    private var useCurrentLocation = 0
+    private var searches = 0
 
     private val mapSlot: MapSlot = { _, _, _, _, _, onTap, _, _, modifier ->
         Box(
@@ -82,7 +85,7 @@ class SearchDropdownClosingTapThroughTest {
     }
 
     private fun buttonCentre(): Offset {
-        val b = composeRule.onNodeWithText("Use current location").fetchSemanticsNode().boundsInRoot
+        val b = composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).fetchSemanticsNode().boundsInRoot
         return b.center
     }
 
@@ -97,7 +100,7 @@ class SearchDropdownClosingTapThroughTest {
         val before = mapTaps
         touch(buttonCentre())
         composeRule.waitForIdle()
-        assertEquals("the open panel's button took the touch", 1, useCurrentLocation)
+        assertEquals("the open panel's button took the touch", 1, searches)
         assertEquals("and the map did not", before, mapTaps)
     }
 
@@ -122,11 +125,14 @@ class SearchDropdownClosingTapThroughTest {
         assertEquals("the panel is still on screen, closing", 1, dropdownShown())
         assertEquals("the dismiss scrim is already gone", 0, composeRule.onAllNodes(hasTestTag(SEARCH_DROPDOWN_SCRIM_TAG)).fetchSemanticsNodes().size)
 
+        val panelNow = composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).fetchSemanticsNode().boundsInRoot
+        assertTrue("the touch point $at is still inside the closing panel $panelNow", panelNow.contains(at))
+
         val before = mapTaps
         touch(at)
         composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
         composeRule.mainClock.advanceTimeByFrame()
-        assertEquals("the closing panel's button did not fire", 0, useCurrentLocation)
+        assertEquals("the closing panel's button did not fire", 0, searches)
         assertEquals("the touch reached the map beneath (panel was ${panelBefore.describe()})", before + 1, mapTaps)
         assertEquals("and it was taken mid-close", 1, dropdownShown())
 
@@ -141,7 +147,7 @@ class SearchDropdownClosingTapThroughTest {
     private fun Screen() {
         AvailabilityScreen(
             uiState = LAYOUT_FIXES_FIX_STATE,
-            onUseCurrentLocation = { useCurrentLocation++ },
+            onUseCurrentLocation = { searches++ },
             onManualLatChanged = {},
             onManualLngChanged = {},
             onSearchManualCoordinates = {},

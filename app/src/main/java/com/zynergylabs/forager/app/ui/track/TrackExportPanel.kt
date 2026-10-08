@@ -44,12 +44,11 @@ import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import com.zynergylabs.forager.app.ui.log.opensRecordDetails
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.zynergylabs.forager.app.ui.format.displayDateTime
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * The Journal Records tab's "get a track out of the app" surface — mirrors
@@ -157,11 +156,12 @@ internal fun TrackExportRow(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val is24Hour = is24HourClock()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(trackExportRowTag(track.id))
-            .then(if (onClick != null) Modifier.opensRecordDetails(trackTitle(track), onClick) else Modifier)
+            .then(if (onClick != null) Modifier.opensRecordDetails(trackTitle(track, is24Hour), onClick) else Modifier)
             .heightIn(min = 48.dp)
             .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -184,8 +184,8 @@ internal fun TrackExportRow(
                 // Plan T16: the track's name where it has one (an imported track always does), its start
                 // time otherwise, as the details sheet's title already reads (trackTitle). A recorded walk has
                 // no name, so its row reads as before.
-                Text(trackTitle(track), style = MaterialTheme.typography.bodyLarge)
-                Text(trackSubtitle(track), style = MaterialTheme.typography.bodySmall)
+                Text(trackTitle(track, is24Hour), style = MaterialTheme.typography.bodyLarge)
+                Text(trackSubtitle(track, is24Hour), style = MaterialTheme.typography.bodySmall)
             }
         }
         // testTag, not contentDescription alone, is what a test (and this dispatch's own testing
@@ -196,7 +196,7 @@ internal fun TrackExportRow(
             onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
             modifier = Modifier.testTag("share-track-${track.id}"),
         ) {
-            Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${formatTrackTimestamp(track)}")
+            Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${displayDateTime(track.startedAtEpochMillis, is24Hour)}")
         }
     }
 }
@@ -206,7 +206,7 @@ internal fun TrackExportRow(
  * fixes (timestamp-filter dispatch, Item 3) — what it left out, so a short or empty track is never a
  * silent one. The ordinary track, including one the rule quietly cleaned, reads exactly as before.
  */
-internal fun trackSubtitle(track: Track): String {
+internal fun trackSubtitle(track: Track, is24HourClock: Boolean): String {
     val pointCount = track.points.size
     val pointsText = if (pointCount == 1) "1 point" else "$pointCount points"
     val note = networkFixExclusionNote(track)
@@ -217,7 +217,7 @@ internal fun trackSubtitle(track: Track): String {
     }
     // Plan T16: an imported track says so first ("Imported" label, the owner's answer in -636), then the
     // date it carries, since its title is its name rather than its time.
-    if (track.importedAtEpochMillis != null) return "$IMPORTED_LABEL · ${formatTrackTimestamp(track)} · $body"
+    if (track.importedAtEpochMillis != null) return "$IMPORTED_LABEL · ${displayDateTime(track.startedAtEpochMillis, is24HourClock)} · $body"
     return if (track.endedAtEpochMillis == null) "$body · recording" else body
 }
 
@@ -227,29 +227,23 @@ internal const val IMPORTED_LABEL = "Imported"
 /** Plan T16, "Import, show "No times"" (-636): what stands where a duration or a time would be for a track whose file had none. */
 internal const val NO_TIMES_IN_FILE = "No times in file"
 
-private fun formatTrackTimestamp(track: Track): String = formatRecordTimestamp(track.startedAtEpochMillis)
-
-/**
- * A record's moment in this list's own format, "Sep 20, 2026, 6:42 PM" ([DISPLAY_FORMAT], the same
- * pattern `CrashLogPanel` uses), in the device's zone. Widened for journal redesign J5c, whose
- * details sheet prints a waypoint's creation time, a track's start and end and a region's download
- * time with it: the one existing date-and-time formatter in the Records rows.
- */
-internal fun formatRecordTimestamp(epochMillis: Long): String =
-    DISPLAY_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
 
 /** Whether Delete may be offered for this track: never while it is still recording (its end time is null). Part 2 follow-ups F1 item 5. */
 internal val Track.canBeDeleted: Boolean get() = endedAtEpochMillis != null
 
-/** A track's name, or its start time when it has none: what the row shows as its title (J5c's sheet title too). */
-internal fun trackTitle(track: Track): String = track.name ?: formatTrackTimestamp(track)
+/**
+ * A track's name, or its start time when it has none: what the row shows as its title (J5c's sheet title too). The start time
+ * reads "Oct 7, 2026, 2:14 PM", or "Oct 7, 2026, 14:14" on a phone set to 24-hour time (data part D, RECORD -702: the row and
+ * the sheet agreed only on a 12-hour phone until then, data part B's report item 8).
+ */
+internal fun trackTitle(track: Track, is24HourClock: Boolean): String =
+    track.name ?: displayDateTime(track.startedAtEpochMillis, is24HourClock)
 
 /** The Tracks chip's row for [trackId] (J5c: the details tap is tested at several points across it). */
 internal fun trackExportRowTag(trackId: String): String = "track-row-$trackId"
 
 private val TRACK_ROW_THUMBNAIL_SIZE = 40.dp
 
-private val DISPLAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a")
 
 /**
  * Writes [track] to a GPX file (disk I/O off the composing thread) and hands it to the share

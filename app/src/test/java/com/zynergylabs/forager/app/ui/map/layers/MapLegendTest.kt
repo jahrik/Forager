@@ -75,8 +75,8 @@ class MapLegendTest {
 
         val legend = mapLegendFor(effective(both), registry, COLOUR_FIELDS, shown)
 
-        assertEquals("Week of 2026-09-28, weather to 2026-09-26", legend?.layers?.single { it.layerId == MapLayerIds.FORECAST_CHANTERELLES }?.dates)
+        assertEquals("Week of Sep 28, 2026, weather to Sep 26, 2026", legend?.layers?.single { it.layerId == MapLayerIds.FORECAST_CHANTERELLES }?.dates)
         assertNull(legend?.layers?.single { it.layerId == MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS }?.dates)
-        assertEquals("Week of 2026-09-28, weather to 2026-09-26", legendDatesLine(shown.values.single()))
+        assertEquals("Week of Sep 28, 2026, weather to Sep 26, 2026", legendDatesLine(shown.values.single()))
     }
 }

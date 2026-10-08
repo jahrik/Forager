@@ -89,10 +89,10 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The map tab: the map itself takes the whole content area apart from the foraging-areas toggle
@@ -250,8 +250,6 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     }
 }
 
-private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
-
 /**
  * Tapping a sighting dot's own detail — species name and observed date, the two facts
  * [SightingsMap]'s doc comment describes this as rebuilding from the vendor-native
@@ -304,7 +302,7 @@ internal fun ObservationBubble(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
+                sighting.observedOn?.let(::displayDate) ?: "Observation date unknown",
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
