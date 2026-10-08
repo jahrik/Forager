@@ -103,12 +103,18 @@ class SearchDropdownKeyboardTest {
         return latitudeTop - panelTop
     }
 
-    /** How far the bottom row's bottom sits above the dropdown's bottom: the panel's own padding when it is scrolled to its end. */
+    /**
+     * How far the bottom row's bottom sits above the dropdown's bottom. Scrolled to its end, that is the panel's own padding
+     * (16 dp) plus the 4 dp a 40 dp button leaves under itself in its 48 dp touch target: 20 dp, measured at the build.
+     */
     private fun bottomRowGapToBottom(tag: String): Dp {
         val panelBottom = composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).getUnclippedBoundsInRoot().bottom
         val rowBottom = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot().bottom
         return panelBottom - rowBottom
     }
+
+    /** The panel's padding plus the button's touch-target margin below it; see [bottomRowGapToBottom]. */
+    private val SCROLLED_TO_END_GAP = Spacing.lg + 4.dp
 
     /** Samples across a control's own bounds, as fractions of its width and height: a finger is not a point. */
     private val touchSamples = listOf(0.5f to 0.5f, 0.15f to 0.25f, 0.85f to 0.25f, 0.15f to 0.75f, 0.85f to 0.75f)
@@ -138,8 +144,8 @@ class SearchDropdownKeyboardTest {
 
         // The panel does not fit in 360 dp, so showing the bottom row needed a scroll: Latitude has gone up past the top.
         assertTrue("the panel scrolled (Latitude ${latitudeOffsetFromTop()} from its top)", latitudeOffsetFromTop() < Spacing.lg)
-        assertEquals("Search sits just above the panel's bottom", Spacing.lg.value, bottomRowGapToBottom(SEARCH_DROPDOWN_SEARCH_TAG).value, 0.5f)
-        assertEquals("Set on map sits just above the panel's bottom", Spacing.lg.value, bottomRowGapToBottom(SEARCH_DROPDOWN_SET_ON_MAP_TAG).value, 0.5f)
+        assertEquals("Search sits just above the panel's bottom", SCROLLED_TO_END_GAP.value, bottomRowGapToBottom(SEARCH_DROPDOWN_SEARCH_TAG).value, 0.5f)
+        assertEquals("Set on map sits just above the panel's bottom", SCROLLED_TO_END_GAP.value, bottomRowGapToBottom(SEARCH_DROPDOWN_SET_ON_MAP_TAG).value, 0.5f)
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_SET_ON_MAP_TAG).assertIsDisplayed()
 
@@ -158,7 +164,7 @@ class SearchDropdownKeyboardTest {
     fun `T3b guard once the user drags the dropdown back up, later shrinks leave it where they put it`() {
         setDropdown()
         shrinkTo(360)
-        assertEquals("the shrink lifted the bottom row first", Spacing.lg.value, bottomRowGapToBottom(SEARCH_DROPDOWN_SEARCH_TAG).value, 0.5f)
+        assertEquals("the shrink lifted the bottom row first", SCROLLED_TO_END_GAP.value, bottomRowGapToBottom(SEARCH_DROPDOWN_SEARCH_TAG).value, 0.5f)
 
         userDragsBackToTop()
         assertEquals("the user's drag took it back to its top", Spacing.lg.value, latitudeOffsetFromTop().value, 0.5f)

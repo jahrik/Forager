@@ -1266,7 +1266,9 @@ fun AvailabilityScreen(
         }
     }
 
-    LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth, uiState.taxonFilter) {
+    // uiState.searchSerial (RECORD -723): a search run again with the same region, month and filter clears the
+    // sightings too, and must fetch them again; see that field's doc comment.
+    LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth, uiState.taxonFilter, uiState.searchSerial) {
         if (selectedTab == ResultsTab.MAP) onMapTabSelected()
         if (selectedTab == ResultsTab.SEASONAL) onSeasonalTabSelected()
     }

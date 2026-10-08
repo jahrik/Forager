@@ -840,7 +840,9 @@ class AvailabilityViewModel(
         // A new search invalidates any sightings loaded for a previous region/month/filter.
         loadedSightingsQuery = null
         _uiState.update {
-            it.copy(sightings = emptyList(), sightingsErrorMessage = null)
+            // searchSerial: so the screen fetches the sightings again even when this search is the one
+            // already showing (RECORD -723; see AvailabilityUiState.searchSerial).
+            it.copy(sightings = emptyList(), sightingsErrorMessage = null, searchSerial = it.searchSerial + 1)
         }
 
         // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.
