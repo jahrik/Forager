@@ -120,7 +120,8 @@ abstract class StripRealHeightClearanceTests(private val rotation: Int, private 
 
     /**
      * The bubble's minY. A card opens above its glyph unless that would put its top above minY, when it opens below. So the
-     * glyph is placed where its card, opened above, would have its top 9 dp above the strip's bottom: under the old one-line
+     * glyph is placed where its card, opened above, would have its top 3 dp above the strip's bottom (the card's layout box
+     * starts about 12 dp above the card itself, measured: a top 9 dp up already fell under the old one-line minY): under the old one-line
      * clearance that was allowed, and the card covered the strip's lower part; under the strip's real height it opens below
      * the glyph instead. The card's height above its glyph is measured first, on a glyph in mid map.
      */
@@ -156,7 +157,7 @@ abstract class StripRealHeightClearanceTests(private val rotation: Int, private 
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(500)
         composeRule.waitForIdle()
-        placeAndOpen(strip.bottom - 9.dp + above)
+        placeAndOpen(strip.bottom - 3.dp + above)
         assertClearOfStrip("the bubble's card", tag(MAP_BUBBLE_TAG), strip)
     }
 
