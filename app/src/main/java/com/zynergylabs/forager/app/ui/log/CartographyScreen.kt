@@ -34,6 +34,7 @@ import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.ui.motion.PageSlide
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -384,11 +385,20 @@ internal fun CartographyScreen(
     // draft is open the entry's handler above is the only one enabled here.
     var draftsListOpen by rememberSaveable { mutableStateOf(false) }
 
+    // Motion Part 3 (scout J7): whether the open entry's editor has its album picker open. Held here, one per open entry as the
+    // editor held it (`remember(entry.id)`), so the picker can be this screen's own page.
+    val entryPullingPhotoState = remember(editingEntry?.id) { mutableStateOf(false) }
+    var entryPullingPhoto by entryPullingPhotoState
+
     // The open entry's report or editor: drawn in place of the list, or, with a slot, in the wide
     // tree's right side. One definition for both, so the two can not drift.
-    val entryDetail: @Composable (Modifier) -> Unit = { contentModifier ->
-        if (editingEntry != null) {
-            if (mode == CartographyEntryMode.EDIT) {
+    //
+    // Motion Part 3: drawn from the page it is handed (the entry and the mode it shows), not from the screen's current state, so
+    // a report or editor sliding out after its entry has closed still draws (motion/PageSlide.kt). The parameter is named
+    // editingEntry on purpose, over the screen's own value, so every line below reads the page's entry.
+    val entryDetail: @Composable (CartographyEntry, CartographyEntryMode, Modifier) -> Unit = { editingEntry, pageMode, contentModifier ->
+        run {
+            if (pageMode == CartographyEntryMode.EDIT) {
                 CartographyEntryEditScreen(
                     entry = editingEntry,
                     candidates = uiState.candidatesForEditingEntry,
@@ -421,6 +431,9 @@ internal fun CartographyScreen(
                     onBack = ::closeEntryByUser,
                     modifier = contentModifier,
                     backEnabled = backEnabled,
+                    // Motion Part 3 (scout J7): the album picker is this screen's own page, sliding in over the editor.
+                    pullingPhotoState = entryPullingPhotoState,
+                    drawsPhotoPicker = false,
                 )
             } else {
                 CartographyEntryReportScreen(
@@ -446,31 +459,52 @@ internal fun CartographyScreen(
             }
         }
     }
-    if (editingEntry != null) {
-        ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier -> entryDetail(contentModifier) }
-        return
-    }
-    if (uiState.isLoadingCandidates) {
-        ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
-            Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
-        return
-    }
-
     // The list is where a closed draft returns to only while drafts remain (the option as the owner
     // was offered it: "return to the list while drafts remain"). Finishing the last one leaves no
     // list to return to, so the flag is dropped and the screen lands on Entries; dropping it, rather
     // than only hiding the list, keeps a later new draft from reopening a list nobody asked for.
+    // Runs only at this screen's top level (no entry open, nothing loading), where it ran before motion Part 3 moved the
+    // branches below into pages.
     val drafts = uiState.draftEntries
-    LaunchedEffect(draftsListOpen, drafts.isEmpty()) {
-        if (draftsListOpen && drafts.isEmpty()) draftsListOpen = false
+    val atTopLevel = editingEntry == null && !uiState.isLoadingCandidates
+    LaunchedEffect(draftsListOpen, drafts.isEmpty(), atTopLevel) {
+        if (atTopLevel && draftsListOpen && drafts.isEmpty()) draftsListOpen = false
     }
     val showDraftsList = draftsListOpen && drafts.isNotEmpty()
-    BackHandler(enabled = backEnabled && showDraftsList) { draftsListOpen = false }
-    if (showDraftsList) {
-        ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
+
+    // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout J3, J4): Entries, the drafts list, and an
+    // open entry's report and editor are a stack of pages. An opened page slides in from the right over the one beneath, and
+    // Back (or the arrow) slides it out to the right, uncovering it (motion/PageSlide.kt). Each branch is the one this screen
+    // drew before, in the same order of precedence; their Back handlers moved into their pages, so each is composed only while
+    // its page is the one showing, as before.
+    val page: EntriesPage = when {
+        editingEntry != null && mode == CartographyEntryMode.EDIT && entryPullingPhoto -> EntriesPage.PullPhoto(editingEntry)
+        editingEntry != null -> EntriesPage.Entry(editingEntry, mode)
+        uiState.isLoadingCandidates -> EntriesPage.Loading
+        showDraftsList -> EntriesPage.Drafts
+        else -> EntriesPage.Home
+    }
+    // The editor's "+ Add a photo from the Album" picker (scout J7), as a page over the editor. Its Back step closes it, as the
+    // editor's own handler did when the editor drew it (entry-photo-acquisition dispatch, Item 3); composed only while it is the
+    // page showing, after this screen's entry handler, so it wins.
+    val pullPhotoPage: @Composable () -> Unit = {
+        BackHandler(enabled = backEnabled) { entryPullingPhoto = false }
+        ShortWindowFrame(shortWindowHeader, action = null, modifier = Modifier) { contentModifier ->
+            PullPhotoPickerScreen(
+                photos = galleryPhotos,
+                onPhotoSelected = { photo -> onToggleKeptPhoto(photo.id); entryPullingPhoto = false },
+                onOpenCamera = onOpenCameraForEntry,
+                onPhotoAcquired = onAcquirePhotoForEntry,
+                onAcquisitionInFlightChanged = { inFlight -> photoAcquisitionInFlight = inFlight },
+                modifier = contentModifier.fillMaxSize(),
+            )
+        }
+    }
+
+    // The drafts list (journal redesign J2, T2), with its own Back step: composed only while it is the page showing.
+    val draftsPage: @Composable () -> Unit = {
+        BackHandler(enabled = backEnabled) { draftsListOpen = false }
+        ShortWindowFrame(shortWindowHeader, action = null, modifier = Modifier) { contentModifier ->
             DraftsListScreen(
                 drafts = uiState.draftEntries,
                 isLoading = uiState.isLoadingEntries,
@@ -489,9 +523,11 @@ internal fun CartographyScreen(
                 sideways = shortWindow,
             )
         }
-        return
     }
 
+    // Entries' own top level: the timeline or the album, with the toolbar and the drafts banner. Composed only while it is the
+    // page showing, as it was only reached at this top level before.
+    val entriesHome: @Composable () -> Unit = {
     // Journal redesign J2, T3 (plan J3): the Album sub-tab became a view of Entries, switched by
     // the toolbar's toggle, and with Drafts already a banner (T2) the SecondaryTabRow is gone. The
     // view lives in JournalScreenState (entriesViewState), so it survives a tab change and a
@@ -517,7 +553,7 @@ internal fun CartographyScreen(
     val secondRowScroll = rememberHideOnScrollState()
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .testTag(ENTRIES_HOME_TAG)
             .then(if (shortWindow) Modifier.nestedScroll(secondRowScroll.connection) else Modifier),
@@ -615,6 +651,28 @@ internal fun CartographyScreen(
             }
         }
     }
+    }
+
+    PageSlide(
+        targetState = page,
+        depthOf = { it.depth },
+        contentKey = { it.kind },
+        modifier = modifier.fillMaxSize(),
+    ) { shown ->
+        when (shown) {
+            is EntriesPage.Entry -> ShortWindowFrame(shortWindowHeader, action = null, modifier = Modifier) { contentModifier ->
+                entryDetail(shown.entry, shown.mode, contentModifier)
+            }
+            EntriesPage.Loading -> ShortWindowFrame(shortWindowHeader, action = null, modifier = Modifier) { contentModifier ->
+                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is EntriesPage.PullPhoto -> pullPhotoPage()
+            EntriesPage.Drafts -> draftsPage()
+            EntriesPage.Home -> entriesHome()
+        }
+    }
 }
 
 /**
@@ -654,6 +712,46 @@ private fun ShortWindowFrame(
         content(Modifier.weight(1f).fillMaxWidth())
     }
 }
+
+/**
+ * A page of [CartographyScreen] (motion Part 3, item 1): Entries' own top level, the drafts list, the spinner while a new entry's
+ * candidates load, an open entry in its report or editor, and the editor's album picker. [depth] is how far in it is (a deeper
+ * page slides in over the current one; a shallower one is uncovered by the current one sliding out), and [kind] is which page it
+ * is: the spinner and the editor are one page, so a new entry's editor replaces its spinner in place, and an entry's fields
+ * changing, or one open entry swapped for another in its report, updates the page in place with no slide.
+ */
+internal sealed interface EntriesPage {
+    val depth: Int
+    val kind: String
+
+    data object Home : EntriesPage {
+        override val depth = 0
+        override val kind = "home"
+    }
+
+    data object Drafts : EntriesPage {
+        override val depth = 1
+        override val kind = "drafts"
+    }
+
+    data object Loading : EntriesPage {
+        override val depth = EDITOR_DEPTH
+        override val kind = EDITOR_KIND
+    }
+
+    data class Entry(val entry: CartographyEntry, val mode: CartographyEntryMode) : EntriesPage {
+        override val depth = if (mode == CartographyEntryMode.EDIT) EDITOR_DEPTH else 2
+        override val kind = if (mode == CartographyEntryMode.EDIT) EDITOR_KIND else "report"
+    }
+
+    data class PullPhoto(val entry: CartographyEntry) : EntriesPage {
+        override val depth = EDITOR_DEPTH + 1
+        override val kind = "pull-photo"
+    }
+}
+
+private const val EDITOR_DEPTH = 3
+private const val EDITOR_KIND = "editor"
 
 /** Which screen [CartographyScreen] shows for [CartographyUiState.editingEntry] — Journal Stage 2c. See this file's own doc comment, "Tap opens the view, not the editor," for the full reasoning. */
 internal enum class CartographyEntryMode { VIEW, EDIT }
