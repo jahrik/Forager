@@ -633,18 +633,27 @@ private fun CompassElevationStripContent(
                             val coordinatesText = coordinatesStripText(lastLocation, showDecimalDegrees)
                             BoxWithConstraints(contentAlignment = Alignment.Center) {
                                 val density = LocalDensity.current
-                                val shown = with(density) {
-                                    fun widthOf(text: String, style: TextStyle) = readoutMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
-                                    fun labelled(label: String?, text: String) = (label?.let { widthOf(it, readoutLabelStyle) + Spacing.xs.roundToPx() } ?: 0) + widthOf(text, readoutStyle)
-                                    stripReadoutsShown(
-                                        availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE,
-                                        coordinatesPx = widthOf(coordinatesText, readoutStyle),
-                                        headingPx = labelled(headingLabel, headingText),
-                                        elevationPx = labelled(elevationLabel, elevationText),
-                                        separatorPx = widthOf("·", readoutLabelStyle) + 2 * Spacing.sm.roundToPx(),
-                                        minimumPx = STRIP_READOUT_MIN_WIDTH.roundToPx(),
-                                    )
-                                }
+                                fun widthOf(text: String, style: TextStyle) = readoutMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+                                fun labelled(label: String?, text: String) =
+                                    (label?.let { widthOf(it, readoutLabelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0) + widthOf(text, readoutStyle)
+                                val headingPx = labelled(headingLabel, headingText)
+                                val elevationPx = labelled(elevationLabel, elevationText)
+                                val availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE
+                                val coordinatesPx = widthOf(coordinatesText, readoutStyle)
+                                val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.sm.roundToPx() }
+                                val shown = stripReadoutsShown(
+                                    availablePx = availablePx,
+                                    coordinatesPx = coordinatesPx,
+                                    headingPx = headingPx,
+                                    elevationPx = elevationPx,
+                                    separatorPx = separatorPx,
+                                    minimumPx = with(density) { STRIP_READOUT_MIN_WIDTH.roundToPx() },
+                                )
+                                // Everything whole: no weights at all, so a rounded share can never cut a readout that fits.
+                                val allWhole = availablePx.toLong() - coordinatesPx - 2L * separatorPx >= headingPx.toLong() + elevationPx
+                                // Weighted by their own widths, so the room left after the coordinates is shared in proportion:
+                                // whole when it is enough, each shortened alike when it is not (equal weights would cut the
+                                // longer one while the shorter left part of its half unused).
                             Row(
                                 // Landscape B2 (S4): no weight when content-width.
                                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
@@ -662,7 +671,7 @@ private fun CompassElevationStripContent(
                                 // reading after its short label, as on the navigation display (LabelledReadout); a status
                                 // ("Compass unavailable", "Elevation unavailable") names itself and has none.
                                 if (shown.heading) {
-                                    Box(modifier = Modifier.weight(1f, fill = false)) {
+                                    Box(modifier = if (allWhole) Modifier else Modifier.weight(headingPx.coerceAtLeast(1).toFloat(), fill = false)) {
                                         LabelledReadout(label = headingLabel) {
                                             WordSwap(text = headingText) { shownText ->
                                                 Text(
@@ -682,7 +691,7 @@ private fun CompassElevationStripContent(
                                 }
                                 // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
                                 if (shown.elevation) {
-                                    Box(modifier = Modifier.weight(1f, fill = false)) {
+                                    Box(modifier = if (allWhole) Modifier else Modifier.weight(elevationPx.coerceAtLeast(1).toFloat(), fill = false)) {
                                         LabelledReadout(label = elevationLabel) {
                                             WordSwap(text = elevationText) { shownText ->
                                                 Text(
