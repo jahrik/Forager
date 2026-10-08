@@ -58,11 +58,13 @@ fun <T> StateCrossfade(
         label = "stateCrossfade",
     ) { shown ->
         val leaving = contentKey(shown) != targetKey
-        Box(
-            modifier = Modifier
-                .leavingTakesNoTouches(leaving)
-                .then(if (leaving) Modifier.clearAndSetSemantics { stateLeaving = true } else Modifier),
-            contentAlignment = contentAlignment,
-        ) { content(shown) }
+        NoTouchTargetExpansion(active = leaving) {
+            Box(
+                modifier = Modifier
+                    .leavingTakesNoTouches(leaving)
+                    .then(if (leaving) Modifier.clearAndSetSemantics { stateLeaving = true } else Modifier),
+                contentAlignment = contentAlignment,
+            ) { content(shown) }
+        }
     }
 }
