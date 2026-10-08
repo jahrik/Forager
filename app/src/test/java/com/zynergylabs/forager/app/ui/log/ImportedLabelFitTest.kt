@@ -10,7 +10,8 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
@@ -118,7 +119,8 @@ class ImportedLabelFitTest {
         val box = with(composeRule.density) { label.fetchSemanticsNode().boundsInRoot.width.toDp() }
         val needs = with(composeRule.density) { layout.multiParagraph.maxIntrinsicWidth.toDp() }
         val bounds = label.getUnclippedBoundsInRoot()
-        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        // The sheet is its own window, so there are two roots; both span the screen.
+        val root = composeRule.onAllNodes(isRoot()).onFirst().getUnclippedBoundsInRoot()
         println("MEASURED $scale label: box $box, needs $needs, lines ${layout.lineCount}, bounds $bounds, root right ${root.right}")
         assertEquals("$scale: the label is one line", 1, layout.lineCount)
         assertFalse("$scale: the label is not ellipsised", layout.isLineEllipsized(0))

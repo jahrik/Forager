@@ -56,11 +56,21 @@ class AndroidAlertDelivery internal constructor(
      * The ringer, read as each vibration is issued, to record whether Android will play it
      * (dispatch 2026-09-28-685, fix 3). The trip-start warning's own seam, reused; faked in tests.
      */
-    private val audibility: AlertAudibility = AndroidAlertAudibility(context),
+    private val audibility: AlertAudibility,
     /** Do Not Disturb, read with the ringer (dispatch 2026-09-28-685, Amendment 1, RECORD -694). Faked in tests. */
-    private val doNotDisturb: DoNotDisturbSource = AndroidDoNotDisturbSource(context),
+    private val doNotDisturb: DoNotDisturbSource,
 ) : AlertDelivery {
     constructor(context: Context) : this(context, ::postNotificationFor, ::vibrateForAlert)
+
+    /**
+     * The two seams tests replace most, with the platform's ringer and Do Not Disturb. Its own constructor, not defaults on
+     * the one above, so a call ending in a trailing lambda still means the vibration (dispatch 2026-09-28-685).
+     */
+    internal constructor(
+        context: Context,
+        postNotification: (Context, Alert) -> Boolean,
+        vibrate: (Context, Boolean) -> Unit,
+    ) : this(context, postNotification, vibrate, AndroidAlertAudibility(context), AndroidDoNotDisturbSource(context))
 
     private val appContext = context.applicationContext
 
