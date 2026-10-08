@@ -259,16 +259,27 @@ class AvailabilityScreenNavigationWordsTest {
         assertWhole("strip elevation", node(COMPASS_STRIP_ELEVATION_TAG))
     }
 
+    /**
+     * Changed by RECORD -713 (the owner: "Drop labels, then values (Recommended)"). It asserted the labelled line whole at 360 dp,
+     * "Facing" and "Alt" included. Since Back by's three-dot button (dispatch 2026-09-28-645) takes 36 dp of the strip, the
+     * labelled line no longer fits there, and the owner's rule drops the labels before any value. What it asserts now: no
+     * label is drawn, each value shown is whole, and the coordinates are whole. Its old name was "at 360 dp the strip's
+     * labelled line fits whole".
+     */
     @Test
-    fun `at 360 dp the strip's labelled line fits whole`() {
+    fun `at 360 dp the strip drops its labels first and keeps its values and coordinates whole`() {
         setScreen(facing = 315f, route = null, navigating = false)
 
         assertEquals("315° NW", textOf(COMPASS_STRIP_HEADING_TAG))
         assertEquals("9843 ft", textOf(COMPASS_STRIP_ELEVATION_TAG))
         assertWhole("strip heading", node(COMPASS_STRIP_HEADING_TAG))
         assertWhole("strip elevation", node(COMPASS_STRIP_ELEVATION_TAG))
-        assertWhole("strip heading label", label(STRIP_TAG, HEADING_LABEL))
-        assertWhole("strip altitude label", label(STRIP_TAG, ALTITUDE_LABEL))
+        for (dropped in listOf(HEADING_LABEL, ALTITUDE_LABEL)) {
+            assertTrue(
+                "the label <$dropped> is dropped before any value",
+                composeRule.onAllNodes(hasTestTag(NAVIGATION_LABEL_TAG) and hasText(dropped) and hasAnyAncestor(hasTestTag(STRIP_TAG)), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+            )
+        }
         assertWhole("strip coordinates", composeRule.onNode(hasText(coordinatesStripText(LatLng(fix.lat, fix.lng), false)) and hasAnyAncestor(hasTestTag(STRIP_TAG)), useUnmergedTree = true))
     }
 

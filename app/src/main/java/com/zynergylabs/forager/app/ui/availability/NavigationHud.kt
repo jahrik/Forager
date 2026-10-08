@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -334,9 +335,22 @@ internal fun NavigationHud(
                         }
                     }
                     // Distance and status.
-                    Column(modifier = Modifier.weight(1f)) {
+                    BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                    val columnPx = constraints.maxWidth
+                    Column {
                         val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
                         val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
+                        val statusStyle = MaterialTheme.typography.labelMedium
+                        val lineMeasurer = rememberTextMeasurer()
+                        fun widthOf(text: String, style: TextStyle) = lineMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+                        val gapPx = with(LocalDensity.current) { Spacing.xs.roundToPx() }
+                        // RECORD -713 (the owner: "Move it into the status line (Recommended)"): when the first row cannot fit the
+                        // figure and what it measures, "by trail" or "straight" moves to the start of the status line ("By trail ·
+                        // Approaching"), and a word in the large slot that does not fit there ("Unable to calculate route") takes the
+                        // status line's size. Nothing is added below, so the row stays the X's 48 dp.
+                        val distancePx = widthOf(readout.distanceText, distanceStyle)
+                        val wordShrunk = readout.distanceText == ROUTE_UNAVAILABLE_TEXT && distancePx > columnPx
+                        val kindInStatus = readout.distanceKindText?.let { kind -> distancePx + gapPx + widthOf(kind, statusStyle) > columnPx } ?: false
                         // Dispatch -677 (the owner, RECORD -656: "0.4 mi by trail" or "0.3 mi straight"; "Numbers stay big and
                         // instant"): the figure stays in its large type and is measured first, so it is never the one cut short; what
                         // it measures follows it in the status line's type, on its baseline, in the width left.
@@ -345,7 +359,7 @@ internal fun NavigationHud(
                             WordSwap(text = readout.distanceText, modifier = Modifier.alignByBaseline()) { shown ->
                                 Text(
                                     text = shown,
-                                    style = distanceStyle,
+                                    style = if (wordShrunk) statusStyle else distanceStyle,
                                     color = distanceColor,
                                     maxLines = 1,
                                     softWrap = false,
@@ -353,19 +367,7 @@ internal fun NavigationHud(
                                     modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
                                 )
                             }
-                            readout.distanceKindText?.let { kind ->
-                                WordSwap(text = kind, modifier = Modifier.alignByBaseline()) { shown ->
-                                    Text(
-                                        text = shown,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = distanceColor,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_KIND_TAG),
-                                    )
-                                }
-                            }
+                            if (!kindInStatus) readout.distanceKindText?.let { kind -> DistanceKindText(kind, distanceColor, Modifier.alignByBaseline()) }
                         }
                         if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
                         // The fix age ticks every second: numbers, so it changes at once.
@@ -373,23 +375,27 @@ internal fun NavigationHud(
                         // (Recommended)"): a status with a shorter form shows it when the whole one does not fit this width.
                         // Either way the line is one line and ends in "…" when it still overflows ("Stay beside the search
                         // bar, '…' (Recommended)"): it used to wrap at a word and draw only the first ("No", S22, font 2.0).
-                        val statusStyle = MaterialTheme.typography.labelMedium
-                        val statusMeasurer = rememberTextMeasurer()
-                        BoxWithConstraints {
-                            val status = statusTextThatFits(readout, constraints.maxWidth) { text ->
-                                statusMeasurer.measure(text, statusStyle, maxLines = 1, softWrap = false).size.width
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            val kindLead = if (kindInStatus) readout.distanceKindText?.replaceFirstChar { it.uppercase() } else null
+                            if (kindLead != null) {
+                                DistanceKindText(kindLead, distanceColor)
+                                Text("·", style = statusStyle)
                             }
-                            WordSwap(text = status) { shown ->
-                                Text(
-                                    text = shown,
-                                    style = statusStyle,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
-                                )
+                            BoxWithConstraints {
+                                val status = statusTextThatFits(readout, constraints.maxWidth) { text -> widthOf(text, statusStyle) }
+                                WordSwap(text = status) { shown ->
+                                    Text(
+                                        text = shown,
+                                        style = statusStyle,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
+                                    )
+                                }
                             }
                         }
+                    }
                     }
                     if (quickSettings != null) MapQuickSettingsButton(quickSettings)
                     BouncingIconButton(
@@ -408,8 +414,8 @@ internal fun NavigationHud(
                     // Dispatch 2026-09-28-685: the planner's extension of Amendment 2 (RECORD -699) to this row. The owner's
                     // "Coordinates take priority (Recommended)" was asked about the strip; its reason, that the coordinates are
                     // what you read out to get help, holds here too. So, as on the strip (readoutsKeptBeside): the coordinates
-                    // are measured first and stay whole, and facing and altitude share what is left in proportion to their
-                    // widths, shortening with "…", then dropping, facing first, below STRIP_READOUT_MIN_WIDTH each.
+                    // are measured first and stay whole. Since RECORD -713, facing and altitude drop their labels first, then
+                    // facing goes, then altitude; neither is shortened with "…" any more.
                     val rowStyle = MaterialTheme.typography.labelMedium
                     val rowMeasurer = rememberTextMeasurer()
                     val headingLabel = HEADING_LABEL.takeIf { readout.headingIsReading }
@@ -417,38 +423,31 @@ internal fun NavigationHud(
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val density = LocalDensity.current
                         fun widthOf(text: String) = rowMeasurer.measure(text, rowStyle, maxLines = 1, softWrap = false).size.width
-                        fun labelled(label: String?, text: String) = (label?.let { widthOf(it) + with(density) { Spacing.xs.roundToPx() } } ?: 0) + widthOf(text)
-                        val headingPx = labelled(headingLabel, readout.headingText)
-                        val elevationPx = readout.elevationText?.let { labelled(elevationLabel, it) }
+                        fun labelPx(label: String?) = label?.let { widthOf(it) + with(density) { Spacing.xs.roundToPx() } } ?: 0
                         val coordinatesPx = readout.coordinatesText?.let { widthOf(it) }
                         val separatorPx = widthOf("·") + with(density) { 2 * Spacing.sm.roundToPx() }
-                        val readoutsPx = listOfNotNull(headingPx, elevationPx)
-                        val availablePx = constraints.maxWidth
-                        // With no coordinates there is nothing to keep whole, and the row is as it was.
-                        val kept = if (coordinatesPx == null) {
-                            List(readoutsPx.size) { true }
-                        } else {
-                            readoutsKeptBeside(availablePx, coordinatesPx, readoutsPx, separatorPx, with(density) { STRIP_READOUT_MIN_WIDTH.roundToPx() })
-                        }
-                        val headingShown = kept[0]
-                        val elevationShown = elevationPx != null && kept[1]
-                        val keptPx = listOfNotNull(headingPx.takeIf { headingShown }, elevationPx?.takeIf { elevationShown })
-                        val room = availablePx.toLong() - (coordinatesPx ?: 0) - (if (coordinatesPx != null) keptPx.size else keptPx.size - 1).coerceAtLeast(0).toLong() * separatorPx
-                        val allWhole = coordinatesPx == null || room >= keptPx.sumOf { it.toLong() }
-                        // Each readout's cap when they cannot all be whole: its share of the room, in proportion to its width.
-                        fun capOf(px: Int): Modifier = if (allWhole) {
-                            Modifier
-                        } else {
-                            Modifier.widthIn(max = with(density) { (room.coerceAtLeast(0L) * px / keptPx.sum().coerceAtLeast(1)).toInt().toDp() })
-                        }
+                        // RECORD -713 (the owner: "Drop labels, then values (Recommended)"), as on the strip: labels go first,
+                        // then facing, then altitude; whatever is shown is whole (readoutsFitBeside).
+                        val labelsPx = listOfNotNull(labelPx(headingLabel), readout.elevationText?.let { labelPx(elevationLabel) })
+                        val valuesPx = listOfNotNull(widthOf(readout.headingText), readout.elevationText?.let { widthOf(it) })
+                        val fit = readoutsFitBeside(
+                            availablePx = constraints.maxWidth,
+                            coordinatesPx = coordinatesPx ?: 0,
+                            labelsPx = labelsPx,
+                            valuesPx = valuesPx,
+                            separatorPx = separatorPx,
+                            withCoordinates = coordinatesPx != null,
+                        )
+                        val headingShown = fit.shown[0]
+                        val elevationShown = readout.elevationText != null && fit.shown[1]
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
                         if (headingShown) {
-                            Box(modifier = capOf(headingPx)) {
-                                LabelledReadout(label = headingLabel) {
+                            Box {
+                                LabelledReadout(label = headingLabel.takeIf { fit.labels }) {
                                     // Motion Part 2, item 6 (dispatch 2026-09-28-666; the owner, RECORD -651: "Numbers instant, words fade"):
                                     // each line here crossfades when its words change and changes at once when only its numbers do (WordSwap).
                                     WordSwap(text = readout.headingText) { shown ->
@@ -464,10 +463,10 @@ internal fun NavigationHud(
                                 }
                             }
                         }
-                        if (elevationShown && readout.elevationText != null && elevationPx != null) {
+                        if (elevationShown && readout.elevationText != null) {
                             if (headingShown) Text("·", style = rowStyle)
-                            Box(modifier = capOf(elevationPx)) {
-                                LabelledReadout(label = elevationLabel) {
+                            Box {
+                                LabelledReadout(label = elevationLabel.takeIf { fit.labels }) {
                                     Text(
                                         text = readout.elevationText,
                                         style = rowStyle,
@@ -569,6 +568,21 @@ internal fun LabelledReadout(label: String?, reading: @Composable () -> Unit) {
             )
         }
         reading()
+    }
+}
+
+/** What the large figure measures, "by trail" or "straight", in the status line's type (dispatch -677; RECORD -713). */
+@Composable
+private fun DistanceKindText(kind: String, color: Color, modifier: Modifier = Modifier) {
+    WordSwap(text = kind, modifier = modifier) { shown ->
+        Text(
+            text = shown,
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_KIND_TAG),
+        )
     }
 }
 
