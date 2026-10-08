@@ -156,8 +156,8 @@ class AvailabilityScreenReturnRouteTest {
         setScreen(ReturnRoute.Ahead(east, 1_500.0))
 
         assertEquals("0.9 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Straight line 0.7 mi", textOfTag(NAVIGATION_HUD_STATUS_TAG))
-        assertEquals("Turn 45°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("0.7 mi straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("Right · 45°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     @Test
@@ -165,7 +165,7 @@ class AvailabilityScreenReturnRouteTest {
         setScreen(ReturnRoute.Pending)
 
         assertEquals("—", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Straight line 0.7 mi", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("0.7 mi straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
@@ -174,7 +174,7 @@ class AvailabilityScreenReturnRouteTest {
         setScreen(ReturnRoute.Unavailable(canRetry = false))
 
         assertEquals("Unable to calculate route", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Straight line 0.7 mi", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("0.7 mi straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 

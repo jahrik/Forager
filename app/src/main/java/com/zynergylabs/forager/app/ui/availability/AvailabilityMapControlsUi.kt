@@ -114,6 +114,9 @@ internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"
 /** The compass strip's whole content while there is no fix — one message, [NO_FIX_MESSAGE], in place of three fragments. */
 internal const val COMPASS_STRIP_NO_FIX_TAG = "compass-strip-no-fix"
 
+/** The compass strip's elevation reading (dispatch 2026-09-28-677), its own node beside its label. */
+internal const val COMPASS_STRIP_ELEVATION_TAG = "compass-strip-elevation"
+
 /**
  * The two Trailhead/Return controls — record start/stop and return-to-vehicle — anchored together
  * below [MapIconBar], per this dispatch's own Part B: they used to be split across a
@@ -541,13 +544,16 @@ private fun CompassElevationStripContent(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
                             ) {
                                 // Motion Part 2, item 6: words crossfade, numbers change at once (WordSwap).
-                                WordSwap(text = stripHeadingText(heading)) { shown ->
-                                    Text(
-                                        text = shown,
-                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                                        maxLines = 1,
-                                        modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                                    )
+                                // Dispatch 2026-09-28-677: labelled, as on the navigation display (LabelledReadout).
+                                LabelledReadout(label = stripHeadingLabel(heading)) {
+                                    WordSwap(text = stripHeadingText(heading)) { shown ->
+                                        Text(
+                                            text = shown,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                            maxLines = 1,
+                                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                                        )
+                                    }
                                 }
                                 Text("·", style = MaterialTheme.typography.labelMedium)
                                 WordSwap(text = lastNote.stripText, modifier = Modifier.weight(1f, fill = false)) { shown ->
@@ -601,24 +607,32 @@ private fun CompassElevationStripContent(
                                 // "needs a fix" wording is gone, replaced by NO_FIX_MESSAGE above.
                                 // Motion Part 2, item 6: its words (the compass point, or a status) crossfade; its
                                 // degrees change at once (WordSwap). The elevation's likewise.
-                                WordSwap(text = stripHeadingText(heading)) { shown ->
-                                    Text(
-                                        text = shown,
-                                        // Landscape B2 (S5): tabular figures, so the strip's width holds
-                                        // steady as the digits change. Both orientations; labelMedium kept.
-                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                                        maxLines = 1,
-                                        modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                                    )
+                                // Dispatch 2026-09-28-677 (the owner, RECORD -656: "heading and altitude labelled"): each
+                                // reading after its short label, as on the navigation display (LabelledReadout); a status
+                                // ("Compass unavailable", "Elevation unavailable") names itself and has none.
+                                LabelledReadout(label = stripHeadingLabel(heading)) {
+                                    WordSwap(text = stripHeadingText(heading)) { shown ->
+                                        Text(
+                                            text = shown,
+                                            // Landscape B2 (S5): tabular figures, so the strip's width holds
+                                            // steady as the digits change. Both orientations; labelMedium kept.
+                                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                            maxLines = 1,
+                                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                                        )
+                                    }
                                 }
                                 Text("·", style = MaterialTheme.typography.labelMedium)
                                 // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
-                                WordSwap(text = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: "Elevation unavailable") { shown ->
-                                    Text(
-                                        text = shown,
-                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                                        maxLines = 1,
-                                    )
+                                LabelledReadout(label = ALTITUDE_LABEL.takeIf { elevationMeters != null }) {
+                                    WordSwap(text = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT) { shown ->
+                                        Text(
+                                            text = shown,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                            maxLines = 1,
+                                            modifier = Modifier.testTag(COMPASS_STRIP_ELEVATION_TAG),
+                                        )
+                                    }
                                 }
                                 Text("·", style = MaterialTheme.typography.labelMedium)
                                 Text(
@@ -906,7 +920,13 @@ private fun stripHeadingText(heading: TrueHeadingReading): String = when (headin
     // calibrated sensor, and the remedies differ — telling someone to
     // calibrate beside a truck is wrong advice confidently given.
     TrueHeadingReading.Unreliable -> "Compass unreliable"
-    TrueHeadingReading.NeedsFix -> "—"
+    TrueHeadingReading.NeedsFix -> NO_HEADING_TEXT
+}
+
+/** Dispatch 2026-09-28-677: the heading's label on the strip, for a reading only (a value, or the dash); a status has none. */
+private fun stripHeadingLabel(heading: TrueHeadingReading): String? = when (heading) {
+    is TrueHeadingReading.Available, TrueHeadingReading.NeedsFix -> HEADING_LABEL
+    TrueHeadingReading.NoSensor, TrueHeadingReading.Unreliable -> null
 }
 
 /** What the compass strip's readout shows (motion Part 2, Amendment 1, item 3): the key its crossfade runs on. */

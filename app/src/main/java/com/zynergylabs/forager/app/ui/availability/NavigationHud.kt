@@ -67,6 +67,8 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy
 import com.zynergylabs.forager.app.domain.relativeBearingDegrees
+import com.zynergylabs.forager.app.domain.DistanceKind
+import com.zynergylabs.forager.app.domain.turnText
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
@@ -89,6 +91,9 @@ internal const val NAVIGATION_HUD_TARGET_TAG = "navigation-hud-target"
 internal const val NAVIGATION_HUD_ELEVATION_TAG = "navigation-hud-elevation"
 internal const val NAVIGATION_HUD_COORDINATES_TAG = "navigation-hud-coordinates"
 internal const val NAVIGATION_HUD_RETRY_TAG = "navigation-hud-retry"
+internal const val NAVIGATION_HUD_DISTANCE_KIND_TAG = "navigation-hud-distance-kind"
+/** Every [LabelledReadout]'s label, on the display and the strip alike: a test finds them by text within a parent. */
+internal const val NAVIGATION_LABEL_TAG = "navigation-label"
 
 /**
  * The one message the strip and the HUD both show when there is no fix. One cause, one statement —
@@ -144,6 +149,12 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   to true north relative to the way the device faces); the target compass's arrow by the
  *   bearing *relative to the heading* ([relativeBearingDegrees]) — where to turn, not an absolute
  *   bearing. Both arrows are device-relative, deliberately the same convention.
+ * - **Words and labels** (dispatch 2026-09-28-677, data part B; the owner, RECORD -656, "Plain words + labels"): the turn
+ *   under the target arrow reads "Slight left · 10°" ([turnText], bands in `domain/NavigationWords.kt`), where it read
+ *   "Turn 350°"; the large figure is followed by what it measures, "by trail" or "straight" ([DistanceKind]); the heading
+ *   and the elevation carry short labels ([HEADING_LABEL], [ALTITUDE_LABEL]). The heading moved from under the north arrow
+ *   to the second row to make room: at 360 dp a labelled heading, the longest turn words and a distance with its kind
+ *   cannot share the first row (widths in `docs/ui/2026-10-07-data-b-track-nav-report.md`).
  * - **No sensor**: the north compass says so and the target compass shows nothing — no needle and
  *   no text. It used to fall back to the absolute true bearing as text; the two-data-corrections
  *   dispatch (Part C, owner decision) withdrew that: an absolute bearing the user cannot orient to
@@ -288,26 +299,15 @@ internal fun NavigationHud(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
-                    // North compass.
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Filled.Navigation,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(COMPASS_ICON_SIZE)
-                                .rotate(readout.northArrowDegrees ?: 0f),
-                        )
-                        // Motion Part 2, item 6 (dispatch 2026-09-28-666; the owner, RECORD -651: "Numbers instant, words fade"):
-                        // each line here crossfades when its words change and changes at once when only its numbers do (WordSwap).
-                        WordSwap(text = readout.headingText, contentAlignment = Alignment.Center) { shown ->
-                            Text(
-                                text = shown,
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
-                            )
-                        }
-                    }
+                    // North compass. Dispatch 2026-09-28-677 (data part B): its heading moved to the second row, labelled; see
+                    // NavigationHudReadout.secondRowShown for why, and the report for the widths at 360 dp.
+                    Icon(
+                        imageVector = Icons.Filled.Navigation,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(COMPASS_ICON_SIZE)
+                            .rotate(readout.northArrowDegrees ?: 0f),
+                    )
                     // Target compass.
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -331,15 +331,31 @@ internal fun NavigationHud(
                     Column(modifier = Modifier.weight(1f)) {
                         val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
                         val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
-                        // The distance itself stays instant; "Arrived" and "Unable to calculate route" are words, and fade in.
-                        WordSwap(text = readout.distanceText) { shown ->
-                            Text(
-                                text = shown,
-                                style = distanceStyle,
-                                color = distanceColor,
-                                maxLines = 1,
-                                modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
-                            )
+                        // Dispatch -677 (the owner, RECORD -656: "0.4 mi by trail" or "0.3 mi straight"; "Numbers stay big and
+                        // instant"): the figure stays in its large type and is measured first, so it is never the one cut short; what
+                        // it measures follows it in the status line's type, on its baseline, in the width left.
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            // The distance itself stays instant; "Arrived" and "Unable to calculate route" are words, and fade in.
+                            WordSwap(text = readout.distanceText, modifier = Modifier.alignByBaseline()) { shown ->
+                                Text(
+                                    text = shown,
+                                    style = distanceStyle,
+                                    color = distanceColor,
+                                    maxLines = 1,
+                                    modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+                                )
+                            }
+                            readout.distanceKindText?.let { kind ->
+                                WordSwap(text = kind, modifier = Modifier.alignByBaseline()) { shown ->
+                                    Text(
+                                        text = shown,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = distanceColor,
+                                        maxLines = 1,
+                                        modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_KIND_TAG),
+                                    )
+                                }
+                            }
                         }
                         if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
                         // The fix age ticks every second: numbers, so it changes at once.
@@ -360,34 +376,54 @@ internal fun NavigationHud(
                         Icon(imageVector = Icons.Filled.Close, contentDescription = "Stop navigating")
                     }
                 }
-                // Second row: what the hidden strip was carrying that this panel was not. Present
-                // only with a fix — without one the status line above already says the one thing
-                // there is to say. The coordinates segment takes the row's remaining width as its
-                // tap band, padded to ~24dp tall; the elevation is a plain readout.
-                if (readout.coordinatesText != null) {
+                // Second row: the heading (dispatch -677: moved here from under the north arrow, with its label), then what
+                // the hidden strip was carrying that this panel was not. Present with a fix, and with none only when the
+                // heading has more to say than a dash (NavigationHudReadout.secondRowShown). The coordinates segment takes
+                // the row's remaining width as its tap band, padded to ~24dp tall; the heading and elevation are plain
+                // readouts. Its height is the coordinates' padded line, as before: the labels sit on the same line.
+                if (readout.secondRowShown) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
-                        Text(
-                            text = readout.elevationText.orEmpty(),
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_ELEVATION_TAG),
-                        )
-                        Text("·", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = readout.coordinatesText,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
-                                .padding(vertical = Spacing.xs)
-                                .testTag(NAVIGATION_HUD_COORDINATES_TAG),
-                        )
+                        LabelledReadout(label = HEADING_LABEL.takeIf { readout.headingIsReading }) {
+                            // Motion Part 2, item 6 (dispatch 2026-09-28-666; the owner, RECORD -651: "Numbers instant, words fade"):
+                            // each line here crossfades when its words change and changes at once when only its numbers do (WordSwap).
+                            WordSwap(text = readout.headingText) { shown ->
+                                Text(
+                                    text = shown,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
+                                )
+                            }
+                        }
+                        readout.elevationText?.let { elevation ->
+                            Text("·", style = MaterialTheme.typography.labelMedium)
+                            LabelledReadout(label = ALTITUDE_LABEL.takeIf { elevation != ELEVATION_UNAVAILABLE_TEXT }) {
+                                Text(
+                                    text = elevation,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    modifier = Modifier.testTag(NAVIGATION_HUD_ELEVATION_TAG),
+                                )
+                            }
+                        }
+                        readout.coordinatesText?.let { coordinates ->
+                            Text("·", style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                text = coordinates,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
+                                    .padding(vertical = Spacing.xs)
+                                    .testTag(NAVIGATION_HUD_COORDINATES_TAG),
+                            )
+                        }
                     }
                 }
                 // Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the display's sundown line fades and grows like the
@@ -439,6 +475,27 @@ internal fun NavigationHud(
                 }
             }
         }
+    }
+}
+
+/**
+ * A short label and its reading on one line, a space apart (dispatch 2026-09-28-677; the owner, RECORD -656: "heading and
+ * altitude labelled"): "Facing 123° SE", "Alt 1352 ft". [label] `null` draws the reading alone, for a status that names
+ * itself. Shared by the navigation display's second row and the compass strip, so the two label alike. The label is its own
+ * text node ([NAVIGATION_LABEL_TAG]), so the reading's node, and every test that reads it, holds the reading alone.
+ */
+@Composable
+internal fun LabelledReadout(label: String?, reading: @Composable () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                modifier = Modifier.testTag(NAVIGATION_LABEL_TAG),
+            )
+        }
+        reading()
     }
 }
 
@@ -496,7 +553,28 @@ internal data class NavigationHudReadout(
     val coordinatesText: String?,
     /** True when the large slot says the route could not be calculated and recomputing could change that: "Try again" is offered. */
     val routeRetryOffered: Boolean = false,
-)
+    /**
+     * Dispatch 2026-09-28-677 (data part B; the owner, RECORD -656: "0.4 mi by trail" or "0.3 mi straight"): what the large
+     * figure measures, written after it in smaller type; `null` when the slot holds words or a dash, or "within" a fix's
+     * circle, which already says what it is.
+     */
+    val distanceKindText: String? = null,
+    /**
+     * Dispatch -677: [headingText] is the compass's reading (a value, or the dash while it waits), so it is drawn after its
+     * label, [HEADING_LABEL]. False when [headingText] is itself a status ("Compass unavailable", the facing notices), which
+     * needs no label.
+     */
+    val headingIsReading: Boolean = false,
+) {
+    /**
+     * Dispatch -677: whether the second row is drawn. Since the heading moved there (with its label, out of the space under
+     * the north arrow, which at 360 dp could not hold a labelled heading beside the turn words and the distance), the row
+     * shows whenever there is a fix to give elevation and coordinates, as before, and also, with no fix, when the heading
+     * has something to say beside the dash: "Compass unavailable", or a facing notice. With no fix and only the dash it is
+     * not drawn, as before: the status line already carries [NO_FIX_MESSAGE], once.
+     */
+    val secondRowShown: Boolean get() = coordinatesText != null || headingText != NO_HEADING_TEXT
+}
 
 /**
  * The route home as the HUD shows it while returning (dispatch 2026-09-28-423, plan task T6). See
@@ -527,6 +605,20 @@ fun returnRouteOf(routeHome: RouteHome?): ReturnRoute = when (routeHome) {
     is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters)
     is RouteHome.Withheld -> ReturnRoute.Unavailable(canRetry = routeHome.reason == RouteWithheldReason.OFF_ROUTE)
 }
+
+/**
+ * The labels for the heading and the altitude on the navigation display and the compass strip (dispatch 2026-09-28-677, data
+ * part B; the owner, RECORD -656: "heading and altitude labelled"). Short, because at 360 dp the strip's one line holds
+ * "Facing 123° SE · Alt 1352 ft · 10T ER 25118 40235" with a few dp to spare. **New words, a stop for the owner.**
+ */
+internal const val HEADING_LABEL = "Facing"
+internal const val ALTITUDE_LABEL = "Alt"
+
+/** The heading's dash while the compass waits for a fix: the status line carries [NO_FIX_MESSAGE] (owner's call). */
+internal const val NO_HEADING_TEXT = "—"
+
+/** A fix that carries no altitude. A status that names itself, so it wears no [ALTITUDE_LABEL]. */
+internal const val ELEVATION_UNAVAILABLE_TEXT = "Elevation unavailable"
 
 /** The large slot's words once the walker has arrived at the start (dispatch 2026-09-28-497). */
 internal const val ARRIVED_TEXT = "Arrived"
@@ -626,7 +718,7 @@ internal fun navigationReadout(
         // null for this state) and the needle below is withheld.
         TrueHeadingReading.Unreliable -> "Compass unreliable"
         // A dash, not a message: the status line carries NO_FIX_MESSAGE, once (owner's call).
-        TrueHeadingReading.NeedsFix -> "—"
+        TrueHeadingReading.NeedsFix -> NO_HEADING_TEXT
     }.let { label ->
         // Dispatch 2026-09-28-430, ruling E (continuation 2026-09-28-432): one place, one word. While
         // the map's navigation view retries a stuck compass, and once it has turned north-up, this
@@ -638,16 +730,19 @@ internal fun navigationReadout(
             NavigationFacing.NORTH_UP -> COMPASS_NORTH_UP_TEXT
         }
     }
+    // Dispatch -677: a reading (a value, or the dash while it waits for a fix) wears the label; a status does not.
+    val headingIsReading = facing == NavigationFacing.FACING_UP &&
+        (heading is TrueHeadingReading.Available || heading == TrueHeadingReading.NeedsFix)
     val compassUnreliable = heading is TrueHeadingReading.Unreliable
     val northArrowDegrees = headingDegrees?.let { -it }
-    val elevationText = liveFix?.let { fix -> fix.altitude?.let { formatWholeLength(it, UnitSystem.forDistanceUnit(distanceUnit)) } ?: "Elevation unavailable" }
+    val elevationText = liveFix?.let { fix -> fix.altitude?.let { formatWholeLength(it, UnitSystem.forDistanceUnit(distanceUnit)) } ?: ELEVATION_UNAVAILABLE_TEXT }
     val coordinatesText = liveFix?.let { coordinatesStripText(LatLng(it.lat, it.lng), showDecimalDegrees) }
 
     if (liveFix == null) {
-        return NavigationHudReadout(headingText, northArrowDegrees, "Target", null, "—", false, NO_FIX_MESSAGE, null, null)
+        return NavigationHudReadout(headingText, northArrowDegrees, "Target", null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading)
     }
     if (target == null) {
-        return NavigationHudReadout(headingText, northArrowDegrees, "No target", null, "—", false, "No origin waypoint for this track", elevationText, coordinatesText)
+        return NavigationHudReadout(headingText, northArrowDegrees, "No target", null, "—", false, "No origin waypoint for this track", elevationText, coordinatesText, headingIsReading = headingIsReading)
     }
 
     val here = LatLng(liveFix.lat, liveFix.lng)
@@ -687,6 +782,15 @@ internal fun navigationReadout(
         route is ReturnRoute.Unavailable -> ROUTE_UNAVAILABLE_TEXT
         else -> "—"
     }
+    // Dispatch -677: what the large figure measures. The straight line says "straight" unless it reads "within" the fix's
+    // circle (formatDistanceWithAccuracy), which is a statement about the circle, not a measured line; the route says "by trail".
+    val insideFixCircle = liveFix.accuracyMeters?.let { distanceMeters <= it } == true
+    val distanceKind = when {
+        freshness == FixFreshness.LOST || arrived -> null
+        route == null -> DistanceKind.STRAIGHT.takeIf { !insideFixCircle }
+        route is ReturnRoute.Ahead -> DistanceKind.BY_TRAIL
+        else -> null
+    }
 
     // Four things withhold the needle, and their ORDER IS DELIBERATE (compass-reliability
     // dispatch, owner decision) — do not let branch position imply it, and do not insert a fifth
@@ -713,7 +817,8 @@ internal fun navigationReadout(
         withinFixError -> ""
         // No aim: the large slot already says why (a dash, or "Unable to calculate route").
         bearing == null -> ""
-        headingDegrees != null -> "Turn ${relativeBearingDegrees(bearing, headingDegrees).roundToInt() % 360}°"
+        // Dispatch -677 (the owner, RECORD -656, "Plain words + labels"): "Slight left · 10°", never 0 to 359. Was "Turn N°".
+        headingDegrees != null -> turnText(relativeBearingDegrees(bearing, headingDegrees))
         // No sensor. This branch used to read "Bearing N° X" — the one state that still showed the
         // absolute bearing as text. The compass-reliability dispatch asked for the unreliable case
         // to match it and was wrong about what it did; the follow-up (two-data-corrections dispatch,
@@ -736,7 +841,8 @@ internal fun navigationReadout(
             // the accuracy.
             arrived -> ""
             approaching -> "Approaching"
-            route != null -> "Straight line $straightLineText"
+            // Dispatch -677: "0.3 mi straight", the owner's words, where it read "Straight line 0.3 mi".
+            route != null -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
             else -> ""
         }
     }
@@ -751,6 +857,8 @@ internal fun navigationReadout(
         elevationText = elevationText,
         coordinatesText = coordinatesText,
         routeRetryOffered = freshness != FixFreshness.LOST && route is ReturnRoute.Unavailable && route.canRetry,
+        distanceKindText = distanceKind?.words,
+        headingIsReading = headingIsReading,
     )
 }
 
