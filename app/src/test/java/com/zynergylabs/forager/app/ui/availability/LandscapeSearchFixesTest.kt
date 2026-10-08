@@ -39,6 +39,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDisplay
 
 /**
@@ -60,8 +61,26 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
 
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    /**
+     * The host declares MainActivity's configChanges (orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden),
+     * so the turn reaches the same Activity, as on the phone, instead of recreating it (the MapViewportResizeTest precedent).
+     */
+    private val rotatesInPlace = object : org.junit.rules.ExternalResource() {
+        override fun before() {
+            val app = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
+            val info = android.content.pm.ActivityInfo().apply {
+                packageName = app.packageName
+                name = ComponentActivity::class.java.name
+                configChanges = android.content.pm.ActivityInfo.CONFIG_ORIENTATION or android.content.pm.ActivityInfo.CONFIG_SCREEN_SIZE or
+                    android.content.pm.ActivityInfo.CONFIG_SCREEN_LAYOUT or android.content.pm.ActivityInfo.CONFIG_SMALLEST_SCREEN_SIZE or
+                    android.content.pm.ActivityInfo.CONFIG_KEYBOARD_HIDDEN
+            }
+            Shadows.shadowOf(app.packageManager).addOrUpdateActivity(info)
+        }
+    }
+
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(RealSearchScreenRig.touchModeHost()).around(composeRule)
+    val rules: RuleChain = RuleChain.outerRule(RealSearchScreenRig.touchModeHost()).around(rotatesInPlace).around(composeRule)
 
     private val rig = RealSearchScreenRig(composeRule)
 
@@ -72,19 +91,37 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
     /** The portrait screen, then a turn to [rotation] in the landscape window. */
     private fun setScreenThenTurn(rotation: Int, beforeTurn: () -> Unit = {}) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_0)
-        composeRule.activityRule.scenario.onActivity { RuntimeEnvironment.setQualifiers(portrait) }
+        // The class's own qualifiers are the portrait window; setting them again here would recreate the activity.
         rig.setScreen()
-        assertTrue("positive control: portrait first (window ${window().d()})", window().height > window().width)
+        assertTrue("positive control: portrait first (window ${window().d()})", (window().bottom - window().top) > (window().right - window().left))
         beforeTurn()
         turn(rotation)
     }
 
     private fun turn(rotation: Int) {
-        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
+        // Robolectric sets the display's rotation from the new orientation (ROTATION_90 for land) on every qualifier change,
+        // so a turn to ROTATION_270 is the orientation change, then the rotation set and the same configuration dispatched
+        // again to the screen's view, which reads the rotation on a configuration change (currentDisplayRotation). On the
+        // phone that is one configuration change; the screen measured here is the state after it.
         composeRule.activityRule.scenario.onActivity { RuntimeEnvironment.setQualifiers(landscape) }
         rig.settle()
+        if (rotation != Surface.ROTATION_90) {
+            Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
+            composeRule.runOnUiThread {
+                val view = composeView(composeRule.activity.window.decorView) ?: error("no AndroidComposeView")
+                // Equal configurations are not a change to Compose, so the long/notlong layout bit (nothing here reads it) is
+                // flipped to make this one a change, as the real turn's own configuration is.
+                val config = android.content.res.Configuration(composeRule.activity.resources.configuration)
+                val long = config.screenLayout and android.content.res.Configuration.SCREENLAYOUT_LONG_MASK
+                config.screenLayout = (config.screenLayout and android.content.res.Configuration.SCREENLAYOUT_LONG_MASK.inv()) or
+                    (if (long == android.content.res.Configuration.SCREENLAYOUT_LONG_YES) android.content.res.Configuration.SCREENLAYOUT_LONG_NO else android.content.res.Configuration.SCREENLAYOUT_LONG_YES)
+                view.dispatchConfigurationChanged(config)
+            }
+            rig.settle()
+        }
+        assertEquals("positive control: the display reads the rotation", rotation, ShadowDisplay.getDefaultDisplay().rotation)
         val w = window()
-        assertTrue("positive control: landscape after the turn (window ${w.d()})", w.width > w.height)
+        assertTrue("positive control: landscape after the turn (window ${w.d()})", (w.right - w.left) > (w.bottom - w.top))
         assertTrue("positive control: the landscape strip is up", shown(STRIP_TAG))
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         if (rotation == Surface.ROTATION_90) {
@@ -214,7 +251,10 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
     private val longSpecies = TaxonSearchResult(
         990_001L,
         "Hygrophoropsis aurantiaca var. pallidissima",
-        "pale false chanterelle of the coastal dune pinewoods",
+        // Long enough to overflow the bar in both windows under Robolectric's native text, whose glyphs measure about 1.8 dp
+        // each here (measured: 131 characters in 236 dp), far narrower than on the phone.
+        "pale false chanterelle of the coastal dune pinewoods and the sandy heathland margins of the far north, " +
+            "growing among the mosses and lichens under shore pine and Sitka spruce along the windward slopes",
         "variety",
         "Fungi",
         null,
@@ -248,12 +288,20 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
             assertEquals("the bar begins where the strip ends", strip.right.value, bar.left.value, 0.5f)
         }
         val (text, layout) = summaryLayout()
-        println("MEASURED -750 item 4 summary <$text>: lines ${layout.lineCount}, ellipsised ${layout.isLineEllipsized(0)}")
+        val visible = layout.getLineEnd(0, visibleEnd = true)
+        println("MEASURED -750 item 4 summary <$text>: lines ${layout.lineCount}, visible $visible of ${text.length}, overflow ${layout.layoutInput.overflow}, lineRight ${layout.getLineRight(0)}, width ${layout.size.width}, ellipsised ${layout.isLineEllipsized(0)}, visualOverflow ${layout.hasVisualOverflow}, fontSize ${layout.layoutInput.style.fontSize}, offsetAtRight ${layout.getOffsetForPosition(androidx.compose.ui.geometry.Offset(layout.size.width - 1f, 10f))}")
         assertTrue("positive control: the summary names the long species <$text>", text.startsWith(longSpecies.commonName!!))
         assertEquals("the summary is one line", 1, layout.lineCount)
-        assertTrue("the summary, longer than the bar's room, ends in an ellipsis", layout.isLineEllipsized(0))
+        assertTrue("positive control: the summary is longer than the bar's room ($visible of ${text.length} shown)", visible < text.length)
+        assertEquals("the cut summary ends in an ellipsis", androidx.compose.ui.text.style.TextOverflow.Ellipsis, layout.layoutInput.overflow)
+        assertTrue("its text box ends inside the bar", (node().boundsInRoot.right / composeRule.density.density) <= bar.right.value + 0.5f)
         if (withSearch) assertTrue("Clear shows with the search", shown(SEARCH_BAR_CLEAR_TAG))
     }
+
+    private fun node() = composeRule.onAllNodes(
+        hasAnyAncestor(hasTestTag(SEARCH_ENTRY_BAR_TAG)) and androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult),
+        useUnmergedTree = true,
+    ).fetchSemanticsNodes().single { n -> n.config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }?.contains(" · ") == true }
 
     private fun summaryLayout(): Pair<String, TextLayoutResult> {
         val node = composeRule.onAllNodes(
@@ -263,6 +311,7 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         val text = node.config[SemanticsProperties.Text].joinToString("") { it.text }
         val results = mutableListOf<TextLayoutResult>()
         node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        println("MEASURED -750 summary node bounds ${node.boundsInRoot}, layout size ${results.single().size}, maxWidth ${results.single().layoutInput.constraints.maxWidth}")
         return text to results.single()
     }
 
@@ -279,7 +328,7 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
      * still meets the strip ("make sure that the panel doesn't switch also, in case I'm wrong").
      */
     @Test
-    fun `item 3 a species searched, Clear, then the turn: the selection is the default and the bar meets the strip`() {
+    fun `item 3 a species searched, Clear, then the turn, the selection is the default and the bar meets the strip`() {
         setScreenThenTurn(Surface.ROTATION_90) {
             pickLongSpecies()
             rig.searchCoordinates("45.326", "-122.634")
@@ -300,8 +349,10 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LandscapeSearchFixes780Test : LandscapeSearchFixesTests("w360dp-h780dp-xxhdpi", "w780dp-h360dp-land-xxhdpi")
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LandscapeSearchFixes823Test : LandscapeSearchFixesTests("w384dp-h823dp-xxhdpi", "w823dp-h384dp-land-xxhdpi")
