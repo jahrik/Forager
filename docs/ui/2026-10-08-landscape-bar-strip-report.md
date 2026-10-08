@@ -218,3 +218,33 @@ notice's 200 dp beside the L, and the chips, to the bar's floor. For the owner.
 
 Free disk 3.3 GB at the end. `t6b-night` inactive before every run, not touched. `./gradlew --stop` after every scope; no
 Gradle process left.
+
+## RECORD -733: short heading words, same room (stopped at the fit check)
+
+The planner (RECORD -733), the owner verbatim: "Short words, same room (Recommended)". Built: in a short landscape window the
+heading slot reads "No compass" (no sensor) and "Compass?" (unreliable); portrait keeps "Compass unavailable" and "Compass
+unreliable". The strip is sized from the heading's value form only (`landscapeHeadingValueWidthPx`); -732's status-words
+allowance is removed. Commit `6e14de5b`.
+
+**The fit check fails: neither short word fits the value's room, at either font.** Measured in the strip's own readout style
+(14 sp, tabular figures), xxhdpi, `LandscapeHeadingShortWordsTest`:
+
+| Font | Value room ("000°" + widest point) | "No compass" | "Compass?" |
+|---|---|---|---|
+| 1.0 | 58.33 dp (175 px) | 84.33 dp (253 px), 26 dp over | 70.33 dp (211 px), 12 dp over |
+| 2.0 | 108 dp (324 px) | 155 dp (465 px), 47 dp over | 129.67 dp (389 px), 21.67 dp over |
+
+So with no compass, or an unreliable one, readoutsFitBeside drops the heading slot: altitude and coordinates show, the status
+does not. The join stays where it is with a heading (that part holds).
+
+**Full suite at `6e14de5b`: 4,444 tests in 570 classes, 24 skipped, 7 failures, 0 errors** (JUnit XML; Gradle agrees):
+- `LandscapeHeadingShortWordsFont1Test`, `...Font2Test` (new): the two rows above.
+- `LandscapeBarStripJoin780Test`, `...823Test`, "with no compass or an unreliable one the short words show whole", at 90 and
+  270 (new, 4): "No compass: compass-strip-heading is shown", the same cause.
+- `AvailabilityScreenLandscapeB2Test` S5: no heading node (no compass in that harness, so the status is dropped).
+`LandscapeLRulingsTest` B1 and `LayoutFixesChipRowLandscapeTest` T7 now pass as written.
+
+Not done, because the behaviour they would guard is not in place: the revert check of the short words. Options for the owner:
+size the room from the widest of the value and the two words (always 26 dp wider at font 1.0; the bar narrows by that, about
+359 dp at 823, which wraps T7's two chips); shorter words (under 58.33 dp at 14 sp, about seven narrow characters); or a
+symbol in the heading slot instead of a word.
