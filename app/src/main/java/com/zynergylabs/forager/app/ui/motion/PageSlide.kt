@@ -21,6 +21,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidedValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -261,11 +267,20 @@ private fun LeavingPageFrame(leaving: Boolean, inertBack: InertBack, pageColor: 
     } else {
         emptyArray<ProvidedValue<*>>()
     }
+    // RECORD -691: a page that starts to leave gives up any focus inside it, at once. Left alone, a focused field in a page sliding
+    // out kept focus for the whole slide and lost it only when the page went; focus then landed on the search field that had
+    // come back meanwhile and opened its dropdown over the Journal (LeavingTheJournalFixesTest F1 at the first build).
+    val focusManager = LocalFocusManager.current
+    var focusInside by remember { mutableStateOf(false) }
+    LaunchedEffect(leaving) {
+        if (leaving && focusInside) focusManager.clearFocus(force = true)
+    }
     CompositionLocalProvider(*inertProvided) {
         NoTouchTargetExpansion(active = leaving) {
         Box(
             Modifier
                 .fillMaxSize()
+                .onFocusChanged { focusInside = it.hasFocus }
                 .background(pageColor)
                 .leavingTakesNoTouches(leaving)
                 .then(if (leaving) Modifier.clearAndSetSemantics { pageLeaving = true } else Modifier.semantics { pageLeaving = false }),

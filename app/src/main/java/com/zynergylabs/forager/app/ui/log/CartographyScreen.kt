@@ -502,8 +502,13 @@ internal fun CartographyScreen(
     // above (Amendment 1) changes that caller's state only when the view changes, never on every composition.
     val latestStartNewEntry by rememberUpdatedState(startNewEntry)
     val newEntryAction = remember<@Composable () -> Unit> { { ShortWindowNewEntryButton(onClick = { latestStartNewEntry() }) } }
-    val addPhotoAction = remember<@Composable () -> Unit>(albumPhotoAcquisition) {
-        { ShortWindowAddPhotoButton(onTakePhoto = albumPhotoAcquisition.launchCamera, onImport = albumPhotoAcquisition.launchGallery) }
+    // Remembered with no key, reading the launchers through rememberUpdatedState (RECORD -691): rememberPhotoAcquisitionLaunchers
+    // builds a new PhotoAcquisitionLaunchers on every composition, so a lambda keyed on it was new every time, and publishing it
+    // recomposed the Journal, which composed this screen again, without end (the album cases of the short-window tests at the
+    // first build).
+    val latestAlbumAcquisition by rememberUpdatedState(albumPhotoAcquisition)
+    val addPhotoAction = remember<@Composable () -> Unit> {
+        { ShortWindowAddPhotoButton(onTakePhoto = { latestAlbumAcquisition.launchCamera() }, onImport = { latestAlbumAcquisition.launchGallery() }) }
     }
     val homeHeaderAction: @Composable () -> Unit = when (entriesViewState.value) {
         EntriesViewMode.TIMELINE -> newEntryAction
