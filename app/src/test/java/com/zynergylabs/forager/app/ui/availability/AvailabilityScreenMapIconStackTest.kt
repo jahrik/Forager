@@ -967,19 +967,19 @@ class AvailabilityScreenMapIconStackTest {
      * and this helper makes none.
      */
     private fun searchAReferenceRegion() {
-        // The bar's tap opens "Advanced search" and "Enter coordinates manually" expanded (owner,
-        // continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
+        // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
+        // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        // performScrollTo(): radius and month, promoted to SearchDropdown's own top level ahead of
-        // this section (map/navigation redesign dispatch D), push "Search this location" below the
-        // dropdown's own bounded, scrolled viewport on this suite's w360dp-h640dp config — without
+        // performScrollTo(): Search sits in the dropdown's bottom row (dispatch 2026-09-28-697), below
+        // month, radius and Recent searches, which can put it below the dropdown's own bounded,
+        // scrolled viewport on this suite's w360dp-h640dp config — without
         // this, performClick() reports the tap against this node's own (correct, but currently
         // off-screen) semantic bounds, which lands on nothing actually rendered there, so the
         // region never gets set and every downstream assertion in this file that depends on
         // searchAReferenceRegion having actually run a search fails silently.
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
@@ -2380,7 +2380,8 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Advanced search").performClick()
+        // The tap on "Advanced search" that was here went with that fold (dispatch 2026-09-28-697);
+        // Set on map is at the dropdown's top level, in its bottom row.
 
         val setOnMapBounds = composeRule.onNodeWithText("Set on map").getUnclippedBoundsInRoot()
         val setOnMapCenter = with(composeRule.density) {
