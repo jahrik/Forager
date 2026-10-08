@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import android.app.Application
 import android.content.ComponentName
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
@@ -64,6 +65,7 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import java.time.Duration
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -96,12 +98,16 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
 
     val searchCache = InMemorySearchCacheRepository()
 
-    /** When set, every sightings fetch waits for it: a fetch still running, for the Clear-while-loading test. */
-    var sightingsGate: CompletableDeferred<Unit>? = null
+    /**
+     * When set, every ranked-list fetch waits for it: a fetch still running, for the Clear-while-loading test. The
+     * ranked list, not the map's sightings: while sightings load, the Maps tab is a spinner with no search bar on it.
+     */
+    var availabilityGate: CompletableDeferred<Unit>? = null
 
     private val repository = object : MushroomRepository, TaxonSearchRepository {
         override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
             availabilityFetches += Triple(region, month, filter)
+            availabilityGate?.await()
             return Result.success(
                 listOf(SpeciesObservationCount(48473L, "Ganoderma applanatum", "artist's bracket", "species", 14, null, null)),
             )
@@ -109,7 +115,6 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
 
         override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> {
             sightingsFetches += Triple(region, month, filter)
-            sightingsGate?.await()
             return Result.success(SightingsPage(sightings = listOf(sightingAt(region)), totalResults = 1))
         }
 
@@ -186,9 +191,14 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
         settle()
     }
 
+    /**
+     * Lets the screen and the ViewModel finish. The main looper's clock is advanced as well as Compose's: a ViewModel
+     * `delay` (the species search's 300 ms debounce) waits on the looper, which Robolectric's paused looper holds still.
+     */
     fun settle() {
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(2_000)
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1_000))
         composeRule.waitForIdle()
     }
 

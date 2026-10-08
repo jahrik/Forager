@@ -77,19 +77,22 @@ class SearchBarClearTest {
     }
 
     @Test
-    fun `a sightings fetch still running when Clear is touched does not put the search back`() {
+    fun `a search fetch still running when Clear is touched does not put the search back`() {
         rig.setScreen()
         val gate = CompletableDeferred<Unit>()
-        rig.sightingsGate = gate
+        rig.availabilityGate = gate
         rig.searchCoordinates("45.326", "-122.634")
-        assertEquals("positive control: the map's fetch started", 1, rig.sightingsFetches.size)
-        assertEquals("positive control: and has not finished", emptyList<Any>(), rig.mapSightings)
+        assertEquals("positive control: the ranked-list fetch started", 1, rig.availabilityFetches.size)
+        assertTrue("positive control: and has not finished", rig.viewModel.uiState.value.isLoading)
 
         rig.touch(composeRule.onNodeWithTag(SEARCH_BAR_CLEAR_TAG))
         gate.complete(Unit)
         rig.settle()
 
-        assertEquals("the late fetch put nothing on the map", emptyList<Any>(), rig.mapSightings)
-        assertNull("the region stays cleared", rig.viewModel.uiState.value.region)
+        val state = rig.viewModel.uiState.value
+        assertNull("the late fetch put no ranked list back", state.forecast)
+        assertFalse("nothing is left loading", state.isLoading)
+        assertNull("the region stays cleared", state.region)
+        assertEquals("nothing is on the map", emptyList<Any>(), rig.mapSightings)
     }
 }
