@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -99,7 +99,7 @@ internal fun DraftsListScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag(DRAFTS_LIST_BACK_TAG)) {
+            BouncingIconButton(onClick = onBack, modifier = Modifier.testTag(DRAFTS_LIST_BACK_TAG)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Entries")
             }
             Text("Unfinished entries", style = MaterialTheme.typography.titleMedium)

@@ -47,4 +47,33 @@ class MapLibreOfflineRegionMetadataTest {
     fun `garbage bytes read as no region, not a crash`() {
         assertNull(byteArrayOf(-1, 0, 1, 2, 3).toRegionMetadata())
     }
+
+    /** Dispatch 2026-09-28-658 (M1): the reader says which key was missing, so the caller's log can. */
+    @Test
+    fun `a missing field is named in the reason`() {
+        val incompleteProperties = String(metadata.toBytes())
+            .lineSequence()
+            .filterNot { it.startsWith("downloadedAtEpochMillis") }
+            .joinToString("\n")
+
+        assertEquals(
+            RegionMetadataRead.Unreadable("no downloadedAtEpochMillis"),
+            incompleteProperties.toByteArray().readRegionMetadata(),
+        )
+    }
+
+    @Test
+    fun `a value that is not a number is named, with what it held`() {
+        val badLatitude = String(metadata.toBytes()).replace(Regex("region\\.lat=.*"), "region.lat=north")
+
+        assertEquals(
+            RegionMetadataRead.Unreadable("region.lat is not a number: 'north'"),
+            badLatitude.toByteArray().readRegionMetadata(),
+        )
+    }
+
+    @Test
+    fun `good bytes read as the metadata`() {
+        assertEquals(RegionMetadataRead.Parsed(metadata), metadata.toBytes().readRegionMetadata())
+    }
 }

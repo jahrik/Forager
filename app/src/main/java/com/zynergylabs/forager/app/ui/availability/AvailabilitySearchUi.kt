@@ -11,6 +11,7 @@ package com.zynergylabs.forager.app.ui.availability
 // three symbols that stayed there (TripPlannerSection, CompassStripBackgroundColorDark/Light) went
 // internal because code here composes them.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,7 +57,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -116,7 +116,7 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
-import com.zynergylabs.forager.app.ui.theme.Bark
+import com.zynergylabs.forager.app.ui.theme.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Month
@@ -164,7 +164,6 @@ import java.util.Locale
 internal fun SearchEntryBar(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
-    onUseCurrentLocation: () -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -173,7 +172,7 @@ internal fun SearchEntryBar(
     overMap: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
-    val contentColor = if (isDarkTheme) Color.White else Bark
+    val contentColor = mapChromeContentColor(isDarkTheme)
     // Same "Mg" / labelMedium measurement compactMainScaffold's own compassStripClearance uses
     // for the compass strip's own real text-row height (CompassElevationStripContent wraps
     // content with no extra vertical padding of its own) — the owner's own direct ask is this
@@ -238,14 +237,12 @@ internal fun SearchEntryBar(
                 Box(modifier = Modifier.weight(1f)) {
                     SpeciesSearchControls(
                         uiState = uiState,
-                        onUseCurrentLocation = onUseCurrentLocation,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                         queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(fieldHeight),
                         onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
                         restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
-                        showLocationTrailingIcon = false,
                         fieldColors = fieldColors,
                         contentPadding = fieldContentPadding,
                         suggestionsOverMap = overMap,
@@ -351,7 +348,7 @@ internal fun SearchDropdown(
     overMap: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
-    CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
+    CompositionLocalProvider(LocalContentColor provides mapChromeContentColor(isDarkTheme)) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
@@ -685,7 +682,7 @@ internal fun CollapsibleSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = !expanded },
+                .clickableWithShapedPress { expanded = !expanded },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -788,31 +785,26 @@ private fun RecentSearchRow(
 }
 
 /**
- * The species search controls themselves — the species text field and its suggestion dropdown —
- * factored out of the old `AvailabilitySearchTopBar` so [CompactToolsDrawerContent] can host the identical
- * control inside the drawer instead of the app bar (per the project owner's own framing: "the
- * whole side panel is the search feature"), rather than a second copy of the
- * [ExposedDropdownMenuBox] logic. The old `AvailabilitySearchTopBar`'s own external shape (the Surface,
- * the tune icon, the two-row layout) is unchanged by this extraction — only where the field piece
- * itself is called from moved.
+ * The species search controls themselves: the species text field and its suggestion dropdown. One
+ * caller, [SearchEntryBar], the compact top bar that hosts this field directly (map/navigation
+ * redesign dispatch D's "the top bar should be the entry field"). Factored out when the old
+ * `AvailabilitySearchTopBar` and [CompactToolsDrawerContent] hosted it too; neither does now (the
+ * first is gone, the second holds no search), so the parameters below that existed for them have
+ * been removed or are defaulted for this one caller (dispatch 2026-09-28-658, scout item F3: the
+ * location trailing icon, which only those callers showed, and the callback that fed it).
  *
  * The category chip row this composable used to render alongside the field is gone (owner
  * decision): the app is fungi-only now, so there is nothing left to choose between. See
  * [AvailabilityUiState.taxonFilter]'s default and [activeSearchSummary].
  *
- * [queryFieldModifier]/[onQueryFieldFocusChanged]: both default to no-ops, exercised only by
- * [SearchEntryBar] — the compact top bar now hosts this composable's own species field directly
- * (map/navigation redesign dispatch D's own "the top bar should be the entry field" call; see that
- * composable's own doc comment), so it needs a stable [testTag] on the real field to tap/focus, and
- * a way to know when that focus changes so it can drive [SearchDropdown]'s own visibility. Neither
- * the old `AvailabilitySearchTopBar` nor [CompactToolsDrawerContent] pass either — their own species field
- * is not a trigger for anything else, so the defaults leave them unchanged.
+ * [queryFieldModifier]/[onQueryFieldFocusChanged]: [SearchEntryBar] needs a stable [testTag] on
+ * the real field to tap/focus, and a way to know when that focus changes so it can drive
+ * [SearchDropdown]'s own visibility.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SpeciesSearchControls(
     uiState: AvailabilityUiState,
-    onUseCurrentLocation: () -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -823,13 +815,9 @@ private fun SpeciesSearchControls(
      * redo dispatch, the owner's own direct call: the bar reads as the current filter summary
      * ("August · 9 mi", or a searched species' name ahead of it) always, not a generic hint that
      * blanks out what's currently searched the moment someone taps in to search. The generic hint
-     * this used to swap to on focus (and the two other call sites, `AvailabilitySearchTopBar` and
-     * [CompactToolsDrawerContent], used to default to outright) is gone from the app entirely, by
-     * direct owner instruction — those two call sites now default to a blank placeholder instead
-     * of reintroducing it.
+     * this used to swap to on focus is gone from the app entirely, by direct owner instruction.
      */
     restingPlaceholder: String = "",
-    showLocationTrailingIcon: Boolean = true,
     fieldColors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
     /**
      * Text style for the entered/placeholder text — map/navigation search-UI redo dispatch:
@@ -837,8 +825,7 @@ private fun SpeciesSearchControls(
      * measured row height), and the default [OutlinedTextField] text style (`bodyLarge`, sized for
      * a full ~56dp Material field) doesn't fit inside it — the text was clipped away entirely, not
      * merely cramped. The owner's own direct call: scale the text down to fit the box, rather than
-     * the box up to fit default-sized text. The other two call sites keep Material's own default
-     * ([LocalTextStyle.current]), unchanged.
+     * the box up to fit default-sized text. Defaulted to Material's own ([LocalTextStyle.current]).
      */
     textStyle: androidx.compose.ui.text.TextStyle = LocalTextStyle.current,
     /**
@@ -849,9 +836,7 @@ private fun SpeciesSearchControls(
      * itself. This is the owner's own direct follow-up call — reduce the padding, not the text
      * further. Implemented via the low-level [BasicTextField] + [OutlinedTextFieldDefaults.DecorationBox]
      * pair (the only Material3 path that exposes content padding at all) for every call site, but
-     * defaulted to [OutlinedTextFieldDefaults.contentPadding] — Material's own stock value — so
-     * the two call sites that don't override it render identically to before this parameter
-     * existed.
+     * defaulted to [OutlinedTextFieldDefaults.contentPadding], Material's own stock value.
      */
     contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPadding(),
     /** Whether the suggestions open over a map drawn on screen; they are then at the map chrome's alpha (owner, "1 A"). */
@@ -901,17 +886,10 @@ private fun SpeciesSearchControls(
                             style = textStyle,
                         )
                     },
-                    trailingIcon = if (uiState.isSearchingTaxa || showLocationTrailingIcon) {
+                    trailingIcon = if (uiState.isSearchingTaxa) {
                         {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (uiState.isSearchingTaxa) {
-                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                                }
-                                if (showLocationTrailingIcon) {
-                                    IconButton(onClick = onUseCurrentLocation) {
-                                        Icon(Icons.Filled.MyLocation, contentDescription = "Use current location")
-                                    }
-                                }
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                             }
                         }
                     } else {

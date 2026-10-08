@@ -1,11 +1,11 @@
 package com.zynergylabs.forager.app.data.repository
 
+import com.zynergylabs.forager.app.domain.SettingsResetListener
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
@@ -34,12 +34,11 @@ import kotlinx.coroutines.flow.first
 class DataStoreSundownPreferencesRepository(
     context: Context,
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+    /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
+    settingsReset: SettingsResetListener = SettingsResetListener.None,
 ) : SundownPreferencesRepository {
 
-    private val dataStore = PreferenceDataStoreFactory.create(
-        scope = scope,
-        produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
-    )
+    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope)
 
     override suspend fun getDarknessMarginMinutes(): Result<Int> = runCatchingCancellable {
         dataStore.data.first()[KEY_DARKNESS_MARGIN_MINUTES] ?: DEFAULT_DARKNESS_MARGIN_MINUTES

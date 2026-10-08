@@ -167,7 +167,7 @@ class SchemaMigrationTest {
     @Test fun `4 to 18 - the full chain, validated against 18_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 18, true, *ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 18, true, *ForagerDatabase.ALL_MIGRATIONS)
         try {
             assertEverySeededValueSurvived(db, seeded, 4, 18)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
@@ -252,10 +252,6 @@ class SchemaMigrationTest {
     private fun SupportSQLiteDatabase.scalar(sql: String): Any? = query(sql).use { c ->
         check(c.moveToFirst()) { "no row for: $sql" }
         when (c.getType(0)) { android.database.Cursor.FIELD_TYPE_NULL -> null; android.database.Cursor.FIELD_TYPE_INTEGER -> c.getLong(0); android.database.Cursor.FIELD_TYPE_FLOAT -> c.getDouble(0); android.database.Cursor.FIELD_TYPE_BLOB -> c.getBlob(0); else -> c.getString(0) }
-    }
-
-    private companion object {
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
     }
 }
 

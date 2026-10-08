@@ -311,7 +311,7 @@ class JournalEntryCardsTest {
         setScreen(listOf(EMPTY_ENTRY))
 
         node(rowTag(EMPTY_ENTRY.id)).assertIsDisplayed()
-        textIn(rowTag(EMPTY_ENTRY.id), "Nothing kept").assertIsDisplayed()
+        textIn(rowTag(EMPTY_ENTRY.id), "Nothing included").assertIsDisplayed()
     }
 
     // ── C2: the hero photo (owner: "Direct photos only (Recommended)") ──

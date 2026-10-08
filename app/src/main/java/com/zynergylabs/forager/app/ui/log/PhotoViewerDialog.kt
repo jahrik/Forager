@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import android.graphics.Bitmap
 import android.content.Context
 import android.content.Intent
@@ -206,7 +207,7 @@ private fun ViewerControl(
     enabled: Boolean = true,
     icon: @Composable () -> Unit,
 ) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = modifier.semantics { contentDescription = description }) {
+    BouncingIconButton(onClick = onClick, enabled = enabled, modifier = modifier.semantics { contentDescription = description }) {
         Box(
             modifier = Modifier
                 .size(VIEWER_CONTROL_SCRIM_SIZE_DP.dp)

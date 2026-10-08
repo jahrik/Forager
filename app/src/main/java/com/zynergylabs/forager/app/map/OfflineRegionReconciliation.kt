@@ -56,20 +56,32 @@ internal suspend fun reconcileOfflineRegions(
             return@mapNotNull null
         }
 
+        // A complete region with no Room row is rebuilt from its metadata. One whose metadata is
+        // missing or unreadable cannot be, and is left out of the list with its tiles kept; that is
+        // logged with the reason (dispatch 2026-09-28-658, M1), as every other branch here is.
         val row = dao.getById(region.id)
-            ?: region.metadata?.toRegionMetadata()?.let { metadata ->
-                OfflineRegionEntity(
-                    id = region.id,
-                    name = metadata.name,
-                    lat = metadata.region.lat,
-                    lng = metadata.region.lng,
-                    radiusKm = metadata.region.radiusKm,
-                    minZoom = metadata.minZoom,
-                    maxZoom = metadata.maxZoom,
-                    createdAtEpochMillis = metadata.downloadedAtEpochMillis,
-                ).also { dao.upsert(it) }
+            ?: when (val read = region.metadata?.readRegionMetadata()) {
+                null -> {
+                    warn("Region ${region.id} is complete but has no Room row and no metadata to rebuild one from; kept, not shown.")
+                    return@mapNotNull null
+                }
+                is RegionMetadataRead.Unreadable -> {
+                    warn("Region ${region.id} is complete but has no Room row, and its metadata can't be read (${read.reason}); kept, not shown.")
+                    return@mapNotNull null
+                }
+                is RegionMetadataRead.Parsed -> read.metadata.let { metadata ->
+                    OfflineRegionEntity(
+                        id = region.id,
+                        name = metadata.name,
+                        lat = metadata.region.lat,
+                        lng = metadata.region.lng,
+                        radiusKm = metadata.region.radiusKm,
+                        minZoom = metadata.minZoom,
+                        maxZoom = metadata.maxZoom,
+                        createdAtEpochMillis = metadata.downloadedAtEpochMillis,
+                    ).also { dao.upsert(it) }
+                }
             }
-            ?: return@mapNotNull null
 
         OfflineRegionSummary(
             id = row.id,
@@ -113,8 +125,11 @@ internal fun incompleteRegionDecision(
 ): IncompleteRegionDecision {
     if (region.id in inFlightIds) return IncompleteRegionDecision.InFlight
     if (hasRoomRow) return IncompleteRegionDecision.Keep("it has a Room row, which is written only on completion")
-    val metadata = region.metadata?.toRegionMetadata()
-        ?: return IncompleteRegionDecision.Keep("its metadata is missing or unreadable")
+    val metadata = when (val read = region.metadata?.readRegionMetadata()) {
+        null -> return IncompleteRegionDecision.Keep("its metadata is missing")
+        is RegionMetadataRead.Unreadable -> return IncompleteRegionDecision.Keep("its metadata is unreadable (${read.reason})")
+        is RegionMetadataRead.Parsed -> read.metadata
+    }
     if (metadata.downloadedAtEpochMillis != 0L) {
         return IncompleteRegionDecision.Keep("its metadata records a completion time")
     }
