@@ -46,6 +46,7 @@ import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.unit.DpOffset
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.CompassReading
@@ -553,7 +554,7 @@ class AvailabilityScreenMapIconStackTest {
             DpOffset(bounds.left + inset, bounds.bottom - inset),
             DpOffset(bounds.right - inset, bounds.bottom - inset),
         )
-        val formats = listOf("10T ER 25118 40235", "Lat. 45.5152 Long. -122.6784")
+        val formats = listOf("10T ER 25118 40235", "45.5152, -122.6784")
         samples.forEachIndexed { index, sample ->
             val point = with(composeRule.density) { Offset(sample.x.toPx(), sample.y.toPx()) }
             composeRule.onRoot().performTouchInput { click(point) }
@@ -579,13 +580,13 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG).performClick()
         composeRule.waitForIdle()
-        assertEquals("Lat. 45.5152 Long. -122.6784", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+        assertEquals("45.5152, -122.6784", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
 
         composeRule.runOnUiThread { returning.value = false }
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
-        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
+        composeRule.onNodeWithText("45.5152, -122.6784").assertIsDisplayed()
         composeRule.onAllNodesWithText("10T ER 25118 40235").assertCountEquals(0)
     }
 
@@ -1606,8 +1607,8 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
-        composeRule.onNodeWithText("10T ER 25118 40235 · Lat. 45.5152 Long. -122.6784").assertDoesNotExist()
-        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertDoesNotExist()
+        composeRule.onNodeWithText("10T ER 25118 40235 · 45.5152, -122.6784").assertDoesNotExist()
+        composeRule.onNodeWithText("45.5152, -122.6784").assertDoesNotExist()
     }
 
     // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
@@ -1622,10 +1623,10 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("10T ER 25118 40235").performClick()
-        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
+        composeRule.onNodeWithText("45.5152, -122.6784").assertIsDisplayed()
         composeRule.onNodeWithText("10T ER 25118 40235").assertDoesNotExist()
 
-        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").performClick()
+        composeRule.onNodeWithText("45.5152, -122.6784").performClick()
         composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
     }
 
@@ -1638,7 +1639,11 @@ class AvailabilityScreenMapIconStackTest {
         // not silently reveal a fabricated decimal-degree pair for a location that was never fixed.
         composeRule.onNodeWithTag(COMPASS_STRIP_NO_FIX_TAG).performClick()
         composeRule.onNodeWithText("Location services unavailable").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Lat. ", substring = true).assertCountEquals(0)
+        // Dispatch -677, Amendment 1 changed this: the pair has no "Lat." any more, so the check looks for any decimal pair.
+        composeRule.onAllNodes(androidx.compose.ui.test.SemanticsMatcher("shows a decimal pair") { node ->
+            node.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text).orEmpty()
+                .any { Regex("""-?\d+\.\d{4}, -?\d+\.\d{4}""").containsMatchIn(it.text) }
+        }).assertCountEquals(0)
     }
 
     /**

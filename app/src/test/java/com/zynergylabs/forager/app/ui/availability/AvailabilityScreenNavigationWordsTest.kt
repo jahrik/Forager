@@ -10,6 +10,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -226,6 +228,37 @@ class AvailabilityScreenNavigationWordsTest {
         assertEquals("the display's height with the longest lines", short.value, long.value, 0.5f)
     }
 
+    /** A real touch at the centre of [interaction], as a finger switches the coordinate format. */
+    private fun touchCentre(interaction: SemanticsNodeInteraction) {
+        interaction.performTouchInput { click(center) }
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * Amendment 1 (RECORD -680; the owner: "Shorter decimals, no labels (Recommended)"): the decimal pair reads
+     * "45.5200, -122.6800" and, with the longest lines, fits whole at 360 dp, as MGRS does. The tap still switches.
+     */
+    @Test
+    fun `at 360 dp the display's decimal coordinates fit whole beside the longest lines`() {
+        setScreen(facing = 281f, route = ReturnRoute.Ahead(east, 390.0))
+        touchCentre(node(NAVIGATION_HUD_COORDINATES_TAG))
+        assertEquals("45.5200, -122.6800", textOf(NAVIGATION_HUD_COORDINATES_TAG))
+        assertDisplayWhole()
+        touchCentre(node(NAVIGATION_HUD_COORDINATES_TAG))
+        assertEquals("a second tap switches back to MGRS", coordinatesStripText(LatLng(fix.lat, fix.lng), false), textOf(NAVIGATION_HUD_COORDINATES_TAG))
+    }
+
+    @Test
+    fun `at 360 dp the strip's decimal coordinates fit whole beside its labels`() {
+        setScreen(facing = 315f, route = null, navigating = false)
+        val mgrs = coordinatesStripText(LatLng(fix.lat, fix.lng), false)
+        touchCentre(composeRule.onNode(hasText(mgrs) and hasAnyAncestor(hasTestTag(STRIP_TAG)), useUnmergedTree = true))
+        val decimal = composeRule.onNode(hasText("45.5200, -122.6800") and hasAnyAncestor(hasTestTag(STRIP_TAG)), useUnmergedTree = true)
+        assertWhole("strip decimal coordinates", decimal)
+        assertWhole("strip heading", node(COMPASS_STRIP_HEADING_TAG))
+        assertWhole("strip elevation", node(COMPASS_STRIP_ELEVATION_TAG))
+    }
+
     @Test
     fun `at 360 dp the strip's labelled line fits whole`() {
         setScreen(facing = 315f, route = null, navigating = false)
@@ -328,19 +361,27 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
 
         val node = { tag: String -> composeRule.onNodeWithTag(tag, useUnmergedTree = true) }
         assertEquals("Sharp right · 169°", node(NAVIGATION_HUD_TARGET_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
-        listOf(
-            NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG, NAVIGATION_HUD_STATUS_TAG,
-            NAVIGATION_HUD_HEADING_TAG, NAVIGATION_HUD_ELEVATION_TAG, NAVIGATION_HUD_COORDINATES_TAG,
-        ).forEach { tag ->
-            val interaction = node(tag)
-            val results = mutableListOf<TextLayoutResult>()
-            interaction.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
-            val layout = results.single()
-            val text = layout.layoutInput.text.text
-            println("MEASURED landscape $tag <$text>: visible ${layout.getLineEnd(0, visibleEnd = true)} of ${text.length}")
-            assertFalse("$tag <$text>: not ellipsised", layout.isLineEllipsized(0))
-            assertEquals("$tag <$text>: every character visible", text.length, layout.getLineEnd(0, visibleEnd = true))
+        val assertAllWhole = { format: String ->
+            listOf(
+                NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG, NAVIGATION_HUD_STATUS_TAG,
+                NAVIGATION_HUD_HEADING_TAG, NAVIGATION_HUD_ELEVATION_TAG, NAVIGATION_HUD_COORDINATES_TAG,
+            ).forEach { tag ->
+                val interaction = node(tag)
+                val results = mutableListOf<TextLayoutResult>()
+                interaction.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+                val layout = results.single()
+                val text = layout.layoutInput.text.text
+                println("MEASURED landscape ($format) $tag <$text>: visible ${layout.getLineEnd(0, visibleEnd = true)} of ${text.length}")
+                assertFalse("$format, $tag <$text>: not ellipsised", layout.isLineEllipsized(0))
+                assertEquals("$format, $tag <$text>: every character visible", text.length, layout.getLineEnd(0, visibleEnd = true))
+            }
         }
+        assertAllWhole("MGRS")
+        // Amendment 1 (RECORD -680): the decimal pair, switched by a real touch, fits whole here too.
+        node(NAVIGATION_HUD_COORDINATES_TAG).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        assertEquals("45.5200, -122.6800", node(NAVIGATION_HUD_COORDINATES_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        assertAllWhole("decimal")
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         val hud = node(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot()
         val thirdTop = root.top + (root.bottom - root.top) / 3

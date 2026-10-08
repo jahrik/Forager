@@ -81,6 +81,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.semantics.Role
 import com.zynergylabs.forager.app.domain.HeightProfile
 import com.zynergylabs.forager.app.domain.heightProfileOf
+import com.zynergylabs.forager.app.domain.trackMovingSpeedMetersPerSecond
 import com.zynergylabs.forager.app.domain.model.TrackStatistics
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatSpeed
@@ -636,9 +637,10 @@ internal fun formatTrackDuration(durationMillis: Long): String {
  * - **Time** is first point to last, moving or not, as Duration was, in data part A's words ("1 h 10 min", [formatTimeSpan]).
  * - **Climb** and **Descent** are the hysteresis-filtered gain and loss ([ComputeTrackStatisticsUseCase]); a track with no
  *   two heights in a row has neither, and says "Not recorded", as the entry report's Climb does.
- * - **Avg speed** is distance over that same time, so stops count against it.
- * - A file with no times has no Time and no Avg speed: each says [NO_TIMES_IN_FILE], as the times above them do (-636).
- *   A track whose first and last points share a time has no speed to give: a dash ([MISSING_FIGURE]).
+ * - **Moving speed** (Amendment 1, RECORD -680; the owner: "Moving speed (Recommended)") is the app's moving pace, the
+ *   walk-back estimate's own ([trackMovingSpeedMetersPerSecond]), so stops do not count against it. With too little moving
+ *   time to measure, it is a dash ([MISSING_FIGURE]), never the estimate's assumed default.
+ * - A file with no times has no Time and no Moving speed: each says [NO_TIMES_IN_FILE], as the times above them do (-636).
  */
 internal fun trackSheetTiles(track: Track, stats: TrackStatistics, distanceUnit: DistanceUnit): List<Pair<String, String>> {
     val unitSystem = UnitSystem.forDistanceUnit(distanceUnit)
@@ -648,9 +650,9 @@ internal fun trackSheetTiles(track: Track, stats: TrackStatistics, distanceUnit:
         TRACK_TILE_TIME to if (noTimes) NO_TIMES_IN_FILE else formatTimeSpan(stats.durationMillis),
         TILE_CLIMB to (stats.elevationGainMeters?.let { formatWholeLength(it, unitSystem) } ?: CLIMB_NOT_RECORDED),
         TRACK_TILE_DESCENT to (stats.elevationLossMeters?.let { formatWholeLength(it, unitSystem) } ?: CLIMB_NOT_RECORDED),
-        TRACK_TILE_AVG_SPEED to when {
+        TRACK_TILE_MOVING_SPEED to when {
             noTimes -> NO_TIMES_IN_FILE
-            else -> stats.averageSpeedMetersPerSecond?.let { formatSpeed(it, distanceUnit) } ?: MISSING_FIGURE
+            else -> trackMovingSpeedMetersPerSecond(track.points)?.let { formatSpeed(it, distanceUnit) } ?: MISSING_FIGURE
         },
     )
 }
@@ -683,7 +685,7 @@ internal const val WALK_WAYPOINTS_HEADING = "Waypoints on this track"
 /** Dispatch -677: the track sheet's new words. **New strings, a stop for the owner** (Distance and Climb are data part A's). */
 internal const val TRACK_TILE_TIME = "Time"
 internal const val TRACK_TILE_DESCENT = "Descent"
-internal const val TRACK_TILE_AVG_SPEED = "Avg speed"
+internal const val TRACK_TILE_MOVING_SPEED = "Moving speed"
 internal const val DETAILS_FOLD_TITLE = "Details"
 internal const val DETAILS_FOLD_SHOW_LABEL = "Show details"
 internal const val DETAILS_FOLD_HIDE_LABEL = "Hide details"
