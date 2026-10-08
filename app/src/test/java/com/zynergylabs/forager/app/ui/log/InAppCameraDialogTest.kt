@@ -453,17 +453,18 @@ class InAppCameraDialogTest {
     }
 
     /**
-     * **All four chips fit** (decision B8, Closed decision A): in portrait the strip is a row along
-     * the top, and Flash, Timer, Grid and Location each sit inside its bounds, in that order, none
-     * overlapping the next. Robolectric reports zero window insets (CLAUDE.md), so this says the
-     * row holds four chips; it says nothing about the punch-hole cut-out, which is a device item.
+     * **All five chips fit** (decision B8, Closed decision A; the gear since dispatch 2026-09-28-707):
+     * in portrait the strip is a row along the top, and Flash, Timer, Grid, Location and the gear each
+     * sit inside its bounds, in that order, none overlapping the next. Robolectric reports zero window
+     * insets (CLAUDE.md), so this says the row holds five chips; it says nothing about the punch-hole
+     * cut-out, which is a device item.
      */
     @Test
-    fun `in portrait all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+    fun `in portrait all five chips sit inside the strip, Flash, Timer, Grid, Location, gear, none overlapping`() {
         composeRule.setContent { Subject(FakeCameraCaptureSession()) }
         composeRule.waitForIdle()
         val strip = bounds(CAMERA_STRIP_TAG)
-        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG)
+        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG, CAMERA_SETTINGS_CHIP_TAG)
         val chips = tags.map { bounds(it) }
 
         tags.zip(chips).forEach { (tag, chip) ->
