@@ -251,3 +251,93 @@ Proposed:
   `MapPreferencesRepository.getMapFullscreen`); since 2026-10-08 the cluster's side and height do too (owner: "have the map icon bar persist between restarts so left handed users don't need to change it every time they open the app"), and its
   minimised flag deliberately does not. Not an exception to this rule:
 ```
+
+## Build and test (RECORD -710 step 3), 2026-10-08; supersedes "written, not run" above for what it covers
+
+**Merges.** `origin/main` was merged twice. The first merge brought in back-by at `0f5cf0e5` (merge `649fd21d`). The second
+brought in search-order at `74c9fdd4` (merge `bac4852d`). Each merge conflicted only on `docs/audits/README.md`, and every index
+row was kept. Files changed on both sides were `MainActivity`, `AvailabilitySearchUi`, `AvailabilityViewModel`,
+`AvailabilityScreen` and `AvailabilityCompactMapUi`, but in each the two sides touched different code: no logic changed on both
+sides.
+
+Back-by's quick menu reuses `SundownSettings` and `OffTrackReminderSettings`:
+- Its comment "Settings keeps the explanation line" was no longer true once -707 moved Sundown into the Tools drawer. That
+  comment and its call-site comment in `AvailabilityScreen` now say the Tools drawer's section keeps the explanation line.
+- "Sundown alerts" is composed by the quick menu only while that menu is open (a `DropdownMenu`), and by the Tools page while it
+  shows. Every test that touches these rows finds them by tag (`QUICK_SUNDOWN_ALERTS_TAG`, `SUNDOWN_ALERTS_TAG`). The one
+  text lookup is `SundownSettingsTest:205`, which checks `isNotEmpty()`. So no test trips over the label appearing twice, and
+  none did in the run.
+
+**How it was run.**
+- Every run used `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0`, with Gradle at `-Xmx1536m`, the Kotlin daemon
+  at 2g, and Java temp at `~/.cache/forager-test-tmp`.
+- No daemon was running before the first run.
+- Main was compiled first, then the tests. The Kotlin daemon was stopped after every run.
+- Free disk was 3.1 GB at the start and 2.7 GB at the end, never under 1.5 GB.
+- `./gradlew --stop` was run at the end, and no Gradle or Kotlin process was left.
+
+**The first full-suite run was killed by the 5G cap (OOM).** The Gradle daemon had been started inside the first revert check's
+`systemd-run` scope and was reused by every later run, so the full suite's test worker was charged to that older scope, which
+reached its 5G limit (journal: "oom-kill", 5G peak). I stopped the daemon and reran the full suite on a fresh daemon in its own
+scope. That rerun is the result below.
+
+**Compile.** Main compiled first time. The tests had compile errors only in settings-moves' new tests: `InAppCameraSettingsPanelTest`
+and `SundownSettingsTest` were missing the `DpRect.width`/`height` imports. Fixed in `9dd162a1`. The -708 and -711 tests compiled
+first time.
+
+**Fixes to my own new tests, from the targeted run** (`5058e8c5`, `62eaae47`):
+- **Waiting on a condition.** `composeRule.waitUntil` timed out in the basemap restart test with the condition already true once
+  the main looper had run. A diagnostic run showed the store held "street" straight after `waitForIdle()`. Every wait now idles
+  the main looper between checks and names what it waits for.
+- **Releasing a launch's store.** `runBlocking { scope.cancelAndJoin() }` hung one run for ten minutes. The thread dump showed the
+  test thread parked in `joinBlocking` at `AvailabilityScreenClusterPersistenceTest.kt:172`. The release now cancels and waits
+  with the main looper idling, so it fails after five seconds instead of hanging.
+- **The clamp test's "held low" check.** It compared the bar's centre against a margin I had guessed, which failed (391 against
+  371.5 + 40). It now checks that a real drag down from the restored height moves the cluster no further, with a drag up as the
+  guard that drags register.
+
+**Revert checks: 15 of 15 fail as expected.** Each restored its file from a copy saved before the edit, the compile log had no
+errors, and the forward change was confirmed present after each.
+
+| Check | Message |
+|---|---|
+| S1 `following = {}` | `SundownSettingsTest`: no node `tools-sundown-section` / `settings-sundown-alerts` |
+| S2 Sundown back in Settings | `expected:<0> but was:<1>` |
+| S3 gear chip dropped | no node `in-app-camera-settings-chip` (11 tests) |
+| S4 panel `BackHandler` removed | "and Back closed it expected:<0> but was:<1>" |
+| S5 `currentOnClose()` removed | "the panel closed expected:<0> but was:<1>" |
+| S6 lock row `onCheckedChange = {}` | "a touch at 0.05 across the camera lock row expected:<[camera lock true]> but was:<[]>" |
+| S7 `onLockCameraToPortraitChanged = {}` at the host | "the lock row asked for on expected:<[true]> but was:<[]>" |
+| B1 gate without the basemap | "nothing may draw while the stored basemap is unread expected:<[]> but was:<[MapRenderMode(basemap=OPEN_TOPO_MAP, … nightModeLoaded=true …" |
+| B2 no write-back | `expected:<[topographic]> but was:<[]>` |
+| B3 no pick-wins guard | `expected:<STREET> but was:<TOPOGRAPHIC>` |
+| B4 `onMapModeSelected(it)` dropped | "still waiting after 5 s for: Street to be stored" |
+| C1 draw gate removed | "no cluster is drawn before the stored side is read expected:<false> but was:<true>" |
+| C2 `onDragSettled()` dropped | "still waiting after 5 s for: the left side to be stored" |
+| C3 no drag-wins guard | expected the dragged placement, was `DEFAULT` |
+| C4 `placementApplied = true` dropped | "still waiting after 5 s for: the cluster to be drawn" (both tests) |
+
+B4, C2 and C4 were first run before the waits had names, when they failed with a generic timeout. They were rerun with the named
+waits, and the messages above are from that rerun.
+
+**Full suite: 561 classes, 4,412 tests, 24 skipped, 1 failure.** Read from the run's own XML: the results directory was deleted
+before the run, and the XML totals match Gradle's line. `AvailabilityScreenSettingsPanelTest` ran 27 tests with 0 failures,
+including the 26 that settings-moves had dropped. Both persistence classes and `InAppCameraSettingsPanelTest` are green.
+
+**The one failure, not touched: `LayersChipsLandscapeTest`, "the map-type chips are centred between the sheet's sides".** "The
+chip row [367.0, 461.0] is centred on the sheet [92.0, 732.0] expected:<412.0> but was:<414.0>", with a 1 dp tolerance. This is
+the test whose last chip I changed from "Satellite" to "Topographical". A throwaway diagnostic (deleted, not committed) printed
+the chips' semantic bounds:
+- Street: 367 to 406, 39 dp wide.
+- Topographical: 415 to 461, 46 dp wide.
+- The text inside each is 7 dp and 14 dp wide, because Robolectric's fonts are nearly zero width.
+
+Both chips are narrower than the 48 dp minimum touch target, so each is laid out 48 dp wide with the chip centred in it. That puts
+the row at 362.5 to 462 with a 4 dp gap between the chips, centred at 412.25, which is the sheet's centre. **So I read this as a
+measurement artefact rather than a centring bug.** The semantic bounds leave out the touch-target padding, and the padding is
+uneven between the two chips: 4.5 dp each side for Street, 1 dp for Topographical. With Satellite as the last chip the two ends
+were presumably padded alike, which is why the test passed before. This is inferred from the printed bounds, not from reading the
+layout code. Proposed fix, for the planner to approve: measure each chip's layout box (its 48 dp touch target) rather than its
+semantic bounds, or check that the two chips' centres are mirrored about the sheet's centre. Not changed, as instructed.
+
+**Gradle has stopped:** `./gradlew --stop` was run, and `pgrep` finds no Gradle daemon, Kotlin daemon or test worker.
