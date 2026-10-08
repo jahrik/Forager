@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
 import com.zynergylabs.forager.app.domain.waypointNavigationTarget
@@ -553,6 +554,8 @@ fun AvailabilityScreen(
     onSetTrackDecision: (String, Boolean) -> Unit = { _, _ -> },
     onSetWaypointDecision: (String, Boolean) -> Unit = { _, _ -> },
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit = { _, _ -> },
+    /** Data part A (dispatch 2026-09-28-667): a group switch in the entry editor's "In this entry" panel, `CartographyViewModel.onSetEntryGroupIncluded`. */
+    onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
     onToggleKeptPhoto: (String) -> Unit = {},
     /** Entry-photo-acquisition dispatch, Item 2. See [CartographyScreen]'s own doc comment on this same parameter. */
     onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit = {},
@@ -827,6 +830,14 @@ fun AvailabilityScreen(
     // open entry, which the ViewModel also holds. Saveable, so a recreation (a night-mode toggle, a
     // fold) does not bring an unsaved edit back in its report view either; the enum saves as-is.
     val cartographyEntryModeState = rememberSaveable { mutableStateOf(CartographyEntryMode.VIEW) }
+    // Data part A (dispatch 2026-09-28-667): which groups of the entry editor's "In this entry" panel
+    // the user opened, held here so a tab change does not close them (CLAUDE.md, UX defaults). Plain
+    // remember, not saveable: it is a convenience within a session, and a recreation closing them
+    // loses nothing the user wrote.
+    val cartographyOpenEntryGroupsState = remember { mutableStateOf(emptySet<EntryGroup>()) }
+    // RECORD -671 (the planner's call under the same rule): the entry report's waypoint rows showing
+    // their coordinates, by waypoint id, held here for the same reason.
+    val cartographyOpenWaypointRowsState = remember { mutableStateOf(emptySet<String>()) }
     // Intent 2026-09-28-44, F3 ("Keep finds open too (Recommended)"): an open find's mode, and M1's
     // find over the view, held here for the same reason. The mode saves as its enum. FindOverView is
     // plain remember: it survives the tab change the ruling is about, not a recreation.
@@ -1695,6 +1706,7 @@ fun AvailabilityScreen(
             onSetTrackDecision = onSetTrackDecision,
             onSetWaypointDecision = onSetWaypointDecision,
             onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+            onSetEntryGroupIncluded = onSetEntryGroupIncluded,
             onToggleKeptPhoto = onToggleKeptPhoto,
             onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
             onFinishCartographyEntry = onFinishCartographyEntry,
@@ -1729,6 +1741,8 @@ fun AvailabilityScreen(
             onMonthSelected = onMonthSelected,
             journalScreenState = journalScreenState,
             cartographyEntryModeState = cartographyEntryModeState,
+            cartographyOpenEntryGroupsState = cartographyOpenEntryGroupsState,
+            cartographyOpenWaypointRowsState = cartographyOpenWaypointRowsState,
             findEntryModeState = findEntryModeState,
             findOverViewState = findOverViewState,
         )

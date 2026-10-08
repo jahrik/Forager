@@ -7,6 +7,13 @@ import com.zynergylabs.forager.app.domain.CommitCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CreateCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.DeleteCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.EntryContents
+import com.zynergylabs.forager.app.domain.EntryFindItem
+import com.zynergylabs.forager.app.domain.EntryGroup
+import com.zynergylabs.forager.app.domain.EntryOfflineMapItem
+import com.zynergylabs.forager.app.domain.EntryTrackItem
+import com.zynergylabs.forager.app.domain.EntryWaypointItem
+import com.zynergylabs.forager.app.domain.entryContentsOf
 import com.zynergylabs.forager.app.domain.GetCartographyDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntryUseCase
@@ -346,6 +353,60 @@ class CartographyViewModel(
             ?: state.candidateOfflineRegionsForEditingEntry.firstOrNull { it.id == offlineRegionId }?.toDecision(kept = kept)
             ?: return
         persist(entry.copy(offlineRegionDecisions = entry.offlineRegionDecisions.filterNot { it.offlineRegionId == offlineRegionId } + decision))
+    }
+
+    /**
+     * A group switch in the editor's "In this entry" panel (dispatch 2026-09-28-667, data part A; the
+     * owner in RECORD -656: "Summary first, open to adjust (Recommended)"): includes, or leaves out, every
+     * item [EntryContents.members] puts in [group], its new ones too, as one change. A draft saves once
+     * for the whole group, not once per item. What an included or left-out item then does is unchanged:
+     * this writes the same decisions, with the same `kept` values, that the per-item setters above write.
+     *
+     * An existing decision is changed where it stands rather than moved last as the per-item setters do,
+     * so a switch already in the asked-for state changes nothing and does not mark a saved entry unsaved.
+     * A group with nothing in it is logged and ignored: the panel shows no switch for one.
+     */
+    fun onSetEntryGroupIncluded(group: EntryGroup, included: Boolean) {
+        val state = _uiState.value
+        val entry = state.editingEntry ?: return
+        val contents = entryContentsOf(entry, state.candidatesForEditingEntry, state.candidateOfflineRegionsForEditingEntry, computeTrackStatistics)
+        val members = contents.members(group)
+        if (members.isEmpty()) {
+            Log.w(TAG, "A switch was set for the empty group $group of entry '${entry.id}'; nothing changed.")
+            return
+        }
+        val candidates = state.candidatesForEditingEntry
+        var updated = entry
+        for (item in members) {
+            val changed = when (item) {
+                is EntryTrackItem -> updated.trackDecisions.setOrAdd(
+                    { it.trackId == item.id },
+                    { it.copy(kept = included) },
+                    { candidates?.tracks?.firstOrNull { it.id == item.id }?.toDecision(kept = included, computeTrackStatistics) },
+                )?.let { updated.copy(trackDecisions = it) }
+                is EntryWaypointItem -> updated.waypointDecisions.setOrAdd(
+                    { it.waypointId == item.id },
+                    { it.copy(kept = included) },
+                    { candidates?.waypoints?.firstOrNull { it.id == item.id }?.toDecision(kept = included) },
+                )?.let { updated.copy(waypointDecisions = it) }
+                is EntryFindItem -> updated.findDecisions.setOrAdd(
+                    { it.findId == item.id },
+                    { it.copy(kept = included) },
+                    { candidates?.finds?.firstOrNull { it.id == item.id }?.toDecision(kept = included) },
+                )?.let { updated.copy(findDecisions = it) }
+                is EntryOfflineMapItem -> updated.offlineRegionDecisions.setOrAdd(
+                    { it.offlineRegionId == item.regionId },
+                    { it.copy(kept = included) },
+                    { state.candidateOfflineRegionsForEditingEntry.firstOrNull { it.id == item.regionId }?.toDecision(kept = included) },
+                )?.let { updated.copy(offlineRegionDecisions = it) }
+            }
+            if (changed == null) {
+                Log.w(TAG, "Group $group of entry '${entry.id}' lists '${item.id}', which has no decision and is no longer a candidate; it was skipped.")
+            } else {
+                updated = changed
+            }
+        }
+        if (updated != entry) persist(updated)
     }
 
     /**
@@ -785,3 +846,11 @@ private fun OfflineRegionSummary.toDecision(kept: Boolean) = OfflineRegionDecisi
     radiusKm = region.radiusKm,
     kept = kept,
 )
+
+/**
+ * This list with the element matching [matches] replaced by [change] where it stands, or, when none
+ * matches, [create]'s element appended. `null` when nothing matches and [create] has nothing to add, so
+ * the caller can say so.
+ */
+private inline fun <T> List<T>.setOrAdd(matches: (T) -> Boolean, change: (T) -> T, create: () -> T?): List<T>? =
+    if (any(matches)) map { if (matches(it)) change(it) else it } else create()?.let { this + it }

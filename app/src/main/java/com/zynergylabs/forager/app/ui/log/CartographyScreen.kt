@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.zynergylabs.forager.app.domain.EntryGroup
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -204,8 +205,15 @@ internal fun CartographyScreen(
      * is a return to the map; `{}` by default is every other caller.
      */
     onEntryClosed: (entryId: String, fromReport: Boolean) -> Unit = { _, _ -> },
+    /** Data part A (dispatch 2026-09-28-667): a group switch in the editor's "In this entry" panel, [CartographyViewModel.onSetEntryGroupIncluded]. `{ _, _ -> }` by default is every other caller. */
+    onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
+    /** Which of that panel's groups are open: hoisted to the caller (`AvailabilityScreen` holds it), as [entryModeState] is, so it survives a tab change. */
+    openEntryGroupsState: MutableState<Set<EntryGroup>> = remember { mutableStateOf(emptySet()) },
+    /** Which waypoint rows in an entry report show their coordinates, by waypoint id: hoisted the same way (RECORD -671). */
+    openEntryWaypointRowsState: MutableState<Set<String>> = remember { mutableStateOf(emptySet()) },
 ) {
     var mode by entryModeState
+    var openEntryGroups by openEntryGroupsState
     val shortWindow = shortWindowHeader != null
 
     // The album's Take photo / Import. Held here, above every branch, rather than inside the album
@@ -406,6 +414,9 @@ internal fun CartographyScreen(
                     onSetTrackDecision = onSetTrackDecision,
                     onSetWaypointDecision = onSetWaypointDecision,
                     onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+                    onSetGroupIncluded = onSetEntryGroupIncluded,
+                    openGroups = openEntryGroups,
+                    onToggleGroupOpen = { group -> openEntryGroups = if (group in openEntryGroups) openEntryGroups - group else openEntryGroups + group },
                     onToggleKeptPhoto = onToggleKeptPhoto,
                     onOpenCamera = onOpenCameraForEntry,
                     onAcquirePhoto = onAcquirePhotoForEntry,
@@ -437,6 +448,8 @@ internal fun CartographyScreen(
                     onLayerVisibilityChanged = onMapLayerVisibilityChanged,
                     mapBubbleSources = mapBubbleSources,
                     onSetShownOnMap = onSetShownOnMap?.let { set -> { shown: Boolean -> set(editingEntry.id, shown) } },
+                    candidates = uiState.candidatesForEditingEntry,
+                    openWaypointRowsState = openEntryWaypointRowsState,
                     onEdit = { mode = CartographyEntryMode.EDIT },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = ::closeEntryByUser,
