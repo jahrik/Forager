@@ -226,6 +226,8 @@ name field; it is user-entered, never app-generated). A tile therefore never nam
 
 ### Stops
 
+**Answered by the owner in Amendment 4 (RECORD -703), below; left as written here.**
+
 1. **A find stores no time of day.** `MushroomLogEntry.foundOn` is a date (`domain/model/MushroomLogEntry.kt`); the entity has
    no time column. "Found 2:14 PM" is built from the earliest of the find's photos taken on its own day
    (`LogPhoto.createdAtEpochMillis`); a photo from another day (an import) is not used. A find with no such photo shows
@@ -283,3 +285,70 @@ title rule and the grouping.
   "Found" tests fail; (9) drop the grouping (one flat `items`): the heading-position test fails; (10) hard-code `is24HourClock =
   false` in `trackTitle`'s caller: `TrackSheetDataTest`'s new row assertion fails; (11) restore `journalEntryDateLabel` to
   `toString()`: `JournalEntriesOnMapTest` fails on "Sep 12, 2026".
+
+## Amendment 4 (RECORD -703): the stops answered
+
+The owner, verbatim: (1) "Option 1, but keep it blank instead of showing "Unnamed find""; (2) "Keep the weekday there
+(Recommended)"; (3) "New ones follow the new style (Recommended)"; (4) "Match the tile (Recommended)". My other calls (Drafts
+grouped, newest first, "+" alone) were accepted. Code and tests only, **nothing compiled or run**.
+
+### Database version
+
+`origin/main` is still at 18 (`b71c1569`); `origin/guidance-text` (`450860ac`) claims 18 to 19 and is not on main, so it is
+**merged** into this branch (`1b700f39`, a merge, not a rebase; the one conflict was `docs/audits/README.md`, every row kept). Before
+claiming 20 I read every remote branch's `ForagerDatabase.kt`: none is above 19 and none has a `MIGRATION_19_*`. One thing that
+names 20 was found and is not a claim: guidance-text's newer-backup refusal test used 20 as "a version newer than this build", the
+precedent being each bump moves it up one; it is now 21 (below).
+
+### What changed
+
+- **The saved time.** `MushroomLogEntry.foundAtEpochMillis` and `MushroomLogEntryEntity.foundAtEpochMillis` (nullable, no
+  backfill), mapped both ways in `RoomMushroomLogRepository.kt`. `CreateMushroomLogEntryUseCase` writes the moment of creation
+  when the find is for the day it is created on (in the phone's zone); a find created for another day gets none, since now is not
+  when it was found. Edits and Save carry it (`copy`).
+- **Schema 20.** `MIGRATION_19_20` in `data/local/Migrations.kt`: a full rebuild of `mushroom_log_entries` with an explicit column
+  list, as 18 to 19 and the `MIGRATION_12_13` pitfall require (the legacy fixtures declare the entity directly), both indexes
+  recreated. `ForagerDatabase` at 20, `ALL_MIGRATIONS` and `SCHEMA_VERSION` updated. `app/schemas/.../20.json` is 19.json plus the
+  column; **its identity hash `873e9dde…` was computed by hand** with Room 2.8.5's own rule, read from the compiler jar in the
+  Gradle cache (the rule reproduces 18.json's and 19.json's hashes exactly). The build's own export must leave the file unchanged;
+  if it rewrites it, that is a finding.
+- **One title rule** in new `ui/log/FindTitles.kt` (`findTitle`, `foundTimeMillis`, `findBlankTitleLabel`): the given name; else
+  "Found <time>" from the saved time; else from the earliest photo taken that day; else `null`, no text, with the label
+  "Find, Oct 7, 2026". "Unnamed find" is gone. Used by the tile (Finds grid and Records logbook), the find's report and edit form
+  headers (`LogEntryReportScreen.kt`, `LogEntryDetailScreen.kt`, tag `FIND_PAGE_TITLE_TAG`) and the map bubble
+  (`MapBubbles.kt`: `title` is now nullable, with `blankTitleLabel`; `MapBubble.kt` draws no title and carries the label). A blank
+  tile keeps its caption line, so tiles in a row stay the same height.
+- **Weekday headers**: left as they are.
+- **Automatic waypoint names**: `autoWaypointName` takes `is24HourClock` and writes "Start · Oct 7, 2026, 9:41 AM" or
+  "Start · Oct 7, 2026, 09:41"; `TrackRecordingViewModel` takes `is24HourClock: () -> Boolean`, read each time it names one;
+  `MainActivity` passes `DateFormat.is24HourFormat`. The VM's default, 12-hour, is for tests (as its `zone` default is). Names
+  already saved keep their text. The pattern is restated in the domain file, since the domain layer does not depend on `ui`.
+
+Interpretations, flagged: **the bubble keeps its date line** ("Find on Oct 7, 2026") under whatever title it has, because the
+bubble has no day heading above it as the tile does; and **the find's own pages no longer show its date** anywhere (their header
+was "Find on <date>", now the tile's title or blank). The owner may want a date line on those pages.
+
+### Tests changed by Amendment 4
+
+| File | Was | Now | Why |
+|---|---|---|---|
+| `SchemaMigrationTest` | chain 4 to 19 against 19.json | chain 4 to 20 against 20.json; new `19 to 20` test: every seeded value carried, `foundAtEpochMillis` NULL, both indexes back, the column takes a value | the new migration |
+| `JournalBackupTest`, `JournalBackupTestSupport` | schema 19 in four places; the "newer" backup is 20 | 20; the newer backup is 21 | the version; guidance-text's precedent |
+| `AutoWaypointNameTest` | "Start · Sep 5, 9:41 AM" (three cases) | "Start · Sep 5, 2026, 9:41 AM" etc., plus a 24-hour case "Start · Sep 5, 2026, 09:41" | item 3 |
+| `TrackRecordingViewModelTest` | "Start · Jan 1, 12:00 AM", "End · Jan 1, 12:00 AM" | "… Jan 1, 1970, 12:00 AM"; new test: on a 24-hour phone the origin is "Start · Jan 1, 1970, 00:00" | item 3 |
+| `JournalTabTest` (six), `JournalPageSlideTest`, `RecordsFilterChipsTest` (three), `FindsGalleryScreenTest` | the "Unnamed find" text | the "Find, <date>" screen-reader label | item 1: the placeholder is gone; these fixtures have no name, time or photo |
+| `JournalTabTest`, Cancel on a new entry | no placeholder text | no "Find, <today>" label | as above |
+| `MapBubblesTest`, the unnamed find | title "Find on Sep 12, 2026", no date line | no title, date line "Find on Sep 12, 2026", label "Find, Sep 12, 2026" | item 4 |
+| `FindsGroupedByDayTest` | the placeholder tests and `findTileTitle` | blank-with-label; the saved time before photos; the report's title by the rule (time, name, blank with label) through `LogEntryReportScreen`; headless rule checks | items 1 and 4 |
+
+New: `FindFoundAtTimeTest` (real use cases over a real in-memory Room repository): a find created on its day stores and reads back
+its time; one created for another day stores none; the time survives a re-edit and its Save.
+
+### Unverified, added by Amendment 4
+
+- Nothing compiled; migration tests not run, so `MIGRATION_19_20` and `20.json` are checked by reading only.
+- The bubble's blank title is tested at the content level (`MapBubblesTest`), not on screen.
+- The edit form's header is not tested directly (the report's is).
+- Revert checks planned: (12) drop the `foundAtEpochMillis` write in `CreateMushroomLogEntryUseCase`: `FindFoundAtTimeTest` fails;
+  (13) drop it from `toEntity`: the round-trip test fails; (14) put "Unnamed find" back for `null`: the blank tests fail;
+  (15) restore the old auto-name pattern: `AutoWaypointNameTest` fails.
