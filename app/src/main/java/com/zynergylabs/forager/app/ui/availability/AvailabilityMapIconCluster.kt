@@ -556,12 +556,7 @@ internal fun BoxScope.MapIconCluster(
     // state.userChosenOffsetPx's own doc comment. Not keyed on the memory itself:
     // a drag snaps the displayed value directly and is never animated.
     val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
-    // RECORD -729: in the landscape L the top limit is the search bar's settled bottom, which now follows the compass strip's
-    // measured height (36 dp at the default font, not the bar's own 45), so the L is re-fitted when it changes rather than kept
-    // at the clamp of the first frame, before the strip was measured. A key only in landscape: portrait's limit animates with
-    // the fullscreen slide (CompactMapTab's searchBarBottom comment), and portrait is unchanged.
-    val landscapeTopLimitKey = if (state.landscape) topLimitPx else 0f
-    LaunchedEffect(state.clusterHeightPx, state.mapContentBoxHeightPx, state.bottomNavHeightPx, isFullscreen, state.landscape, legendBoundPx, currentNoticeBottomPx, landscapeTopLimitKey) {
+    LaunchedEffect(state.clusterHeightPx, state.mapContentBoxHeightPx, state.bottomNavHeightPx, isFullscreen, state.landscape, legendBoundPx, currentNoticeBottomPx) {
         val targetPx = clampMapIconBarVerticalOffset(state.userChosenOffsetPx)
         // RECORD -711: a height restored at launch is fitted to this window's limits with a snap, not a
         // glide, so it never slides in from beyond them; from the first measured fit on, as before.
