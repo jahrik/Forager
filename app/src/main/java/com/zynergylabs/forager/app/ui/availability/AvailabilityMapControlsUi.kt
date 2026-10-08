@@ -520,7 +520,11 @@ private fun CompassElevationStripContent(
             ) {
             // Dispatch 2026-09-28-592: a Column so the sundown line can sit under the readout. It draws
             // nothing and takes no touches of its own, like the Box around it.
-            Column(modifier = if (contentWidth) Modifier else Modifier.weight(1f)) {
+            // RECORD -709 (the planner): in a landscape window the strip is content-width under the small fixes' cap, and this
+            // column took all of it before the button was measured, leaving the three-dot button 0 dp wide at 780 x 360 dp. Weighted,
+            // not filling, it is measured after the button, which always keeps its QUICK_SETTINGS_TAP_TARGET; the readouts then give
+            // way inside what is left (stripReadoutsShown), coordinates first.
+            Column(modifier = if (contentWidth) Modifier.weight(1f, fill = false) else Modifier.weight(1f)) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
                 // hardware-caught bug an unbounded-height descendant caused here previously; nothing

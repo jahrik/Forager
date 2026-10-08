@@ -651,6 +651,17 @@ internal fun CompactMapTab(
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
                 }
             }
+            // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): what sits below the strip in portrait (the
+            // observation bubble's top, the icon bar's drag limit, the taxon and journal chips; the search dropdown, in the
+            // scaffold, through searchBarSlot) clears the strip's measured height, not one text line. Back by's three-dot button
+            // (dispatch 2026-09-28-645) gave the strip a 36 dp floor, twice that line, and its sundown and Back by lines grow it
+            // too. The one-line clearance stays the floor, and is what is used while the strip is not measured: before its first
+            // layout, while navigating (the display replaces it), and in a landscape window, where the strip sits in the other
+            // corner and is not measured. The comment above records a regression from reading a measured height back for the
+            // bubble's minY; the strip's measured height was already read here for the search notice (searchBarSlot), and the
+            // test that caught that regression ("tapping elsewhere on the map dismisses the observation bubble") is @Ignore'd
+            // for an unrelated harness reason, so whether the regression returns is a device item.
+            val compassStripBottomClearance = with(compassStripDensity) { compassStripHeightPx.toDp() }.coerceAtLeast(compassStripClearance)
             Box(
                 modifier = modifier
                     .fillMaxSize()
@@ -794,7 +805,7 @@ internal fun CompactMapTab(
                         launchINaturalistObservation(context, sighting.observationId)
                         tapped = null
                     },
-                    minY = topInset + compassStripClearance,
+                    minY = topInset + compassStripBottomClearance,
                     // Fullscreen and the search dropdown are left out as the drawer and the menu states are (dispatch 2026-09-28-312,
                     // item 11): a bubble closes after anything opened after it, and their Back handlers were registered before the
                     // bubble layer's, so without these terms a bubble took the first Back and they the second. The dropdown's state
@@ -849,7 +860,7 @@ internal fun CompactMapTab(
                     // searchBarBottom, the search bar's own bottom (settled, not animated), without the strip clearance (the compass strip is in the other corner there,
                     // nothing else is drawn in that band beside the notice and the chips, which make room for the L, and the SearchDropdown
                     // starts below it); the L pushes down to it as well as up. Portrait keeps topInset + the clearance.
-                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) searchBarBottom else topInset + compassStripClearance).toPx() },
+                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) searchBarBottom else topInset + compassStripBottomClearance).toPx() },
                     noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
                     controlsPadding = controlsPadding,
                     bar = { barModifier -> phoneBar(barModifier, mapIconClusterChildColor(), Spacing.xs, false) },
@@ -1045,7 +1056,7 @@ internal fun CompactMapTab(
                             Modifier
                                 .align(Alignment.TopCenter)
                                 .padding(controlsPadding)
-                                .padding(top = topInset + compassStripClearance + Spacing.sm)
+                                .padding(top = topInset + compassStripBottomClearance + Spacing.sm)
                         }.then(if (chipsMeantToShow) Modifier.mapKeepOut(MapKeepOutIds.CHIPS) else Modifier),
                     ) {
                         MapPopUp(state = taxonChip, pivot = PopUpPivot.TopCentre) {
