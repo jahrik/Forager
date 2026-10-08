@@ -364,3 +364,80 @@ R5's end reflow jump is accepted for now.
   test.
 - The merge is to be repeated right before the build, since data part C may land on main first.
 
+## Build (the planner's Gradle go), 2026-10-08
+
+**Merge first.** `origin/main` at f6fc6c91 (data part C) merged in (1a1e9737). Two conflicts:
+- `availability/AvailabilityResultsUi.kt`, imports only: C removed the `Canvas` import with the Seasonal code it moved out, and this
+  branch had added the list-motion imports beside it. Resolved by keeping this branch's imports and C's removal. No logic was
+  changed on both sides.
+- `docs/audits/README.md`: two rows at the same place, both kept.
+
+**How it was run.** Every run under `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0`, Gradle heap 1536m, Kotlin
+daemon 2g, Java temp `~/.cache/forager-test-tmp`; no daemon before the first run; free disk checked before each run (3.1 GB at the
+start, 2.8 GB at the end; never under 1.5 GB); the Kotlin daemon stopped after every compile and before every test run;
+`./gradlew --stop` at the end, and no Gradle or Kotlin daemon process left. No phone or emulator.
+
+**Compile.** Main compiled first time. The tests had 11 errors, all mine: two test names with a colon (not allowed in a JVM method
+name) and a missing `DpRect.height` import (a6ad2e43).
+
+**New tests, first run: 46, 5 failures, each a real finding, fixed in 9d2478e2:**
+- Three `JournalPageSlideTest` forward cases found no covered page mid-slide: **`ExitTransition.None` drops the covered page at
+  once** (the premise marked unverified above was wrong). The covered page is now held by a fade that stays at full and drops
+  only after the slide's own settling time, read from the spec (`pageCoverHold`, `snap` with that delay).
+- `ListMotionTest`, the lazy list: a touch on a leaving Entries card opened it. A semantics dump (a throwaway diagnostic copy of
+  the test, not kept) showed the card 41.7 dp tall at that moment: **Compose widens the hit area of anything under the 48 dp
+  minimum touch target, and that "near" hit path runs even past a clipping layer**, so Part 1's `leavingTakesNoTouches` does not
+  hold for small leaving things. Fixed for this part's leaving pieces (`NoTouchTargetExpansion`, a zero minimum touch target only
+  while leaving: `ListRowMotion`, page frames, `StateCrossfade`). **Not fixed, reported:** Part 1's and Part 2's other uses
+  (`MapPopUp`, the search dropdown, the tab crossfade and bar) have the same gap wherever the leaving thing is under 48 dp in
+  either direction, a chip for instance.
+- `ListMotionTest`, Undo: it read the row inside the animated box, which is measured at full height throughout (the box opens by
+  clipping). It now reads the box itself, frame by frame. A critically damped spring keeps its speed when turned, so the row
+  shrinks a little further before it grows back; the test now asserts it never restarts from nothing, turns and grows, and is
+  caught part-way. **This is a changed assertion in a test this part wrote**, not an existing one.
+
+**New tests, second run: 46 tests, 0 failures** (`JournalPageSlideTest` 9, `ListMotionTest` 4, `ListRowsMergeTest` 6,
+`NightModeFadeTest` 4, `DrawerPushSlideTest` 3, `MotionTokensTest` 13, `ReduceMotionTest` 3, `ProvideReduceMotionTest` 4), all XML
+fresh from the run.
+
+**Revert checks, 13 runs covering R1 to R14** (R1 and R14 are one edit, checked against both classes). Each run saved the file,
+made a one-line edit, compiled, refused to read results on any compile error (none had one), stopped the Kotlin daemon, ran
+the classes, read only XML newer than the run, and restored the file from the saved copy, confirmed by checksum. `git status` was
+clean afterwards. Every one failed for its own reason:
+- R1/R14, page frames without `leavingTakesNoTouches`: the "+" tile test (a new find started), the leaving-report test (the touch
+  was taken by the report), and the drawer test (the drawer closed: its page bounds NaN).
+- R2, the forward slide removed: "never saw: the report part-way in", and the same for Records, the short window and the chips.
+- R3, the back slide removed: "never saw: Records part-way out", "the report part-way out", "the Waypoints list part-way out".
+- R4, the find over the view without its touch blocker: the Records half of the switch was selected.
+- R5, `ListRowMotion` without `leavingTakesNoTouches`: "a leaving row opens nothing" failed in both list tests (w-creek, e-2).
+- R6, rows never kept to leave: "never saw: the creek row part-way out" (three tests).
+- R7, a returning row given a new state: "the row that was leaving, reversed, not a new one" (and two more merge tests).
+- R8, no colour blend: "some frame was drawn with a background part-way".
+- R9, the reduced-motion branch removed: "only the two ends were ever drawn" failed.
+- R10, `pageSlideTransform`'s reduced-motion branch removed: "nothing leaving" failed.
+- R11, the L1 row drawn inside the pages again: "Expected exactly '1' node but found '2' ... journal-switch".
+- R12, the chip lists without their slide: "never saw: the Waypoints list part-way in".
+- R13, the push's forward exit removed: "never saw: Tools part-way out to the right".
+
+**Full suite: 522 classes, 4,163 tests, 24 skipped, 4 failures**, all XML fresh from the run. The four are existing tests,
+**not touched**:
+1. `AvailabilityScreenJournalShortWindowTest`: "L2 on the album the row's photo button..." and "L7 the Journal's switch, Records
+   chip and Entries view survive turning...": `AppNotIdleException`, Compose never idle.
+2. `JournalShortWindowCardsTest`: "L6 the album grid is 5 columns in a short window": the same.
+   **Cause, read from the code (not yet confirmed by a run):** Amendment 1's still L1 row. Entries hands the row its action
+   through state written after composition, remembered per view; the album's action is remembered keyed on
+   `albumPhotoAcquisition`, but `rememberPhotoAcquisitionLaunchers` builds a new `PhotoAcquisitionLaunchers` (a plain class) on
+   every composition. So in album view every composition makes a new action, writes the state, recomposes the Journal, and
+   composes Entries again: an endless loop. The timeline's action is remembered with no key, which is why only album cases fail.
+   **Proposed fix (mine, in production code, no test change):** remember the album action with no key, reading the launchers
+   through `rememberUpdatedState`, as the timeline's already does.
+3. `LeavingTheJournalFixesTest`: "F1 a new find left by Back offers Discard...": "could not find any node ... contains 'Draft'".
+   A diagnostic copy dumped the tree after its "Drafts (1)" tap: the Drafts tab was not selected, and the search dropdown's scrim
+   ('search-dropdown-scrim') was open over the whole Journal, taking the tap. **Inferred cause:** the find's editor, with its
+   identification field focused, now stays composed for its slide out (a leaving page), instead of leaving in the same frame the
+   search header comes back; focus then lands on the search field and opens its dropdown (the same class of race the comments in
+   `CartographyScreen` and `AvailabilityScreen` record). **Proposed fix:** a leaving page gives up focus the moment it starts to
+   leave (clear focus held inside it), in `PageSlide`'s page frame. Not confirmed by a run.
+
+Pushed. Gradle is stopped.
+
