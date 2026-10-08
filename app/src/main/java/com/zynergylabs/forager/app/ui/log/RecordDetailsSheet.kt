@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -150,8 +151,10 @@ private const val WALK_WAYPOINT_SEPARATOR = '\u001F'
  * content which takes the tap and closes the row, so this click never sees it. The row's own
  * buttons (Directions, Share) are children of the clickable node and take their own taps first.
  */
+@Composable
 internal fun Modifier.opensRecordDetails(name: String, onClick: () -> Unit): Modifier =
-    clickable(onClickLabel = recordDetailsClickLabel(name), onClick = onClick)
+    // Amendment 1 to motion Part 1 (RECORD -657): the press is drawn in a rounded shape; the tap is where it always was.
+    clickableWithShapedPress(onClickLabel = recordDetailsClickLabel(name), onClick = onClick)
 
 /** The click label a Records row carries for TalkBack: "Details for Creek pin". */
 internal fun recordDetailsClickLabel(name: String): String = "Details for $name"

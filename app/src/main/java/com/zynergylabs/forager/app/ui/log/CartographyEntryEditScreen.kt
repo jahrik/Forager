@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,7 +28,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -218,7 +218,7 @@ internal fun CartographyEntryEditScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                IconButton(onClick = onRequestBack) {
+                BouncingIconButton(onClick = onRequestBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Cartography")
                 }
                 Text(formatEntryDate(entry.date), style = MaterialTheme.typography.titleMedium)
@@ -227,7 +227,7 @@ internal fun CartographyEntryEditScreen(
                 }
             }
             Box {
-                IconButton(onClick = { menuExpanded = true }) {
+                BouncingIconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Filled.MoreVert, contentDescription = "Entry options")
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
@@ -430,7 +430,7 @@ private fun KeptPhotosSection(
                         photo = photosById[attachment.photoId],
                         modifier = Modifier.size(KEPT_PHOTO_SIZE_DP.dp),
                     )
-                    IconButton(
+                    BouncingIconButton(
                         onClick = { onToggleKeptPhoto(attachment.photoId) },
                         modifier = Modifier.align(Alignment.TopEnd).size(24.dp),
                     ) {
@@ -438,7 +438,7 @@ private fun KeptPhotosSection(
                     }
                 }
             }
-            IconButton(onClick = onAddFromAlbum) {
+            BouncingIconButton(onClick = onAddFromAlbum) {
                 Icon(Icons.Filled.Add, contentDescription = "Add a photo from the Album")
             }
         }
