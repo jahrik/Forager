@@ -1348,6 +1348,13 @@ private fun BoxScope.CompactMapTopStrip(
     }
     // Motion Part 2: the strip's measured height goes the moment it starts to leave, as it did when it left at once.
     LaunchedEffect(isNavigating) { if (isNavigating) { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
+    // RECORD -754 (the owner's S26 on 1.0.3103: after a turn from portrait the bar kept a portrait-sized box, taller than the
+    // strip and reaching the window's centre): out of landscape the landscape strip's measures go too. They are reported up only
+    // when they change (below), and the scaffold zeroes its own copy whenever the bar stops meeting the strip, so a measure left
+    // here from an earlier landscape turn was the same number on the next turn, was never reported again, and the bar stayed at
+    // its own height and the half width it takes before the strip is measured. Found by a test turning into landscape twice
+    // (LandscapeSearchFixesTest, "second turn"), not by reasoning.
+    LaunchedEffect(railPortEdge) { if (railPortEdge == null) { landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
     // RECORD -729: the landscape strip's measured height, up to the scaffold, which gives the search bar that height; 0
     // while it is not measured (portrait, navigating, before its first layout), where the bar keeps its own.
     LaunchedEffect(landscapeStripHeightPx) { onLandscapeStripHeightMeasured(with(compassStripDensity) { landscapeStripHeightPx.toDp() }) }
