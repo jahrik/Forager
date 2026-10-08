@@ -5,7 +5,7 @@ Dispatch 2026-09-28-750 (RECORD intent -750; preserved at `prompts/preserved/202
 `origin/main` at `c0ec942a` (the base the dispatch names; fetched and confirmed before cutting). No PR. Paths are relative to
 `app/src/main/java/com/zynergylabs/forager/app/ui/` unless they start with `app/` or `docs/`.
 
-**Status: built and run.** SUITE_LINE
+**Status: built and run.** Full suite 4,485 tests in 579 classes, 24 skipped, 0 failures, 0 errors. S22 launch check PASS. Item 4 was not reproduced, and no code changed for it (see "Premises").
 
 ## Premises that were wrong, and what could not be reproduced
 
@@ -138,11 +138,11 @@ scroll); R3b is its own check.
 
 ## Full suite
 
-SUITE_DETAIL
+Run 21:43 to 21:51 UTC on the code at `a1accb17` (the last commit before it touched code was the test rename; `a1accb17` adds only this report). The results directory was emptied first, so every XML is from that run: **4,485 tests in 579 classes, 24 skipped, 0 failures, 0 errors** (counted from the JUnit XML; Gradle: BUILD SUCCESSFUL). No existing test broke apart from the 24 tile call sites changed for item 6 (listed above).
 
 ## S22 launch check
 
-S22_DETAIL
+`scripts/s22-launch-check.sh` on the S22 (SM-S908U, R5CT321008R), the debug APK built from `a1accb17` (installed versionName `1.0.3101+ga1accb17`), after the planner said the S22 was free: install Success, `compile -m verify -f` Success, dexopt `status=verify`, cold launch ok, **PASS**: process alive after 8 s, crash buffer empty. Nothing else was done on the phone.
 
 ## Device only
 
@@ -161,4 +161,6 @@ S22_DETAIL
 
 ## Gradle
 
-GRADLE_DETAIL
+- Gradle started only after `systemctl --user is-active t6b-night` read `inactive` (20:53:53 UTC); not started or stopped by me.
+- Every run: `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0`, `--no-daemon`, Gradle `-Xmx1536m`, Kotlin daemon 2g, Java temp `~/.cache/forager-test-tmp`, `./gradlew --stop` and the Kotlin daemons that run started stopped afterwards. No Gradle process left at the end.
+- Free disk checked before each run (the runner refuses under 1.5 GB): 2.8 GB at the start, 2.4 GB at the lowest.
