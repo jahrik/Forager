@@ -42,11 +42,10 @@ import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
 import java.io.IOException
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.zynergylabs.forager.app.ui.format.displayDateTime
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * The Settings tab's crash-log diagnostic surface — a read-only list of what
@@ -155,7 +154,7 @@ private fun CrashLogRow(file: File, onOpen: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(formatCrashTimestamp(file), style = MaterialTheme.typography.bodyLarge)
+        Text(formatCrashTimestamp(file, is24HourClock()), style = MaterialTheme.typography.bodyLarge)
         BouncingIconButton(onClick = { shareCrashLog(context, file) }) {
             Icon(Icons.Filled.Share, contentDescription = "Share crash report")
         }
@@ -227,13 +226,14 @@ internal fun readCrashLog(file: File): String? =
 
 private const val TAG = "CrashLogPanel"
 
-/** A locale-formatted "when" for [file], derived from the epoch millis its filename encodes — see [CrashFileStore.epochMillisOf]. */
-private fun formatCrashTimestamp(file: File): String {
+/**
+ * A "when" for [file], derived from the epoch millis its filename encodes — see [CrashFileStore.epochMillisOf]. "Oct 7, 2026,
+ * 2:14 PM", or "Oct 7, 2026, 14:14" on a phone set to 24-hour time (data part D, RECORD -702).
+ */
+private fun formatCrashTimestamp(file: File, is24HourClock: Boolean): String {
     val epochMillis = CrashFileStore.epochMillisOf(file) ?: return file.name
-    return DISPLAY_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+    return displayDateTime(epochMillis, is24HourClock)
 }
-
-private val DISPLAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a")
 
 /**
  * Hands [file] to another app via the FileProvider authority already declared for

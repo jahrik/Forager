@@ -160,6 +160,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import org.junit.Assert.assertFalse
 
 /**
  * Journal redesign J4 (`prompts/preserved/2026-09-27-21.md`): delete with swipe and Undo, driven
@@ -641,8 +644,38 @@ class JournalPendingDeleteTest {
     }
     // ── Finds, from the report (D4) ──
 
+    /** The tile title of the fixture find dated [date]: its given name. */
+    private fun findTileName(date: String): String = listOf(PD_FIND_A, PD_FIND_B).single { it.foundOn.toString() == date }.ownIdentification!!
+
+    // RECORD -717: the Finds grid is lazy, and with a heading per day (data part D) the second day's tile sits below a 1280 px
+    // window (measured at the build: the Sep 20 heading at 1240-1280 px, its tile not composed). So a tile is scrolled to
+    // before it is touched or counted, and "gone" is checked over the whole grid, never against a tile that was never
+    // composed. The assertions are otherwise as they were.
+    private fun findsGrid() = composeRule.onNodeWithTag(FINDS_GRID_TAG)
+
+    /** Scrolls the grid until the tile for [date] is composed; fails if no tile in the whole grid has its name. */
+    private fun scrollToTile(date: String) {
+        findsGrid().performScrollToNode(hasText(findTileName(date)))
+        composeRule.waitForIdle()
+    }
+
+    /** The tile for [date] is in the grid, once. */
+    private fun assertTileShown(date: String) {
+        scrollToTile(date)
+        composeRule.onAllNodesWithText(findTileName(date), useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    /** No tile in the whole grid has [date]'s name: scrolling the grid through to its end finds none. */
+    private fun assertTileGone(date: String) {
+        findsGrid().assertExists()
+        val found = runCatching { findsGrid().performScrollToNode(hasText(findTileName(date))) }.isSuccess
+        assertFalse("no tile for $date anywhere in the grid", found)
+        composeRule.onAllNodesWithText(findTileName(date), useUnmergedTree = true).assertCountEquals(0)
+    }
+
     private fun openFindReport(date: String) {
-        composeRule.onNodeWithText("Find on $date", useUnmergedTree = true).performClick()
+        scrollToTile(date)
+        composeRule.onNodeWithText(findTileName(date), useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
     }
@@ -653,7 +686,6 @@ class JournalPendingDeleteTest {
         composeRule.waitForIdle()
     }
 
-    private fun findTiles(date: String) = composeRule.onAllNodesWithText("Find on $date", useUnmergedTree = true)
 
     @Test
     fun `deleting a find from its report closes the report, hides the find, says Find deleted, and deletes nothing yet`() {
@@ -664,8 +696,8 @@ class JournalPendingDeleteTest {
 
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
-        findTiles("2026-09-20").assertCountEquals(0)
-        findTiles("2026-09-21").assertCountEquals(1)
+        assertTileGone("2026-09-20")
+        assertTileShown("2026-09-21")
         composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
         assertEquals(emptyList<String>(), logRepository.deletedIds)
     }
@@ -680,8 +712,8 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
 
         assertEquals(listOf("find-b"), logRepository.deletedIds)
-        findTiles("2026-09-21").assertCountEquals(0)
-        findTiles("2026-09-20").assertCountEquals(1)
+        assertTileGone("2026-09-21")
+        assertTileShown("2026-09-20")
     }
 
     @Test
@@ -693,7 +725,7 @@ class JournalPendingDeleteTest {
         touchUndo()
         letSnackbarTimeOut()
 
-        findTiles("2026-09-20").assertCountEquals(1)
+        assertTileShown("2026-09-20")
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
         assertEquals(emptyList<String>(), logRepository.deletedIds)
     }
@@ -728,7 +760,7 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
         // The form was editing the re-edit's draft row, so that row is what is deleted, as before J4.
         assertEquals(listOf("draft-of-find"), logRepository.deletedIds)
-        findTiles("2026-09-20").assertCountEquals(1)
+        assertTileShown("2026-09-20")
     }
 
     @Test
@@ -742,7 +774,7 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
 
         assertEquals(emptyList<String>(), logRepository.deletedIds)
-        findTiles("2026-09-20").assertCountEquals(1)
+        assertTileShown("2026-09-20")
     }
 
     @Test
@@ -1135,7 +1167,10 @@ class JournalPendingDeleteTest {
     // (The owner's "grids long-press": find tiles and album photos keep long-press.) Real
     // long-presses at several points of each tile; the menu's items chosen by coordinate touches.
 
-    private fun findTile(date: String) = composeRule.onNodeWithText("Find on $date")
+    private fun findTile(date: String): SemanticsNodeInteraction {
+        scrollToTile(date)
+        return composeRule.onNodeWithText(findTileName(date))
+    }
 
     private fun menuItems() = composeRule.onAllNodes(hasClickAction() and hasAnyAncestor(isPopup()))
 
@@ -1186,8 +1221,8 @@ class JournalPendingDeleteTest {
 
         touchMenuItem(TILE_OPTIONS_DELETE_TAG)
 
-        findTiles("2026-09-20").assertCountEquals(0)
-        findTiles("2026-09-21").assertCountEquals(1)
+        assertTileGone("2026-09-20")
+        assertTileShown("2026-09-21")
         composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
         assertEquals(emptyList<String>(), logRepository.deletedIds)
         letSnackbarTimeOut()
@@ -1198,7 +1233,7 @@ class JournalPendingDeleteTest {
     fun `a find tile's Edit and Delete accessibility actions, and its long-press label`() {
         setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
         val node = findTile("2026-09-20").fetchSemanticsNode()
-        assertEquals("Options for Find on 2026-09-20", node.config[SemanticsActions.OnLongClick].label)
+        assertEquals("Options for Morel", node.config[SemanticsActions.OnLongClick].label)
         assertEquals(listOf("Edit", "Delete"), node.config[SemanticsActions.CustomActions].map { it.label })
 
         val delete = node.config[SemanticsActions.CustomActions].single { it.label == "Delete" }
@@ -1510,8 +1545,10 @@ private object PendingDeleteTheme : AppThemePreferenceRepository {
     override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
 
-private val PD_FIND_A = MushroomLogEntry.draft(id = "find-a", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
-private val PD_FIND_B = MushroomLogEntry.draft(id = "find-b", location = null, date = LocalDate.of(2026, 9, 21)).copy(isDraft = false)
+// Named, because a find tile shows the name the user gave it, not its date (data part D, RECORD -702); these tests tell the two
+// tiles apart by it ([findTileName]). Before that they were unnamed and told apart by "Find on <date>".
+private val PD_FIND_A = MushroomLogEntry.draft(id = "find-a", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false, ownIdentification = "Morel")
+private val PD_FIND_B = MushroomLogEntry.draft(id = "find-b", location = null, date = LocalDate.of(2026, 9, 21)).copy(isDraft = false, ownIdentification = "Oyster")
 
 /**
  * Finds kept in memory, and (J4b L3) gallery photos; every [delete] and [deletePhotoFromGallery]

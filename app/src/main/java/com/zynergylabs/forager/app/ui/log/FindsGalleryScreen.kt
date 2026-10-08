@@ -45,6 +45,13 @@ import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.IntOffset
+import com.zynergylabs.forager.app.ui.format.displayDate
+import com.zynergylabs.forager.app.ui.format.is24HourClock
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.ui.platform.testTag
+import java.time.LocalDate
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 
 /**
  * Records' Finds submenu — **one implementation, responsive layout**, restoring the same "one
@@ -146,7 +153,7 @@ internal fun FindsGalleryScreen(
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag(FINDS_GRID_TAG),
             contentPadding = PaddingValues(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -156,16 +163,24 @@ internal fun FindsGalleryScreen(
             // looking at Drafts would read as "add a draft," which isn't a distinct action from
             // "add an entry."
             if (shownTab == FindsGalleryTab.LOG && onAddEntry != null) item(key = ADD_ENTRY_TILE_KEY) { AddEntryTile(onClick = onAddEntry) }
-            if (shownTab == FindsGalleryTab.DRAFTS) {
-                items(rows, key = { it.key }) { row ->
-                    ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
-                        FindTileWithOptions(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true, onEdit = onEditEntry, onDelete = onDeleteEntry)
-                    }
+            // Data part D (the owner, RECORD -656: "group the entries by date and then keep the name they gave on the tile
+            // instead of the date"; dispatched by -702): the tiles sit under one heading per day, newest day first, as the
+            // Records logbook orders its days. A heading spans the grid's width. A leaving tile stays under its own day.
+            for ((day, dayRows) in groupByDayNewestFirst(rows) { it.item.foundOn }) {
+                item(key = findsDayHeaderKey(shownTab, day), span = { GridItemSpan(maxLineSpan) }) {
+                    FindsDayHeader(day, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null))
                 }
-            } else {
-                items(rows, key = { it.key }) { row ->
-                    ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
-                        FindTileWithOptions(entry = entry, onClick = { onOpenEntry(entry.id) }, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                if (shownTab == FindsGalleryTab.DRAFTS) {
+                    items(dayRows, key = { it.key }) { row ->
+                        ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
+                            FindTileWithOptions(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                        }
+                    }
+                } else {
+                    items(dayRows, key = { it.key }) { row ->
+                        ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
+                            FindTileWithOptions(entry = entry, onClick = { onOpenEntry(entry.id) }, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                        }
                     }
                 }
             }
@@ -179,6 +194,36 @@ internal fun FindsGalleryScreen(
 
 /** The "+" tile's key in the grid, so the tiles' keys never collide with it (motion Part 3 keys every tile). */
 private const val ADD_ENTRY_TILE_KEY = "finds-add-entry-tile"
+
+/** A day heading's key in the grid: a string, so it never collides with a tile's key (a find's id). */
+private fun findsDayHeaderKey(tab: FindsGalleryTab, day: LocalDate): String = "finds-day-${tab.name}-$day"
+
+/**
+ * [items] grouped by [day], newest day first, each day's items in their given order: the Finds grid's headings (data part D,
+ * RECORD -702), ordered as the Records logbook orders its days (`buildRecordsLogbook`).
+ */
+internal fun <T> groupByDayNewestFirst(items: List<T>, day: (T) -> LocalDate): List<Pair<LocalDate, List<T>>> =
+    items.groupBy(day).toList().sortedByDescending { it.first }
+
+/** A day heading in the Finds grid, "Oct 7, 2026". Takes no touch. */
+@Composable
+private fun FindsDayHeader(day: LocalDate, modifier: Modifier = Modifier) {
+    Text(
+        displayDate(day),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(top = Spacing.sm).testTag(findsDayHeaderTag(day)),
+    )
+}
+
+/**
+ * The Finds grid, for tests (RECORD -717): the grid is lazy, so a tile below the window is not composed, and a test scrolls the
+ * grid to a tile ([androidx.compose.ui.test.performScrollToNode]) before touching or counting it.
+ */
+internal const val FINDS_GRID_TAG = "finds-grid"
+
+/** A Finds grid day heading, for tests. */
+internal fun findsDayHeaderTag(day: LocalDate): String = "finds-day-header-$day"
 
 /** Which of [FindsGalleryScreen]'s two tabs is selected — ordinal order matches display order. */
 private enum class FindsGalleryTab { LOG, DRAFTS }
@@ -235,7 +280,7 @@ internal fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Mo
  * [FindTile] with a long-press menu (J4b L1): the same tile, whose card takes the tap and the
  * long-press on one node ([tileClickable]), inside a [LongPressOptionsBox] offering Edit and Delete.
  * With no [onDelete] it is [FindTile] exactly, so a caller that gives no delete (`LogPanel`) is
- * unchanged. The long-click reads "Options for Find on <date>", the tile's own text.
+ * unchanged. The long-click reads "Options for <the tile's title>" ([findTitle]), or for its screen-reader label when blank.
  */
 @Composable
 internal fun FindTileWithOptions(
@@ -251,7 +296,7 @@ internal fun FindTileWithOptions(
         return
     }
     LongPressOptionsBox(
-        longClickLabel = "Options for ${findTileLabel(entry)}",
+        longClickLabel = "Options for ${findTitle(entry, is24HourClock()) ?: findBlankTitleLabel(entry)}",
         onEdit = onEdit?.let { edit -> { edit(entry.id) } },
         onDelete = { onDelete(entry.id) },
         modifier = modifier,
@@ -270,9 +315,6 @@ internal fun FindTileWithOptions(
     }
 }
 
-/** A find tile's caption, "Find on <date>". */
-private fun findTileLabel(entry: MushroomLogEntry): String = "Find on ${entry.foundOn}"
-
 /** What a find tile draws inside its card: the cover photo or placeholder, then the caption. */
 @Composable
 private fun FindTileBody(entry: MushroomLogEntry, isDraft: Boolean) {
@@ -280,7 +322,7 @@ private fun FindTileBody(entry: MushroomLogEntry, isDraft: Boolean) {
         Column(modifier = Modifier.fillMaxSize()) {
             // weight(1f), not aspectRatio(1f): a fixed square ate a disproportionate share of the
             // card's own fixed-aspect-ratio height, squeezing the caption below it -- on a draft
-            // tile specifically, two lines ("Find on <date>" plus the "Draft" badge) rather than
+            // tile specifically, two lines (the title plus the "Draft" badge) rather than
             // one, so it clipped there first (Card clips its content to its own shape). weight(1f)
             // measures the caption Column at its real content height first and gives the image
             // whatever's left, so the caption is never squeezed regardless of tile width, font
@@ -306,11 +348,16 @@ private fun FindTileBody(entry: MushroomLogEntry, isDraft: Boolean) {
                 }
             }
             Column(modifier = Modifier.padding(Spacing.sm)) {
+                // Data part D (RECORD -702, -703): the find's name, or the time it was found, or nothing ([findTitle]). A blank
+                // title keeps its line, so tiles in a row stay the same height, and says "Find, <date>" to a screen reader.
+                val title = findTitle(entry, is24HourClock())
+                val blankLabel = findBlankTitleLabel(entry)
                 Text(
-                    findTileLabel(entry),
+                    title ?: "",
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = if (title == null) Modifier.semantics { contentDescription = blankLabel } else Modifier,
                 )
                 // Owner ruling, 2026-09-13: no "Incomplete" badge any more. It read from the seven
                 // morphology fields, which the edit form no longer offers, so it described fields
