@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.ExploreOff
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Stop
@@ -416,9 +417,10 @@ internal fun CompassElevationStrip(
      */
     contentWidth: Boolean = false,
     /**
-     * RECORD -733 (the owner: "Short words, same room (Recommended)"): in a short landscape window the heading's status reads
-     * "No compass" and "Compass?" ([stripHeadingText]), which fit in the room sized for the heading's value; portrait keeps the
-     * full words. False everywhere else.
+     * RECORD -735 (the owner: "Same crossed-out icon (Recommended)"): in a short landscape window, with no compass or an
+     * unreliable one, the heading slot shows a crossed-out compass ([StripHeadingStatusIcon]) in place of the words, which do
+     * not fit the room sized for the heading's value (-733's "No compass" and "Compass?" were measured too wide). Portrait
+     * keeps the full words. False everywhere else.
      */
     shortHeadingStatus: Boolean = false,
     /**
@@ -625,8 +627,9 @@ private fun CompassElevationStripContent(
                             ) {
                                 // Motion Part 2, item 6: words crossfade, numbers change at once (WordSwap).
                                 // Dispatch 2026-09-28-677: labelled, as on the navigation display (LabelledReadout).
+                                if (shortHeadingStatus && heading.isCompassStatus()) StripHeadingStatusIcon(heading) else
                                 LabelledReadout(label = stripHeadingLabel(heading), labelStyle = stripReadoutStyle()) {
-                                    WordSwap(text = stripHeadingText(heading, shortHeadingStatus)) { shown ->
+                                    WordSwap(text = stripHeadingText(heading)) { shown ->
                                         Text(
                                             text = shown,
                                             style = stripReadoutStyle().copy(fontFeatureSettings = "tnum"),
@@ -688,7 +691,9 @@ private fun CompassElevationStripContent(
                             val readoutLabelStyle = stripReadoutStyle()
                             val readoutMeasurer = rememberTextMeasurer()
                             val headingLabel = stripHeadingLabel(heading)
-                            val headingText = stripHeadingText(heading, shortHeadingStatus)
+                            val headingText = stripHeadingText(heading)
+                            // RECORD -735: the crossed-out compass in landscape, measured as the icon's square, not the words.
+                            val headingIcon = shortHeadingStatus && heading.isCompassStatus()
                             val elevationLabel = ALTITUDE_LABEL.takeIf { elevationMeters != null }
                             val elevationText = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT
                             val coordinatesText = coordinatesStripText(lastLocation, showDecimalDegrees)
@@ -705,7 +710,10 @@ private fun CompassElevationStripContent(
                                     availablePx = availablePx,
                                     coordinatesPx = coordinatesPx,
                                     labelsPx = listOf(labelPx(headingLabel), labelPx(elevationLabel)),
-                                    valuesPx = listOf(widthOf(headingText, readoutStyle), widthOf(elevationText, readoutStyle)),
+                                    valuesPx = listOf(
+                                        if (headingIcon) with(density) { stripHeadingIconSize().roundToPx() } else widthOf(headingText, readoutStyle),
+                                        widthOf(elevationText, readoutStyle),
+                                    ),
                                     separatorPx = separatorPx,
                                 )
                             Row(
@@ -726,6 +734,7 @@ private fun CompassElevationStripContent(
                                 // ("Compass unavailable", "Elevation unavailable") names itself and has none.
                                 if (fit.shown[0]) {
                                     Box {
+                                        if (headingIcon) StripHeadingStatusIcon(heading) else
                                         LabelledReadout(label = headingLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
                                             WordSwap(text = headingText) { shownText ->
                                                 Text(
@@ -894,18 +903,38 @@ internal fun rememberLandscapeStripNeed(
 
 /**
  * RECORD -732, -733: the width the landscape strip keeps for its heading, its widest value form ("000°" and the widest compass
- * point, tabular figures). RECORD -733 sizes from this alone (the owner: "Short words, same room (Recommended)"): the short
- * status words, [LANDSCAPE_NO_COMPASS_TEXT] and [LANDSCAPE_COMPASS_UNRELIABLE_TEXT], fit within it at fonts 1.0 and 2.0
- * (LandscapeHeadingShortWordsTest).
+ * point, tabular figures). The strip is sized from this alone, so the join is the same in every compass state; since RECORD
+ * -735 the status there is [StripHeadingStatusIcon], whose square ([stripHeadingIconSize]) fits within this width at fonts 1.0
+ * and 2.0 (LandscapeHeadingIconFitTest).
  */
 internal fun landscapeHeadingValueWidthPx(widthOf: (String, TextStyle) -> Int, readoutStyle: TextStyle): Int =
     (0 until 8).maxOf { widthOf("000° ${cardinalDirection(it * 45f)}", readoutStyle) }
 
-/** RECORD -733: the heading's status in a short landscape window, in place of "Compass unavailable". */
-internal const val LANDSCAPE_NO_COMPASS_TEXT = "No compass"
+/** RECORD -735: no compass, or an unreliable one: the readings the landscape strip shows as the crossed-out compass. */
+internal fun TrueHeadingReading.isCompassStatus(): Boolean =
+    this == TrueHeadingReading.NoSensor || this == TrueHeadingReading.Unreliable
 
-/** RECORD -733: the heading's status in a short landscape window, in place of "Compass unreliable". */
-internal const val LANDSCAPE_COMPASS_UNRELIABLE_TEXT = "Compass?"
+/** RECORD -735: the crossed-out compass's square, the strip readout's line height (20 sp), so it sits in the line. */
+@Composable
+internal fun stripHeadingIconSize(): Dp = with(LocalDensity.current) { STRIP_READOUT_LINE_HEIGHT.toDp() }
+
+/**
+ * RECORD -735 (the owner: "Same crossed-out icon (Recommended)"): Material's `Icons.Filled.ExploreOff`, the crossed-out
+ * compass, in the landscape strip's heading slot for both no compass and an unreliable one. Its content description is the
+ * portrait words, "Compass unavailable" or "Compass unreliable", so a screen reader still tells them apart. No heading value is
+ * shown or carried: an unreliable reading has none (`TrueHeadingReading.Unreliable`), on purpose.
+ */
+@Composable
+internal fun StripHeadingStatusIcon(heading: TrueHeadingReading) {
+    Icon(
+        imageVector = Icons.Filled.ExploreOff,
+        contentDescription = stripHeadingText(heading),
+        modifier = Modifier.size(stripHeadingIconSize()).testTag(COMPASS_STRIP_HEADING_ICON_TAG),
+    )
+}
+
+/** RECORD -735: the crossed-out compass in the landscape strip's heading slot. */
+internal const val COMPASS_STRIP_HEADING_ICON_TAG = "compass-strip-heading-icon"
 
 /** The strip's compass needle (RECORD -732 measures the strip's need with it). */
 internal val STRIP_NEEDLE_SIZE = 18.dp
@@ -1097,15 +1126,14 @@ internal val ADD_TILE_ANCHOR_OFFSET_LANDSCAPE = mapIconBarRowAnchorOffset(rowInd
  * The strip's heading text, shared by its with-fix row and its position-note row (dispatch
  * 2026-09-28-510), so the two word the compass identically.
  */
-private fun stripHeadingText(heading: TrueHeadingReading, short: Boolean = false): String = when (heading) {
+private fun stripHeadingText(heading: TrueHeadingReading): String = when (heading) {
     is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
-    // RECORD -733: short words in a short landscape window, so the status fits the room the value takes.
-    TrueHeadingReading.NoSensor -> if (short) LANDSCAPE_NO_COMPASS_TEXT else "Compass unavailable"
+    TrueHeadingReading.NoSensor -> "Compass unavailable"
     // Present but not to be trusted (compass-reliability dispatch).
     // Names no cause: the status cannot tell a truck from a poorly
     // calibrated sensor, and the remedies differ — telling someone to
     // calibrate beside a truck is wrong advice confidently given.
-    TrueHeadingReading.Unreliable -> if (short) LANDSCAPE_COMPASS_UNRELIABLE_TEXT else "Compass unreliable"
+    TrueHeadingReading.Unreliable -> "Compass unreliable"
     TrueHeadingReading.NeedsFix -> NO_HEADING_TEXT
 }
 

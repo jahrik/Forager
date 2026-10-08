@@ -1087,7 +1087,8 @@ internal fun CompactMapTab(
                         }.then(if (!isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
                         // RECORD -729: full width in landscape too, so the readouts take the whole strip.
                         contentWidth = false,
-                        // RECORD -733: "No compass" and "Compass?" in a short landscape window; portrait keeps the full words.
+                        // RECORD -735: the crossed-out compass for no compass or an unreliable one in a short landscape window;
+                        // portrait keeps the full words.
                         shortHeadingStatus = railPortEdge != null,
                         positionNote = positionNote,
                         // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
