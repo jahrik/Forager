@@ -24,6 +24,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -117,6 +121,43 @@ internal const val COMPASS_STRIP_NO_FIX_TAG = "compass-strip-no-fix"
 
 /** The compass strip's elevation reading (dispatch 2026-09-28-677), its own node beside its label. */
 internal const val COMPASS_STRIP_ELEVATION_TAG = "compass-strip-elevation"
+
+/** The compass strip's coordinates, the tap that switches their format (dispatch 2026-09-28-685, Amendment 2). */
+internal const val COMPASS_STRIP_COORDINATES_TAG = "compass-strip-coordinates"
+
+/**
+ * The narrowest a facing or altitude readout is drawn before it drops out of the strip (dispatch 2026-09-28-685,
+ * Amendment 2, RECORD -699): about a short label and "…". Chosen, not measured on a phone.
+ */
+internal val STRIP_READOUT_MIN_WIDTH = 48.dp
+
+/** Which of the strip's two readouts are drawn beside its coordinates; see [stripReadoutsShown]. */
+internal data class StripReadoutsShown(val heading: Boolean, val elevation: Boolean)
+
+/**
+ * Which readouts the strip draws in [availablePx] (dispatch 2026-09-28-685, Amendment 2; the owner: "Coordinates take
+ * priority (Recommended)"). The coordinates always stay, measured first. What is left after them is for the readouts, each
+ * with its separator ([separatorPx], the dot and its two gaps). Both stay when each can have at least [minimumPx] (they
+ * shorten with "…" if they cannot have their whole width); with room for one, facing drops and altitude stays; with room
+ * for neither, both drop.
+ */
+internal fun stripReadoutsShown(
+    availablePx: Int,
+    coordinatesPx: Int,
+    headingPx: Int,
+    elevationPx: Int,
+    separatorPx: Int,
+    minimumPx: Int,
+): StripReadoutsShown {
+    val left = availablePx.toLong() - coordinatesPx
+    val bothFit = left - 2L * separatorPx >= minOf(headingPx, minimumPx).toLong() + minOf(elevationPx, minimumPx)
+    val altitudeFits = left - separatorPx >= minOf(elevationPx, minimumPx).toLong()
+    return when {
+        bothFit -> StripReadoutsShown(heading = true, elevation = true)
+        altitudeFits -> StripReadoutsShown(heading = false, elevation = true)
+        else -> StripReadoutsShown(heading = false, elevation = false)
+    }
+}
 
 /**
  * The two Trailhead/Return controls — record start/stop and return-to-vehicle — anchored together
@@ -576,6 +617,34 @@ private fun CompassElevationStripContent(
                             // safety net for a screen too narrow for all three fields regardless, not
                             // horizontalScroll — see this composable's own doc comment above for why
                             // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
+                            // Dispatch 2026-09-28-685, Amendment 2 (RECORD -699; the owner: "Coordinates take priority
+                            // (Recommended)"): when the strip runs short, the facing and altitude readouts give way first,
+                            // shortening with "…" and then dropping out, and the coordinates stay whole. Measured here, in the
+                            // width this row is offered, by stripReadoutsShown; the coordinates are measured first (no weight)
+                            // and the two readouts share what is left (weight, not filling). Facing drops before altitude: the
+                            // needle beside it still shows the direction.
+                            val readoutStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+                            val readoutLabelStyle = MaterialTheme.typography.labelMedium
+                            val readoutMeasurer = rememberTextMeasurer()
+                            val headingLabel = stripHeadingLabel(heading)
+                            val headingText = stripHeadingText(heading)
+                            val elevationLabel = ALTITUDE_LABEL.takeIf { elevationMeters != null }
+                            val elevationText = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT
+                            val coordinatesText = coordinatesStripText(lastLocation, showDecimalDegrees)
+                            BoxWithConstraints(contentAlignment = Alignment.Center) {
+                                val density = LocalDensity.current
+                                val shown = with(density) {
+                                    fun widthOf(text: String, style: TextStyle) = readoutMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+                                    fun labelled(label: String?, text: String) = (label?.let { widthOf(it, readoutLabelStyle) + Spacing.xs.roundToPx() } ?: 0) + widthOf(text, readoutStyle)
+                                    stripReadoutsShown(
+                                        availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE,
+                                        coordinatesPx = widthOf(coordinatesText, readoutStyle),
+                                        headingPx = labelled(headingLabel, headingText),
+                                        elevationPx = labelled(elevationLabel, elevationText),
+                                        separatorPx = widthOf("·", readoutLabelStyle) + 2 * Spacing.sm.roundToPx(),
+                                        minimumPx = STRIP_READOUT_MIN_WIDTH.roundToPx(),
+                                    )
+                                }
                             Row(
                                 // Landscape B2 (S4): no weight when content-width.
                                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
@@ -592,44 +661,56 @@ private fun CompassElevationStripContent(
                                 // Dispatch 2026-09-28-677 (the owner, RECORD -656: "heading and altitude labelled"): each
                                 // reading after its short label, as on the navigation display (LabelledReadout); a status
                                 // ("Compass unavailable", "Elevation unavailable") names itself and has none.
-                                LabelledReadout(label = stripHeadingLabel(heading)) {
-                                    WordSwap(text = stripHeadingText(heading)) { shown ->
-                                        Text(
-                                            text = shown,
-                                            // Landscape B2 (S5): tabular figures, so the strip's width holds
-                                            // steady as the digits change. Both orientations; labelMedium kept.
-                                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                                        )
+                                if (shown.heading) {
+                                    Box(modifier = Modifier.weight(1f, fill = false)) {
+                                        LabelledReadout(label = headingLabel) {
+                                            WordSwap(text = headingText) { shownText ->
+                                                Text(
+                                                    text = shownText,
+                                                    // Landscape B2 (S5): tabular figures, so the strip's width holds
+                                                    // steady as the digits change. Both orientations; labelMedium kept.
+                                                    style = readoutStyle,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                                                )
+                                            }
+                                        }
                                     }
+                                    Text("·", style = readoutLabelStyle)
                                 }
-                                Text("·", style = MaterialTheme.typography.labelMedium)
                                 // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
-                                LabelledReadout(label = ALTITUDE_LABEL.takeIf { elevationMeters != null }) {
-                                    WordSwap(text = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT) { shown ->
-                                        Text(
-                                            text = shown,
-                                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.testTag(COMPASS_STRIP_ELEVATION_TAG),
-                                        )
+                                if (shown.elevation) {
+                                    Box(modifier = Modifier.weight(1f, fill = false)) {
+                                        LabelledReadout(label = elevationLabel) {
+                                            WordSwap(text = elevationText) { shownText ->
+                                                Text(
+                                                    text = shownText,
+                                                    style = readoutStyle,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.testTag(COMPASS_STRIP_ELEVATION_TAG),
+                                                )
+                                            }
+                                        }
                                     }
+                                    Text("·", style = readoutLabelStyle)
                                 }
-                                Text("·", style = MaterialTheme.typography.labelMedium)
+                                // Whole whenever it fits the strip at all: measured before the readouts (no weight). The
+                                // ellipsis is the last resort for a strip too narrow even for the coordinates alone.
                                 Text(
-                                    text = coordinatesStripText(lastLocation, showDecimalDegrees),
-                                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                    text = coordinatesText,
+                                    style = readoutStyle,
                                     maxLines = 1,
+                                    softWrap = false,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier
-                                        .weight(1f, fill = false)
-                                        .clickableWithShapedPress(onClick = onToggleCoordinateFormat),
+                                        .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
+                                        .testTag(COMPASS_STRIP_COORDINATES_TAG),
                                 )
+                            }
                             }
                         }
                     }
