@@ -64,8 +64,11 @@ abstract class MapsReturnTests {
         assertTrue("positive control: the map is up first", rig.mapMeasures.isNotEmpty())
         val before = rig.mapMeasures.last().size
         println("MEASURED -752 item 4: map before leaving $before")
+        assertTrue("positive control: not leaving while Maps shows", !rig.mapLeavingSeen)
         touchNav(CompactTab.LIST.label)
         rig.settle()
+        // RECORD -761: as Maps fades out, the map is told it is leaving, which is when it takes the cover's picture.
+        assertTrue("leaving Maps by a real touch tells the map it is leaving", rig.mapLeavingSeen)
         // What a map that settled writes on its camera idle (SightingsMap): the camera the user left.
         val memory = rig.mapCameraMemory ?: error("the map was handed no camera memory")
         memory.saved = remembered

@@ -72,7 +72,9 @@ fun rememberTrueHeading(
     compassProvider: CompassProvider,
     computeTrueHeading: ComputeTrueHeadingUseCase,
     liveFix: LocationFix.Update?,
-): State<TrueHeadingReading> = rememberTrueHeading(compassProvider, computeTrueHeading, rememberUpdatedState(liveFix))
+    memory: HeadingMemory? = null,
+    nowMillis: () -> Long = { 0L },
+): State<TrueHeadingReading> = rememberTrueHeading(compassProvider, computeTrueHeading, rememberUpdatedState(liveFix), memory, nowMillis)
 
 /**
  * The same, with the fix handed over as a [State] (dispatch 2026-09-28-430): a map makes its own
@@ -84,9 +86,15 @@ fun rememberTrueHeading(
     compassProvider: CompassProvider,
     computeTrueHeading: ComputeTrueHeadingUseCase,
     liveFix: State<LocationFix.Update?>,
+    /** RECORD -761: where the last reading is kept across a tab change, and the clock it is aged by. `null` keeps none. */
+    memory: HeadingMemory? = null,
+    nowMillis: () -> Long = { 0L },
 ): State<TrueHeadingReading> {
     val hasFix by remember(liveFix) { derivedStateOf { liveFix.value != null } }
-    return produceState<TrueHeadingReading>(initialValue = TrueHeadingReading.NeedsFix, compassProvider, computeTrueHeading, hasFix) {
+    // RECORD -761: a strip coming back with the Maps tab starts from the last reading, when there is a fix and that reading is
+    // fresh (HeadingMemory.fresh), rather than "—" until the compass reports again (seen on the S22: about 200 ms of "—").
+    val initial: TrueHeadingReading = remember { (if (liveFix.value != null) memory?.fresh(nowMillis()) else null) ?: TrueHeadingReading.NeedsFix }
+    return produceState<TrueHeadingReading>(initialValue = initial, compassProvider, computeTrueHeading, hasFix) {
         val smoother = HeadingSmoother()
         val trust = CompassTrustJudge()
         compassProvider.heading.collect { reading ->
@@ -121,6 +129,34 @@ fun rememberTrueHeading(
                     computeTrueHeading(smoother.next(reading.magneticHeadingDegrees), fix.lat, fix.lng, fix.altitude, fix.timestampEpochMillis),
                 )
             }
+            memory?.record(value, nowMillis())
         }
     }
 }
+
+/**
+ * RECORD -761: the last true heading a strip showed, and when, kept above the Maps tab ([MapCameraMemory.heading]). A plain
+ * field written at sensor rate: nothing recomposes for it, and it is read once, when a strip is first composed.
+ */
+class HeadingMemory {
+    private var last: TrueHeadingReading.Available? = null
+    private var atMillis: Long = 0L
+
+    /** Keeps [reading] if it is a heading; anything else (no fix, untrusted, no sensor) forgets the last one. */
+    fun record(reading: TrueHeadingReading, nowMillis: Long) {
+        last = reading as? TrueHeadingReading.Available
+        atMillis = nowMillis
+    }
+
+    /**
+     * The last heading if it was taken within [HEADING_KEPT_FOR_MS] of [nowMillis], else null. Stale, the owner's word, chosen
+     * as 10 s: the compass reports about 16 times a second, so on the phone a new reading replaces the kept one within a frame
+     * or two of a return; 10 s covers a quick look at another tab, while after longer the phone may well have turned, and "—"
+     * until the compass reports is the honest answer.
+     */
+    fun fresh(nowMillis: Long): TrueHeadingReading.Available? =
+        last?.takeIf { nowMillis - atMillis in 0..HEADING_KEPT_FOR_MS }
+}
+
+/** RECORD -761: how long a kept heading is shown again on a return to Maps. See [HeadingMemory.fresh]. */
+const val HEADING_KEPT_FOR_MS = 10_000L
