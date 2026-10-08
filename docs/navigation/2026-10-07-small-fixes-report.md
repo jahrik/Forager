@@ -285,3 +285,31 @@ How the strip shares its width now (`AvailabilityMapControlsUi.kt`, `stripReadou
 - **Full suite:** 4,238 tests, 24 skipped, **0 failures, 0 errors**.
 - Gradle was stopped with `./gradlew --stop`, and no Gradle or Kotlin process is left.
 - Free disk: 4.0 GB.
+
+## The planner's extension of -699 to the navigation display
+
+**What the planner decided.** The owner was asked about the strip only, and answered: "Coordinates take priority (Recommended)". The planner then extended that rule to the second row of the navigation display. The reason the owner agreed to applies there just as much: the coordinates are what you read out to get help.
+
+**What triggered it.** At the 780 dp width, the width cap had cut the display's grid reference to 16 of its 18 characters.
+
+**What changed** (`NavigationHud.kt`, using the strip's own rule, `readoutsKeptBeside` in `AvailabilityMapControlsUi.kt`):
+- The display measures its coordinates first, and they always show whole.
+- Facing and altitude share what is left, in proportion to their own widths.
+- When space runs short they shorten with "…" first. Below 48 dp each they drop out, facing first.
+- When everything fits, nothing changes.
+
+**Measured (Robolectric):**
+- At 780 dp the grid reference shows all 18 characters. Facing ("281° W") shows 5 of 6 characters, and altitude ("9843 ft") shows 4 of 7.
+- At font 2.0 in landscape, both rotations, the grid reference shows all 18 characters.
+
+**Tests:**
+- `AvailabilityScreenNavigationWordsLandscapeTest`, which this dispatch had already changed under -699, now also checks that the display's coordinates show whole, in both formats.
+- `LandscapeLargeFontTest`, at font 2.0, checks the same at both rotations.
+- `StripReadoutsShownTest` gains one case for the general rule.
+
+**Revert check:** I made the display's readouts never give way, using a copy of the file saved first and restored afterwards. The test failed at all three places it checks, each with "the display's coordinates are not ellipsised": rotation 90, rotation 270, and the MGRS case at 780 dp. I then confirmed the real change was back in the file.
+
+**Runs:**
+- The affected classes all pass: `LandscapeLargeFontTest`, `StripReadoutsShownTest`, `AvailabilityScreenNavigationWordsTest` and its landscape class, `AvailabilityScreenLandscapeB2Test`, the `NavigationHud*` classes and `AvailabilityScreenReturnRouteTest`.
+- Full suite: **4,239 tests, 24 skipped, 0 failures, 0 errors.**
+- Gradle was stopped with `./gradlew --stop`, and no Gradle or Kotlin process is left running. 4.0 GB of disk is free.
