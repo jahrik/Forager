@@ -158,7 +158,7 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  * - **Words and labels** (dispatch 2026-09-28-677, data part B; the owner, RECORD -656, "Plain words + labels"): the turn
  *   under the target arrow reads "Slight left · 10°" ([turnText], bands in `domain/NavigationWords.kt`), where it read
  *   "Turn 350°"; the large figure is followed by what it measures, "by trail" or "straight" ([DistanceKind]); the heading
- *   and the elevation carry short labels ([HEADING_LABEL], [ALTITUDE_LABEL]). The heading moved from under the north arrow
+ *   and the elevation carry short labels ([ALTITUDE_LABEL]; the heading's "Facing" was removed by RECORD -728). The heading moved from under the north arrow
  *   to the second row to make room: at 360 dp a labelled heading, the longest turn words and a distance with its kind
  *   cannot share the first row (widths in `docs/ui/2026-10-07-data-b-track-nav-report.md`).
  * - **No sensor**: the north compass says so and the target compass shows nothing — no needle and
@@ -431,7 +431,8 @@ internal fun NavigationHud(
                     // facing goes, then altitude; neither is shortened with "…" any more.
                     val rowStyle = MaterialTheme.typography.labelMedium
                     val rowMeasurer = rememberTextMeasurer()
-                    val headingLabel = HEADING_LABEL.takeIf { readout.headingIsReading }
+                    // RECORD -728 (the owner: "just remove the word "facing" and nothing else"): the heading has no label.
+                    val headingLabel: String? = null
                     val elevationLabel = readout.elevationText?.let { elevation -> ALTITUDE_LABEL.takeIf { elevation != ELEVATION_UNAVAILABLE_TEXT } }
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val density = LocalDensity.current
@@ -575,12 +576,17 @@ internal fun NavigationHud(
  * text node ([NAVIGATION_LABEL_TAG]), so the reading's node, and every test that reads it, holds the reading alone.
  */
 @Composable
-internal fun LabelledReadout(label: String?, reading: @Composable () -> Unit) {
+internal fun LabelledReadout(
+    label: String?,
+    /** The label's style: labelMedium on the navigation display; the strip's 14 sp readout style there (RECORD -728). */
+    labelStyle: TextStyle = MaterialTheme.typography.labelMedium,
+    reading: @Composable () -> Unit,
+) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = labelStyle,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
@@ -709,7 +715,7 @@ internal data class NavigationHudReadout(
     val distanceKindText: String? = null,
     /**
      * Dispatch -677: [headingText] is the compass's reading (a value, or the dash while it waits), so it is drawn after its
-     * label, [HEADING_LABEL]. False when [headingText] is itself a status ("Compass unavailable", the facing notices), which
+     * label, "Facing", until RECORD -728 removed it; nothing reads this field for a label now. False when [headingText] is itself a status ("Compass unavailable", the facing notices), which
      * needs no label.
      */
     val headingIsReading: Boolean = false,
@@ -764,8 +770,10 @@ fun returnRouteOf(routeHome: RouteHome?): ReturnRoute = when (routeHome) {
  * The labels for the heading and the altitude on the navigation display and the compass strip (dispatch 2026-09-28-677, data
  * part B; the owner, RECORD -656: "heading and altitude labelled"). Short, because at 360 dp the strip's one line holds
  * "Facing 123° SE · Alt 1352 ft · 10T ER 25118 40235" with a few dp to spare. **New words, a stop for the owner.**
+ *
+ * RECORD -728, the owner: "Keep the the 330° NW metric, just remove the word "facing" and nothing else." The heading's label,
+ * "Facing", is gone from the strip and the navigation display's second row; the heading reads "330° NW" alone. "Alt" stays.
  */
-internal const val HEADING_LABEL = "Facing"
 internal const val ALTITUDE_LABEL = "Alt"
 
 /** The heading's dash while the compass waits for a fix: the status line carries [NO_FIX_MESSAGE] (owner's call). */

@@ -70,6 +70,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
@@ -125,6 +126,21 @@ internal const val COMPASS_STRIP_ELEVATION_TAG = "compass-strip-elevation"
 /** The compass strip's coordinates, the tap that switches their format (dispatch 2026-09-28-685, Amendment 2). */
 internal const val COMPASS_STRIP_COORDINATES_TAG = "compass-strip-coordinates"
 
+
+/**
+ * RECORD -728, the owner: "Go up to 14 sp". The compass strip's readout line (heading, altitude and its label, coordinates,
+ * the dots between them, "Location services unavailable" and the position note) is 14 sp, up from labelMedium's 12 sp, in
+ * labelMedium's weight with labelLarge's 20 sp line height (labelLarge is 14 sp on 20 sp). The sundown and Back by lines under
+ * it, the navigation display and the search bar keep labelMedium. readoutsFitBeside measures with this style, so what gives
+ * way at a given width follows it.
+ */
+internal val STRIP_READOUT_FONT_SIZE = 14.sp
+internal val STRIP_READOUT_LINE_HEIGHT = 20.sp
+
+/** The strip's readout style: see [STRIP_READOUT_FONT_SIZE]. */
+@Composable
+internal fun stripReadoutStyle(): TextStyle =
+    MaterialTheme.typography.labelMedium.copy(fontSize = STRIP_READOUT_FONT_SIZE, lineHeight = STRIP_READOUT_LINE_HEIGHT)
 
 /** What [readoutsFitBeside] keeps: whether the readouts' labels are drawn, and which readouts are. */
 internal data class ReadoutsFit(val labels: Boolean, val shown: List<Boolean>)
@@ -597,11 +613,11 @@ private fun CompassElevationStripContent(
                             ) {
                                 // Motion Part 2, item 6: words crossfade, numbers change at once (WordSwap).
                                 // Dispatch 2026-09-28-677: labelled, as on the navigation display (LabelledReadout).
-                                LabelledReadout(label = stripHeadingLabel(heading)) {
+                                LabelledReadout(label = stripHeadingLabel(heading), labelStyle = stripReadoutStyle()) {
                                     WordSwap(text = stripHeadingText(heading)) { shown ->
                                         Text(
                                             text = shown,
-                                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                            style = stripReadoutStyle().copy(fontFeatureSettings = "tnum"),
                                             maxLines = 1,
                                             softWrap = false,
                                             overflow = TextOverflow.Ellipsis,
@@ -609,11 +625,11 @@ private fun CompassElevationStripContent(
                                         )
                                     }
                                 }
-                                Text("·", style = MaterialTheme.typography.labelMedium)
+                                Text("·", style = stripReadoutStyle())
                                 WordSwap(text = lastNote.stripText, modifier = Modifier.weight(1f, fill = false)) { shown ->
                                     Text(
                                         text = shown,
-                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                        style = stripReadoutStyle().copy(fontFeatureSettings = "tnum"),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.testTag(COMPASS_STRIP_POSITION_NOTE_TAG),
@@ -626,7 +642,7 @@ private fun CompassElevationStripContent(
                             // from. The Row's remaining width, so it centres where the three segments did.
                             Text(
                                 text = NO_FIX_MESSAGE,
-                                style = MaterialTheme.typography.labelMedium,
+                                style = stripReadoutStyle(),
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Ellipsis,
@@ -656,8 +672,8 @@ private fun CompassElevationStripContent(
                             // shortening is gone: labels drop first, then facing, then altitude, each shown value whole. Measured
                             // here, in the width this row is offered, by readoutsFitBeside; the coordinates are measured first.
                             // Facing drops before altitude: the needle beside it still shows the direction.
-                            val readoutStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-                            val readoutLabelStyle = MaterialTheme.typography.labelMedium
+                            val readoutStyle = stripReadoutStyle().copy(fontFeatureSettings = "tnum")
+                            val readoutLabelStyle = stripReadoutStyle()
                             val readoutMeasurer = rememberTextMeasurer()
                             val headingLabel = stripHeadingLabel(heading)
                             val headingText = stripHeadingText(heading)
@@ -698,7 +714,7 @@ private fun CompassElevationStripContent(
                                 // ("Compass unavailable", "Elevation unavailable") names itself and has none.
                                 if (fit.shown[0]) {
                                     Box {
-                                        LabelledReadout(label = headingLabel.takeIf { fit.labels }) {
+                                        LabelledReadout(label = headingLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
                                             WordSwap(text = headingText) { shownText ->
                                                 Text(
                                                     text = shownText,
@@ -718,7 +734,7 @@ private fun CompassElevationStripContent(
                                 // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
                                 if (fit.shown[1]) {
                                     Box {
-                                        LabelledReadout(label = elevationLabel.takeIf { fit.labels }) {
+                                        LabelledReadout(label = elevationLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
                                             WordSwap(text = elevationText) { shownText ->
                                                 Text(
                                                     text = shownText,
@@ -1026,11 +1042,12 @@ private fun stripHeadingText(heading: TrueHeadingReading): String = when (headin
     TrueHeadingReading.NeedsFix -> NO_HEADING_TEXT
 }
 
-/** Dispatch 2026-09-28-677: the heading's label on the strip, for a reading only (a value, or the dash); a status has none. */
-private fun stripHeadingLabel(heading: TrueHeadingReading): String? = when (heading) {
-    is TrueHeadingReading.Available, TrueHeadingReading.NeedsFix -> HEADING_LABEL
-    TrueHeadingReading.NoSensor, TrueHeadingReading.Unreliable -> null
-}
+/**
+ * Dispatch 2026-09-28-677 gave the heading a label on the strip, "Facing", for a reading only. RECORD -728, the owner: "Keep
+ * the the 330° NW metric, just remove the word "facing" and nothing else." So no heading state has a label now.
+ */
+@Suppress("UNUSED_PARAMETER")
+private fun stripHeadingLabel(heading: TrueHeadingReading): String? = null
 
 /** What the compass strip's readout shows (motion Part 2, Amendment 1, item 3): the key its crossfade runs on. */
 private enum class StripReadout { POSITION_NOTE, NO_FIX, READOUT }
