@@ -172,12 +172,13 @@ class CartographyEntryReportScreenTest {
 
         // Data part A: "Finds" is now both the tile's label and the list's heading, so the tile is read by its tag.
         composeRule.onNodeWithTag(entryTileTag(TILE_FINDS)).assert(hasText("1"))
-        composeRule.onNodeWithText("Find on Aug 1, 2026").assertIsDisplayed()
-        composeRule.onNodeWithText("Chanterelle").assertIsDisplayed()
+        // The tiles, profile line and waypoint table now sit above the lists, so they are scrolled to.
+        composeRule.onNodeWithText("Find on Aug 1, 2026").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Chanterelle").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Withheld find").assertDoesNotExist()
 
-        composeRule.onNodeWithText("Tracks").assertIsDisplayed()
-        composeRule.onNodeWithText("Ridge Loop").assertIsDisplayed()
+        composeRule.onNodeWithText("Tracks").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Ridge Loop").performScrollTo().assertIsDisplayed()
 
         composeRule.onNodeWithText("Waypoints").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Trailhead").performScrollTo().assertIsDisplayed()
