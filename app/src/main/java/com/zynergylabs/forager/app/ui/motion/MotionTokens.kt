@@ -136,6 +136,12 @@ object MotionTokens {
     @ReadOnlyComposable
     fun <T> listRowSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.defaultEffectsSpec()
 
+    // §2 "Loaded content" (motion Part 3, Amendment 2, RECORD -682): a spinner, empty message or error giving way to content,
+    // or back, crossfades (motion/StateCrossfade.kt). Effects, fast, like a word swap: quick, and it cannot overshoot an alpha.
+    @Composable
+    @ReadOnlyComposable
+    fun <T> stateCrossfadeSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.fastEffectsSpec()
+
     // §2 "Night mode" (motion Part 3, item 4; the owner, RECORD -651: "Fade the colours", and RECORD -652: "the fade is
     // permissible if it's fast and smooth, and not ceremonial and boring"): every colour of the theme blends from the old
     // scheme to the new (theme/Theme.kt). Effects, and the **fast** one, so the blend is quick and cannot overshoot a colour.

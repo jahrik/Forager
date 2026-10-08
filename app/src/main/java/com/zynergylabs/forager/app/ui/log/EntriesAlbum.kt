@@ -50,6 +50,7 @@ import com.zynergylabs.forager.app.ui.motion.ListRow
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.ListRowShape
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.IntOffset
@@ -133,25 +134,34 @@ internal fun EntriesAlbum(
     val rowDays = remember(rows) { groupRowsByAlbumDay(rows) }
     val glide = MotionTokens.listRowSpec<IntOffset>()
 
+    // Motion Part 3, Amendment 2 (RECORD -682; scout J10): the spinner, the error, the empty message and the grid crossfade into
+    // each other instead of swapping in one frame (motion/StateCrossfade.kt).
+    val albumState = when {
+        isLoading && rows.isEmpty() -> AlbumState.LOADING
+        rows.isEmpty() && loadErrorMessage != null -> AlbumState.ERROR
+        rows.isEmpty() -> AlbumState.EMPTY
+        else -> AlbumState.GRID
+    }
     Box(modifier = modifier.fillMaxSize().testTag(ENTRIES_ALBUM_TAG)) {
-        when {
-            isLoading && rows.isEmpty() -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        StateCrossfade(targetState = albumState, modifier = Modifier.fillMaxSize()) { shownState ->
+        when (shownState) {
+            AlbumState.LOADING -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
 
-            rows.isEmpty() && loadErrorMessage != null -> Text(
-                loadErrorMessage,
+            AlbumState.ERROR -> Text(
+                loadErrorMessage.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
 
-            rows.isEmpty() -> Text(
+            AlbumState.EMPTY -> Text(
                 "No photos yet. Use Add photo to take or import one.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
 
-            else -> LazyVerticalGrid(
+            AlbumState.GRID -> LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 modifier = Modifier.fillMaxSize(),
                 // FAB_CLEARANCE at the bottom, as the timeline: the last row scrolls clear of Add photo.
@@ -180,6 +190,7 @@ internal fun EntriesAlbum(
                     }
                 }
             }
+        }
         }
 
         if (showAddPhotoButton) {
@@ -376,6 +387,9 @@ internal const val ENTRIES_ALBUM_TAG = "entries-album"
 internal fun albumDayTestTag(date: LocalDate?): String = if (date == null) "entries-album-day-unknown" else "entries-album-day-$date"
 
 internal fun albumPhotoTestTag(photoId: String): String = "entries-album-photo-$photoId"
+
+/** What [EntriesAlbum] shows (motion Part 3, Amendment 2): one value, so the four can crossfade. */
+private enum class AlbumState { LOADING, ERROR, EMPTY, GRID }
 
 /**
  * The album's tiles as the grid draws them (motion Part 3, Amendment 1), grouped into runs by day in the order [groupAlbumByDay]

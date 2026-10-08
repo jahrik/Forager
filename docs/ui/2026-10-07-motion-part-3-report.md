@@ -297,3 +297,53 @@ Parts 1 and 2) was merged in first (131f698c, no conflicts). `data-a-entry` was 
 may read the L1 row as part of Entries' or Records' content, or read the Entries action in the row before Entries has handed it up
 (it arrives one frame after the view changes, after composition).
 
+## Amendment 2 (RECORD -682), applied 2026-10-08, also not compiled
+
+The owner, verbatim, for the Tools drawer: "Push slide from the left (Recommended)". The planner's calls: J6, J10, F5, F8, V4 and
+K2 crossfade; E2 and E3 grow in like rows; E1, R11 and R12 stay instant; K1 and V1 to V5 keep the system's window behaviour; F7 and
+R5's end reflow jump is accepted for now.
+
+**Built:**
+- **T1 to T3, push from the left** (`motion/PageSlide.kt`: `PageSlideStyle.PUSH_FROM_LEFT` and `pagePushTransform`): the opened
+  page enters from the drawer's left edge while the current one leaves by the right, both by a full width on one spec, so their
+  edges meet and they never overlap; Back reverses it. Applied to Tools to Settings (`availability/AvailabilitySettingsUi.kt`,
+  `CompactToolsDrawerContent`), Settings to Crash logs or Diagnostics (`CompactSettingsTab`, a new `SettingsDrawerPage`), and a
+  crash's detail (`crash/CrashLogPanel.kt`, drawn from the file it was opened on). The pages draw no fill (`pageColor =
+  Color.Transparent`), so the drawer's own stays the single 80% layer over the map. The leaving page takes no touch and keeps only
+  its marker in the semantics tree, as every leaving page does. Same on every tab: the drawer is one.
+- **Crossfades** (`motion/StateCrossfade.kt`, new token `stateCrossfadeSpec`, fast effects): the Entries list's spinner, empty
+  message and list (J10, `log/CartographyEntryListScreen.kt`), the album's spinner, error, empty message and grid (J10,
+  `log/EntriesAlbum.kt`), the Finds gallery's spinner (F5), a find report's empty message and report (F8,
+  `log/LogEntryReportScreen.kt`), the album picker's empty message and grid (F8, `log/PullPhotoPickerScreen.kt`), the photo
+  viewer's spinner, photo and "Couldn't load" (V4), and the camera's opening spinner, viewfinder and unavailable message (K2,
+  keyed on which of the three). The one fading out takes no touch and leaves the semantics tree. Instant under reduced motion.
+  **J6** is the spinner before a new entry's editor, which the first part made the same page as the editor: it is replaced in
+  place, still at once. A crossfade there would mean splitting that page in two, which I did not do (stop below).
+- **E2, E3 grow in** (`GrowIn`, `motion/ListMotion.kt`): the entry report's map and its offline-map row open to their height on
+  the list spec instead of popping in (`log/CartographyEntryReportScreen.kt`). The map's structure is the same with and without
+  fullscreen, so its one call site never moves; `GrowIn` opens by clipping, so the map is measured at full size from its first
+  frame (my reading of `expandVertically`, not run). The map goes at once; the offline row closes the same way.
+- **F7, R5:** the end reflow jump is noted in the code comments, as accepted.
+
+**New stops:**
+1. **J6** (the spinner before a new entry's editor): one page with the editor since the first part, so it is replaced in place
+   at once. Crossfading it means giving the spinner its own key inside that page, so the editor fades in over it. Do it?
+2. **Overlap with data part A**, grown: `CartographyEntryReportScreen.kt` (E2, E3) is now edited here too, and `data-a-entry`
+   changes it by 91 lines. A hand merge is certain when it lands.
+
+**Tests (not run):**
+- New `availability/DrawerPushSlideTest.kt`, through the real `AvailabilityScreen`:
+  - Settings pushes in while Tools goes out, with their edges meeting mid-slide (the bounds check), and a real touch on the leaving
+    Tools page's close row leaves the drawer open on Settings;
+  - Back reverses it, edge to edge;
+  - under reduced motion the pages change at once.
+- **Assertions changed in existing tests:** none.
+- **Not covered by a test:** the crossfades and the grow-ins (`StateCrossfade` and `GrowIn` are not driven by a test of their
+  own); that the pages draw no fill (no test reads colour; `MapChromeAlphaTest` owns the drawer's fill and is unchanged).
+- **Existing tests now also at risk, untouched:** any that read a spinner, empty message or error and the content in the same
+  frame they change (`PhotoViewerDecodeTest`, `InAppCameraDialogTest`, `FindsGalleryScreenTest`, the entry report's map tests);
+  `AvailabilityScreenSettingsPanelTest`, which reaches Settings and Crash logs by semantic clicks and settles. If
+  `AvailabilityScreenJournalShortWindowTest` breaks at the build, it is reported before it is touched (the planner's item 3).
+- **Revert checks added to the plan:** R13, `pagePushTransform`'s forward exit replaced by `ExitTransition.None`: "edge to edge"
+  fails; R14, `LeavingPageFrame` without `leavingTakesNoTouches` also makes the drawer's close-row test fail (the drawer closes).
+

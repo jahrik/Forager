@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.ListRowShape
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.IntOffset
@@ -104,26 +105,10 @@ internal fun CartographyEntryListScreen(
     sideways: Boolean = false,
 ) {
     // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"): a deleted card stays to fade and shrink while the rest
-    // close up, and comes back the way it went on Undo; see motion/ListMotion.kt. Worked out before the early returns below, so
+    // close up, and comes back the way it went on Undo; see motion/ListMotion.kt. The empty message waits on these rows, so
     // the last card of a list still leaves before the empty message shows.
     val rows = rememberListRows(entries, key = { it.id })
     val glide = MotionTokens.listRowSpec<IntOffset>()
-    if (isLoading && rows.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    if (rows.isEmpty() && loadErrorMessage == null) {
-        Text(
-            emptyMessage,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(Spacing.lg),
-        )
-        return
-    }
-
     val months = remember(rows) { groupRowsByMonth(rows) }
     val photosById = remember(galleryPhotos) { galleryPhotos.associateBy { it.photo.id } }
     val tracksById = remember(tracks) { tracks.associateBy { it.id } }
@@ -136,7 +121,25 @@ internal fun CartographyEntryListScreen(
     LaunchedEffect(gridState, swipeGroup) {
         snapshotFlow { gridState.isScrollInProgress }.collect { scrolling -> if (scrolling) swipeGroup.closeAll() }
     }
-    Column(modifier = modifier.fillMaxSize()) {
+    // Motion Part 3, Amendment 2 (RECORD -682; scout J10): the spinner, the empty message and the list crossfade into each other
+    // instead of swapping in one frame (motion/StateCrossfade.kt).
+    val listState = when {
+        isLoading && rows.isEmpty() -> EntryListState.LOADING
+        rows.isEmpty() && loadErrorMessage == null -> EntryListState.EMPTY
+        else -> EntryListState.LIST
+    }
+    StateCrossfade(targetState = listState, modifier = modifier.fillMaxSize()) { shownState ->
+    when (shownState) {
+    EntryListState.LOADING -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+    EntryListState.EMPTY -> Text(
+        emptyMessage,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+    )
+    EntryListState.LIST ->
+    Column(modifier = Modifier.fillMaxSize()) {
         if (entries.isEmpty() && loadErrorMessage != null) {
             Text(
                 loadErrorMessage,
@@ -210,7 +213,12 @@ internal fun CartographyEntryListScreen(
             }
         }
     }
+    }
+    }
 }
+
+/** What [CartographyEntryListScreen] shows (motion Part 3, Amendment 2): one value, so the three can crossfade. */
+private enum class EntryListState { LOADING, EMPTY, LIST }
 
 /**
  * [groupEntriesByMonth] for the rows the list draws (motion Part 3), so a leaving card keeps its month, and its month header stays

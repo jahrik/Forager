@@ -185,3 +185,34 @@ fun <T> ListRowMotion(
 
 /** Where a grid tile grows from as it arrives, and shrinks to as it leaves. Chosen, not measured, like the pop-ups' scale. */
 private const val LIST_TILE_ENTER_SCALE = 0.85f
+
+/**
+ * Something that arrives late inside a page grows in like a list row (motion Part 3, Amendment 2, RECORD -682, the planner's call;
+ * scout E2, E3: an entry's map and its offline-map row): it fades in and opens to its height on [MotionTokens.listRowSpec], pushing
+ * what is below it down smoothly instead of in one frame. With [shrinkOut] it closes the same way when it goes; without, it goes at
+ * once. Already [visible] when first composed, it is simply there. Under reduced motion it appears and goes at once.
+ *
+ * The height opens by clipping, not by measuring: what is inside is measured at its full size from the first frame, so a hosted
+ * map is not re-measured as it grows (`expandVertically` lays its child out at the full size and animates only its own size; my
+ * reading of the library, not run).
+ */
+@Composable
+fun GrowIn(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    shrinkOut: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val reduceMotion = LocalReduceMotion.current
+    val fade = MotionTokens.listRowSpec<Float>()
+    val size = MotionTokens.listRowSpec<IntSize>()
+    val state = remember { MutableTransitionState(visible) }
+    state.targetState = visible
+    AnimatedVisibility(
+        visibleState = state,
+        modifier = modifier,
+        enter = if (reduceMotion) EnterTransition.None else fadeIn(animationSpec = fade) + expandVertically(animationSpec = size),
+        exit = if (reduceMotion || !shrinkOut) ExitTransition.None else fadeOut(animationSpec = fade) + shrinkVertically(animationSpec = size),
+        label = "growIn",
+    ) { content() }
+}
