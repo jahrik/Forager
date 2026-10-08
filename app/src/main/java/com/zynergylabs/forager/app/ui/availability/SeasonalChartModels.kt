@@ -7,6 +7,7 @@ import com.zynergylabs.forager.app.domain.model.FruitingLagHistogram
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatRainfall
 import java.util.Locale
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 // Data part C (dispatch -668, the owner's "Plain scales + real charts (Recommended)", RECORD -656):
 // what the Seasonal tab's two bar charts and the soil moisture scale show, as plain values with no

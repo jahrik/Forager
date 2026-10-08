@@ -41,6 +41,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.assertCountEquals
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * [JournalTab]'s own navigation state — which of [LogGalleryScreen]/[LogEntryReportScreen]/
@@ -232,7 +235,7 @@ class JournalTabTest {
     fun `opening an existing entry from the gallery shows its report, not the edit form`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
 
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
 
         // The report's own overflow menu is present; the edit form's own "Photos" section is not.
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
@@ -242,7 +245,7 @@ class JournalTabTest {
     @Test
     fun `choosing Edit entry from the report switches to the edit form`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
 
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
@@ -261,7 +264,7 @@ class JournalTabTest {
     @Test
     fun `backing out of the edit form auto-saves and returns to the gallery, not the report`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -275,7 +278,7 @@ class JournalTabTest {
     @Test
     fun `tapping Save on the edit form commits and returns to the report`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -293,7 +296,10 @@ class JournalTabTest {
         composeRule.onNodeWithText("Cancel").performClick()
 
         composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
-        composeRule.onNodeWithText("Find on", substring = true).assertDoesNotExist()
+        // No tile and no day heading for the discarded entry (data part D, RECORD -702 and -703: a tile shows a name, the time
+        // found, or nothing with a "Find, <date>" label; "Find on" no longer appears on a tile, so its absence would prove nothing).
+        composeRule.onAllNodesWithContentDescription("Find, ${displayDate(LocalDate.now())}").assertCountEquals(0)
+        composeRule.onAllNodesWithTag(findsDayHeaderTag(LocalDate.now())).assertCountEquals(0)
     }
 
     /**
@@ -343,7 +349,7 @@ class JournalTabTest {
     @Test
     fun `Change Location on an already-located entry opens the centre-pin picker and updates the entry's location on confirm`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -531,7 +537,7 @@ class JournalTabTest {
     fun `a set loadErrorMessage does not hide entries already showing`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry), loadErrorMessage = "Log entries unavailable."))
 
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).assertIsDisplayed()
         composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
     }
 

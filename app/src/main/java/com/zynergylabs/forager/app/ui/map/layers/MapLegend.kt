@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.map.layers
 
 import java.time.LocalDate
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * What a colour field's cells in view say about their own dates: the forecast week and the weather
@@ -73,7 +74,8 @@ fun mapLegendFor(
 }
 
 /**
- * "Week of <week>, weather to <weather_through>" (planner message 2), both as the ISO dates the cells
- * themselves carry (D55: `week` is the ISO week start, `weather_through` a date).
+ * "Week of <week>, weather to <weather_through>" (planner message 2), the dates the cells carry (D55: `week` is the ISO week
+ * start, `weather_through` a date), written "Sep 28, 2026" like every date in the app (RECORD -656, applied by -702).
  */
-fun legendDatesLine(shown: ForecastCellsShown): String = "Week of ${shown.week}, weather to ${shown.weatherThrough}"
+fun legendDatesLine(shown: ForecastCellsShown): String =
+    "Week of ${displayDate(shown.week)}, weather to ${displayDate(shown.weatherThrough)}"

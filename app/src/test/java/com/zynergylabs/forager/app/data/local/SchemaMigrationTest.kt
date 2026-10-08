@@ -28,12 +28,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 17→18, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 19→20, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→18.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→20.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -161,15 +161,43 @@ class SchemaMigrationTest {
             assertEquals("both time indexes are back", 2L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'tracks' AND name IN ('index_tracks_startedAtEpochMillis', 'index_tracks_endedAtEpochMillis')"))
         }
 
+    // Dispatch 2026-09-28-695, amendment 1 (RECORD -696): the cached_searches rebuild. Every seeded column is
+    // carried (assertEverySeededValueSurvived compares them all by name, filterIconicTaxonName included, which
+    // still tells a category row from a species row), and the pre-existing row's new speciesIconicTaxonName is
+    // NULL: no backfill, since nothing stored says which group an old species row belongs to. The column then
+    // takes a species row's group.
+    @Test fun `18 to 19 - the cached_searches rebuild adds speciesIconicTaxonName null, every value carried`() =
+        migrate(18, 19, MIGRATION_18_19, overrides = mapOf("cached_searches" to mapOf("key" to "k-species", "filterLabel" to "Fly Agaric", "filterIconicTaxonName" to null, "filterTaxonId" to 48715L, "filterExcludedTaxonId" to null))) { db ->
+            assertEquals("Fly Agaric", db.scalar("SELECT filterLabel FROM cached_searches"))
+            assertEquals(48715L, db.scalar("SELECT filterTaxonId FROM cached_searches"))
+            assertNull("an old row is not given a group", db.scalar("SELECT speciesIconicTaxonName FROM cached_searches"))
+            db.execSQL("UPDATE cached_searches SET speciesIconicTaxonName = 'Fungi' WHERE `key` = 'k-species'")
+            assertEquals("Fungi", db.scalar("SELECT speciesIconicTaxonName FROM cached_searches"))
+            assertNull("the category discriminant is a separate column", db.scalar("SELECT filterIconicTaxonName FROM cached_searches"))
+        }
+
+    // Data part D, dispatch -697 Amendment 4 (RECORD -703): the mushroom_log_entries rebuild. Every seeded column is carried
+    // (assertEverySeededValueSurvived compares them all by name) and the old row's new foundAtEpochMillis is NULL: no time of
+    // day is known for a find saved before this column. Both indexes are back, and the column takes a value.
+    @Test fun `19 to 20 - the mushroom_log_entries rebuild adds foundAtEpochMillis null, every value carried`() =
+        migrate(19, 20, MIGRATION_19_20, overrides = mapOf("mushroom_log_entries" to mapOf("ownIdentification" to "Morel", "foundOn" to "2026-10-07", "lat" to 45.43, "lng" to -122.29, "draftOfEntryId" to null))) { db ->
+            assertEquals("Morel", db.scalar("SELECT ownIdentification FROM mushroom_log_entries"))
+            assertEquals("2026-10-07", db.scalar("SELECT foundOn FROM mushroom_log_entries"))
+            assertNull("an old find has no time of day", db.scalar("SELECT foundAtEpochMillis FROM mushroom_log_entries"))
+            db.execSQL("UPDATE mushroom_log_entries SET foundAtEpochMillis = 1791403440000")
+            assertEquals(1_791_403_440_000L, db.scalar("SELECT foundAtEpochMillis FROM mushroom_log_entries"))
+            assertEquals("both indexes are back", 2L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'mushroom_log_entries' AND name IN ('index_mushroom_log_entries_offlineRegionId', 'index_mushroom_log_entries_foundOn')"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // T16: the chain now ends at 18, the current version (it ended at 17 before MIGRATION_17_18).
-    @Test fun `4 to 18 - the full chain, validated against 18_json, every seeded value survives`() {
+    // The chain now ends at 20, the current version (RECORD -703; it ended at 19 before MIGRATION_19_20).
+    @Test fun `4 to 20 - the full chain, validated against 20_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 18, true, *ForagerDatabase.ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 20, true, *ForagerDatabase.ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 18)
+            assertEverySeededValueSurvived(db, seeded, 4, 20)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }

@@ -59,6 +59,7 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * A Cartography entry's curation-and-writing surface — Journal Stage 2b, extended by its own
@@ -230,7 +231,7 @@ internal fun CartographyEntryEditScreen(
                 BouncingIconButton(onClick = onRequestBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Cartography")
                 }
-                Text(formatEntryDate(entry.date), style = MaterialTheme.typography.titleMedium)
+                Text(displayDate(entry.date), style = MaterialTheme.typography.titleMedium)
                 if (isLoadingCandidates) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp))
                 }
@@ -516,7 +517,7 @@ internal fun trackSubtitle(distanceMeters: Double, durationMillis: Long, distanc
 }
 
 private fun attachDateLabel(epochMillis: Long): String =
-    formatEntryDate(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate())
+    displayDate(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate())
 
 /**
  * The delete confirmation on the editor and the report, in the owner's word for a kept item, "included"
