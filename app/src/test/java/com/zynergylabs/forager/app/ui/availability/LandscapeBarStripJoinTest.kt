@@ -361,39 +361,46 @@ abstract class LandscapeBarStripJoinTests {
         assertEquals("<$text> shows every character", text.length, layout.getLineEnd(0, visibleEnd = true))
     }
 
-    // ── RECORD -733: the short heading words, in the room the value takes ──
+    // ── RECORD -735: the crossed-out compass, in the room the value takes ──
 
     /**
-     * The owner: "Short words, same room (Recommended)". With no compass, then an unreliable one, the heading slot reads
-     * "No compass" and "Compass?", whole, beside the altitude and the coordinates, and the join sits exactly where it does with
-     * a heading (the strip is sized from the value form only). The same screen is composed afresh for each compass.
+     * The owner: "Same crossed-out icon (Recommended)". With no compass, then an unreliable one, the heading slot shows the
+     * crossed-out compass (Icons.Filled.ExploreOff) labelled "Compass unavailable" or "Compass unreliable" for a screen reader,
+     * whole, beside the altitude and the coordinates; and the join sits exactly where it does with a heading (the strip is
+     * sized from the value form only). The same screen is composed afresh for each compass.
      */
-    private fun assertShortWords(rotation: Int) {
+    private fun assertStatusIcon(rotation: Int) {
         setScreen(rotation)
         val withHeading = bounds(STRIP_TAG)
-        val headingText = layoutOf(COMPASS_STRIP_HEADING_TAG).first
-        assertEquals("positive control: a heading value first", "315° NW", headingText)
-        for ((provider, word) in listOf(NoCompass to LANDSCAPE_NO_COMPASS_TEXT, UnreliableCompass to LANDSCAPE_COMPASS_UNRELIABLE_TEXT)) {
+        assertEquals("positive control: a heading value first", "315° NW", layoutOf(COMPASS_STRIP_HEADING_TAG).first)
+        assertFalse("positive control: no icon with a heading", shown(COMPASS_STRIP_HEADING_ICON_TAG))
+        for ((provider, label) in listOf(NoCompass to "Compass unavailable", UnreliableCompass to "Compass unreliable")) {
             composeRule.runOnIdle { compass = provider; generation++ }
             composeRule.waitForIdle()
             composeRule.mainClock.advanceTimeBy(2_000)
             composeRule.waitForIdle()
             val strip = bounds(STRIP_TAG)
-            assertAllThree(word)
+            val icon = bounds(COMPASS_STRIP_HEADING_ICON_TAG)
+            val description = composeRule.onNodeWithTag(COMPASS_STRIP_HEADING_ICON_TAG, useUnmergedTree = true).fetchSemanticsNode()
+                .config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString("")
             val shownReadouts = readoutsShown()
-            println("MEASURED rotation $rotation <$word>: strip ${strip.d()}, with a heading ${withHeading.d()}, readouts $shownReadouts")
-            assertEquals("the heading slot reads <$word>", word, shownReadouts.first())
-            assertEquals("<$word>: the strip's left edge is where it is with a heading", withHeading.left.value, strip.left.value, 0.5f)
-            assertEquals("<$word>: the strip's right edge is where it is with a heading", withHeading.right.value, strip.right.value, 0.5f)
+            println("MEASURED rotation $rotation <$label>: icon ${icon.d()}, strip ${strip.d()}, with a heading ${withHeading.d()}, readouts $shownReadouts")
+            assertEquals("the icon is labelled <$label>", label, description)
+            assertFalse("<$label>: no heading words in the slot", shown(COMPASS_STRIP_HEADING_TAG))
+            assertEquals("<$label>: the icon is the 14 sp line's 20 dp square", 20f, (icon.right - icon.left).value, 0.5f)
+            assertTrue("<$label>: the icon ${icon.d()} lies whole inside the strip ${strip.d()}", icon.left >= strip.left && icon.right <= strip.right && icon.top >= strip.top && icon.bottom <= strip.bottom)
+            assertTrue("<$label>: altitude and coordinates still show, whole ($shownReadouts)", shown(COMPASS_STRIP_ELEVATION_TAG) && shown(COMPASS_STRIP_COORDINATES_TAG))
+            assertEquals("<$label>: the strip's left edge is where it is with a heading", withHeading.left.value, strip.left.value, 0.5f)
+            assertEquals("<$label>: the strip's right edge is where it is with a heading", withHeading.right.value, strip.right.value, 0.5f)
             val bar = bounds(SEARCH_ENTRY_BAR_TAG)
             val join = if (barOnLeft(rotation)) strip.left else strip.right
-            assertEquals("<$word>: the bar still ends at the join", join.value, (if (barOnLeft(rotation)) bar.right else bar.left).value, 0.5f)
+            assertEquals("<$label>: the bar still ends at the join", join.value, (if (barOnLeft(rotation)) bar.right else bar.left).value, 0.5f)
         }
     }
 
-    @Test fun `at ROTATION_90 with no compass or an unreliable one the short words show whole and the join stays put`() = assertShortWords(Surface.ROTATION_90)
+    @Test fun `at ROTATION_90 with no compass or an unreliable one the crossed-out compass shows, labelled, and the join stays put`() = assertStatusIcon(Surface.ROTATION_90)
 
-    @Test fun `at ROTATION_270 with no compass or an unreliable one the short words show whole and the join stays put`() = assertShortWords(Surface.ROTATION_270)
+    @Test fun `at ROTATION_270 with no compass or an unreliable one the crossed-out compass shows, labelled, and the join stays put`() = assertStatusIcon(Surface.ROTATION_270)
 
     private object NoCompass : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(null)
