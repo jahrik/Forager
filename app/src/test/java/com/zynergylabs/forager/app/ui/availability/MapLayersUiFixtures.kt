@@ -17,6 +17,8 @@ import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository
 import com.zynergylabs.forager.app.domain.ForecastAvailability
 import com.zynergylabs.forager.app.domain.ForecastBlock
 import com.zynergylabs.forager.app.domain.ForecastCellStore
@@ -119,6 +121,16 @@ internal class InMemoryBasemapPreference(var stored: String? = null) : BasemapPr
     }
 }
 
+/** Reads back [stored] (nothing, by default) and keeps every placement written, in order (RECORD -711). */
+internal class InMemoryClusterPlacement(var stored: MapIconClusterPlacement? = null) : MapIconClusterPlacementRepository {
+    val writes = mutableListOf<MapIconClusterPlacement>()
+    override suspend fun getMapIconClusterPlacement(): Result<MapIconClusterPlacement?> = Result.success(stored)
+    override suspend fun setMapIconClusterPlacement(placement: MapIconClusterPlacement): Result<Unit> = Result.success(Unit).also {
+        writes += placement
+        stored = placement
+    }
+}
+
 /** A store with data for [groups] (none: "no forecast data") and no cells: the tests' map slot draws nothing. */
 internal class FixedForecastStore(private val groups: Set<String>) : ForecastCellStore {
     override suspend fun availability(week: LocalDate): ForecastAvailability =
@@ -191,6 +203,8 @@ internal fun mapLayersViewModel(
     setOffTrackReminderEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
     // Dispatch 2026-09-28-708: where the Maps tab's basemap is kept. Defaulted to nothing stored, which opens on Topographical as before.
     basemapPreferences: BasemapPreferenceRepository = InMemoryBasemapPreference(),
+    // RECORD -711: where the icon cluster's side and height are kept. Defaulted to nothing stored, which opens it where it always opened.
+    clusterPlacements: MapIconClusterPlacementRepository = InMemoryClusterPlacement(),
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -232,6 +246,7 @@ internal fun mapLayersViewModel(
         getOffTrackReminderEnabled = getOffTrackReminderEnabled,
         setOffTrackReminderEnabled = setOffTrackReminderEnabled,
         basemapPreferenceRepository = basemapPreferences,
+        mapIconClusterPlacementRepository = clusterPlacements,
     )
 }
 
@@ -293,6 +308,7 @@ internal fun MapLayersTestScreen(
         onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
         onColourFieldMoved = viewModel::onColourFieldMoved,
         onMapModeSelected = viewModel::onMapModeSelected,
+        onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
         forecastCellStore = store,
         waypoints = waypoints,
         tracks = tracks,
