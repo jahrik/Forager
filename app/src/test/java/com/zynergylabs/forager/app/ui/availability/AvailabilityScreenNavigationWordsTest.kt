@@ -381,6 +381,13 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
                     assertEquals("$format, $tag <$text>: every character visible", text.length, layout.getLineEnd(0, visibleEnd = true))
                 }
             }
+            // The planner's extension of -699 to the display: its coordinates are measured first and always whole.
+            val coordinatesLayout = mutableListOf<TextLayoutResult>().also {
+                node(NAVIGATION_HUD_COORDINATES_TAG).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(it)
+            }.single()
+            val coordinatesText = coordinatesLayout.layoutInput.text.text
+            assertFalse("$format: the display's coordinates <$coordinatesText> are not ellipsised", coordinatesLayout.isLineEllipsized(0))
+            assertEquals("$format: every character of <$coordinatesText> shows", coordinatesText.length, coordinatesLayout.getLineEnd(0, visibleEnd = true))
             val hudBounds = node(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot()
             val barBounds = node(SEARCH_ENTRY_BAR_TAG).getUnclippedBoundsInRoot()
             assertFalse(
