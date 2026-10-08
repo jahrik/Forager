@@ -299,3 +299,28 @@ test run. `./gradlew --stop` ran at the end, and afterwards no Gradle or Kotlin 
   - Two ways out, for the planner: (a) clear the semantics of whatever is leaving (the bar, the rail and the tab), which would also
     make these two tests pass as written; or (b) change the two tests to read the arriving bar. I prefer (a): no one should be
     able to reach a control that takes no touch. I have touched neither.
+
+## Amendment 2: leaving pieces leave the semantics tree (the planner's (a)), and the rebuild, 2026-10-07
+
+- **Change** (`motion/TabCrossfade.kt`, 198d76c3). From its first leaving frame, the outgoing tab keeps only its leaving marker
+  in the semantics tree (`clearAndSetSemantics`), and so does a leaving bar or rail: only its fade value is left. A screen reader
+  therefore finds the arriving controls alone. Touches were already off for all three, and this changes no layout or touch.
+- **The two `RestoreReturnsToMap` tests pass unchanged.** `RestoreReturnsToMapTest.kt` has no diff from 28de7c52.
+- **New test:** `TabCrossfadeTest`, "mid-fade a screen-reader query finds exactly one selected tab, the arriving one", in both
+  directions.
+  - `TabCrossfadeTest`'s helpers no longer find the leaving map by its tag, which is now gone from the tree. They count the
+    composed map stand-ins from inside the stub, and find the leaving tab by its marker. `MapPopUpMotionTest`'s Back test reads
+    the marker too.
+- **Revert checks** (same runner: saved copy, compile log checked, which was clean both times, fresh XML only, restored and
+  checksum-matched):
+  - R13, the tab's semantics left in place: "and no selected Maps tab left behind expected:<0> but was:<1>".
+  - R14, the bar's semantics left in place: the new test failed with "one selected Maps tab mid-fade expected:<1> but was:<2>",
+    and both `RestoreReturnsToMap` tests failed again, as before (a).
+- **Check 3 planted-tween proof, re-run on the merged script.**
+  - Unplanted, check 3 lists the 5 real tweens and not the allowed line.
+  - A tween planted in another file is listed.
+  - A second tween in `MotionTokens.kt`, and the allowed text copied to another line there, are both listed.
+  - The plants were undone from saved copies, the checksum matched, and `git status` was clean.
+- **Full suite**, same caps, with no daemon before the run and 5.26 GB free: 510 classes, **4,083 tests, 0 failures,
+  24 skipped**, all XML fresh from the run. One more test than before, the new one. `./gradlew --stop` ran, and afterwards no
+  Gradle or Kotlin daemon process is left.
