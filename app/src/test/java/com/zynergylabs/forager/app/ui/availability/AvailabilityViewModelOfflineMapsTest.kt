@@ -207,7 +207,11 @@ private class RecordingOfflineMapRepository(
 
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = listRegionsResult
 
-    override suspend fun listNotDownloadedRegions(): Result<List<OfflineRegionSummary>> = Result.success(notDownloaded)
+    /** When set, [listNotDownloadedRegions] fails with it (dispatch 2026-09-28-658, M2). */
+    var notDownloadedFailure: Throwable? = null
+
+    override suspend fun listNotDownloadedRegions(): Result<List<OfflineRegionSummary>> =
+        notDownloadedFailure?.let { Result.failure(it) } ?: Result.success(notDownloaded)
 
     override suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> {
         replaced += oldId to newId
@@ -282,6 +286,22 @@ class AvailabilityViewModelOfflineMapsTest {
 
         assertEquals(listOf(REFERENCE_REGION_SUMMARY), vm.uiState.value.offlineRegions)
         assertNull(vm.uiState.value.offlineRegionsErrorMessage)
+    }
+
+    /**
+     * Dispatch 2026-09-28-658 (M2): the downloaded regions read, the restored ones did not. The list
+     * holds what was read, and the screen's message says it is partial. Before, the message was
+     * cleared and the shorter list read as complete.
+     */
+    @Test
+    fun `a failed read of restored regions shows the downloaded ones and says the list is partial`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY)))
+        repository.notDownloadedFailure = IOException("restored rows unreadable")
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        assertEquals(listOf(REFERENCE_REGION_SUMMARY), vm.uiState.value.offlineRegions)
+        assertEquals(RESTORED_REGIONS_UNREADABLE_MESSAGE, vm.uiState.value.offlineRegionsErrorMessage)
     }
 
     /**

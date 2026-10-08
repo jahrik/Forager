@@ -12,6 +12,7 @@ package com.zynergylabs.forager.app.ui.availability
 // AvailabilityCompactMapUi.kt. No symbol left behind is reached from here. Seam F (the wide layout)
 // was released by the owner for this split, as recorded in the Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandIn
@@ -80,6 +81,7 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
+import com.zynergylabs.forager.app.ui.map.MapBarHighlight
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
@@ -91,6 +93,15 @@ import com.zynergylabs.forager.app.ui.map.mapIconBarRecordAccent
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
 import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.unit.IntSize
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
+import com.zynergylabs.forager.app.ui.motion.WordSwap
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
@@ -229,6 +240,8 @@ private fun ControlPill(
                 filled = isRecording,
                 fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
                 fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
+                // Round whether or not recording: the control is the Record badge (RECORD -651), and the shape must not flip under the finger.
+                highlight = MapBarHighlight.BADGE,
                 modifier = Modifier.testTag("control-pill-record"),
             )
         }
@@ -465,113 +478,176 @@ private fun CompassElevationStripContent(
                             .rotate((heading as? TrueHeadingReading.Available)?.degrees ?: 0f),
                     )
                 }
-                if (positionNote != null) {
-                    // Dispatch 2026-09-28-510 (the owner chose "Say so, no coordinates"): the heading,
-                    // then what the position is, in place of elevation and coordinates, which a reading
-                    // known to 100 m, or hours old, cannot honestly give. Not tappable: there is no
-                    // coordinate pair to toggle. Before the no-fix case, since an approximate or last
-                    // known position is something rather than nothing.
-                    Row(
-                        modifier = if (contentWidth) Modifier else Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
-                    ) {
-                        Text(
-                            text = stripHeadingText(heading),
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                        )
-                        Text("·", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = positionNote.stripText,
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f, fill = false)
-                                .testTag(COMPASS_STRIP_POSITION_NOTE_TAG),
-                        )
-                    }
-                } else if (location == null) {
-                    // One statement across the strip — see this composable's own doc comment. Not
-                    // tappable: there is no coordinate pair to toggle, and nothing to fabricate one
-                    // from. The Row's remaining width, so it centres where the three segments did.
-                    Text(
-                        text = NO_FIX_MESSAGE,
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                        textAlign = TextAlign.Center,
-                        // Landscape B2 (S4): no weight when content-width, or this one line
-                        // would stretch the strip back across the window.
+                // Motion Part 2, Amendment 1 (RECORD -672), item 3 (scout C2): the swap between the readout, "Location services
+                // unavailable" and the position note crossfades, on the word swap's spec, rather than jumping. The outgoing one
+                // keeps drawing what it showed (lastNote, lastLocation) and takes no touch, so its coordinates cannot be tapped
+                // as it fades (item 5). The width given to the three (the Row's remaining width, or content width in landscape)
+                // is now on this box; each fills it, as each used to take it by weight. No size animation.
+                val readoutKind = when {
+                    positionNote != null -> StripReadout.POSITION_NOTE
+                    location == null -> StripReadout.NO_FIX
+                    else -> StripReadout.READOUT
+                }
+                val lastNote = rememberLastShown(positionNote)
+                val lastLocation = rememberLastShown(location)
+                val readoutFade = MotionTokens.wordSwapSpec<Float>()
+                AnimatedContent(
+                    targetState = readoutKind,
+                    modifier = if (contentWidth) Modifier else Modifier.weight(1f),
+                    transitionSpec = { (fadeIn(animationSpec = readoutFade) togetherWith fadeOut(animationSpec = readoutFade)).using(null) },
+                    contentAlignment = Alignment.Center,
+                    label = "stripReadout",
+                ) { kind ->
+                    Box(
                         modifier = Modifier
-                            .then(if (contentWidth) Modifier else Modifier.weight(1f))
-                            .testTag(COMPASS_STRIP_NO_FIX_TAG),
-                    )
-                } else {
-                    // Heading, elevation, and coordinates, taking whatever width is left after the fixed
-                    // compass-icon box above — this group used to share its weight(1f) budget with that
-                    // icon's inline width, which is exactly the width the coordinates segment's own
-                    // ellipsis was giving up first on a narrow screen (a hardware report: "cut off for no
-                    // reason" — there was room, it just wasn't reaching this Text). Pulling the icon out
-                    // of this Row's own measurement entirely is the fix, not a wider budget. Only one
-                    // fixed sibling now (Part A item 3 removed the strip's own return-to-vehicle box),
-                    // so this group's own available width is wider still than when that box also took a
-                    // share. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
-                    // safety net for a screen too narrow for all three fields regardless, not
-                    // horizontalScroll — see this composable's own doc comment above for why
-                    // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
-                    Row(
-                        // Landscape B2 (S4): no weight when content-width.
-                        modifier = if (contentWidth) Modifier else Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                            .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                            .leavingTakesNoTouches(leaving = kind != readoutKind),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            // With a fix, the heading has two real states and one transient: a value,
-                            // no sensor, or NeedsFix for the frame or two between the fix landing and
-                            // the next sensor emission (rememberTrueHeading restarts its producer on
-                            // that transition). The transient shows a dash, the same as the HUD — the
-                            // "needs a fix" wording is gone, replaced by NO_FIX_MESSAGE above.
-                            text = stripHeadingText(heading),
-                            // Landscape B2 (S5): tabular figures, so the strip's width holds
-                            // steady as the digits change. Both orientations; labelMedium kept.
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                        )
-                        Text("·", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
-                            text = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: "Elevation unavailable",
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                        )
-                        Text("·", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = coordinatesStripText(location, showDecimalDegrees),
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f, fill = false)
-                                .clickable(onClick = onToggleCoordinateFormat),
-                        )
+                        if (kind == StripReadout.POSITION_NOTE && lastNote != null) {
+                            // Dispatch 2026-09-28-510 (the owner chose "Say so, no coordinates"): the heading,
+                            // then what the position is, in place of elevation and coordinates, which a reading
+                            // known to 100 m, or hours old, cannot honestly give. Not tappable: there is no
+                            // coordinate pair to toggle. Before the no-fix case, since an approximate or last
+                            // known position is something rather than nothing.
+                            Row(
+                                modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                            ) {
+                                // Motion Part 2, item 6: words crossfade, numbers change at once (WordSwap).
+                                WordSwap(text = stripHeadingText(heading)) { shown ->
+                                    Text(
+                                        text = shown,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                        maxLines = 1,
+                                        modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                                    )
+                                }
+                                Text("·", style = MaterialTheme.typography.labelMedium)
+                                WordSwap(text = lastNote.stripText, modifier = Modifier.weight(1f, fill = false)) { shown ->
+                                    Text(
+                                        text = shown,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.testTag(COMPASS_STRIP_POSITION_NOTE_TAG),
+                                    )
+                                }
+                            }
+                        } else if (kind == StripReadout.NO_FIX || lastLocation == null) {
+                            // One statement across the strip — see this composable's own doc comment. Not
+                            // tappable: there is no coordinate pair to toggle, and nothing to fabricate one
+                            // from. The Row's remaining width, so it centres where the three segments did.
+                            Text(
+                                text = NO_FIX_MESSAGE,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                textAlign = TextAlign.Center,
+                                // Landscape B2 (S4): no weight when content-width, or this one line
+                                // would stretch the strip back across the window.
+                                modifier = Modifier
+                                    .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                                    .testTag(COMPASS_STRIP_NO_FIX_TAG),
+                            )
+                        } else {
+                            // Heading, elevation, and coordinates, taking whatever width is left after the fixed
+                            // compass-icon box above — this group used to share its weight(1f) budget with that
+                            // icon's inline width, which is exactly the width the coordinates segment's own
+                            // ellipsis was giving up first on a narrow screen (a hardware report: "cut off for no
+                            // reason" — there was room, it just wasn't reaching this Text). Pulling the icon out
+                            // of this Row's own measurement entirely is the fix, not a wider budget. Only one
+                            // fixed sibling now (Part A item 3 removed the strip's own return-to-vehicle box),
+                            // so this group's own available width is wider still than when that box also took a
+                            // share. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
+                            // safety net for a screen too narrow for all three fields regardless, not
+                            // horizontalScroll — see this composable's own doc comment above for why
+                            // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
+                            Row(
+                                // Landscape B2 (S4): no weight when content-width.
+                                modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                            ) {
+                                // With a fix, the heading has two real states and one transient: a value,
+                                // no sensor, or NeedsFix for the frame or two between the fix landing and
+                                // the next sensor emission (rememberTrueHeading restarts its producer on
+                                // that transition). The transient shows a dash, the same as the HUD — the
+                                // "needs a fix" wording is gone, replaced by NO_FIX_MESSAGE above.
+                                // Motion Part 2, item 6: its words (the compass point, or a status) crossfade; its
+                                // degrees change at once (WordSwap). The elevation's likewise.
+                                WordSwap(text = stripHeadingText(heading)) { shown ->
+                                    Text(
+                                        text = shown,
+                                        // Landscape B2 (S5): tabular figures, so the strip's width holds
+                                        // steady as the digits change. Both orientations; labelMedium kept.
+                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                        maxLines = 1,
+                                        modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                                    )
+                                }
+                                Text("·", style = MaterialTheme.typography.labelMedium)
+                                // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
+                                WordSwap(text = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: "Elevation unavailable") { shown ->
+                                    Text(
+                                        text = shown,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                        maxLines = 1,
+                                    )
+                                }
+                                Text("·", style = MaterialTheme.typography.labelMedium)
+                                Text(
+                                    text = coordinatesStripText(lastLocation, showDecimalDegrees),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .clickableWithShapedPress(onClick = onToggleCoordinateFormat),
+                                )
+                            }
+                        }
                     }
                 }
             }
-            if (sundownLine != null) {
-                Text(
-                    text = sundownLine,
-                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(horizontal = Spacing.sm)
-                        .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
-                        .testTag(STRIP_SUNDOWN_LINE_TAG),
-                )
+            // Motion Part 2, item 4 (dispatch 2026-09-28-666, scout C1; the owner, RECORD -651: "Fade and grow", from where it
+            // belongs): when its window opens the line fades in and the strip grows down to hold it, from under the readout,
+            // and the reverse when it closes; the fade alone, with the strip's height changing at once, under reduced motion.
+            // Unlike the map's pop-ups this grow is laid out, not drawn: the strip's own background has to grow with it. The
+            // strip takes no touch outside its coordinates (the Box's comment above), so the growing band moves no touch;
+            // what reads the strip's height (the notice below the bar, the fan's keep-out) follows it frame by frame. Item 6:
+            // a change in its words crossfades, a change in its times alone does not. The Back by line is not on this branch
+            // (dispatch: left to a later merge).
+            val sundownLineShown = rememberLastShown(sundownLine)
+            val reduceMotion = LocalReduceMotion.current
+            val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
+            val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
+            AnimatedVisibility(
+                visible = sundownLine != null,
+                enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top),
+                exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top),
+                label = "stripSundownLine",
+            ) {
+                sundownLineShown?.let { line ->
+                    WordSwap(
+                        text = line,
+                        modifier = Modifier
+                            .padding(horizontal = Spacing.sm)
+                            .then(if (contentWidth) Modifier else Modifier.fillMaxWidth()),
+                        contentAlignment = Alignment.Center,
+                    ) { shownLine ->
+                        Text(
+                            text = shownLine,
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                                .testTag(STRIP_SUNDOWN_LINE_TAG),
+                        )
+                    }
+                }
             }
             }
         }
@@ -771,3 +847,6 @@ private fun stripHeadingText(heading: TrueHeadingReading): String = when (headin
     TrueHeadingReading.Unreliable -> "Compass unreliable"
     TrueHeadingReading.NeedsFix -> "—"
 }
+
+/** What the compass strip's readout shows (motion Part 2, Amendment 1, item 3): the key its crossfade runs on. */
+private enum class StripReadout { POSITION_NOTE, NO_FIX, READOUT }

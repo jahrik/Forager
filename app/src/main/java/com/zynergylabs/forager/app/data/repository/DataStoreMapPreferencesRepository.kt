@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.data.repository
 
+import com.zynergylabs.forager.app.domain.SettingsResetListener
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -8,7 +9,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
@@ -40,12 +40,11 @@ import kotlinx.coroutines.flow.first
 class DataStoreMapPreferencesRepository(
     context: Context,
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+    /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
+    settingsReset: SettingsResetListener = SettingsResetListener.None,
 ) : MapPreferencesRepository, MapLayerPreferencesRepository {
 
-    private val dataStore = PreferenceDataStoreFactory.create(
-        scope = scope,
-        produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
-    )
+    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope)
 
     override suspend fun getLastPickedRegion(): Result<Region?> = runCatchingCancellable {
         val prefs = dataStore.data.first()

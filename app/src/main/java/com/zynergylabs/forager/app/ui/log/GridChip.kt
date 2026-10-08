@@ -1,11 +1,14 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridOff
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.IconSwap
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -28,11 +31,16 @@ import com.zynergylabs.forager.app.domain.next
 @Composable
 internal fun GridChip(mode: GridMode, onGridModeChanged: (GridMode) -> Unit, deviceRotation: Int?, displayRotation: Int) {
     val glyph = gridGlyph(mode)
-    IconButton(
+    BouncingIconButton(
         onClick = { onGridModeChanged(mode.next()) },
-        modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_GRID_CHIP_TAG),
+        modifier = Modifier
+            .rotateWithDevice(deviceRotation, displayRotation)
+            .testTag(CAMERA_GRID_CHIP_TAG)
+            .semantics { contentDescription = glyph.label },
     ) {
-        OverlayIcon(glyph.icon, contentDescription = glyph.label)
+        // Motion Part 1 (dispatch 2026-09-28-652, item 5): the glyph crossfades with a slight grow when the mode changes. The
+        // label sits on the button, not the icon, because both glyphs are composed for the length of the swap.
+        IconSwap(targetState = glyph.icon) { icon -> OverlayIcon(icon, contentDescription = null) }
     }
 }
 
