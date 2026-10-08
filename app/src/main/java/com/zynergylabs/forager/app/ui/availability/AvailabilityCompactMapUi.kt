@@ -57,10 +57,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.background
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.List
@@ -747,9 +745,6 @@ internal fun CompactMapTab(
             // test that caught that regression ("tapping elsewhere on the map dismisses the observation bubble") is @Ignore'd
             // for an unrelated harness reason, so whether the regression returns is a device item.
             val compassStripBottomClearance = with(compassStripDensity) { compassStripHeightPx.toDp() }.coerceAtLeast(compassStripClearance)
-            // RECORD -729: the search bar's own content in a landscape window, its field (twice the "Mg" line, SearchEntryBar's
-            // fieldHeight) and its divider; the landscape strip is at least this tall, so the bar can take the strip's height.
-            val landscapeBarContentFloor = compassStripClearance * 2 + DividerDefaults.Thickness
             Box(
                 modifier = modifier
                     .fillMaxSize()
@@ -1070,14 +1065,13 @@ internal fun CompactMapTab(
                         // default) reproduces the old flush-against-the-map-top behavior exactly. The
                         // alignment and the padding are on the AnimatedVisibility above (motion Part 2).
                         modifier = if (railPortEdge != null) {
-                            // RECORD -729: the strip fills its half, and is at least as tall as the search bar's own content (its
-                            // field and divider), so the bar can take the strip's height without cutting its field. At the default
-                            // font that floor (33 dp) is under the strip's own 36 dp, so the bar follows the strip; at a large font
-                            // the field is the taller and the strip grows to it. Its measured height goes up to the scaffold, which
-                            // gives the bar that height; not while it leaves (motion Part 2).
+                            // RECORD -729: the strip fills its width. RECORD -736 (the owner: "The compass strip must remain the
+                            // same height as portrait though and that's important"): no height floor, so it is exactly as tall as in
+                            // portrait at every font; -729's floor, which grew it to the bar's field at large fonts, is gone. Its
+                            // measured height and width go up to the scaffold, which gives the bar that height and the rest of the
+                            // room; not while it leaves (motion Part 2).
                             Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = landscapeBarContentFloor)
                                 .onSizeChanged { if (!isNavigating) { landscapeStripHeightPx = it.height; landscapeStripWidthPx = it.width } }
                         } else {
                             Modifier
