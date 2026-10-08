@@ -43,7 +43,8 @@ import org.robolectric.annotation.GraphicsMode
  * device item.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi")
+// A small, low-density window: every frame is read back as a whole-window capture, and the colour is the same everywhere.
+@Config(sdk = [36], qualifiers = "w240dp-h320dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class NightModeFadeTest {
 
@@ -66,6 +67,7 @@ class NightModeFadeTest {
     private val seen = mutableListOf<Color>()
 
     private fun setScreen() {
+        org.robolectric.shadows.ShadowLog.stream = System.out
         composeRule.setContent {
             ForagerTheme(darkTheme = dark.value) {
                 val background = MaterialTheme.colorScheme.background
@@ -74,6 +76,9 @@ class NightModeFadeTest {
             }
         }
         composeRule.waitForIdle()
+        // Robolectric draws the window only when something reads it back (a capture), unlike a phone, which draws every
+        // frame. One capture here is the frame the phone would have drawn before the change, which the fade keeps as its picture.
+        drawn()
     }
 
     private fun flipToDarkWithTheClockStopped() {

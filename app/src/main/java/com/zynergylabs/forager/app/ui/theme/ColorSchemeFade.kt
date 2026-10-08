@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,12 +65,11 @@ internal fun NightModeBlend(darkTheme: Boolean, content: @Composable (shownDark:
     var outgoing by remember { mutableStateOf<ImageBitmap?>(null) }
     val outgoingAlpha = remember { Animatable(0f) }
     val spec = MotionTokens.nightModeFadeSpec<Float>(ForagerMotionScheme)
+    // Under reduced motion the change is drawn in the same frame, as it was before the fade existed, and kept in step after it.
+    val drawDark = if (reduceMotion) darkTheme else shownDark
+    if (reduceMotion) SideEffect { shownDark = darkTheme }
     LaunchedEffect(darkTheme, reduceMotion) {
-        if (darkTheme == shownDark) return@LaunchedEffect
-        if (reduceMotion) {
-            shownDark = darkTheme
-            return@LaunchedEffect
-        }
+        if (darkTheme == shownDark || reduceMotion) return@LaunchedEffect
         val picture = try {
             withTimeoutOrNull(SNAPSHOT_TIMEOUT_MS) { recording.toImageBitmap() }
         } catch (e: CancellationException) {
@@ -83,6 +83,7 @@ internal fun NightModeBlend(darkTheme: Boolean, content: @Composable (shownDark:
             shownDark = darkTheme
             return@LaunchedEffect
         }
+        Log.i(NIGHT_BLEND_LOG_TAG, "fading from a ${picture.width} x ${picture.height} picture of the screen")
         outgoing = picture
         outgoingAlpha.snapTo(1f)
         shownDark = darkTheme
@@ -103,7 +104,7 @@ internal fun NightModeBlend(darkTheme: Boolean, content: @Composable (shownDark:
             if (picture != null) drawImage(picture, alpha = outgoingAlpha.value.coerceIn(0f, 1f))
         },
     ) {
-        content(shownDark)
+        content(drawDark)
     }
 }
 
