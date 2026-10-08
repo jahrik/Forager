@@ -630,7 +630,8 @@ internal fun CompactMapTab(
             // rememberTrueHeading's own doc comment before touching this.
             // Dispatch 2026-09-28-510: at the best position there is (AvailabilityUiState.headingFix), so the
             // HUD's needle and the strip's heading work while the position is approximate or last known.
-            val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.headingFix)
+            // RECORD -761 (the owner: "Keep last reading (Recommended)"): starts from the last reading, kept with the camera above the tab.
+            val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.headingFix, cameraMemory.heading, currentTime::nowEpochMillis)
             // Dispatch 2026-09-28-510: what is shown in place of GPS, for the strip. Read only in its leaf.
             val positionNote = rememberPositionNote(LocalMapPosition.current, currentTime)
             // Dispatch 2026-09-28-430: which way the map faces while navigating, from the same heading.

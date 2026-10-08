@@ -40,4 +40,26 @@ class MapCameraMemory {
      * a search's frame once, not again over the camera the user has moved since.
      */
     var appliedSearchFrameId: Int = 0
+
+    /**
+     * RECORD -761: the picture a leaving map took of itself, for the map that comes back to draw over its own first frames
+     * ([MapReturnCover.kt]). One at a time: [keepCover] recycles the one it replaces; the returning map takes it with
+     * [takeCover], which leaves none here.
+     */
+    var cover: MapCover? = null
+        private set
+
+    fun keepCover(new: MapCover) {
+        val old = cover
+        cover = new
+        if (old != null && old.bitmap !== new.bitmap) old.bitmap.recycle()
+    }
+
+    fun takeCover(): MapCover? = cover.also { cover = null }
+
+    /**
+     * RECORD -761 (the owner: "Keep last reading (Recommended)"): the compass strip's last true heading, kept above the tab like
+     * the camera, so a return to Maps shows it until the compass reports again rather than "—" ([rememberTrueHeading]).
+     */
+    val heading: HeadingMemory = HeadingMemory()
 }

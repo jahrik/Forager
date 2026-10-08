@@ -226,6 +226,11 @@ data class MapRenderMode(
      */
     val cameraMemory: MapCameraMemory? = null,
     /**
+     * RECORD -761: true while the tab holding this map is leaving (the tab crossfade's outgoing side), so the map takes the
+     * picture a returning map draws over its first frames ([MapReturnCover.kt]). False for every caller but the Maps tab.
+     */
+    val leavingTab: Boolean = false,
+    /**
      * How far MapLibre's attribution button ("i") keeps from the map's end edge (Part 1 layout fixes,
      * item 5), beside [bottomInset] for the bottom. Zero for every caller but the compact Maps tab in a
      * short landscape window, whose overlaid rail sits on that edge at one rotation.
@@ -582,6 +587,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         journalHighlights = content.journalHighlights,
         route = content.route,
         cameraMemory = renderMode.cameraMemory,
+        leavingTab = renderMode.leavingTab,
         attributionEndInset = renderMode.attributionEndInset,
         attributionBottomInset = renderMode.attributionBottomInset,
         attributionKeepClear = renderMode.attributionKeepClear,

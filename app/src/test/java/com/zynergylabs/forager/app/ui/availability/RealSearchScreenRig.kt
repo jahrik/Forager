@@ -108,6 +108,9 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
     var mapCameraMemory: com.zynergylabs.forager.app.ui.map.MapCameraMemory? = null
         private set
 
+    /** RECORD -761: whether the map was ever handed `leavingTab` (the tab crossfade's outgoing side). */
+    var mapLeavingSeen = false
+
     /** RECORD -752: every measure of the map slot, in order, with the remembered camera at that moment. */
     val mapMeasures = mutableListOf<MapMeasure>()
 
@@ -181,6 +184,7 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
             mapSearchFrameRequestId = content.searchFrameRequestId
             mapResumeTrackingRequestId = content.resumeTrackingRequestId
             mapCameraMemory = renderMode.cameraMemory
+            if (renderMode.leavingTab) mapLeavingSeen = true
             val memory = renderMode.cameraMemory
             Box(
                 modifier.testTag(LAYOUT_FIXES_MAP_TAG).layout { measurable, constraints ->
