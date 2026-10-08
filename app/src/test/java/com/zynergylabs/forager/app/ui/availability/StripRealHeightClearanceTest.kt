@@ -12,11 +12,13 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_CHIP_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_CLOSE_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import org.junit.Assert.assertEquals
@@ -116,20 +118,45 @@ abstract class StripRealHeightClearanceTests(private val rotation: Int, private 
         assertClearOfStrip("the journal chip", tag(JOURNAL_ENTRIES_CHIP_TAG), strip)
     }
 
-    /** A glyph just under the strip, under its button's lower half: its bubble's card must not open over the strip. */
+    /**
+     * The bubble's minY. A card opens above its glyph unless that would put its top above minY, when it opens below. So the
+     * glyph is placed where its card, opened above, would have its top 9 dp above the strip's bottom: under the old one-line
+     * clearance that was allowed, and the card covered the strip's lower part; under the strip's real height it opens below
+     * the glyph instead. The card's height above its glyph is measured first, on a glyph in mid map.
+     */
     @Test
-    fun `a bubble for a glyph just under the strip opens clear of the strip's real height`() {
+    fun `a bubble that would open over the strip's lower half opens clear of the strip's real height`() {
         setScreen()
         val strip = strip()
         val slot = tag("map-slot")
-        val x = (strip.left + strip.right) / 2
-        val y = strip.bottom + 4.dp
-        glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", x - slot.left, y - slot.top, LatLng(45.326, -122.634)))
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag(glyphTag("wp-1")).performTouchInput { click(center) }
+        val x = (slot.left + slot.right) / 2
+        fun placeAndOpen(y: Dp, atX: Dp = x) {
+            glyphs.clear()
+            glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", atX - slot.left, y - slot.top, LatLng(45.326, -122.634)))
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(glyphTag("wp-1")).performTouchInput { click(center) }
+            composeRule.waitForIdle()
+            composeRule.mainClock.advanceTimeBy(500)
+            composeRule.waitForIdle()
+        }
+        if (!portrait) {
+            // Landscape: the window is too short for a card above a glyph in mid map, so the minY case cannot be set up;
+            // a glyph just under the strip, at its centre, is checked to open clear of it. Unchanged by -709 (the strip is
+            // not measured in landscape), so this is a pin, not a proof of the change.
+            placeAndOpen(strip.bottom + 4.dp, (strip.left + strip.right) / 2)
+            assertClearOfStrip("the bubble's card", tag(MAP_BUBBLE_TAG), strip)
+            return
+        }
+        val midY = (slot.top + slot.bottom) / 2
+        placeAndOpen(midY)
+        val reference = tag(MAP_BUBBLE_TAG)
+        assertTrue("mid map, the card opens above its glyph: ${reference.describe()}", reference.bottom <= midY)
+        val above = midY - reference.top
+        composeRule.onNodeWithTag(MAP_BUBBLE_CLOSE_TAG).performTouchInput { click(center) }
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(500)
         composeRule.waitForIdle()
+        placeAndOpen(strip.bottom - 9.dp + above)
         assertClearOfStrip("the bubble's card", tag(MAP_BUBBLE_TAG), strip)
     }
 
