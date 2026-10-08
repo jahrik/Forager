@@ -83,19 +83,26 @@ internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTri
 private fun PlannedTripsList(plannedTrips: List<PlannedTrip>, onDeletePlannedTrip: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Planned Trips", style = MaterialTheme.typography.titleSmall)
-        if (plannedTrips.isEmpty()) {
+        // Motion Part 3, Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout P1): a deleted trip's card
+        // fades and shrinks while the cards below close up (motion/ListMotion.kt). The last one leaves before the empty text.
+        val rows = rememberListRows(plannedTrips, key = { it.id })
+        if (rows.isEmpty()) {
             Text(
                 "No trips planned yet. Tap the add button on the map to plan one.",
                 style = MaterialTheme.typography.bodySmall,
             )
         } else {
             val today = LocalDate.now()
-            plannedTrips.forEach { trip ->
-                PlannedTripRow(
-                    trip = trip,
-                    isToday = trip.date == today,
-                    onDelete = { onDeletePlannedTrip(trip.id) },
-                )
+            rows.forEach { row ->
+                key(row.key) {
+                    ListRowMotion(row) { trip ->
+                        PlannedTripRow(
+                            trip = trip,
+                            isToday = trip.date == today,
+                            onDelete = { onDeletePlannedTrip(trip.id) },
+                        )
+                    }
+                }
             }
         }
     }

@@ -10,6 +10,7 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -19,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
@@ -65,6 +68,11 @@ var SemanticsPropertyReceiver.pageLeaving by PageLeavingKey
  * one is drawn from its own value. That is why a page carries what it shows (the open entry, say), so a report sliding out after
  * its entry has closed can still be drawn.
  *
+ * Every page is drawn on [pageColor], opaque, so the page sliding in covers the one beneath rather than showing it through
+ * (the pages themselves draw no background; the screen behind them did, before two of them shared it). The default is what the
+ * app's Scaffold draws behind its content. Not for a surface over the map: an opaque page there would break the map chrome's 80%
+ * rule, which is why the Tools drawer's pages do not slide (motion Part 3, Amendment 1's stops).
+ *
  * Clipped to its own bounds, so a page sliding in from the right is not drawn over whatever sits beside the Journal (the landscape
  * rail). Under reduced motion ([LocalReduceMotion]) a page changes at once and no leaving page is kept (docs/motion-spec.md §4).
  */
@@ -74,6 +82,7 @@ fun <T> PageSlide(
     depthOf: (T) -> Int,
     modifier: Modifier = Modifier,
     contentKey: (T) -> Any? = { it },
+    pageColor: Color = MaterialTheme.colorScheme.background,
     content: @Composable (T) -> Unit,
 ) {
     val reduceMotion = LocalReduceMotion.current
@@ -88,7 +97,7 @@ fun <T> PageSlide(
         contentKey = contentKey,
         label = "pageSlide",
     ) { page ->
-        LeavingPageFrame(leaving = contentKey(page) != targetKey, inertBack = inertBack) { content(page) }
+        LeavingPageFrame(leaving = contentKey(page) != targetKey, inertBack = inertBack, pageColor = pageColor) { content(page) }
     }
 }
 
@@ -169,7 +178,7 @@ fun SlideOverPage(
             exit = slideOutHorizontally(animationSpec = slide) { fullWidth -> fullWidth },
             label = "slideOverPage",
         ) {
-            LeavingPageFrame(leaving = !visible, inertBack = inertBack) { content() }
+            LeavingPageFrame(leaving = !visible, inertBack = inertBack, pageColor = Color.Transparent) { content() }
         }
     }
 }
@@ -179,7 +188,7 @@ fun SlideOverPage(
  * provider call either way (an empty set while not leaving), so starting to leave does not rebuild the page.
  */
 @Composable
-private fun LeavingPageFrame(leaving: Boolean, inertBack: InertBack, content: @Composable () -> Unit) {
+private fun LeavingPageFrame(leaving: Boolean, inertBack: InertBack, pageColor: Color, content: @Composable () -> Unit) {
     val inertProvided: Array<ProvidedValue<*>> = if (leaving) {
         arrayOf(
             LocalNavigationEventDispatcherOwner provides inertBack,
@@ -192,6 +201,7 @@ private fun LeavingPageFrame(leaving: Boolean, inertBack: InertBack, content: @C
         Box(
             Modifier
                 .fillMaxSize()
+                .background(pageColor)
                 .leavingTakesNoTouches(leaving)
                 .then(if (leaving) Modifier.clearAndSetSemantics { pageLeaving = true } else Modifier.semantics { pageLeaving = false }),
         ) { content() }

@@ -40,6 +40,7 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.ListRowShape
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.PageSlide
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.IntOffset
@@ -117,12 +118,20 @@ internal fun FindsGalleryScreen(
             )
         }
 
-        val visibleEntries = if (selectedTab == FindsGalleryTab.DRAFTS) draftEntries else entries
-        // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"): a deleted find's tile fades and shrinks, the grid
-        // closes up after it with a glide, and Undo brings it back the way it went (motion/ListMotion.kt). Switching between Log
-        // and Drafts is a different list, not rows coming and going, so it changes at once as before (scout F4 is not in this part).
-        val rows = rememberListRows(visibleEntries, key = { it.id }, resetKey = selectedTab)
         val glide = MotionTokens.listRowSpec<IntOffset>()
+        // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout F4): Drafts opens over Log, sliding in from the
+        // right, and Log slides it back out. The tab row above stays still. Each tab's grid is its own page, drawn from its own
+        // tab, with its own rows.
+        PageSlide(
+            targetState = selectedTab,
+            depthOf = { it.ordinal },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { shownTab ->
+        Column(modifier = Modifier.fillMaxSize()) {
+        val visibleEntries = if (shownTab == FindsGalleryTab.DRAFTS) draftEntries else entries
+        // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"): a deleted find's tile fades and shrinks, the grid
+        // closes up after it with a glide, and Undo brings it back the way it went (motion/ListMotion.kt).
+        val rows = rememberListRows(visibleEntries, key = { it.id })
         if (visibleEntries.isEmpty() && loadErrorMessage != null) {
             Text(
                 loadErrorMessage,
@@ -141,8 +150,8 @@ internal fun FindsGalleryScreen(
             // draft either way (see MushroomLogViewModel.onStartNewEntry), but tapping "+" while
             // looking at Drafts would read as "add a draft," which isn't a distinct action from
             // "add an entry."
-            if (selectedTab == FindsGalleryTab.LOG && onAddEntry != null) item(key = ADD_ENTRY_TILE_KEY) { AddEntryTile(onClick = onAddEntry) }
-            if (selectedTab == FindsGalleryTab.DRAFTS) {
+            if (shownTab == FindsGalleryTab.LOG && onAddEntry != null) item(key = ADD_ENTRY_TILE_KEY) { AddEntryTile(onClick = onAddEntry) }
+            if (shownTab == FindsGalleryTab.DRAFTS) {
                 items(rows, key = { it.key }) { row ->
                     ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
                         FindTileWithOptions(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true, onEdit = onEditEntry, onDelete = onDeleteEntry)
@@ -155,6 +164,8 @@ internal fun FindsGalleryScreen(
                     }
                 }
             }
+        }
+        }
         }
     }
 }
