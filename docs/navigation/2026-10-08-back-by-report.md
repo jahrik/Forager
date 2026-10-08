@@ -210,3 +210,125 @@ Also device-only:
 - the round press and the bounce, as they look on the phone;
 - whether an open menu closes on Back and on a map tap on the phone (Robolectric cannot show it);
 - what the record says under each Do Not Disturb mode on the real phone.
+
+## RECORD -709: the owner's answers to the width clash and the taller strip, built where they could be
+
+The owner, verbatim:
+1. "Coordinates first, same rule (Recommended)"
+2. "Second line under the distance (Recommended)"
+3. "Follow the strip's real height (Recommended)"
+
+Item 4 is the planner's: the landscape strip's button always gets its 36 dp.
+
+### Built
+
+- **Item 3, things placed below the strip follow its real height**
+  - **Portrait:**
+    - In `CompactMapTab`, a new `compassStripBottomClearance` is the strip's measured height. The old one-line
+      clearance is its floor, and it is used whenever the strip is not measured: before its first layout, while
+      navigating, and in landscape, where the strip sits in the other corner.
+    - The observation bubble's `minY`, the icon bar's drag limit, and the taxon and journal chips' top padding all read
+      it.
+    - The scaffold's search dropdown reads the same height, handed up through `searchBarSlot`.
+    - **Landscape is unchanged.**
+  - **New tests:** `StripRealHeightClearanceTest`, one class at 360 dp and one at 780 x 360. It has four tests: the
+    dropdown, the icon bar dragged up 2000 dp, the journal chip, and a bubble. All go through the real screen.
+    - **Portrait:** each must start at or below the strip's bottom.
+    - **Landscape:** each must not overlap the strip.
+  - **Bubble test design.** A glyph whose card would open with its top just over the strip's lower half. The card's
+    layout box starts about 12 dp above the card. Under the old `minY` the card stayed above the glyph and covered the
+    strip; under the strip's real height it opens below.
+  - **Pins, not proof:** the landscape class passes either way, because landscape did not change.
+  - **Existing tests now passing as written:** the two `AvailabilityScreenMapIconStackTest` tests.
+  - **Risk carried over:** an older comment records a regression from reading a measured height into the bubble's
+    `minY`. The test that caught it ("tapping elsewhere on the map dismisses the observation bubble") is `@Ignore`d
+    for an unrelated harness reason, so whether that regression returns is a device item.
+- **Item 4, the landscape button.**
+  - **The fix:** the strip's readings column is now weighted but not filling in landscape. It is measured after the
+    button, so the button keeps its 36 dp.
+  - **New tests:** `LandscapeStripButtonTest` at 780 x 360 and 823 x 384. It uses data part B's live fix and the
+    longest readouts, checks the button is 36 x 36 at the strip's far right, and makes five real touches across its
+    square, corners included. Each opens the menu.
+  - **A first version did not bite and was replaced.** It was in `AvailabilityScreenQuickSettingsTest`, with no fix,
+    so the strip never ran out of width.
+
+### Revert checks for the new pieces
+
+- **Method:** the same runner, with the compile log checked first, each file restored from a saved copy, and the
+  forward change confirmed present afterwards.
+- **R10 and R11 at first:** with the change reverted, R10 ran 15 tests with 0 failures and R11 ran 8 with 0 failures.
+  Those tests could not fail. R10's had no fix. R11's glyph opened its bubble below the strip either way; instrumented,
+  the card measured 106 dp tall and opened below its glyph under the old `minY` too.
+- **Final results:**
+
+| Revert | Failures |
+|---|---|
+| R10 landscape readings column unweighted | 2: at 780 x 360 the button is "DpRect(left=700.0.dp … right=700.0.dp …)", 0.0 wide; at 823 x 384 it is 11.67 wide |
+| R11 bubble minY one text line | 1: "the bubble's card [12.0, 82.0][292.0, 188.0] starts at or below the strip's bottom [0.0, 49.0][360.0, 85.0]" |
+| R12 icon bar limit one text line | 1: "the icon cluster [304.0, 67.0][352.0, 447.0] …" |
+| R13 chips one text line | 1: "the journal chip [162.5, 82.0][198.0, 116.0] …" |
+| R14 dropdown one text line | 1: "the search dropdown [0.0, 67.0][360.0, 560.0] …" |
+
+R12 to R14 ran before the bubble test was changed; their failing tests are unchanged since.
+
+### Not built: two stops
+
+**Item 1, the strip on small phones: the rule is already in force, and two of data B's tests cannot pass under it.**
+- **Where the rule already applies:** the small fixes' coordinates-first rule (`stripReadoutsShown` and
+  `readoutsKeptBeside`, `AvailabilityMapControlsUi.kt`) already runs in portrait. Since the back-by merge the strip's
+  readings column has been measured after the three-dot button, so the button's 36 dp come out first.
+- **What it does at 360 dp:** about 127 dp is left for both readouts after the coordinates and separators. Each can
+  keep its 48 dp minimum, so both stay and both shorten.
+  - "Facing 315° NW" needs 89.75 dp.
+  - "Alt 9843 ft" needs about 63 dp.
+  - Measured result: the heading's reading box is 32 dp and shows "315"; the elevation's is 30.5 dp and shows "98".
+- **The conflict:** data B's "at 360 dp the strip's labelled line fits whole" and "… decimal coordinates fit whole
+  beside its labels" assert that the heading and elevation are not ellipsised. That is exactly what the owner's rule
+  gives up at 360 dp with the button.
+- **Not touched.** The choice is between changing these two tests' claim to "coordinates whole; readouts give way
+  under the rule" and some other answer. That is for the owner.
+
+**Item 2, the display on small phones: the ruling does not fit in the row's 48 dp at the theme's line heights.**
+- **Measured with a temporary test:** the first row is 48 dp. That comes from the X's 48 dp minimum touch size; its
+  semantic bounds are 40 dp. The distance and status column inside it is 24 + 16 = 40 dp (titleMedium, then
+  labelMedium). So 8 dp are spare.
+- **What the ruling needs:**
+  - A separate "by trail" or "straight" line under the distance: 24 + 16 + 16 = 56 dp, 8 dp over.
+  - "Unable to calculate route" is drawn in the large distance slot, not the status line. Wrapped there it takes two
+    24 dp lines, plus the 16 dp status line: 64 dp. That state also already adds a 48 dp "Try again" row (the display
+    is 120 dp then, measured).
+- **Options for the owner**, not chosen here:
+  - (a) Tighter line heights for the three lines, so 24 + 12 + 12 fits 48. This is a type change and needs a
+    large-font check.
+  - (b) Let the first row grow to 56 dp, only when the line is needed.
+  - (c) Put the kind at the start of the status line, which the status's own shorter form then makes room for.
+  - (d) Drop the kind when it does not fit.
+  - (e) For "Unable to calculate route", a smaller type in the large slot when it does not fit.
+- **Not built, and the four display-side tests stay red:** data B's two display tests, `NavigationHudQuickSettingsWidthTest`
+  and `AvailabilityScreenReturnRouteTest` "the whole sentence shows at 360 dp".
+
+### Full suite after -709
+
+`:app:testDebugUnitTest`, read from the JUnit XML (547 files): **4,310 tests, 8 failures, 0 errors, 24 skipped.**
+No `@Ignore` added. None of the eight was touched.
+
+**Item 1's stop (2):** data B's two 360 dp strip tests.
+
+**Item 2's stop (4):** data B's two 360 dp display tests, `NavigationHudQuickSettingsWidthTest` and
+`AvailabilityScreenReturnRouteTest > the whole sentence shows at 360 dp`.
+
+**New with -709, caused by item 4 (1):** `LandscapeLargeFontTest > font 1,0 the strip and the display are whole, one
+line each, and clear of the search bar` (the small fixes' test, at 823 x 384), failing with "font 1.0 <306° NW> is not
+ellipsised".
+- **Before -709:** the button was squeezed to 11.67 dp there, so the readouts fitted whole.
+- **Now:** with its 36 dp, the heading shortens under the owner's rule. It is the same conflict as item 1, in landscape.
+
+**New with -709, caused by item 3 (1):** `MapChromeColourPixelsLightTest > the search panel is drawn as the token at
+0_8`, failing with "expected (0.957, 0.937, 0.890), read (0.961, 0.945, 0.902)".
+- **Confirmed caused by the dropdown change:** with that one line reverted, the class passes.
+- **Why, measured by instrumenting the test:**
+  - The test reads its "bare map" reference at `root.bottom - 200 dp` (y 623 at 384 x 823).
+  - The dropdown, moved down to follow the strip, now ends at 624.67. So the reference point lies inside the panel.
+  - Every pixel sampled inside the panel reads the same colour as that "reference", because both are the panel.
+- **Conclusion:** the panel is drawn. The test's reference point is what moved under it.
+- **Not touched:** the fix would be a reference point lower down, which is a change to an existing test.
