@@ -108,37 +108,6 @@ object MotionTokens {
     @ReadOnlyComposable
     fun <T> wordSwapSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.fastEffectsSpec()
 
-    // §2 "Map markers": soft scale + fade entrance when density/performance allow. No production
-    // caller yet.
-    @Composable
-    @ReadOnlyComposable
-    fun <T> markerEntranceSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.defaultSpatialSpec()
-
-    // §2 "Map markers": "clustering fans out with staggered timing, not uniform snaps" -- the
-    // per-marker delay a cluster-expansion animation should apply, in fan-out order. A stagger
-    // delay, not a curve, so it survives independent of the spec migration above.
-    const val MARKER_CLUSTER_STAGGER_STEP_MS: Int = 40
-
-    // §2 "Selection emphasis": low-amplitude breathing pulse. Selection emphasis only -- this
-    // spec defines no other kind of emphasis (see docs/motion-spec.md "Scope boundary"). No
-    // production caller yet.
-    @Composable
-    @ReadOnlyComposable
-    fun <T> selectionPulseSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.slowSpatialSpec()
-
-    // Amplitude bounds for the pulse above -- independent of duration/spec, survive unchanged.
-    const val SELECTION_PULSE_MIN_SCALE: Float = 0.96f
-    const val SELECTION_PULSE_MAX_SCALE: Float = 1.04f
-
-    // §2 "Narrative reveals": up to 800-1200 ms, interruptible. Not in understory-design-system.md
-    // §3S's replacement table -- mapped here to slowEffectsSpec (content fading in, not a bounds
-    // change, so effects rather than spatial; "slow" as the longest duration among all eight
-    // categories) and recorded as a decision in docs/adr/0002-motion-scheme-adoption.md rather than
-    // left for whoever writes the first caller. No production caller yet.
-    @Composable
-    @ReadOnlyComposable
-    fun <T> narrativeRevealSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.slowEffectsSpec()
-
     // §2 "User location": animate only on meaningful GPS change; avoid jitter. Unsupported as a
     // Compose spec, stated as unsupported: SightingsMap.kt divides this duration against
     // MapLibre's own fixed internal duration and passes the ratio to
@@ -148,19 +117,28 @@ object MotionTokens {
     // it.
     const val LOCATION_INDICATOR_MOVE_DURATION_MS: Int = 350
 
-    // §2 "Routes": progressive reveal at human-scale pace; recalculation morphs existing segments
-    // rather than redrawing. The morph is a spring (effects: colour/alpha-adjacent segment
-    // redraw, not a bounds change); the per-km reveal rate stays a rate, independent of the spec.
-    // No production caller yet.
-    const val ROUTE_REVEAL_MS_PER_KM: Int = 400
-
+    // §2 "Journal pages" (motion Part 3, dispatch 2026-09-28-676 item 1; the owner, RECORD -651: "Slide in, slide back"): a page
+    // opened in the Journal slides in from the right over the one beneath, and Back slides it out to the right
+    // (motion/PageSlide.kt). Spatial, since it moves a page, but on the **effects** family's default spring, which is critically
+    // damped: an underdamped slide-in would overshoot past its resting place and bare a strip of the page beneath at the
+    // right edge, the overshoot ADR-0001 was written against on a primary surface. Chosen, not measured; how it feels is the
+    // S22's. Under reduced motion a page changes at once (§4).
     @Composable
     @ReadOnlyComposable
-    fun <T> routeRecalculationMorphSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.slowEffectsSpec()
+    fun <T> pageSlideSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.defaultEffectsSpec()
 
-    // §2 "Data layer overlays": cross-fade or gentle radial growth. No particle systems. No
-    // production caller yet.
+    // §2 "Lists" (motion Part 3, item 2; the owner, RECORD -651: "Slide and close up"): a removed row fades and shrinks while
+    // the rest glide up, Undo reverses it, and new or reordered rows glide into place (motion/ListMotion.kt). One spec for the
+    // row's fade, its height and a lazy list's placement glide, so they move as one. Critically damped for the reason above:
+    // a list that closed up past its place and bounced back would move every row below the removed one twice.
     @Composable
     @ReadOnlyComposable
-    fun <T> dataLayerOverlaySpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.defaultEffectsSpec()
+    fun <T> listRowSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.defaultEffectsSpec()
+
+    // §2 "Night mode" (motion Part 3, item 4; the owner, RECORD -651: "Fade the colours", and RECORD -652: "the fade is
+    // permissible if it's fast and smooth, and not ceremonial and boring"): every colour of the theme blends from the old
+    // scheme to the new (theme/Theme.kt). Effects, and the **fast** one, so the blend is quick and cannot overshoot a colour.
+    @Composable
+    @ReadOnlyComposable
+    fun <T> nightModeFadeSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.fastEffectsSpec()
 }

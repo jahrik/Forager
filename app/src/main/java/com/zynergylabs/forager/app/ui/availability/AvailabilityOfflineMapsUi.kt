@@ -67,6 +67,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
 import com.zynergylabs.forager.app.ui.log.opensRecordDetails
@@ -528,6 +530,9 @@ private fun OfflineRegionsSection(
     // that scroll.
     // J4b L6: one open row at a time, and a touch elsewhere in this section closes it.
     val swipeGroup = rememberSwipeRevealGroup()
+    // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt; scout R15): a deleted region's row
+    // fades and shrinks while the rows below close up, and Undo brings it back the way it went.
+    val rows = rememberListRows(regions, key = { it.id })
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -548,11 +553,11 @@ private fun OfflineRegionsSection(
             Text(errorMessage, style = MaterialTheme.typography.bodySmall)
         }
 
-        if (regions.isEmpty()) {
+        if (rows.isEmpty()) {
             Text("No regions downloaded yet.", style = MaterialTheme.typography.bodySmall)
         } else {
-            regions.forEach { region ->
-                key(region.id) {
+            rows.forEach { row ->
+                key(row.key) { ListRowMotion(row) { region ->
                     // J4b L6: two-stage swipe. No Edit: nothing in the app edits a downloaded region
                     // (OfflineMapRepository has download, deleteRegion and listRegions only).
                     TwoStageSwipeRow(
@@ -571,7 +576,7 @@ private fun OfflineRegionsSection(
                             onDownloadAgain = { onDownloadAgain(region.id) },
                         )
                     }
-                }
+                } }
             }
         }
     }
