@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -56,6 +58,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -72,6 +75,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -163,6 +169,8 @@ internal fun SearchEntryBar(
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
     onFieldFocused: () -> Unit,
+    /** RECORD -723: the Clear text button at the bar's right end, shown only while a search is showing. */
+    onClearSearch: () -> Unit = {},
     /** Whether this bar is the Maps tab's, over its map: its species suggestions are then at the map chrome's alpha (owner, "1 A"). */
     overMap: Boolean = false,
 ) {
@@ -221,7 +229,11 @@ internal fun SearchEntryBar(
         shape = RectangleShape,
         modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
+        // RECORD -728 (the owner: "There is a slightly hang down of chrome from the search menu that extends into the strip
+        // zone, making it look taller than it is"): the bottom padding sat below the divider, so 4 dp of this bar's fill hung
+        // under its seam, against the strip. The padding is now above the divider (the Spacer below is 2 x xs), so the divider
+        // is the bar's last 1 dp and the strip starts at it. The bar's height is unchanged (compactMainScaffold's searchBarHeight).
+        Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Filled.Search,
@@ -243,9 +255,33 @@ internal fun SearchEntryBar(
                         suggestionsOverMap = overMap,
                     )
                 }
+                // RECORD -723: "a 'Clear' text button at the right end of the search bar, shown only while a search is
+                // showing" (a region is set, which is what the summary reads as a search). It removes the search and its
+                // results (AvailabilityViewModel.clearSearch); the summary goes back to "Search a location". A sibling
+                // of the field, not its trailing icon, so a tap on it never focuses the field or opens the dropdown.
+                //
+                // Exactly the field's height, with no 48 dp minimum touch target: the bar's height is the owner's direct
+                // ask (twice the compass row, see fieldHeight above), and a 48 dp Clear grew the bar from 45 to 61 dp while a
+                // search showed, which moved the landscape L and cluster (LandscapeLRulingsTest and others, full suite at
+                // the build). The target is therefore the field's height tall and the button's width wide (reported).
+                if (uiState.region != null) {
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                        TextButton(
+                            onClick = onClearSearch,
+                            contentPadding = PaddingValues(horizontal = Spacing.md),
+                            // RECORD -728, the owner: "Keep 29 dp tall, wide (Recommended)": the whole word and its padding, at least 48 dp.
+                            modifier = Modifier.padding(end = Spacing.xs).height(fieldHeight).widthIn(min = 48.dp).testTag(SEARCH_BAR_CLEAR_TAG),
+                        ) {
+                            Text("Clear", color = contentColor)
+                        }
+                    }
+                }
             }
-            Spacer(Modifier.height(Spacing.xs))
-            HorizontalDivider(color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
+            Spacer(Modifier.height(Spacing.xs * 2))
+            HorizontalDivider(
+                color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
+                modifier = Modifier.testTag(SEARCH_ENTRY_BAR_DIVIDER_TAG),
+            )
         }
     }
 }
@@ -373,6 +409,34 @@ internal fun SearchDropdown(
             // are gone with it: they existed to bring the coordinates into view from the bottom of
             // the panel, and the coordinates are now its first row, so the panel opens at its top.
             // Recent searches keeps its own fold, as the dispatch says.
+            //
+            // Dispatch 2026-09-28-722 (RECORD intent -722) brings the keep-in-view back for the bottom
+            // row. The owner, verbatim: "Real quick, the search menu doesn't bounce back up when the
+            // keyboard hits it. It used to do that. The search button is still hidden as a result."
+            // Removing the keep-in-view above with the scroll-to-the-end also removed the only thing
+            // that lifted the panel's end above the keyboard, and the end now holds Set on map and
+            // Search. So: each time the viewport shrinks (the keyboard coming up shrinks this panel,
+            // its cap follows the keyboard, see compactMainScaffold), the panel scrolls to its end, so
+            // the bottom row sits just above the keyboard. Only on a shrink, never on the first size
+            // or a growth, so the panel still opens at its top with the coordinates first (-697), and
+            // ScrollState's own clamp handles a growth as it did before. A drag by the user stops it
+            // until the next open (the panel leaves composition when it closes, so the flag resets),
+            // the old rule (Part 1 layout fixes item 3): their scroll stands from then on. Keyed on the
+            // viewport, not the content, so Recent searches opening does not pull the view to the end.
+            var bottomRowKeptInView by remember { mutableStateOf(true) }
+            if (bottomRowKeptInView) {
+                LaunchedEffect(Unit) {
+                    launch {
+                        scrollState.interactionSource.interactions.first { it is DragInteraction.Start }
+                        bottomRowKeptInView = false
+                    }
+                    var previousViewport = scrollState.viewportSize
+                    snapshotFlow { scrollState.viewportSize }.collect { viewport ->
+                        if (viewport < previousViewport) scrollState.scrollTo(scrollState.maxValue)
+                        previousViewport = viewport
+                    }
+                }
+            }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -474,6 +538,12 @@ internal const val SEARCH_DROPDOWN_SET_ON_MAP_TAG = "search-dropdown-set-on-map"
 
 /** [SearchDropdown]'s Search button, the right of its bottom row, for tests. */
 internal const val SEARCH_DROPDOWN_SEARCH_TAG = "search-dropdown-search"
+
+/** [SearchEntryBar]'s divider, its visible bottom edge (RECORD -728), for tests. */
+internal const val SEARCH_ENTRY_BAR_DIVIDER_TAG = "search-entry-bar-divider"
+
+/** [SearchEntryBar]'s Clear text button (RECORD -723), for tests. */
+internal const val SEARCH_BAR_CLEAR_TAG = "search-bar-clear"
 
 /** See [SearchDropdown]'s own doc comment. */
 internal const val SEARCH_DROPDOWN_TAG = "search-dropdown"

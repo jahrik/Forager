@@ -43,6 +43,15 @@ data class AvailabilityUiState(
     val errorMessage: String? = null,
     val locationPermissionDenied: Boolean = false,
     val sightings: List<Sighting> = emptyList(),
+    /**
+     * RECORD -723: counts every search the ViewModel starts, the same search run again included. Read by
+     * AvailabilityScreen's lazy-fetch effect, which is keyed on it: a search clears [sightings] and the
+     * seasonal pattern and expects the visible tab to fetch them again, but re-running the search already
+     * showing (a recent search tapped, the same coordinates searched twice) changes none of region, month
+     * or filter, so without this the effect never re-ran and the map was left empty ("Dropdown closes,
+     * nothing new").
+     */
+    val searchSerial: Int = 0,
     val isLoadingSightings: Boolean = false,
     val sightingsErrorMessage: String? = null,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,
