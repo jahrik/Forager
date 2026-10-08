@@ -145,6 +145,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.ui.draw.clipToBounds
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
 import com.zynergylabs.forager.app.ui.motion.MapPopUp
 import com.zynergylabs.forager.app.ui.motion.PopUpPivot
 import com.zynergylabs.forager.app.ui.motion.isOnScreen
@@ -637,6 +638,7 @@ internal fun CompactMapTab(
             // AvailabilityScreen since dispatch 2026-09-28-422, so it also survives this tab
             // unmounting on a tab change; it used to reset then.
             val compassStripTextMeasurer = rememberTextMeasurer()
+            val chromeLayoutDirection = LocalLayoutDirection.current
             // Dispatch 2026-09-28-592: the phone's clock format for the sundown line, in the strip and the HUD.
             val sundownClock = rememberSundownClock()
             val compassStripLabelStyle = MaterialTheme.typography.labelMedium
@@ -922,6 +924,8 @@ internal fun CompactMapTab(
                 // reduced motion each only fades. A leaving strip takes no touch (item 5) and gives up its keep-out and its
                 // measured height at once, so nothing waits on it. It is still composed for the length of its exit, so for that
                 // moment it reads the heading at sensor rate beside the HUD (the paragraph above): bounded, and the S22's to judge.
+                // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
+                NoTouchTargetExpansion(active = isNavigating) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !isNavigating,
                     enter = navigationChromeEnter,
@@ -933,6 +937,8 @@ internal fun CompactMapTab(
                         Modifier
                             .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                             .padding(controlsPadding)
+                            // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): never wider than the room beside the search bar.
+                            .besideLandscapeSearchBar(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
                     } else {
                         Modifier
                             .align(Alignment.TopCenter)
@@ -975,6 +981,7 @@ internal fun CompactMapTab(
                         quickSettings = quickSettings,
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
+                }
                 }
                 // Motion Part 2: the strip's measured height goes the moment it starts to leave, as it did when it left at once.
                 LaunchedEffect(isNavigating) { if (isNavigating) compassStripHeightPx = 0 }
@@ -1068,6 +1075,8 @@ internal fun CompactMapTab(
                 // because those still clear the strip while not navigating. Never touches mapSlot.
                 // Motion Part 2, item 3: slides down and in from under the search bar as the strip above slides out, and back up
                 // and out on stop (the strip's comment above). Leaving, it takes no touch and gives up its keep-out at once.
+                // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
+                NoTouchTargetExpansion(active = !isNavigating) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = isNavigating,
                     enter = navigationChromeEnter,
@@ -1078,6 +1087,8 @@ internal fun CompactMapTab(
                         Modifier
                             .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                             .padding(controlsPadding)
+                            // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): never wider than the room beside the search bar.
+                            .besideLandscapeSearchBar(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
                             .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
                             .fillMaxWidth()
                     } else {
@@ -1116,6 +1127,7 @@ internal fun CompactMapTab(
                             .fillMaxWidth()
                             .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
                     )
+                }
                 }
 
                 // Dispatch 2026-09-28-430 (plan task T22): "Return to Route", while navigating once the

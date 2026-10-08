@@ -2,9 +2,11 @@ package com.zynergylabs.forager.app.ui.log
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import com.zynergylabs.forager.app.ui.motion.PageSlide
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -294,7 +296,16 @@ internal fun RecordsTab(
         }
         if (shortWindow) ShortWindowSecondRow(chipRowScroll) { chipRow() } else chipRow()
 
-        when (selectedTab) {
+        // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout R1, R2): a chip's list opens over All, sliding
+        // in from the right, and Back (which steps to All) or the All chip slides it out again. Chip to chip slides in, as each
+        // opens over the last. A find tapped in All selects Finds and opens its report together, so the report slides in with it.
+        PageSlide(
+            targetState = selectedTab,
+            depthOf = { if (it == RecordsSubTab.ALL) 0 else 1 },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { shownTab ->
+        Column(modifier = Modifier.fillMaxSize()) {
+        when (shownTab) {
             // J1 S4: the All logbook — see RecordsLogbookList.
             RecordsSubTab.ALL -> RecordsLogbookList(
                 finds = finds,
@@ -370,6 +381,8 @@ internal fun RecordsTab(
             // resolves inside a ColumnScope — see this file's own doc comment on why they were left
             // exactly as-is rather than unified.
             RecordsSubTab.FINDS -> Column(modifier = Modifier.weight(1f).fillMaxSize()) { findsContent() }
+        }
+        }
         }
     }
 

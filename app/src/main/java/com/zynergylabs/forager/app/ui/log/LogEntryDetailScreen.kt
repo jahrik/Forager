@@ -2,6 +2,10 @@ package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.ui.motion.pressBounce
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.ListRowShape
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
+import androidx.compose.runtime.key
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
@@ -262,7 +266,11 @@ private fun PhotosSection(
             // bottom nav before landing here.
             Button(onClick = onPullPhoto) { Text("From Album") }
         }
-        if (photos.isNotEmpty()) {
+        // Motion Part 3, Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout F7): a removed photo fades and
+        // shrinks in place and an added one fades and grows in (motion/ListMotion.kt). The row then reflows at once: a FlowRow has no
+        // placement glide, so the others jump to their new places after the removed one has gone (reported as a stop).
+        val photoRows = rememberListRows(photos, key = { it.id })
+        if (photoRows.isNotEmpty()) {
             // fillMaxWidth is load-bearing here, not decorative: without it this FlowRow sizes to
             // wrap its own content (the thumbnails plus their spacing) with no leftover width for
             // horizontalArrangement's Alignment.CenterHorizontally to center within, so the group
@@ -271,12 +279,16 @@ private fun PhotosSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
-                photos.forEach { photo ->
-                    LogPhotoThumbnail(
-                        photo = photo,
-                        onOpen = { viewingPhotoId = photo.id },
-                        onRemove = { onRemovePhoto(photo) },
-                    )
+                photoRows.forEach { row ->
+                    key(row.key) {
+                        ListRowMotion(row, shape = ListRowShape.TILE) { photo ->
+                            LogPhotoThumbnail(
+                                photo = photo,
+                                onOpen = { viewingPhotoId = photo.id },
+                                onRemove = { onRemovePhoto(photo) },
+                            )
+                        }
+                    }
                 }
             }
         }

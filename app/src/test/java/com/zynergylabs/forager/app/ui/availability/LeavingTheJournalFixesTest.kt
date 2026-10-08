@@ -640,6 +640,43 @@ class LeavingTheJournalFixesTest {
         assertEquals(false, storedFinds().single { it.id == NEW_FIND_ID }.isDraft)
     }
 
+    /**
+     * RECORD -692 (the owner: "Search bar returns after the slide (Recommended)"): leaving a new find's editor by Back, the search
+     * bar stays away while the editor slides out and comes back once it has gone, and its dropdown never opens. Frames are stepped
+     * with the clock stopped after Back (the write applied first). Motion Part 3's build measured the failure this guards: the
+     * bar came back at once, and when the sliding editor went, focus fell to its field and opened the dropdown (F1 above).
+     */
+    @Test
+    fun `F1b the search bar stays away while a closed find slides out, then returns, and its dropdown never opens`() {
+        setScreen()
+        openFindsGallery()
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.waitForIdle()
+        typeFindIdentification("Hedgehog")
+
+        fun count(matcher: androidx.compose.ui.test.SemanticsMatcher) = composeRule.onAllNodes(matcher, useUnmergedTree = true).fetchSemanticsNodes().size
+        val leavingPage = androidx.compose.ui.test.SemanticsMatcher.expectValue(com.zynergylabs.forager.app.ui.motion.PageLeavingKey, true)
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnUiThread {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+            androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        }
+        var framesLeaving = 0
+        repeat(60) { frame ->
+            composeRule.mainClock.advanceTimeByFrame()
+            assertEquals("frame $frame: the search dropdown never opens", 0, count(hasTestTag("search-dropdown-scrim")))
+            if (count(leavingPage) > 0) {
+                framesLeaving++
+                assertEquals("frame $frame: no search bar while the editor slides out", 0, count(hasTestTag(SEARCH_ENTRY_BAR_TAG)))
+            }
+        }
+        assertTrue("the editor was seen sliding out ($framesLeaving frames)", framesLeaving > 0)
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertEquals("the search bar is back once the editor has gone", 1, count(hasTestTag(SEARCH_ENTRY_BAR_TAG)))
+        assertEquals("and its dropdown is closed", 0, count(hasTestTag("search-dropdown-scrim")))
+    }
+
     // ── F2: a day entry left in its editor comes back in its editor ──
 
     private fun dayEntryCard() =

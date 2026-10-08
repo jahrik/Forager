@@ -108,6 +108,8 @@ fun <T> TabCrossfade(
             emptyArray<ProvidedValue<*>>()
         }
         CompositionLocalProvider(*inertProvided) {
+            // RECORD -691: no minimum touch target while it leaves (NoTouchTargetExpansion).
+            NoTouchTargetExpansion(active = leaving) {
             Box(
                 Modifier
                     .holdWhileLeaving(leaving)
@@ -117,19 +119,20 @@ fun <T> TabCrossfade(
                     // one that takes no touch. Only the marker that it is leaving stays.
                     .then(if (leaving) Modifier.clearAndSetSemantics { tabLeaving = true } else Modifier.semantics { tabLeaving = false }),
             ) { content(tab) }
+            }
         }
     }
 }
 
-/** Back dispatchers that nothing presses, for a leaving tab's handlers (see [TabCrossfade]). Shares the screen's lifecycle. */
-private class InertBack(private val lifecycleOwner: LifecycleOwner) : OnBackPressedDispatcherOwner, NavigationEventDispatcherOwner {
+/** Back dispatchers that nothing presses, for a leaving tab's handlers (see [TabCrossfade]), and a leaving page's ([PageSlide]). Shares the screen's lifecycle. */
+internal class InertBack(private val lifecycleOwner: LifecycleOwner) : OnBackPressedDispatcherOwner, NavigationEventDispatcherOwner {
     override val onBackPressedDispatcher: OnBackPressedDispatcher = OnBackPressedDispatcher()
     override val navigationEventDispatcher: NavigationEventDispatcher = NavigationEventDispatcher()
     override val lifecycle: Lifecycle get() = lifecycleOwner.lifecycle
 }
 
 @Composable
-private fun rememberInertBackOwner(): InertBack {
+internal fun rememberInertBackOwner(): InertBack {
     val lifecycleOwner = LocalLifecycleOwner.current
     return remember(lifecycleOwner) { InertBack(lifecycleOwner) }
 }
@@ -206,12 +209,15 @@ fun TabChromeFade(
     when {
         shown -> Box(Modifier.graphicsLayer { this.alpha = alpha }.semantics { tabChromeAlpha = currentAlpha }) { content() }
         // Leaving: no room, no touch, and no semantics but its fade (Amendment 2), so a screen reader finds the arriving bar alone.
-        state.currentState -> Box(
-            zeroRoom
-                .leavingTakesNoTouches(true)
-                .graphicsLayer { this.alpha = alpha }
-                .clearAndSetSemantics { tabChromeAlpha = currentAlpha },
-        ) { content() }
+        // RECORD -691: no minimum touch target while it leaves (NoTouchTargetExpansion).
+        state.currentState -> NoTouchTargetExpansion(active = true) {
+            Box(
+                zeroRoom
+                    .leavingTakesNoTouches(true)
+                    .graphicsLayer { this.alpha = alpha }
+                    .clearAndSetSemantics { tabChromeAlpha = currentAlpha },
+            ) { content() }
+        }
         else -> Unit
     }
 }

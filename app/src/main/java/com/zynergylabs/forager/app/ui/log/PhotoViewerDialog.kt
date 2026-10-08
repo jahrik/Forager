@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import android.graphics.Bitmap
 import android.content.Context
 import android.content.Intent
@@ -340,10 +341,18 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
     var scale by remember(relativePath) { mutableFloatStateOf(1f) }
     var offset by remember(relativePath) { mutableStateOf(Offset.Zero) }
 
+    // Motion Part 3, Amendment 2 (RECORD -682; scout V4): the spinner, the photo and "Couldn't load" crossfade instead of
+    // swapping in one frame (motion/StateCrossfade.kt). The viewer's window keeps the system's own behaviour (the planner's call).
+    val viewerState = when {
+        bitmap != null -> ViewerPhotoState.LOADED
+        decodeFailed -> ViewerPhotoState.FAILED
+        else -> ViewerPhotoState.LOADING
+    }
     Box(modifier = modifier.onSizeChanged { viewport = it }, contentAlignment = Alignment.Center) {
+        StateCrossfade(targetState = viewerState, modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { shownState ->
         val loaded = bitmap
         when {
-            loaded != null -> {
+            shownState == ViewerPhotoState.LOADED && loaded != null -> {
                 // EXIF-orientation-display dispatch: a 90°/270° photo is drawn by rotating the
                 // layer, not by allocating a turned copy of a bitmap this large. ContentScale.Fit
                 // has already fitted the *unrotated* bitmap, so the layer also scales by
@@ -410,17 +419,21 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
                 )
             }
 
-            decodeFailed -> Text(
+            shownState == ViewerPhotoState.FAILED -> Text(
                 text = "Couldn't load this photo.",
                 color = Color.White,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag(PHOTO_VIEWER_FAILED_TAG),
             )
 
-            else -> CircularProgressIndicator()
+            shownState == ViewerPhotoState.LOADING -> CircularProgressIndicator()
+        }
         }
     }
 }
+
+/** What one page of the viewer shows (motion Part 3, Amendment 2): one value, so the three can crossfade. */
+private enum class ViewerPhotoState { LOADING, LOADED, FAILED }
 
 /**
  * What the viewer draws: the decoded bitmap plus the clockwise rotation the layer must apply to

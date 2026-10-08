@@ -161,10 +161,12 @@ class BackByWatch(
         val outcome = alertDelivery.deliverReporting(
             Alert(AlertKind.BACK_BY, overridesSilence = true, backBy = BackByAlertDetail(trackId = id, backByAtEpochMillis = at)),
         )
+        // A buzz Android drops is recorded as skipped, with its reason, as the sundown alerts record theirs (dispatch
+        // 2026-09-28-685, merged with RECORD -687): never "issued".
         if (outcome != null && (!outcome.notificationPosted || !outcome.vibrated)) {
             errorLog.w(
                 TAG,
-                "The back-by alert was only partly delivered: notification ${outcome.notificationProblem ?: "posted"}, vibration ${outcome.vibrationProblem ?: "issued"}.",
+                "The back-by alert was only partly delivered: notification ${outcome.notificationProblem ?: "posted"}, vibration ${outcome.vibrationProblem ?: outcome.vibrationSkipped?.let { "skipped: $it" } ?: "issued"}.",
                 IllegalStateException("partial delivery of BACK_BY"),
             )
         }
