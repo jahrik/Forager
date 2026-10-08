@@ -10,6 +10,7 @@ import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DoNotDisturbFilter
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.RingerMode
@@ -54,13 +55,13 @@ class SkippedVibrationRecordTest {
         override fun current() = AlertAudibilityState(ringerMode = mode, doNotDisturbOn = false, notificationsEnabled = true)
     }
 
-    private fun delivery(audibility: AlertAudibility) =
-        AndroidAlertDelivery(context, { _, _ -> true }, { _, overridesSilence -> issued += overridesSilence }, audibility)
+    private fun delivery(audibility: AlertAudibility, dnd: DoNotDisturbFilter = DoNotDisturbFilter.OFF) =
+        AndroidAlertDelivery(context, { _, _ -> true }, { _, overridesSilence -> issued += overridesSilence }, audibility, { dnd })
 
     /** Walks off track with [audibility] behind the delivery; returns the record's delivery line, without its time. */
-    private fun offTrackRecordLine(audibility: AlertAudibility): String {
+    private fun offTrackRecordLine(audibility: AlertAudibility, dnd: DoNotDisturbFilter = DoNotDisturbFilter.OFF): String {
         val file = folder.root.resolve("return-record-${System.nanoTime()}.log")
-        val watch = ReturnWatch(ComputeReturnToStartUseCase(), delivery(audibility), FileReturnRecord(file, CurrentTimeProvider { now }))
+        val watch = ReturnWatch(ComputeReturnToStartUseCase(), delivery(audibility, dnd), FileReturnRecord(file, CurrentTimeProvider { now }))
         watch.begin("track-1", TrackRecordingMode.HIGH_ACCURACY)
         watch.setStartPoint("track-1", TrackPoint(45.0, -122.0, null, 4f, 1_000L))
         watch.startReturn("track-1")
@@ -111,10 +112,49 @@ class SkippedVibrationRecordTest {
 
     @Test
     fun `a vibration that threw is still recorded as failed, not skipped, on a silenced phone`() {
-        val throwing = AndroidAlertDelivery(context, { _, _ -> true }, { _, _ -> throw IllegalStateException("no vibrator") }, ringer(RingerMode.SILENT))
+        val throwing = AndroidAlertDelivery(context, { _, _ -> true }, { _, _ -> throw IllegalStateException("no vibrator") }, ringer(RingerMode.SILENT), { DoNotDisturbFilter.TOTAL_SILENCE })
         assertEquals(
             AlertDeliveryOutcome(notificationPosted = true, notificationProblem = null, vibrated = false, vibrationProblem = "IllegalStateException"),
             throwing.deliverReporting(Alert(AlertKind.OFF_TRACK, overridesSilence = false)),
         )
+    }
+
+    // ── Amendment 1 (RECORD -694; the owner: "Yes, cover Do Not Disturb (Recommended)") ──
+
+    @Test
+    fun `under Do Not Disturb the off-track buzz is recorded as skipped for Do Not Disturb, on any ringer, and still issued`() {
+        for (filter in listOf(DoNotDisturbFilter.PRIORITY, DoNotDisturbFilter.ALARMS_ONLY, DoNotDisturbFilter.TOTAL_SILENCE)) {
+            for (mode in listOf(RingerMode.NORMAL, RingerMode.SILENT)) {
+                assertEquals(
+                    "$filter, $mode",
+                    "alert-delivery track=track-1 notification=posted vibration=skipped(Do Not Disturb)",
+                    offTrackRecordLine(ringer(mode), filter),
+                )
+            }
+        }
+        assertEquals("issued every time, as before", List(6) { false }, issued)
+    }
+
+    @Test
+    fun `with Do Not Disturb off or unreadable, the ringer decides as before`() {
+        assertEquals("alert-delivery track=track-1 notification=posted vibration=done", offTrackRecordLine(ringer(RingerMode.VIBRATE), DoNotDisturbFilter.OFF))
+        assertEquals("alert-delivery track=track-1 notification=posted vibration=skipped(phone on silent)", offTrackRecordLine(ringer(RingerMode.SILENT), DoNotDisturbFilter.UNKNOWN))
+        val throwingDnd = AndroidAlertDelivery(context, { _, _ -> true }, { _, overridesSilence -> issued += overridesSilence }, ringer(RingerMode.SILENT), { throw SecurityException("no") })
+        assertEquals(
+            "phone on silent",
+            throwingDnd.deliverReporting(Alert(AlertKind.OFF_TRACK, overridesSilence = false)).vibrationSkipped,
+        )
+    }
+
+    @Test
+    fun `a sundown alert is skipped only under total silence, since alarms pass priority and alarms-only`() {
+        val sunset = now + 3_600_000L
+        val alert = Alert(AlertKind.LEAVE_BY, overridesSilence = true, sundown = SundownAlertDetail(sunset, WalkBack.Unknown, sunset - 3_600_000L))
+        for (filter in listOf(DoNotDisturbFilter.OFF, DoNotDisturbFilter.PRIORITY, DoNotDisturbFilter.ALARMS_ONLY)) {
+            assertEquals(filter.name, null, delivery(ringer(RingerMode.SILENT), filter).deliverReporting(alert).vibrationSkipped)
+        }
+        val silenced = delivery(ringer(RingerMode.NORMAL), DoNotDisturbFilter.TOTAL_SILENCE).deliverReporting(alert)
+        assertEquals("Do Not Disturb", silenced.vibrationSkipped)
+        assertEquals(false, silenced.vibrated)
     }
 }

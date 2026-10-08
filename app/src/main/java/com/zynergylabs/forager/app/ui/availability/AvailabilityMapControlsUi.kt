@@ -529,6 +529,8 @@ private fun CompassElevationStripContent(
                                             text = shown,
                                             style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
                                             maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis,
                                             modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
                                         )
                                     }
@@ -552,6 +554,8 @@ private fun CompassElevationStripContent(
                                 text = NO_FIX_MESSAGE,
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
                                 textAlign = TextAlign.Center,
                                 // Landscape B2 (S4): no weight when content-width, or this one line
                                 // would stretch the strip back across the window.
@@ -596,6 +600,8 @@ private fun CompassElevationStripContent(
                                             // steady as the digits change. Both orientations; labelMedium kept.
                                             style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
                                             maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis,
                                             modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
                                         )
                                     }
@@ -608,6 +614,8 @@ private fun CompassElevationStripContent(
                                             text = shown,
                                             style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
                                             maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis,
                                             modifier = Modifier.testTag(COMPASS_STRIP_ELEVATION_TAG),
                                         )
                                     }
