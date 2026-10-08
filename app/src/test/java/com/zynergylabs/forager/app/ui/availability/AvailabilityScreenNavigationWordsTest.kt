@@ -372,9 +372,21 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
                 val layout = results.single()
                 val text = layout.layoutInput.text.text
                 println("MEASURED landscape ($format) $tag <$text>: visible ${layout.getLineEnd(0, visibleEnd = true)} of ${text.length}")
-                assertFalse("$format, $tag <$text>: not ellipsised", layout.isLineEllipsized(0))
-                assertEquals("$format, $tag <$text>: every character visible", text.length, layout.getLineEnd(0, visibleEnd = true))
+                // Dispatch 2026-09-28-685, Amendment 2 (RECORD -699; the owner: "Yes, everywhere (Recommended)"): the display
+                // is never wider than the room beside the search bar, at every font scale, so at this width a line may end in
+                // "…". It was "not ellipsised, every character visible"; "by trail" now shows 5 of 8 here. Still one line,
+                // and whole wherever it is not ellipsised; the display must not overlap the search bar (below).
+                assertEquals("$format, $tag <$text>: one line", 1, layout.lineCount)
+                if (!layout.isLineEllipsized(0)) {
+                    assertEquals("$format, $tag <$text>: every character visible", text.length, layout.getLineEnd(0, visibleEnd = true))
+                }
             }
+            val hudBounds = node(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot()
+            val barBounds = node(SEARCH_ENTRY_BAR_TAG).getUnclippedBoundsInRoot()
+            assertFalse(
+                "$format: the display $hudBounds must not overlap the search bar $barBounds",
+                hudBounds.left < barBounds.right && barBounds.left < hudBounds.right && hudBounds.top < barBounds.bottom && barBounds.top < hudBounds.bottom,
+            )
         }
         assertAllWhole("MGRS")
         // Amendment 1 (RECORD -680): the decimal pair, switched by a real touch, fits whole here too.

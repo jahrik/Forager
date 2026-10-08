@@ -192,6 +192,13 @@ class LandscapeLargeFontTest {
         assertEquals(2f, composeRule.density.fontScale)
         assertClearOfSearchBar("font 2.0, rotation $rotation", STRIP_TAG)
         assertOneLineEach("font 2.0, rotation $rotation", STRIP_TAG, whole = false)
+        // Amendment 2 (RECORD -699; the owner: "Coordinates take priority (Recommended)"): the coordinates are whole.
+        val coordinates = composeRule.onNodeWithTag(COMPASS_STRIP_COORDINATES_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        val layout = layoutOf(coordinates)
+        val text = textOf(coordinates)
+        println("MEASURED font 2.0, rotation $rotation strip coordinates <$text>: ellipsised ${layout.isLineEllipsized(0)}, visible ${layout.getLineEnd(0, visibleEnd = true)} of ${text.length}")
+        assertFalse("font 2.0, rotation $rotation: the coordinates <$text> are not ellipsised", layout.isLineEllipsized(0))
+        assertEquals("font 2.0, rotation $rotation: every character of <$text> shows", text.length, layout.getLineEnd(0, visibleEnd = true))
     }
 
     private fun displayAtFontTwo(rotation: Int) {
@@ -236,10 +243,13 @@ class LandscapeLargeFontTest {
     }
 
     @Test
-    fun `font 1,0 the display is whole, one line each, and clear of the search bar`() {
+    fun `font 1,0 the display is one line each and clear of the search bar`() {
         setScreen(Surface.ROTATION_90, navigating = true)
+        // Amendment 2 (RECORD -699; the owner: "Yes, everywhere (Recommended)"): the same rule as at font 2.0. One line
+        // each, "…" allowed, never over the search bar. Amendment 1 had asked for "whole" here, which the planner has
+        // since withdrawn: at this width the display was already 1 dp over the bar at font 1.0 before the cap.
         assertClearOfSearchBar("font 1.0", NAVIGATION_HUD_TAG)
-        assertOneLineEach("font 1.0", NAVIGATION_HUD_TAG, whole = true)
+        assertOneLineEach("font 1.0", NAVIGATION_HUD_TAG, whole = false)
         assertAboveCentralThird("font 1.0")
     }
 
