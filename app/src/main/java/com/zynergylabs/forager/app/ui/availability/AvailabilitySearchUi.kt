@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -72,6 +73,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -373,6 +377,34 @@ internal fun SearchDropdown(
             // are gone with it: they existed to bring the coordinates into view from the bottom of
             // the panel, and the coordinates are now its first row, so the panel opens at its top.
             // Recent searches keeps its own fold, as the dispatch says.
+            //
+            // Dispatch 2026-09-28-722 (RECORD intent -722) brings the keep-in-view back for the bottom
+            // row. The owner, verbatim: "Real quick, the search menu doesn't bounce back up when the
+            // keyboard hits it. It used to do that. The search button is still hidden as a result."
+            // Removing the keep-in-view above with the scroll-to-the-end also removed the only thing
+            // that lifted the panel's end above the keyboard, and the end now holds Set on map and
+            // Search. So: each time the viewport shrinks (the keyboard coming up shrinks this panel,
+            // its cap follows the keyboard, see compactMainScaffold), the panel scrolls to its end, so
+            // the bottom row sits just above the keyboard. Only on a shrink, never on the first size
+            // or a growth, so the panel still opens at its top with the coordinates first (-697), and
+            // ScrollState's own clamp handles a growth as it did before. A drag by the user stops it
+            // until the next open (the panel leaves composition when it closes, so the flag resets),
+            // the old rule (Part 1 layout fixes item 3): their scroll stands from then on. Keyed on the
+            // viewport, not the content, so Recent searches opening does not pull the view to the end.
+            var bottomRowKeptInView by remember { mutableStateOf(true) }
+            if (bottomRowKeptInView) {
+                LaunchedEffect(Unit) {
+                    launch {
+                        scrollState.interactionSource.interactions.first { it is DragInteraction.Start }
+                        bottomRowKeptInView = false
+                    }
+                    var previousViewport = scrollState.viewportSize
+                    snapshotFlow { scrollState.viewportSize }.collect { viewport ->
+                        if (viewport < previousViewport) scrollState.scrollTo(scrollState.maxValue)
+                        previousViewport = viewport
+                    }
+                }
+            }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
