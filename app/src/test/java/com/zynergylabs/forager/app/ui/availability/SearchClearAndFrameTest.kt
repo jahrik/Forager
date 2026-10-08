@@ -56,8 +56,8 @@ class SearchClearAndFrameTest {
         return "$month · Search a location"
     }
 
-    private fun summaryShown(text: String) =
-        composeRule.onAllNodes(androidx.compose.ui.test.hasText(text), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+    private fun summaryShown(text: String, substring: Boolean = false) =
+        composeRule.onAllNodes(androidx.compose.ui.test.hasText(text, substring = substring), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
     private fun pickChanterelle() {
         rig.tapBar()
@@ -78,7 +78,7 @@ class SearchClearAndFrameTest {
         pickChanterelle()
         rig.searchCoordinates("45.326", "-122.634")
         assertEquals("positive control: the species is selected", chanterelle.toFilter(), rig.viewModel.uiState.value.taxonFilter)
-        assertTrue("positive control: the bar names the species", summaryShown("${chanterelle.commonName} · ${defaultSummary().substringBefore(" · ")}", ))
+        assertTrue("positive control: the bar names the species", summaryShown("${chanterelle.commonName} · ${defaultSummary().substringBefore(" · ")}", substring = true))
         val recentBefore = rig.viewModel.uiState.value.recentSearches
         assertTrue("positive control: the search is a recent search", recentBefore.isNotEmpty())
 
