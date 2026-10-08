@@ -1,13 +1,24 @@
 package com.zynergylabs.forager.app.ui.theme
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.material3.ColorScheme
+import android.util.Log
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withTimeoutOrNull
 
 /*
  * Motion Part 3, item 4 (dispatch 2026-09-28-676; the owner, RECORD -651: Night mode "Fade the colours", against the planner's
@@ -15,96 +26,89 @@ import com.zynergylabs.forager.app.ui.motion.MotionTokens
  * active alone. The results aren't subtle, it's an entire UI shift, so the fade is permissible if it's fast and smooth, and not
  * ceremonial and boring").
  *
- * **How.** Every colour of the theme blends from the light scheme to the dark one, or back, over one quick spring
- * ([MotionTokens.nightModeFadeSpec], the motion scheme's fast effects spec, critically damped). Between the two ends the app is
- * drawn with a scheme in which every role is that same fraction of the way across ([lerpColorScheme]). At either end it is
- * [LightColors] or [DarkColors] itself, so outside a change nothing differs from before.
+ * **What it was, and why it showed one muddy frame (RECORD -752, dispatch 2026-09-28-755 item 3).** Until this change every frame
+ * of the blend drew the app with a colour scheme part-way between light and dark (each role lerped). Compose's `lerp(Color, Color)`
+ * blends in Oklab, so the colours did not dip through a grey darker than both ends (NightModeFadeTest checks the blend's luminance
+ * frame by frame). The cost was the problem: Material 3 provides the scheme through a static composition local, so every one of
+ * those frames recomposed the whole app, the map screen included, and the night-mode change also restyles the map in the same
+ * moment. The blend is a spring of about a tenth of a second, so on the S22 the first frame's work used most of it, and the next
+ * frame already read near the end: light, one grey middle frame, dark. That is the inference from the code and from the
+ * per-frame recompositions measured headless; the frame times themselves are the phone's, not measured here.
  *
- * **What it costs, and why that is the S22's to judge.** Material 3 provides the colour scheme through a static composition local
- * (read from `ColorSchemeKt`'s bytecode in material3 1.5.0-alpha26: `staticCompositionLocalOf`), and its `ColorScheme` is
- * immutable, so every frame of the blend recomposes everything under the theme: the whole app, for the few frames the spring
- * lasts. Whether that stays smooth on the phone is the device check; under reduced motion there is no blend at all.
+ * **How it works now.** The change recomposes once. At the moment night mode changes, the screen as last drawn is kept as a
+ * picture; the app switches to the new scheme at once, underneath it; and the picture fades out over the new screen on the same
+ * fast spring ([MotionTokens.nightModeFadeSpec]). The fade is drawing only, with no recomposition, so each frame is cheap and the
+ * spring gets its frames. The picture is held for the switch's own frame (and the next) before the fade's clock starts, so the
+ * one heavy frame is spent under it rather than eating the fade. The blend is old over new, pixel by pixel, which also cannot go
+ * darker than both ends. Under reduced motion there is no picture and no fade: the scheme changes at once.
  *
- * **What does not fade.** Anything that picks its colour from whether night mode is on rather than from the scheme
- * ([LocalForagerDarkTheme]: parts of the map's chrome) changes at the start, and so do the system bars' icons (MainActivity
- * sets them at once), and the map itself, which reloads its night or day basemap as before (scout G2). Not changed here.
+ * **What it rejected.** Keeping the per-frame scheme blend and making it cheaper: the scheme local is Material's and static, so
+ * no screen can opt out of the recomposition. A longer blend: more frames of the same cost, and "ceremonial", against -652.
+ *
+ * **Device-only.** How it looks, and whether it is smooth, on the S22. The map is a SurfaceView, which the picture cannot hold (it
+ * is drawn by the system, not by Compose), so over the map the picture shows the chrome only and the live map shows through its
+ * hole, restyling as it did before (scout G2). If taking the picture fails or takes longer than [SNAPSHOT_TIMEOUT_MS], the change
+ * is made at once and logged under [NIGHT_BLEND_LOG_TAG], never silently.
  */
 
 /**
- * The colour scheme to draw with while [darkTheme] may just have changed: blending from the other scheme to this one on
- * [MotionTokens.nightModeFadeSpec], or this one at once under reduced motion ([LocalReduceMotion]). The first composition is at the
- * end already, so the app opens in its colours with no blend.
+ * The app under [content], drawn in [darkTheme]'s colours, fading from the previous ones when [darkTheme] changes (the header
+ * above). [content] is handed the night mode to draw in now, which lags [darkTheme] by the frame the picture takes; the first
+ * composition is at the end already, so the app opens in its colours with no fade.
  */
 @Composable
-internal fun fadingColorScheme(darkTheme: Boolean): ColorScheme {
+internal fun NightModeBlend(darkTheme: Boolean, content: @Composable (shownDark: Boolean) -> Unit) {
     val reduceMotion = LocalReduceMotion.current
-    val towardsDark by animateFloatAsState(
-        targetValue = if (darkTheme) 1f else 0f,
-        animationSpec = MotionTokens.nightModeFadeSpec(ForagerMotionScheme),
-        label = "nightModeFade",
-    )
-    return when {
-        reduceMotion -> if (darkTheme) DarkColors else LightColors
-        towardsDark <= 0f -> LightColors
-        towardsDark >= 1f -> DarkColors
-        else -> lerpColorScheme(LightColors, DarkColors, towardsDark)
+    var shownDark by remember { mutableStateOf(darkTheme) }
+    val recording = rememberGraphicsLayer()
+    var outgoing by remember { mutableStateOf<ImageBitmap?>(null) }
+    val outgoingAlpha = remember { Animatable(0f) }
+    val spec = MotionTokens.nightModeFadeSpec<Float>(ForagerMotionScheme)
+    LaunchedEffect(darkTheme, reduceMotion) {
+        if (darkTheme == shownDark) return@LaunchedEffect
+        if (reduceMotion) {
+            shownDark = darkTheme
+            return@LaunchedEffect
+        }
+        val picture = try {
+            withTimeoutOrNull(SNAPSHOT_TIMEOUT_MS) { recording.toImageBitmap() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(NIGHT_BLEND_LOG_TAG, "Could not keep the screen as a picture for the night-mode fade; changing at once.", e)
+            null
+        }
+        if (picture == null) {
+            Log.w(NIGHT_BLEND_LOG_TAG, "No picture of the screen for the night-mode fade (failed or timed out); changed at once.")
+            shownDark = darkTheme
+            return@LaunchedEffect
+        }
+        outgoing = picture
+        outgoingAlpha.snapTo(1f)
+        shownDark = darkTheme
+        try {
+            // The switch's frame (the one recomposition) and the one after it, under the full picture.
+            withFrameNanos { }
+            withFrameNanos { }
+            outgoingAlpha.animateTo(0f, spec)
+        } finally {
+            outgoing = null
+        }
+    }
+    Box(
+        Modifier.drawWithContent {
+            recording.record { this@drawWithContent.drawContent() }
+            drawLayer(recording)
+            val picture = outgoing
+            if (picture != null) drawImage(picture, alpha = outgoingAlpha.value.coerceIn(0f, 1f))
+        },
+    ) {
+        content(shownDark)
     }
 }
 
-/**
- * [start] carried [fraction] of the way to [stop], every role alike (0 is [start], 1 is [stop]). Every role of material3 1.5.0-alpha26's
- * [ColorScheme] is listed (its 48 colour fields, read from its bytecode), so no role is left at one end while the rest move.
- */
-internal fun lerpColorScheme(start: ColorScheme, stop: ColorScheme, fraction: Float): ColorScheme {
-    fun c(from: Color, to: Color): Color = lerp(from, to, fraction)
-    return start.copy(
-        primary = c(start.primary, stop.primary),
-        onPrimary = c(start.onPrimary, stop.onPrimary),
-        primaryContainer = c(start.primaryContainer, stop.primaryContainer),
-        onPrimaryContainer = c(start.onPrimaryContainer, stop.onPrimaryContainer),
-        inversePrimary = c(start.inversePrimary, stop.inversePrimary),
-        secondary = c(start.secondary, stop.secondary),
-        onSecondary = c(start.onSecondary, stop.onSecondary),
-        secondaryContainer = c(start.secondaryContainer, stop.secondaryContainer),
-        onSecondaryContainer = c(start.onSecondaryContainer, stop.onSecondaryContainer),
-        tertiary = c(start.tertiary, stop.tertiary),
-        onTertiary = c(start.onTertiary, stop.onTertiary),
-        tertiaryContainer = c(start.tertiaryContainer, stop.tertiaryContainer),
-        onTertiaryContainer = c(start.onTertiaryContainer, stop.onTertiaryContainer),
-        background = c(start.background, stop.background),
-        onBackground = c(start.onBackground, stop.onBackground),
-        surface = c(start.surface, stop.surface),
-        onSurface = c(start.onSurface, stop.onSurface),
-        surfaceVariant = c(start.surfaceVariant, stop.surfaceVariant),
-        onSurfaceVariant = c(start.onSurfaceVariant, stop.onSurfaceVariant),
-        surfaceTint = c(start.surfaceTint, stop.surfaceTint),
-        inverseSurface = c(start.inverseSurface, stop.inverseSurface),
-        inverseOnSurface = c(start.inverseOnSurface, stop.inverseOnSurface),
-        error = c(start.error, stop.error),
-        onError = c(start.onError, stop.onError),
-        errorContainer = c(start.errorContainer, stop.errorContainer),
-        onErrorContainer = c(start.onErrorContainer, stop.onErrorContainer),
-        outline = c(start.outline, stop.outline),
-        outlineVariant = c(start.outlineVariant, stop.outlineVariant),
-        scrim = c(start.scrim, stop.scrim),
-        surfaceBright = c(start.surfaceBright, stop.surfaceBright),
-        surfaceDim = c(start.surfaceDim, stop.surfaceDim),
-        surfaceContainer = c(start.surfaceContainer, stop.surfaceContainer),
-        surfaceContainerHigh = c(start.surfaceContainerHigh, stop.surfaceContainerHigh),
-        surfaceContainerHighest = c(start.surfaceContainerHighest, stop.surfaceContainerHighest),
-        surfaceContainerLow = c(start.surfaceContainerLow, stop.surfaceContainerLow),
-        surfaceContainerLowest = c(start.surfaceContainerLowest, stop.surfaceContainerLowest),
-        primaryFixed = c(start.primaryFixed, stop.primaryFixed),
-        primaryFixedDim = c(start.primaryFixedDim, stop.primaryFixedDim),
-        onPrimaryFixed = c(start.onPrimaryFixed, stop.onPrimaryFixed),
-        onPrimaryFixedVariant = c(start.onPrimaryFixedVariant, stop.onPrimaryFixedVariant),
-        secondaryFixed = c(start.secondaryFixed, stop.secondaryFixed),
-        secondaryFixedDim = c(start.secondaryFixedDim, stop.secondaryFixedDim),
-        onSecondaryFixed = c(start.onSecondaryFixed, stop.onSecondaryFixed),
-        onSecondaryFixedVariant = c(start.onSecondaryFixedVariant, stop.onSecondaryFixedVariant),
-        tertiaryFixed = c(start.tertiaryFixed, stop.tertiaryFixed),
-        tertiaryFixedDim = c(start.tertiaryFixedDim, stop.tertiaryFixedDim),
-        onTertiaryFixed = c(start.onTertiaryFixed, stop.onTertiaryFixed),
-        onTertiaryFixedVariant = c(start.onTertiaryFixedVariant, stop.onTertiaryFixedVariant),
-    )
-}
+/** How long taking the picture may take before the change is made at once instead (logged). */
+internal const val SNAPSHOT_TIMEOUT_MS = 250L
+
+/** Logcat tag for the night-mode fade's fallbacks. */
+internal const val NIGHT_BLEND_LOG_TAG = "ForagerNightBlend"

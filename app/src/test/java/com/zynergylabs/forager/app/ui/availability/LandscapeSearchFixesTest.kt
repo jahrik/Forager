@@ -342,6 +342,50 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         assertEquals("the bar ends where the strip begins", strip.left.value, bar.right.value, 0.5f)
     }
 
+    // ── RECORD -754 (dispatch 2026-09-28-755, item 1): the bar stays put while the dropdown is open ──
+
+    /**
+     * The owner, on an S26 landscape screenshot: "I see that the entire bar gets larger along with the corresponding panel"; the
+     * ruling, "Bar stays put, panel hangs below (Recommended)". With the dropdown open, and again with a docked keyboard up (the
+     * phone's state once the field has focus), the bar keeps its closed bounds, the strip's height, ending at the join, and the
+     * panel starts flush beneath it.
+     */
+    private fun assertBarStaysPut(rotation: Int, long: Boolean) {
+        setScreenThenTurn(rotation) { if (long) pickLongSpecies() }
+        val closed = bounds(SEARCH_ENTRY_BAR_TAG)
+        val strip = bounds(STRIP_TAG)
+        assertEquals("positive control: closed, the bar is the strip's height", (strip.bottom - strip.top).value, (closed.bottom - closed.top).value, 0.5f)
+        rig.tapBar()
+        assertTrue("positive control: the bar's tap opened the dropdown", rig.dropdownShown())
+        for (state in listOf("open", "open with a docked keyboard")) {
+            if (state != "open") keyboard(180.dp, visible = true)
+            val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+            val stripNow = bounds(STRIP_TAG)
+            val divider = bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG)
+            val panel = bounds(SEARCH_DROPDOWN_TAG)
+            println("MEASURED -754 $landscape rotation $rotation long=$long $state: closed ${closed.d()}, bar ${bar.d()}, strip ${stripNow.d()}, divider ${divider.d()}, panel ${panel.d()}")
+            assertEquals("$state: the bar keeps its closed top", closed.top.value, bar.top.value, 0.5f)
+            assertEquals("$state: the bar keeps its closed height, the strip's", (closed.bottom - closed.top).value, (bar.bottom - bar.top).value, 0.5f)
+            assertEquals("$state: the bar keeps its closed left edge", closed.left.value, bar.left.value, 0.5f)
+            assertEquals("$state: the bar keeps its closed right edge", closed.right.value, bar.right.value, 0.5f)
+            assertEquals("$state: the strip is where it was", strip, stripNow)
+            if (rotation == Surface.ROTATION_90) {
+                assertEquals("$state: the bar ends where the strip begins", stripNow.left.value, bar.right.value, 0.5f)
+            } else {
+                assertEquals("$state: the bar begins where the strip ends", stripNow.right.value, bar.left.value, 0.5f)
+            }
+            assertEquals("$state: the panel hangs flush beneath the bar", divider.bottom.value, panel.top.value, 0.5f)
+        }
+    }
+
+    @Test fun `754 at ROTATION_90 with a short summary the open bar stays put`() = assertBarStaysPut(Surface.ROTATION_90, long = false)
+
+    @Test fun `754 at ROTATION_270 with a short summary the open bar stays put`() = assertBarStaysPut(Surface.ROTATION_270, long = false)
+
+    @Test fun `754 at ROTATION_90 with a long summary the open bar stays put`() = assertBarStaysPut(Surface.ROTATION_90, long = true)
+
+    @Test fun `754 at ROTATION_270 with a long summary the open bar stays put`() = assertBarStaysPut(Surface.ROTATION_270, long = true)
+
     private companion object {
         const val STRIP_TAG = "compass-elevation-strip"
     }
