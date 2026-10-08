@@ -332,3 +332,93 @@ ellipsised".
   - Every pixel sampled inside the panel reads the same colour as that "reference", because both are the panel.
 - **Conclusion:** the panel is drawn. The test's reference point is what moved under it.
 - **Not touched:** the fix would be a reference point lower down, which is a change to an existing test.
+
+## RECORD -713: labels before values, the kind in the status line, the pixel reference
+
+The owner, verbatim:
+1. "Drop labels, then values (Recommended)"
+2. "Move it into the status line (Recommended)"
+
+Item 3, the pixel reference, is the planner's.
+
+### Built
+
+**1. `readoutsFitBeside` (`AvailabilityMapControlsUi.kt`).** It is used by the strip and by the display's second row.
+- The coordinates are measured first and stay whole.
+- Then the first of these arrangements that fits whole is used:
+  - every readout with its label;
+  - every readout without labels ("315° NW · 9843 ft · grid ref");
+  - facing dropped, still without labels;
+  - altitude dropped too.
+- A value is never cut and never ends in "…".
+- Unit tests: `ReadoutsFitBesideTest`, six cases.
+- At 360 dp with the button, the strip now draws "315° NW · 9843 ft · 10T ER …" with no labels, every value whole.
+
+**The old rule is no longer called.** `readoutsKeptBeside` and `stripReadoutsShown` stay, with their tests in
+`StripReadoutsShownTest`. Those tests still pass, but they now exercise a rule nothing calls. Whether to remove them is
+the planner's or the owner's call.
+
+**Tests, per -713:**
+- **Changed, citing -713:** data B's "at 360 dp the strip's labelled line fits whole". It is now "at 360 dp the strip
+  drops its labels first and keeps its values and coordinates whole". It asserts that no "Facing" or "Alt" label is
+  drawn, that the heading and elevation values are whole, and that the coordinates are whole.
+- **Unchanged, because they pass as written under the rule:**
+  - data B's "at 360 dp the strip's decimal coordinates fit whole beside its labels". Its assertions are values and
+    coordinates whole, and it does fail when the labels are forced back (R15 below).
+  - `LandscapeLargeFontTest`'s font-1.0 case. It asserts every text in the strip is one line and whole, and every shown
+    readout now is.
+
+**2. The display's first row (`NavigationHud.kt`).**
+- When the figure and its kind do not fit side by side, the kind starts the status line, capitalised:
+  "By trail · …".
+- "Unable to calculate route" takes the status line's size when it does not fit the large slot.
+- Nothing is added below the row, so it stays the X's 48 dp.
+- New test: `NavigationHudKindInStatusTest`. At 360 dp with the button, "By trail" is whole, below the figure, and at
+  the start of the status line. The display's height equals its height without the button, where the kind sits beside
+  the figure.
+- **Choice made here:** the shrinking applies only when "Unable to calculate route" does not fit. Read literally, the
+  ruling could also mean always. This was not asked.
+
+**3. `MapChromeColourPixelsTest`, changed per -713, the planner.** The bare-map reference point is now 8 dp below the
+search panel's measured bottom, and is checked to sit above the bottom bar. Before, it was a fixed 200 dp up from the
+bottom. The claim is unchanged.
+
+### Revert checks (saved-copy restore, compile log checked, forward change confirmed present after each)
+
+| Revert | Failures specific to the edit |
+|---|---|
+| R15 strip keeps its labels | the changed strip test: "the label <Facing> is dropped before any value"; the decimal strip test: "strip decimal coordinates … not ellipsised" |
+| R16 the rule never drops labels | 4 `ReadoutsFitBesideTest` cases, e.g. expected `labels=false, shown=[true, true]`, was `labels=true, shown=[false, true]`; both strip tests: the heading node is gone |
+| R17 the kind never moves | `NavigationHudKindInStatusTest`: expected "[B]y trail", was "[b]y trail" |
+| R18 "Unable to calculate route" keeps the large size | `AvailabilityScreenReturnRouteTest > the whole sentence shows at 360 dp`: "not ellipsised" |
+
+R15 and R16 runs also list the two display tests below. Those fail before any revert too, so they are not the reverts'
+failures.
+
+### Full suite after -713
+
+`:app:testDebugUnitTest`, read from the JUnit XML (549 files): **4,317 tests, 3 failures, 0 errors, 24 skipped.** No
+`@Ignore` added.
+
+Passing again: the `AvailabilityScreenReturnRouteTest` 360 dp test, `LandscapeLargeFontTest` and the pixel test.
+
+**The three that remain have one cause: the status line itself does not fit the first row's distance column at 360 dp
+with the button.**
+- **The space:** the column is 87 dp, between the turn column and the three-dot button.
+  - Without the kind, "≈ 1250 ft straight" needs 102.25 dp.
+  - With "By trail ·" in front, the status keeps a 34 dp box and shows "≈ 12".
+- **The failing tests:**
+  - data B's "at 360 dp the longest lines fit whole" and "at 360 dp the display's decimal coordinates fit whole beside
+    the longest lines": both fail with "status <≈ 1250 ft straight>: not ellipsised".
+  - `NavigationHudQuickSettingsWidthTest`: "Location services unavailable" shows "…unava", and "Last seen 23 h ago,
+    finding GPS…" shows "…findi". Both are cut only with the button. "≈ 1250 ft straight" shows "≈ 12".
+- **Why -713 doesn't fix them:** the ruling moves the kind and shrinks the large-slot word, but the status line was
+  already too wide for this column. Its only fallback is the small fixes' "…" (RECORD -694). These tests' claim,
+  "whole", cannot hold without another decision.
+- **Possible directions (none chosen):**
+  - let the status wrap within the row's 8 spare dp, which isn't a full line;
+  - shorter status wordings at narrow widths;
+  - a smaller status type;
+  - relax these tests' claim to the status line's existing "…" rule;
+  - move the three-dot button out of the first row on narrow screens.
+- **None of the three tests was touched.**
