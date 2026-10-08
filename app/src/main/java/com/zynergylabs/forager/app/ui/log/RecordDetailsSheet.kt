@@ -414,6 +414,8 @@ private fun TrackDetails(
         waypoints = waypoints,
         modifier = Modifier.size(TRACK_THUMBNAIL_SIZE).testTag(RECORD_DETAILS_THUMBNAIL_TAG),
     )
+    // Kept directly under the drawing, where -618 put it; dispatch -677 adds below it, and moves nothing above it.
+    WalkWaypointsSection(waypointsDroppedOn(track, waypoints), onOpenWaypoint, stamp)
     // Dispatch 2026-09-28-677 (data part B; the owner, RECORD -656: "Tiles + profile, raw tucked away (Recommended)"): the
     // figures as labelled tiles, then the height profile, both data part A's own (LabelledTiles, EntryHeightProfile), so the
     // track sheet and the entry report read alike. Over a map the tiles are outlined, not filled: the sheet's container
@@ -438,7 +440,6 @@ private fun TrackDetails(
         DetailField(FIELD_POINTS, "Points", track.points.size.toString())
         DetailField(FIELD_HEIGHTS, HEIGHTS_FIELD_LABEL, heightsRecordedLabel(stats.pointsWithAltitude, stats.totalPoints))
     }
-    WalkWaypointsSection(waypointsDroppedOn(track, waypoints), onOpenWaypoint, stamp)
     DetailsActions {
         OutlinedButton(
             onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
@@ -654,9 +655,8 @@ internal fun trackSheetTiles(track: Track, stats: TrackStatistics, distanceUnit:
     )
 }
 
-/** One track's height profile, by the entry report's rule ([heightProfileOf]); a track with no points has none to draw. */
-internal fun trackHeightProfile(track: Track): HeightProfile =
-    if (track.points.isEmpty()) HeightProfile.TooFewHeights(pointsWithHeight = 0, totalPoints = 0) else heightProfileOf(listOf(track))
+/** One track's height profile, by the entry report's rule ([heightProfileOf]), so a walk with too few heights says so as there. */
+internal fun trackHeightProfile(track: Track): HeightProfile = heightProfileOf(listOf(track))
 
 /** "45 of 120 points": how many of the walk's points carry a height, the figure the Climb and the profile rest on. */
 internal fun heightsRecordedLabel(pointsWithHeight: Int, totalPoints: Int): String = "$pointsWithHeight of $totalPoints points"

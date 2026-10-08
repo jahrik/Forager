@@ -209,7 +209,8 @@ class GpxImportRecordsTest {
         val date = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a").format(Instant.ofEpochMilli(track.startedAtEpochMillis).atZone(ZoneId.systemDefault()))
         composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Morning Hike")
         composeRule.onNodeWithTag(RECORD_DETAILS_LABEL_TAG).assertTextEquals("Imported")
-        composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_DURATION)).assertTextEquals("Duration", "0m")
+        // Dispatch 2026-09-28-677 changed this: Duration ("0m") is the Time tile now, in data part A's words.
+        composeRule.onNodeWithTag(trackTileTag(TRACK_TILE_TIME)).assertTextEquals("Time", "Under 1 min")
         composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_STARTED)).assertTextEquals("Started", date)
         assertTrue("the notice was shown and cleared", viewModel.notice.value == null)
     }
@@ -242,7 +243,9 @@ class GpxImportRecordsTest {
         val imported = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a").format(Instant.ofEpochMilli(importNow).atZone(ZoneId.systemDefault()))
         composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_STARTED)).assertTextEquals("Started", "No times in file")
         composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_ENDED)).assertTextEquals("Ended", "No times in file")
-        composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_DURATION)).assertTextEquals("Duration", "No times in file")
+        // Dispatch -677 changed this: Duration is the Time tile, and Avg speed, which also needs times, says so too.
+        composeRule.onNodeWithTag(trackTileTag(TRACK_TILE_TIME)).assertTextEquals("Time", "No times in file")
+        composeRule.onNodeWithTag(trackTileTag(TRACK_TILE_AVG_SPEED)).assertTextEquals("Avg speed", "No times in file")
         composeRule.onNodeWithTag(recordDetailsFieldTag(FIELD_IMPORTED)).assertTextEquals("Imported", imported)
     }
 }

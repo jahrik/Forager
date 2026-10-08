@@ -40,6 +40,7 @@ import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.formatTimeSpan
 import com.zynergylabs.forager.app.domain.model.formatWholeLength
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.util.Date
 import java.util.Locale
@@ -77,11 +78,13 @@ internal fun LabelledTiles(
         tiles.chunked(2).forEach { row ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 row.forEach { (label, value) ->
+                    val fill = if (overMap) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant
                     Surface(
                         shape = MaterialTheme.shapes.medium,
-                        color = if (overMap) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant,
+                        color = fill,
                         border = if (overMap) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
-                        modifier = Modifier.weight(1f).testTag(tagOf(label)).semantics(mergeDescendants = true) {},
+                        // The fill a test reads to tell outlined from filled (MapChromeOverMapTest), beside the tag.
+                        modifier = Modifier.weight(1f).testTag(tagOf(label)).mapChromeContainerColor(fill).semantics(mergeDescendants = true) {},
                     ) {
                         Column(modifier = Modifier.padding(Spacing.md)) {
                             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

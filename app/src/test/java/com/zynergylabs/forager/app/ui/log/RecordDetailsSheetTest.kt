@@ -222,13 +222,35 @@ class RecordDetailsSheetTest {
         composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
     }
 
+    private fun tile(label: String): SemanticsNodeInteraction = composeRule.onNodeWithTag("track-tile-$label")
+
+    /**
+     * Opens the track sheet's Details fold with a real touch on its header, unless it is already open: it is held above the
+     * sheet (dispatch -677), so once opened in a test it stays open for every later sheet in that test.
+     */
+    private fun openDetailsFold() {
+        if (exists("record-details-field-points")) return
+        touch(FOLD, Offset(0.5f, 0.5f))
+        assertTrue("a touch on the Details header opens the fold", exists("record-details-field-points"))
+    }
+
+    // Dispatch 2026-09-28-677 changed this: Distance and Duration were fields; they are tiles now, Duration as "Time" in data
+    // part A's words, with Climb, Descent and Avg speed beside them; Points is in the Details fold.
     private fun assertTrackT1Content() {
         field("started").assertTextEquals("Started", stamp(TRACK_T1.startedAtEpochMillis))
         field("ended").assertTextEquals("Ended", stamp(TRACK_T1.endedAtEpochMillis!!))
-        field("distance").assertTextEquals("Distance", "1.4 mi")
-        field("duration").assertTextEquals("Duration", "1h 10m")
-        field("points").assertTextEquals("Points", "3")
+        tile("Distance").assertTextEquals("Distance", "1.4 mi")
+        tile("Time").assertTextEquals("Time", "1 h 10 min")
+        // No point carries a height.
+        tile("Climb").assertTextEquals("Climb", "Not recorded")
+        tile("Descent").assertTextEquals("Descent", "Not recorded")
+        // 2223.9 m over 4200 s = 0.5295 m/s = 1.18 mph.
+        tile("Avg speed").assertTextEquals("Avg speed", "1.2 mph")
+        composeRule.onNodeWithTag("entry-height-profile-line").assertTextEquals("No height profile: the phone recorded too few heights on this walk.")
         composeRule.onNodeWithTag(NOTE).assertTextEquals("12 more not shown (network fixes)")
+        openDetailsFold()
+        field("points").performScrollTo().assertTextEquals("Points", "3")
+        field("heights").assertTextEquals("With height", "0 of 3 points")
         composeRule.onNodeWithTag(SHARE).performScrollTo().assertIsDisplayed()
     }
 
@@ -297,7 +319,8 @@ class RecordDetailsSheetTest {
         composeRule.onNodeWithTag(TITLE).assertTextEquals("Ridge loop")
         field("started").assertTextEquals("Started", stamp(TRACK_T2.startedAtEpochMillis))
         field("ended").assertTextEquals("Ended", "Still recording")
-        field("points").assertTextEquals("Points", "2")
+        openDetailsFold()
+        field("points").performScrollTo().assertTextEquals("Points", "2")
         assertTrue("no network note on an ordinary track", !exists(NOTE))
     }
 
@@ -679,6 +702,7 @@ private const val DIRECTIONS = "record-details-directions"
 private const val NAVIGATE = "record-details-navigate"
 private const val SHARE = "record-details-share"
 private const val WALK_HEADING = "record-details-walk-waypoints-heading"
+private const val FOLD = "record-details-fold"
 private fun walkWaypointRow(id: String) = "record-details-walk-waypoint-$id"
 
 /** Three touch points across a row: its start edge (the badge, in All), upper middle, lower right short of its buttons. */
