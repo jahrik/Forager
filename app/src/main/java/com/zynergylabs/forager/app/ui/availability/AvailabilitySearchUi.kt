@@ -57,6 +57,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -253,12 +254,20 @@ internal fun SearchEntryBar(
                 // showing" (a region is set, which is what the summary reads as a search). It removes the search and its
                 // results (AvailabilityViewModel.clearSearch); the summary goes back to "Search a location". A sibling
                 // of the field, not its trailing icon, so a tap on it never focuses the field or opens the dropdown.
+                //
+                // Exactly the field's height, with no 48 dp minimum touch target: the bar's height is the owner's direct
+                // ask (twice the compass row, see fieldHeight above), and a 48 dp Clear grew the bar from 45 to 61 dp while a
+                // search showed, which moved the landscape L and cluster (LandscapeLRulingsTest and others, full suite at
+                // the build). The target is therefore the field's height tall and the button's width wide (reported).
                 if (uiState.region != null) {
-                    TextButton(
-                        onClick = onClearSearch,
-                        modifier = Modifier.padding(end = Spacing.xs).testTag(SEARCH_BAR_CLEAR_TAG),
-                    ) {
-                        Text("Clear", color = contentColor)
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                        TextButton(
+                            onClick = onClearSearch,
+                            contentPadding = PaddingValues(horizontal = Spacing.md),
+                            modifier = Modifier.padding(end = Spacing.xs).height(fieldHeight).testTag(SEARCH_BAR_CLEAR_TAG),
+                        ) {
+                            Text("Clear", color = contentColor)
+                        }
                     }
                 }
             }

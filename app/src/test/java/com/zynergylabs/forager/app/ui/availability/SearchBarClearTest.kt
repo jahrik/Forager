@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -47,6 +48,22 @@ class SearchBarClearTest {
         rig.setScreen()
         assertTrue("positive control: the summary reads Search a location", summaryReadsSearchALocation())
         composeRule.onAllNodesWithTag(SEARCH_BAR_CLEAR_TAG).assertCountEquals(0)
+    }
+
+    /**
+     * Clear takes no height of its own: the bar is as tall with a search showing as with none. A 48 dp Clear grew it from
+     * 45 to 61 dp at the build, which the landscape L tests caught (they place the L at the bar's bottom).
+     */
+    @Test
+    fun `the bar is as tall with Clear showing as without it`() {
+        rig.setScreen()
+        val before = composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        rig.searchCoordinates("45.326", "-122.634")
+        assertTrue("positive control: Clear shows", clearShown())
+
+        val after = composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).getUnclippedBoundsInRoot().let { it.bottom - it.top }
+
+        assertEquals("the bar's height with Clear", before.value, after.value, 0.5f)
     }
 
     /** Samples across Clear's own bounds, as fractions of its width and height: a finger is not a point. */
