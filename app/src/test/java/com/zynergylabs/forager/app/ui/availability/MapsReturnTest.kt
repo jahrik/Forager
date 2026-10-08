@@ -71,20 +71,14 @@ abstract class MapsReturnTests {
         memory.saved = remembered
         rig.mapMeasures.clear()
 
-        composeRule.mainClock.autoAdvance = false
+        val returnedAt = composeRule.mainClock.currentTime
         touchNav(CompactTab.MAP.label)
-        val perFrame = mutableListOf<List<MapMeasure>>()
-        repeat(40) {
-            val from = rig.mapMeasures.size
-            composeRule.mainClock.advanceTimeByFrame()
-            perFrame += rig.mapMeasures.drop(from)
-        }
-        composeRule.mainClock.autoAdvance = true
         rig.settle()
+        val perFrame = rig.mapMeasures.groupBy { it.atMs - returnedAt }
         val settled = rig.mapMeasures.last().size
-        println("MEASURED -752 item 4: settled $settled; per frame ${perFrame.mapIndexed { i, m -> "$i:${m.map { it.size }}" }}")
+        println("MEASURED -752 item 4: settled $settled; measures by ms after the touch ${perFrame.map { (t, m) -> "$t:${m.map { it.size }}" }}")
 
-        val all = perFrame.flatten()
+        val all = rig.mapMeasures.toList()
         assertTrue("positive control: the map was measured on the way back", all.isNotEmpty())
         assertEquals("positive control: the map settles at the size it had before leaving", before, settled)
         all.forEach { m ->

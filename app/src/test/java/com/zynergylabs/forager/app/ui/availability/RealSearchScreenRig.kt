@@ -186,7 +186,7 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
                 modifier.testTag(LAYOUT_FIXES_MAP_TAG).layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints)
                     // RECORD -752: every size the map is measured at, with the camera it holds then (what a new MapView restores).
-                    mapMeasures += MapMeasure(androidx.compose.ui.unit.IntSize(placeable.width, placeable.height), memory?.saved)
+                    mapMeasures += MapMeasure(androidx.compose.ui.unit.IntSize(placeable.width, placeable.height), memory?.saved, composeRule.mainClock.currentTime)
                     layout(placeable.width, placeable.height) { placeable.place(0, 0) }
                 },
             )
@@ -287,8 +287,8 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
     }
 }
 
-/** RECORD -752: one measure of the map slot: its size in px, and the remembered camera handed with it. */
-internal data class MapMeasure(val size: androidx.compose.ui.unit.IntSize, val camera: com.zynergylabs.forager.app.ui.map.MapCameraSnapshot?)
+/** RECORD -752: one measure of the map slot: its size in px, the remembered camera handed with it, and the test clock's time then. */
+internal data class MapMeasure(val size: androidx.compose.ui.unit.IntSize, val camera: com.zynergylabs.forager.app.ui.map.MapCameraSnapshot?, val atMs: Long)
 
 internal object RigNoWeather : WeatherProvider, TripPlanningWeatherProvider, HistoricalWeatherProvider {
     override suspend fun getRecentPrecipitation(region: Region) = Result.failure<ConditionsSummary>(UnsupportedOperationException("not exercised"))
