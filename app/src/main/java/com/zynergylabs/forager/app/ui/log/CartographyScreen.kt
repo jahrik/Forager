@@ -20,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -168,6 +170,13 @@ internal fun CartographyScreen(
      * (L6). `null` (portrait) is this screen exactly as before.
      */
     shortWindowHeader: (@Composable ((@Composable () -> Unit)?) -> Unit)? = null,
+    /**
+     * Motion Part 3, Amendment 1 (RECORD -681; the owner: "Keep it still (Recommended)"): set when the caller draws the short
+     * window's L1 row itself, above this screen's sliding pages, so the row stays put while only the page below it slides. This
+     * screen then draws no L1 row, and puts the action that belongs in the row's last slot here instead (New entry on the
+     * timeline, the photo button on the album, nothing otherwise). `null` (the default) is this screen drawing the row itself.
+     */
+    shortWindowHeaderAbove: MutableState<(@Composable () -> Unit)?>? = null,
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
     /**
@@ -208,6 +217,8 @@ internal fun CartographyScreen(
 ) {
     var mode by entryModeState
     val shortWindow = shortWindowHeader != null
+    // The L1 row as this screen draws it: not at all when the caller draws it above the pages (Amendment 1).
+    val headerHere: (@Composable ((@Composable () -> Unit)?) -> Unit)? = if (shortWindowHeaderAbove != null) null else shortWindowHeader
 
     // The album's Take photo / Import. Held here, above every branch, rather than inside the album
     // (where J2 had it), so the album's floating button (portrait) and the L1 row's photo button (a
@@ -472,6 +483,19 @@ internal fun CartographyScreen(
     }
     val showDraftsList = draftsListOpen && drafts.isNotEmpty()
 
+    val startNewEntry = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) }
+    // The L1 row's action on Entries' home, one remembered lambda per view, so publishing it to a caller that draws the row
+    // above (Amendment 1) changes that caller's state only when the view changes, never on every composition.
+    val latestStartNewEntry by rememberUpdatedState(startNewEntry)
+    val newEntryAction = remember<@Composable () -> Unit> { { ShortWindowNewEntryButton(onClick = { latestStartNewEntry() }) } }
+    val addPhotoAction = remember<@Composable () -> Unit>(albumPhotoAcquisition) {
+        { ShortWindowAddPhotoButton(onTakePhoto = albumPhotoAcquisition.launchCamera, onImport = albumPhotoAcquisition.launchGallery) }
+    }
+    val homeHeaderAction: @Composable () -> Unit = when (entriesViewState.value) {
+        EntriesViewMode.TIMELINE -> newEntryAction
+        EntriesViewMode.ALBUM -> addPhotoAction
+    }
+
     // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout J3, J4): Entries, the drafts list, and an
     // open entry's report and editor are a stack of pages. An opened page slides in from the right over the one beneath, and
     // Back (or the arrow) slides it out to the right, uncovering it (motion/PageSlide.kt). Each branch is the one this screen
@@ -484,12 +508,19 @@ internal fun CartographyScreen(
         showDraftsList -> EntriesPage.Drafts
         else -> EntriesPage.Home
     }
+    // Amendment 1: the action for the L1 row the caller draws above, the home's while home is the page, otherwise none. Written
+    // after composition, and only when it changes.
+    shortWindowHeaderAbove?.let { holder ->
+        val published: (@Composable () -> Unit)? = if (page == EntriesPage.Home) homeHeaderAction else null
+        SideEffect { if (holder.value !== published) holder.value = published }
+    }
+
     // The editor's "+ Add a photo from the Album" picker (scout J7), as a page over the editor. Its Back step closes it, as the
     // editor's own handler did when the editor drew it (entry-photo-acquisition dispatch, Item 3); composed only while it is the
     // page showing, after this screen's entry handler, so it wins.
     val pullPhotoPage: @Composable () -> Unit = {
         BackHandler(enabled = backEnabled) { entryPullingPhoto = false }
-        ShortWindowFrame(shortWindowHeader, action = null, modifier = Modifier) { contentModifier ->
+        ShortWindowFrame(headerHere, action = null, modifier = Modifier) { contentModifier ->
             PullPhotoPickerScreen(
                 photos = galleryPhotos,
                 onPhotoSelected = { photo -> onToggleKeptPhoto(photo.id); entryPullingPhoto = false },
@@ -504,7 +535,7 @@ internal fun CartographyScreen(
     // The drafts list (journal redesign J2, T2), with its own Back step: composed only while it is the page showing.
     val draftsPage: @Composable () -> Unit = {
         BackHandler(enabled = backEnabled) { draftsListOpen = false }
-        ShortWindowFrame(shortWindowHeader, action = null, modifier = Modifier) { contentModifier ->
+        ShortWindowFrame(headerHere, action = null, modifier = Modifier) { contentModifier ->
             DraftsListScreen(
                 drafts = uiState.draftEntries,
                 isLoading = uiState.isLoadingEntries,
@@ -548,7 +579,6 @@ internal fun CartographyScreen(
             draftsListOpen = true
         }
     }
-    val startNewEntry = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) }
     // J5, L3: the second row's hide-on-scroll state, fed by the content below it (nestedScroll).
     val secondRowScroll = rememberHideOnScrollState()
 
@@ -559,13 +589,9 @@ internal fun CartographyScreen(
             .then(if (shortWindow) Modifier.nestedScroll(secondRowScroll.connection) else Modifier),
     ) {
         if (shortWindowHeader != null) {
-            // J5, L1 and L2: the pinned row, with this view's action where the floating button was.
-            shortWindowHeader(
-                when (viewMode) {
-                    EntriesViewMode.TIMELINE -> { { ShortWindowNewEntryButton(onClick = startNewEntry) } }
-                    EntriesViewMode.ALBUM -> { { ShortWindowAddPhotoButton(onTakePhoto = albumPhotoAcquisition.launchCamera, onImport = albumPhotoAcquisition.launchGallery) } }
-                },
-            )
+            // J5, L1 and L2: the pinned row, with this view's action where the floating button was (drawn here unless the caller
+            // draws it above the pages, Amendment 1).
+            headerHere?.invoke(homeHeaderAction)
             // J5, L3: the drafts chip and the view toggle share one row, which hides while the
             // content scrolls down and returns on a scroll up.
             ShortWindowSecondRow(secondRowScroll) {
@@ -596,7 +622,11 @@ internal fun CartographyScreen(
         // row scrolls clear of it. The album draws its own "Add photo" button (EntriesAlbum's
         // AddPhotoButton, whose menu needs the album's photo launchers) with the same clearance.
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            when (viewMode) {
+            // Amendment 1 (RECORD -681, "Same rule everywhere"; scout J5): the album opens over the timeline, sliding in from the
+            // right, and Back (or the toggle) slides it out again. The toolbar above stays still; the floating button below
+            // belongs to the timeline and comes and goes with it, as before.
+            PageSlide(targetState = viewMode, depthOf = { it.ordinal }, modifier = Modifier.fillMaxSize()) { shownView ->
+            when (shownView) {
                 EntriesViewMode.TIMELINE -> CartographyEntryListScreen(
                     entries = uiState.entries,
                     isLoading = uiState.isLoadingEntries,
@@ -635,6 +665,7 @@ internal fun CartographyScreen(
                     showAddPhotoButton = !shortWindow,
                 )
             }
+            }
             if (viewMode == EntriesViewMode.TIMELINE && !shortWindow) {
                 // The content-lambda overload, not the (icon, text) one: under material3 1.5.0-alpha26
                 // the (icon, text) overload wraps its label in clearAndSetSemantics, so the button's
@@ -660,10 +691,10 @@ internal fun CartographyScreen(
         modifier = modifier.fillMaxSize(),
     ) { shown ->
         when (shown) {
-            is EntriesPage.Entry -> ShortWindowFrame(shortWindowHeader, action = null, modifier = Modifier) { contentModifier ->
+            is EntriesPage.Entry -> ShortWindowFrame(headerHere, action = null, modifier = Modifier) { contentModifier ->
                 entryDetail(shown.entry, shown.mode, contentModifier)
             }
-            EntriesPage.Loading -> ShortWindowFrame(shortWindowHeader, action = null, modifier = Modifier) { contentModifier ->
+            EntriesPage.Loading -> ShortWindowFrame(headerHere, action = null, modifier = Modifier) { contentModifier ->
                 Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }

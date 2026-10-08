@@ -624,6 +624,8 @@ internal fun JournalTab(
     // actions and the state they need); Records gets it from the RECORDS branch below. `null` in
     // portrait and in every window that is not short, which is exactly as before.
     val shortLandscape = isLandscapeJournal()
+    // Amendment 1: the action Entries puts in the L1 row's last slot, for the row drawn above the pages.
+    val cartographyHeaderAction = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
     // Any entry open, find or Cartography entry: the scaffold hides the search header then anyway
     // (its isEditingJournalEntry rule, the same two fields), so the row's search icon is left out.
     val journalEntryOpen = editing != null || cartographyUiState.editingEntry != null
@@ -683,6 +685,10 @@ internal fun JournalTab(
                     .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             )
         }
+        // Motion Part 3, Amendment 1 (RECORD -681; the owner: "Keep it still (Recommended)"): in a short window the L1 row, with
+        // the switch, is drawn here, above the pages, so it stays put while only the page below it slides. Entries hands up the
+        // action for the row's last slot (cartographyHeaderAction); Records has none (L2).
+        shortWindowHeader?.invoke(if (selectedTopTab == JournalTopTab.CARTOGRAPHY) cartographyHeaderAction.value else null)
 
         // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout J1, J2): Records, the right-hand side
         // of the switch and the page Back steps out of to Entries, slides in from the right over Entries, and slides out to the
@@ -747,6 +753,7 @@ internal fun JournalTab(
                 // J5: the L1 row (null outside a short landscape window), drawn by Entries itself
                 // with its own action; see CartographyScreen's shortWindowHeader.
                 shortWindowHeader = shortWindowHeader,
+                shortWindowHeaderAbove = if (shortLandscape) cartographyHeaderAction else null,
                 backEnabled = backEnabled,
                 mapBubbleSources = entryMapBubbleSources,
                 entryModeState = cartographyEntryModeState,
@@ -758,10 +765,9 @@ internal fun JournalTab(
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
             // the phone turns (plan L7: a rotation is not a recreation here, and a moved call site
-            // would drop its remember state); the L1 row sits above it only in a short window, with
-            // no action (portrait's Records has no floating button to move into it, L2).
+            // would drop its remember state). The L1 row that sat above it in a short window is drawn
+            // above the pages since motion Part 3's Amendment 1, with no action for Records (L2).
             JournalTopTab.RECORDS -> Column(modifier = Modifier.fillMaxSize()) {
-                shortWindowHeader?.invoke(null)
                 RecordsTab(
                     modifier = Modifier.weight(1f),
                     waypoints = waypoints,

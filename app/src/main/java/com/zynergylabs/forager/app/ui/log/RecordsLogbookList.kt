@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.ListRowShape
 import com.zynergylabs.forager.app.ui.motion.WordSwap
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
@@ -116,7 +117,7 @@ internal fun RecordsLogbookList(
     )
     // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt): a deleted track, waypoint or
     // offline map row fades and shrinks while the rows below close up, and Undo brings it back the way it went. A day whose last
-    // record goes leaves the same way, header and all. Find tiles still re-pair at once (scout R5; not in this part).
+    // record goes leaves the same way, header and all. Find tiles shrink and grow the same way (Amendment 1, scout R5).
     val dayRows = rememberListRows(days, key = { it.date })
     val now = currentTime.nowEpochMillis()
     // J4b L6: one open row at a time across the logbook; a touch elsewhere or a scroll closes it.
@@ -147,16 +148,24 @@ internal fun RecordsLogbookList(
           // One column per day, with the list's own spacing, so a leaving day shrinks as one block.
           Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             LogbookDayHeader(day)
-            day.finds.chunked(FIND_COLUMNS).forEach { pair ->
+            // Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout R5): a deleted find's tile fades and shrinks in
+            // place, and Undo grows it back; once it has gone the pairs re-pair. That re-pairing is still a jump: these rows are a
+            // plain column, with no placement glide (reported as a stop).
+            val findRows = rememberListRows(day.finds, key = { it.id })
+            findRows.chunked(FIND_COLUMNS).forEach { pair ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    pair.forEach { find ->
-                        Box(modifier = Modifier.weight(1f).testTag(logbookRowTag(RecordType.FINDS, find.id))) {
-                            FindTileWithOptions(entry = find, onClick = { onOpenFind(find.id) }, onEdit = onEditFind, onDelete = onDeleteFind)
-                            RecordTypeBadge(
-                                type = RecordType.FINDS,
-                                recordId = find.id,
-                                modifier = Modifier.align(Alignment.TopStart).padding(Spacing.xs),
-                            )
+                    pair.forEach { findRow ->
+                        Box(modifier = Modifier.weight(1f)) {
+                          ListRowMotion(findRow, shape = ListRowShape.TILE) { find ->
+                            Box(modifier = Modifier.testTag(logbookRowTag(RecordType.FINDS, find.id))) {
+                                FindTileWithOptions(entry = find, onClick = { onOpenFind(find.id) }, onEdit = onEditFind, onDelete = onDeleteFind)
+                                RecordTypeBadge(
+                                    type = RecordType.FINDS,
+                                    recordId = find.id,
+                                    modifier = Modifier.align(Alignment.TopStart).padding(Spacing.xs),
+                                )
+                            }
+                          }
                         }
                     }
                     repeat(FIND_COLUMNS - pair.size) { Spacer(modifier = Modifier.weight(1f)) }
