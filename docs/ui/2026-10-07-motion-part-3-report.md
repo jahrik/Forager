@@ -441,3 +441,48 @@ clean afterwards. Every one failed for its own reason:
 
 Pushed. Gradle is stopped.
 
+## RECORD -691: the go to fix, and the rebuild, 2026-10-08
+
+**Merge first.** `origin/main` at a71b57ac (data part B) merged in (da48afe8). One conflict, `docs/audits/README.md` (two rows,
+both kept); every code file merged on its own, and no logic was changed on both sides.
+
+**1. The album cases: cause confirmed.** The album button is remembered with no key and reads the launchers through
+`rememberUpdatedState` (`log/CartographyScreen.kt`). The three tests that never went idle now pass **unchanged**:
+`AvailabilityScreenJournalShortWindowTest` 26/26 and `JournalShortWindowCardsTest` 13/13.
+
+**2. F1: not fixed. Two fixes were tried, and both were measured and removed.** A diagnostic copy of the test (thrown away
+afterwards) logged, frame by frame after Back, which node had focus and whether the search dropdown's scrim was open:
+- **As first built** (no change): the find editor's field keeps focus for the whole slide out, 22 frames. On the frame the page
+  goes, focus moves to the search field (`active-search-summary`), and the dropdown opens on the next frame.
+- **Attempt 1**, clearing focus when a page starts to leave: focus lands on the search field in the first frame, and the
+  dropdown opens on the second.
+- **Attempt 2**, moving the focus to the slide's own container, which stays: the same as attempt 1, from the first frame.
+- So whenever focus leaves the editor while the search field is back above the Journal, focus ends on the search field. Before
+  this part the editor and the search field swapped in one composition. The comment at `AvailabilityCompactScaffold.kt`'s
+  `isEditingJournalEntry` records the same race from an earlier dispatch: a `clearFocus` while the search bar is back
+  "left it as the only focusable candidate". Both attempts are removed, and a note sits in their place in `PageSlide.kt`'s page frame.
+- **Under CLAUDE.md's two-failed-attempts rule this stops here.** The options are for the owner and planner:
+  - (a) hold the search bar back on the Journal until no Journal page is leaving;
+  - (b) have the search field open its dropdown only on a real tap, not on any focus;
+  - (c) let the find editor leave at once, without its slide.
+
+**3. Parts 1 and 2's leaving pieces now get no minimum touch target while they leave:** map pop-ups (`MapPopUp`), the compass strip,
+the navigation display, the strip's readout swap, the search dropdown, the leaving tab and the leaving bar or rail. Each is wrapped
+in `NoTouchTargetExpansion` with its own leaving flag.
+- **New test `availability/SmallLeavingChipTest`**: the 32 dp taxon chip, made to leave by a real tap on its clear button.
+  Long-presses on its label, and 4 dp below it, reach the map. It passes.
+- **But it does not bite.** Revert check R15 (the pop-up's wrapper turned off) still passed, so the test is labelled a pin, not
+  evidence for the change.
+- **Why it doesn't bite:** over the map, a touch near a small leaving pop-up is still a direct hit on the map beneath it, and a
+  direct hit wins over a near one. The gap shows only where nothing beneath takes the touch directly.
+- **That case is evidenced:** revert check R16, which turns the same wrapper off on list rows, failed `ListMotionTest`'s Entries
+  card case ("a leaving card opens nothing ... was [e-2]").
+- **So the Part 1 and 2 wrappers are a guard, not a fix of an observed failure.** No test here shows a map pop-up taking a touch
+  without them.
+- Revert checks R15 and R16 ran like the others: saved copy, compile log checked first (clean), only fresh XML read, the file
+  restored and its checksum matched.
+
+**Full suite:** 4,208 tests, 24 skipped, **1 failure**, all XML fresh from the run. The failure is
+`LeavingTheJournalFixesTest` F1, as above, untouched. `AvailabilityScreenSettingsPanelTest` passed. `./gradlew --stop` ran, and no
+Gradle or Kotlin daemon is left. Free disk stayed between 4.4 and 4.7 GB.
+
