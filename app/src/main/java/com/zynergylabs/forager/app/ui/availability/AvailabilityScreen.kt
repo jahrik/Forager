@@ -157,6 +157,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.CompositionLocalProvider
+import com.zynergylabs.forager.app.ui.log.LocalTrackDetailsFold
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -987,6 +988,10 @@ fun AvailabilityScreen(
     // `remember`, which leaves composition with the tab, so it reset. Held for the session only,
     // not across a restart (not asked for).
     var showDecimalDegrees by rememberSaveable { mutableStateOf(false) }
+    // Dispatch 2026-09-28-677 (data part B): whether the track sheet's "Details" fold is open, held here above every place
+    // that sheet opens (Records, a map bubble's Details, an entry report's track row), so it survives within a session
+    // (CLAUDE.md, UX defaults). One flag for every track's sheet. Not across a restart (not asked for).
+    val trackDetailsFoldOpen = rememberSaveable { mutableStateOf(false) }
     // Dispatch 2026-09-28-430 (plan task T22): whether the user has moved the map away from the
     // navigation view, and the "Return to Route" requests, held here above the tab so that leaving
     // the Maps tab and coming back keeps them (CLAUDE.md, UX defaults; the legend's flag above is
@@ -1824,7 +1829,7 @@ fun AvailabilityScreen(
     // draws its dot at, the same way the compass reaches them.
     val shownPosition = rememberShownPosition(uiState.liveFix, uiState.approximateFix, uiState.lastKnownFix, currentTime)
     val mapPosition = remember(shownPosition, liveFixForMaps) { MapPosition(shownPosition, liveFixForMaps) }
-    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass, LocalMapPosition provides mapPosition) {
+    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass, LocalMapPosition provides mapPosition, LocalTrackDetailsFold provides trackDetailsFoldOpen) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
