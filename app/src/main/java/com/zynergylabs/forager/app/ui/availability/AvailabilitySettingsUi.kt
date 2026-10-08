@@ -288,8 +288,9 @@ private enum class SettingsDrawerPage { SETTINGS, CRASH_LOGS, DIAGNOSTICS }
  *
  * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
  * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
- * pinned Street/Topographical to OpenStreetMap and added Satellite (USGS) as a third, always-on
- * option reachable only from the map's own [MapModePicker]. See [MapMode]'s own doc comment for the
+ * pinned Street/Topographical to OpenStreetMap and added Satellite (USGS) as a third option
+ * reachable only from the map's own [MapModePicker] (Satellite itself removed since, dispatch
+ * 2026-09-28-708). See [MapMode]'s own doc comment for the
  * full account of what this removed and why.
  *
  * **No longer has Offline Maps or Recorded Tracks entries.** Journal restructure Stage 1 moved

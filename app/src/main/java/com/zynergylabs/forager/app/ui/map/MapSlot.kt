@@ -51,10 +51,9 @@ data class MapRenderMode(
     val basemap: Basemap,
     /**
      * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
-     * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; the offline style is recoloured with
-     * the same transform after it loads. Every overlay marker follows it too, on every basemap,
-     * Satellite included: markers draw from `MapPalette.forMode` of this flag (colour build C2), so
-     * over Satellite only the markers switch. Not the device's dark theme, and deliberately not derived from it —
+     * `NIGHT_RASTER_PAINT`); the offline style is recoloured with the same transform after it loads.
+     * Every overlay marker follows it too: markers draw from `MapPalette.forMode` of this flag (colour
+     * build C2). Not the device's dark theme, and deliberately not derived from it —
      * see `MapPalette` for why that was tried, measured and abandoned.
      */
     val night: Boolean = false,
@@ -64,7 +63,11 @@ data class MapRenderMode(
      * night one rather than a day style the asynchronous preference read might never correct.
      *
      * `true` by default, and only the main map passes the real flag (`AvailabilityScreen`'s
-     * `mapRenderMode`, from `AvailabilityUiState.nightModeMapsLoaded`), by the planner's ruling. The
+     * `mapRenderMode`, from `AvailabilityUiState.nightModeMapsLoaded`), by the planner's ruling. Since
+     * dispatch 2026-09-28-708 the main map's flag also waits for the stored basemap
+     * (`AvailabilityUiState.mapMode`), so a restored Street is not preceded by a frame of the default
+     * Topographical. The name still says night, for the first half of what it waits for; renaming it
+     * across `SightingsMap`, `requestedMapStyle` and their tests was left out as churn. The
      * centre-pin pickers and the Cartography entry map keep the default: each sits behind user
      * navigation, so the preference is assumed to have loaded by the time one is reached. That is an
      * inference, not an observation; it is a device item in
