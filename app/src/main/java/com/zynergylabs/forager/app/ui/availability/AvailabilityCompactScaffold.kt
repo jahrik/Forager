@@ -1119,7 +1119,7 @@ internal fun CompactMainScaffold(
                                 // before what's drawn on top"). Its term was held out under continuation -303 only while the
                                 // Robolectric harness reopened the dropdown after it closed, which the focus fix
                                 // (appClearFocusInProgress) ended. The taxon suggestions list is still not here.
-                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen() && !isMapFullscreen() && !showSearchDropdown),
+                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen() && !isMapFullscreen() && !showSearchDropdown, leavingTab = tab != compactTab()),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
                                 mapLayers = mapLayers,

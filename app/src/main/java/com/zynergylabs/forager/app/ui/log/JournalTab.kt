@@ -570,7 +570,16 @@ internal fun JournalTab(
             FindsPage.Gallery -> Unit
         }
     }
-    val findsList: @Composable ColumnScope.() -> Unit = {
+    // RECORD -753 (the owner: "Yes, match Entries (Recommended)"): in a short landscape window "New find" moves into the L1 row, as
+    // Entries moves "New entry" there. The gallery says whether its Log tab is showing (the button belongs to Log, as the floating
+    // one does); the row's action is built below from that. Only the gallery in Records' Finds slot writes it, never the find
+    // over the view, which shows a find, not the gallery.
+    val findsLogShownInRecords = remember { mutableStateOf(false) }
+    val startNewFind: () -> Unit = {
+        mode = JournalEntryMode.EDIT
+        onStartEntry(null, LocalDate.now())
+    }
+    val findsList: @Composable ColumnScope.(inRecords: Boolean) -> Unit = { inRecords ->
         FindsGalleryScreen(
             entries = uiState.entries,
             draftEntries = uiState.draftEntries,
@@ -587,10 +596,9 @@ internal fun JournalTab(
                 mode = JournalEntryMode.EDIT
                 onOpenEntry(id)
             },
-            onAddEntry = {
-                mode = JournalEntryMode.EDIT
-                onStartEntry(null, LocalDate.now())
-            },
+            onAddEntry = startNewFind,
+            // RECORD -753: in a short landscape window, no floating button; the L1 row carries "New find" instead.
+            newFindInHeader = if (inRecords && isLandscapeJournal()) findsLogShownInRecords else null,
             modifier = Modifier.weight(1f),
             loadErrorMessage = uiState.loadErrorMessage,
             // J4b L1: a tile's long-press menu. Delete is the report's own pending delete (J4);
@@ -602,7 +610,7 @@ internal fun JournalTab(
     // One page stack for both places the Finds section is drawn (Records' Finds slot, and the find over the view below), each
     // with its own slide. [page] is what it shows: the current page, or for the find over the view as it slides away, the page it
     // last showed.
-    val findsPages: @Composable ColumnScope.(FindsPage) -> Unit = { page ->
+    val findsPages: @Composable ColumnScope.(FindsPage, Boolean) -> Unit = { page, inRecords ->
         PageSlide(
             targetState = page,
             depthOf = { it.depth },
@@ -610,11 +618,11 @@ internal fun JournalTab(
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) { shown ->
             Column(modifier = Modifier.fillMaxSize()) {
-                if (shown == FindsPage.Gallery) findsList() else findsDetail(shown)
+                if (shown == FindsPage.Gallery) findsList(inRecords) else findsDetail(shown)
             }
         }
     }
-    val findsSection: @Composable ColumnScope.() -> Unit = { findsPages(findsPage) }
+    val findsSection: @Composable ColumnScope.() -> Unit = { findsPages(findsPage, true) }
 
     fun selectTopTab(tab: JournalTopTab) {
         // Leaving Records mid-find-edit for Entries is an incidental exit — see this composable's
@@ -692,8 +700,18 @@ internal fun JournalTab(
         }
         // Motion Part 3, Amendment 1 (RECORD -681; the owner: "Keep it still (Recommended)"): in a short window the L1 row, with
         // the switch, is drawn here, above the pages, so it stays put while only the page below it slides. Entries hands up the
-        // action for the row's last slot (cartographyHeaderAction); Records has none (L2).
-        shortWindowHeader?.invoke(if (selectedTopTab == JournalTopTab.CARTOGRAPHY) cartographyHeaderAction.value else null)
+        // action for the row's last slot (cartographyHeaderAction); Records had none (L2) until RECORD -753 gave Finds "New find" (recordsHeaderAction).
+        // RECORD -753: on Records, "New find" while the Finds gallery shows its Log tab, the same way Entries' "New entry" is there
+        // while its timeline shows; nothing on Records' other chips, on Drafts, or while a find is open.
+        val recordsHeaderAction: (@Composable () -> Unit)? =
+            if (selectedTopTab == JournalTopTab.RECORDS && journalState.recordsFilter == RecordsSubTab.FINDS &&
+                findsPage == FindsPage.Gallery && findOverView == null && findsLogShownInRecords.value
+            ) {
+                { ShortWindowNewFindButton(onClick = startNewFind) }
+            } else {
+                null
+            }
+        shortWindowHeader?.invoke(if (selectedTopTab == JournalTopTab.CARTOGRAPHY) cartographyHeaderAction.value else recordsHeaderAction)
 
         // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout J1, J2): Records, the right-hand side
         // of the switch and the page Back steps out of to Entries, slides in from the right over Entries, and slides out to the
@@ -774,7 +792,7 @@ internal fun JournalTab(
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
             // the phone turns (plan L7: a rotation is not a recreation here, and a moved call site
             // would drop its remember state). The L1 row that sat above it in a short window is drawn
-            // above the pages since motion Part 3's Amendment 1, with no action for Records (L2).
+            // above the pages since motion Part 3's Amendment 1, with "New find" in it on the Finds gallery (RECORD -753; L2 had none for Records).
             JournalTopTab.RECORDS -> Column(modifier = Modifier.fillMaxSize()) {
                 RecordsTab(
                     modifier = Modifier.weight(1f),
@@ -851,7 +869,7 @@ internal fun JournalTab(
     SlideOverPage(visible = findOverViewVisible) {
         Surface(modifier = Modifier.fillMaxSize().testTag(FIND_OVER_VIEW_TAG)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                findsPages(if (findOverViewVisible) findsPage else overViewPageHeld[0] ?: FindsPage.Gallery)
+                findsPages(if (findOverViewVisible) findsPage else overViewPageHeld[0] ?: FindsPage.Gallery, false)
             }
         }
     }

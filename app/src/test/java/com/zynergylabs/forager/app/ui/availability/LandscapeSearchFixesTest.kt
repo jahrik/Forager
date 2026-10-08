@@ -342,6 +342,90 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         assertEquals("the bar ends where the strip begins", strip.left.value, bar.right.value, 0.5f)
     }
 
+    // ── RECORD -754 (dispatch 2026-09-28-755, item 1): the bar stays put while the dropdown is open ──
+
+    /**
+     * The owner, on an S26 landscape screenshot: "I see that the entire bar gets larger along with the corresponding panel"; the
+     * ruling, "Bar stays put, panel hangs below (Recommended)". With the dropdown open, and again with a docked keyboard up (the
+     * phone's state once the field has focus), the bar keeps its closed bounds, the strip's height, ending at the join, and the
+     * panel starts flush beneath it.
+     */
+    private fun assertBarStaysPut(rotation: Int, long: Boolean) {
+        setScreenThenTurn(rotation) { if (long) pickLongSpecies() }
+        val closed = bounds(SEARCH_ENTRY_BAR_TAG)
+        val strip = bounds(STRIP_TAG)
+        assertEquals("positive control: closed, the bar is the strip's height", (strip.bottom - strip.top).value, (closed.bottom - closed.top).value, 0.5f)
+        rig.tapBar()
+        assertTrue("positive control: the bar's tap opened the dropdown", rig.dropdownShown())
+        for (state in listOf("open", "open with a docked keyboard")) {
+            if (state != "open") keyboard(180.dp, visible = true)
+            val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+            val stripNow = bounds(STRIP_TAG)
+            val divider = bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG)
+            val panel = bounds(SEARCH_DROPDOWN_TAG)
+            println("MEASURED -754 $landscape rotation $rotation long=$long $state: closed ${closed.d()}, bar ${bar.d()}, strip ${stripNow.d()}, divider ${divider.d()}, panel ${panel.d()}")
+            assertEquals("$state: the bar keeps its closed top", closed.top.value, bar.top.value, 0.5f)
+            assertEquals("$state: the bar keeps its closed height, the strip's", (closed.bottom - closed.top).value, (bar.bottom - bar.top).value, 0.5f)
+            assertEquals("$state: the bar keeps its closed left edge", closed.left.value, bar.left.value, 0.5f)
+            assertEquals("$state: the bar keeps its closed right edge", closed.right.value, bar.right.value, 0.5f)
+            assertEquals("$state: the strip is where it was", strip, stripNow)
+            if (rotation == Surface.ROTATION_90) {
+                assertEquals("$state: the bar ends where the strip begins", stripNow.left.value, bar.right.value, 0.5f)
+            } else {
+                assertEquals("$state: the bar begins where the strip ends", stripNow.right.value, bar.left.value, 0.5f)
+            }
+            assertEquals("$state: the panel hangs flush beneath the bar", divider.bottom.value, panel.top.value, 0.5f)
+        }
+    }
+
+    /** Back to the portrait window, as the phone turned upright (the same Activity, as on the phone). */
+    private fun turnToPortrait() {
+        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_0)
+        composeRule.activityRule.scenario.onActivity { RuntimeEnvironment.setQualifiers(portrait) }
+        rig.settle()
+        val w = window()
+        assertTrue("positive control: portrait again (window ${w.d()})", (w.bottom - w.top) > (w.right - w.left))
+    }
+
+    /**
+     * RECORD -754, the owner's reproduction on build 1.0.3103 (S26, ROTATION_90): after turning from portrait to landscape the bar
+     * kept a portrait-sized box, taller than the strip and reaching the window's centre rather than the join. A first turn is
+     * fine (the tests above); this is a turn into landscape after the phone had already been in landscape and back.
+     */
+    private fun assertSecondTurn(rotation: Int) {
+        setScreenThenTurn(rotation)
+        val firstBar = bounds(SEARCH_ENTRY_BAR_TAG)
+        turnToPortrait()
+        turn(rotation)
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        val strip = bounds(STRIP_TAG)
+        println("MEASURED -754 second turn $landscape rotation $rotation: first bar ${firstBar.d()}, bar ${bar.d()}, strip ${strip.d()}")
+        assertEquals("the bar is the strip's height after the second turn", (strip.bottom - strip.top).value, (bar.bottom - bar.top).value, 0.5f)
+        if (rotation == Surface.ROTATION_90) {
+            assertEquals("the bar ends where the strip begins after the second turn", strip.left.value, bar.right.value, 0.5f)
+        } else {
+            assertEquals("the bar begins where the strip ends after the second turn", strip.right.value, bar.left.value, 0.5f)
+        }
+        assertEquals("the bar is where the first turn put it", firstBar, bar)
+        rig.tapBar()
+        assertTrue("positive control: the bar's tap opened the dropdown", rig.dropdownShown())
+        val open = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertEquals("open, the bar stays put", bar, open)
+        assertEquals("open, the panel hangs flush beneath it", bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG).bottom.value, bounds(SEARCH_DROPDOWN_TAG).top.value, 0.5f)
+    }
+
+    @Test fun `754 at ROTATION_90 after a second turn into landscape the bar meets the strip, closed and open`() = assertSecondTurn(Surface.ROTATION_90)
+
+    @Test fun `754 at ROTATION_270 after a second turn into landscape the bar meets the strip, closed and open`() = assertSecondTurn(Surface.ROTATION_270)
+
+    @Test fun `754 at ROTATION_90 with a short summary the open bar stays put`() = assertBarStaysPut(Surface.ROTATION_90, long = false)
+
+    @Test fun `754 at ROTATION_270 with a short summary the open bar stays put`() = assertBarStaysPut(Surface.ROTATION_270, long = false)
+
+    @Test fun `754 at ROTATION_90 with a long summary the open bar stays put`() = assertBarStaysPut(Surface.ROTATION_90, long = true)
+
+    @Test fun `754 at ROTATION_270 with a long summary the open bar stays put`() = assertBarStaysPut(Surface.ROTATION_270, long = true)
+
     private companion object {
         const val STRIP_TAG = "compass-elevation-strip"
     }

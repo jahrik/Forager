@@ -19,6 +19,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -287,6 +289,8 @@ fun SightingsMap(
     route: RouteOnMap? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraMemory]'s own doc comment. */
     cameraMemory: MapCameraMemory? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.leavingTab]'s own doc comment. */
+    leavingTab: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionEndInset]'s own doc comment. */
     attributionEndInset: Dp = 0.dp,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionBottomInset]'s own doc comment. */
@@ -446,6 +450,40 @@ fun SightingsMap(
     // "which style is currently applied" (appliedStyle, below) because this is what the data
     // effect keys on: a new Style object means new (empty) sources that need their content pushed.
     var loadedStyle by remember { mutableStateOf<Style?>(null) }
+
+    // RECORD -761 (the owner: "Picture cover, this build (Recommended)"): a map coming back to the Maps tab draws the picture the
+    // leaving map took of itself over its own first frames, until it has drawn a full frame of its own (MapReturnCover.kt, whose
+    // header has the why, the when-not and the cost). Decided once, as this MapView is made; every outcome is logged.
+    val coverPicture = remember {
+        val memory = cameraMemory
+        val cover = memory?.takeCover()
+        val decision = coverDecision(
+            pictureCamera = cover?.camera,
+            saved = memory?.saved,
+            target = region to focusOverride,
+            searchFrameRequestId = searchFrameRequestId,
+            appliedSearchFrameId = memory?.appliedSearchFrameId ?: 0,
+            cameraRequestPending = cameraRequest != null,
+        )
+        if (memory != null) {
+            Log.i(MAPS_COMEBACK_LOG_TAG, "cover: $decision" + (if (decision == CoverDecision.SHOW) "" else "; the map draws itself as before"))
+        }
+        if (decision == CoverDecision.SHOW) {
+            cover!!.bitmap.asImageBitmap()
+        } else {
+            cover?.bitmap?.recycle()
+            null
+        }
+    }
+    var coverPhase by remember { mutableStateOf(if (coverPicture != null) CoverPhase.COVERING else CoverPhase.GONE) }
+    LaunchedEffect(Unit) {
+        if (coverPicture == null) return@LaunchedEffect
+        delay(MAP_COVER_READY_CAP_MS)
+        if (coverPhase == CoverPhase.COVERING) {
+            Log.w(MAPS_COMEBACK_LOG_TAG, "cover: no full frame within $MAP_COVER_READY_CAP_MS ms; handed over anyway")
+            coverPhase = CoverPhase.HANDED_OVER
+        }
+    }
     // The marker fan-out (dispatch 2026-09-28-197): its state, and the tap handler that opens and folds it,
     // which exists once the map is ready (getMapAsync below).
     val fanOut = remember { MarkerFanOutState() }
@@ -581,6 +619,24 @@ fun SightingsMap(
         mapView.addOnDidFailLoadingMapListener { message ->
             Log.w(SIGHTINGS_MAP_TAG, "MapLibre failed to load the map style: $message")
         }
+        // RECORD -752 (dispatch 2026-09-28-755, item 4): logging only, to find the S22's blank and magnified frame on a return
+        // to Maps. The first few frames this MapView renders, with its size and camera then; the restore's own logs are below.
+        // A MapView cannot run under Robolectric, so this is read from the phone's logcat (MAPS_COMEBACK_LOG_TAG).
+        val firstFramesLogged = intArrayOf(0)
+        val frameLogger = MapView.OnDidFinishRenderingFrameListener { fully, _, _ ->
+            // RECORD -761: the first full frame after the style has loaded (the camera was restored before it) takes over from
+            // the cover.
+            if (fully && loadedStyle != null && coverPhase == CoverPhase.COVERING) {
+                coverPhase = CoverPhase.HANDED_OVER
+                Log.i(MAPS_COMEBACK_LOG_TAG, "cover: handed over at the first full frame, zoom=${mapLibreMap?.cameraPosition?.zoom}")
+            }
+            if (firstFramesLogged[0] < MAPS_COMEBACK_FRAMES_LOGGED) {
+                firstFramesLogged[0]++
+                val camera = mapLibreMap?.cameraPosition
+                Log.i(MAPS_COMEBACK_LOG_TAG, "frame ${firstFramesLogged[0]} fully=$fully view=${mapView.width}x${mapView.height} render=${mapView.renderView.width}x${mapView.renderView.height} zoom=${camera?.zoom} target=${camera?.target} style=${loadedStyle != null}")
+            }
+        }
+        mapView.addOnDidFinishRenderingFrameListener(frameLogger)
         mapView.getMapAsync { map ->
             // Marker fan-out (dispatch 2026-09-28-197): the tap is decided by MapTapHandler, which is the
             // resolution this listener used to do inline (resolveTap over every tappable layer, a point
@@ -740,7 +796,7 @@ fun SightingsMap(
             map.uiSettings.isCompassEnabled = false
             mapLibreMap = map
         }
-        onDispose { }
+        onDispose { mapView.removeOnDidFinishRenderingFrameListener(frameLogger) }
     }
 
     // Style swap: basemap, palette, the offline style (Stage 2e-ii), or effective night (colour
@@ -803,7 +859,11 @@ fun SightingsMap(
         // does), and the tracking mode (so the zoom-in does not run). Only on this MapView's first
         // style; a later style swap keeps its own camera, as before.
         val cameraRestore = cameraRestoreFor(if (appliedStyle == null) currentCameraMemory?.saved else null, previousCameraMode)
-        cameraRestore?.let { cameraMoveClassifier.markAppMove(); applyCameraRestore(map, it) }
+        cameraRestore?.let {
+            Log.i(MAPS_COMEBACK_LOG_TAG, "restore before the style: view=${mapView.width}x${mapView.height} to zoom=${it.zoom} target=${it.target} (camera was zoom=${map.cameraPosition.zoom})")
+            cameraMoveClassifier.markAppMove()
+            applyCameraRestore(map, it)
+        }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
@@ -837,6 +897,7 @@ fun SightingsMap(
             // Item 4: again once the style has loaded, in case a style's own default camera replaced it,
             // and the region target recorded before loadedStyle wakes the data+camera effect below.
             cameraRestore?.let {
+                Log.i(MAPS_COMEBACK_LOG_TAG, "restore on the style load: view=${mapView.width}x${mapView.height}, camera was zoom=${map.cameraPosition.zoom} target=${map.cameraPosition.target}")
                 cameraMoveClassifier.markAppMove()
                 applyCameraRestore(map, it)
                 lastAppliedCameraTarget = it.appliedTarget
@@ -1252,6 +1313,41 @@ fun SightingsMap(
     MarkerFanOutHost(fanOut)
     MarkerFanOutBackHandler(fanOut, bubbleOpen = focusedObservationId != null || focusedFeature != null, backEnabled = backEnabled)
 
+    // RECORD -761: as the tab starts to leave, the picture the map coming back will draw over itself. MapLibre's own snapshot
+    // (its GL surface; the map is a SurfaceView, which a Compose capture cannot read), with the camera it shows.
+    LaunchedEffect(leavingTab) {
+        if (!leavingTab) return@LaunchedEffect
+        val memory = currentCameraMemory ?: return@LaunchedEffect
+        val map = mapLibreMap
+        if (map == null || loadedStyle == null) {
+            Log.i(MAPS_COMEBACK_LOG_TAG, "cover: no picture taken, the map had not loaded")
+            return@LaunchedEffect
+        }
+        map.snapshot { bitmap ->
+            val camera = map.cameraPosition
+            val target = camera.target
+            if (target == null) {
+                Log.w(MAPS_COMEBACK_LOG_TAG, "cover: picture dropped, the camera had no target")
+                bitmap.recycle()
+            } else {
+                memory.keepCover(
+                    MapCover(
+                        bitmap,
+                        MapCameraSnapshot(
+                            target = LatLng(target.latitude, target.longitude),
+                            zoom = camera.zoom,
+                            bearing = camera.bearing,
+                            tilt = camera.tilt,
+                            following = map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE,
+                            appliedTarget = lastAppliedCameraTarget,
+                        ),
+                    ),
+                )
+                Log.i(MAPS_COMEBACK_LOG_TAG, "cover: picture kept, ${bitmap.width}x${bitmap.height} at zoom=${camera.zoom}")
+            }
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
             factory = {
@@ -1324,6 +1420,23 @@ fun SightingsMap(
                 }
                 .onViewportResized { mapView.post { mapLibreMap?.let(::reanchorFocusedBubble) } },
         )
+        // RECORD -761: the cover, over the map and under everything else; no pointer input, so touches reach the map.
+        if (coverPicture != null && coverPhase != CoverPhase.GONE) {
+            MapReturnCoverLayer(
+                picture = coverPicture,
+                handedOver = coverPhase == CoverPhase.HANDED_OVER,
+                onGone = {
+                    coverPhase = CoverPhase.GONE
+                    Log.i(MAPS_COMEBACK_LOG_TAG, "cover: gone, picture released")
+                },
+                modifier = Modifier.onSizeChanged {
+                    if (coverPhase == CoverPhase.COVERING && (it.width != coverPicture.width || it.height != coverPicture.height)) {
+                        Log.w(MAPS_COMEBACK_LOG_TAG, "cover: window ${it.width}x${it.height} is not the picture's ${coverPicture.width}x${coverPicture.height}; dropped")
+                        coverPhase = CoverPhase.GONE
+                    }
+                },
+            )
+        }
         // The always-visible attribution line CopyrightOverlay used to draw directly onto the
         // osmdroid MapView. MapLibre has its own tap-to-reveal attribution control
         // (UiSettings.isAttributionEnabled, on by default) built from each style source's own
@@ -1651,6 +1764,15 @@ internal fun searchFrameMove(isGpsTracking: Boolean, requestId: Int, lastApplied
 
 /** RECORD -750, item 5: the log tag for a search frame applied, so a device check can read it. */
 internal const val SEARCH_FRAME_LOG_TAG = "ForagerSearchFrame"
+
+/** RECORD -761: where a returning map's cover is. */
+private enum class CoverPhase { COVERING, HANDED_OVER, GONE }
+
+/** RECORD -752: logcat tag for a map's first frames and its camera restore on a return to Maps (logging only). */
+internal const val MAPS_COMEBACK_LOG_TAG = "ForagerMapsComeback"
+
+/** RECORD -752: how many of a new MapView's first rendered frames are logged. */
+private const val MAPS_COMEBACK_FRAMES_LOGGED = 8
 
 internal fun shouldApplyCameraRequest(
     isGpsTracking: Boolean,
