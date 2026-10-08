@@ -125,49 +125,42 @@ internal const val COMPASS_STRIP_ELEVATION_TAG = "compass-strip-elevation"
 /** The compass strip's coordinates, the tap that switches their format (dispatch 2026-09-28-685, Amendment 2). */
 internal const val COMPASS_STRIP_COORDINATES_TAG = "compass-strip-coordinates"
 
-/**
- * The narrowest a facing or altitude readout is drawn before it drops out of the strip (dispatch 2026-09-28-685,
- * Amendment 2, RECORD -699): about a short label and "…". Chosen, not measured on a phone.
- */
-internal val STRIP_READOUT_MIN_WIDTH = 48.dp
 
-/** Which of the strip's two readouts are drawn beside its coordinates; see [stripReadoutsShown]. */
-internal data class StripReadoutsShown(val heading: Boolean, val elevation: Boolean)
+/** What [readoutsFitBeside] keeps: whether the readouts' labels are drawn, and which readouts are. */
+internal data class ReadoutsFit(val labels: Boolean, val shown: List<Boolean>)
 
 /**
- * Which readouts the strip draws in [availablePx] (dispatch 2026-09-28-685, Amendment 2; the owner: "Coordinates take
- * priority (Recommended)"). The coordinates always stay, measured first. What is left after them is for the readouts, each
- * with its separator ([separatorPx], the dot and its two gaps). Both stay when each can have at least [minimumPx] (they
- * shorten with "…" if they cannot have their whole width); with room for one, facing drops and altitude stays; with room
- * for neither, both drop.
+ * RECORD -713 (the owner: "Drop labels, then values (Recommended)"), for the strip and the navigation display's second row
+ * alike. Replaces the earlier rule (readoutsKeptBeside, which shortened them with "…"; deleted with RECORD -714) in both places. The coordinates are measured first and stay
+ * whole. Then, in order, the first arrangement that fits whole is kept:
+ * every readout with its label; every readout without labels ("315° NW · 9843 ft · grid ref"); then readouts dropped from
+ * the front (facing first, then altitude), still without labels; then none. A readout is never cut and never ends in "…".
+ *
+ * [labelsPx] is each readout's label with its gap (0 for one that names itself, "Compass unavailable"); [valuesPx] its
+ * value. Each readout kept costs one [separatorPx] (the dot and its gaps): one before the coordinates when there are any
+ * ([withCoordinates]), else one between readouts. [coordinatesPx] is 0 with no coordinates.
  */
-internal fun stripReadoutsShown(
+internal fun readoutsFitBeside(
     availablePx: Int,
     coordinatesPx: Int,
-    headingPx: Int,
-    elevationPx: Int,
+    labelsPx: List<Int>,
+    valuesPx: List<Int>,
     separatorPx: Int,
-    minimumPx: Int,
-): StripReadoutsShown {
-    val kept = readoutsKeptBeside(availablePx, coordinatesPx, listOf(headingPx, elevationPx), separatorPx, minimumPx)
-    return StripReadoutsShown(heading = kept[0], elevation = kept[1])
-}
-
-/**
- * The general rule behind [stripReadoutsShown], shared with the navigation display's second row (dispatch
- * 2026-09-28-685, the planner's extension of Amendment 2, RECORD -699): coordinates first and whole, then the readouts
- * ([readoutsPx], in the order they give way, facing first), each with its separator. The fewest readouts are dropped,
- * from the front, so that each one kept can have at least [minimumPx] (or its own width, if narrower).
- */
-internal fun readoutsKeptBeside(availablePx: Int, coordinatesPx: Int, readoutsPx: List<Int>, separatorPx: Int, minimumPx: Int): List<Boolean> {
-    val left = availablePx.toLong() - coordinatesPx
-    for (dropped in 0..readoutsPx.size) {
-        val kept = readoutsPx.drop(dropped)
-        if (left - kept.size.toLong() * separatorPx >= kept.sumOf { minOf(it, minimumPx).toLong() }) {
-            return List(readoutsPx.size) { it >= dropped }
-        }
+    withCoordinates: Boolean = true,
+): ReadoutsFit {
+    val n = valuesPx.size
+    fun fits(labels: Boolean, dropped: Int): Boolean {
+        val kept = (dropped until n)
+        val separators = if (withCoordinates) kept.count() else (kept.count() - 1).coerceAtLeast(0)
+        val needed = coordinatesPx.toLong() + separators.toLong() * separatorPx +
+            kept.sumOf { valuesPx[it].toLong() + if (labels) labelsPx[it].toLong() else 0L }
+        return needed <= availablePx
     }
-    return List(readoutsPx.size) { false }
+    if (fits(labels = true, dropped = 0)) return ReadoutsFit(labels = true, shown = List(n) { true })
+    for (dropped in 0..n) {
+        if (fits(labels = false, dropped = dropped)) return ReadoutsFit(labels = false, shown = List(n) { it >= dropped })
+    }
+    return ReadoutsFit(labels = false, shown = List(n) { false })
 }
 
 /**
@@ -416,6 +409,17 @@ internal fun CompassElevationStrip(
      * the readout; `null` draws nothing and the strip is the height it was.
      */
     sundownLine: String? = null,
+    /**
+     * Back by's line (dispatch 2026-09-28-645): "Back by 3:30 PM", on its own line under the sundown
+     * line, in the last hour before the time ([backByLineText]); `null` draws nothing.
+     */
+    backByLine: String? = null,
+    /**
+     * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 to 3): the three-dot button at
+     * the strip's far right, [MapQuickSettingsButton]. `null` draws no button, and the strip is the
+     * height it was.
+     */
+    quickSettings: MapQuickSettings? = null,
 ) {
     val reading by heading
     CompassElevationStripContent(
@@ -429,6 +433,8 @@ internal fun CompassElevationStrip(
         contentWidth = contentWidth,
         positionNote = positionNote?.value,
         sundownLine = sundownLine,
+        backByLine = backByLine,
+        quickSettings = quickSettings,
     )
 }
 
@@ -461,6 +467,8 @@ private fun CompassElevationStripContent(
     contentWidth: Boolean = false,
     positionNote: PositionNote? = null,
     sundownLine: String? = null,
+    backByLine: String? = null,
+    quickSettings: MapQuickSettings? = null,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -493,9 +501,23 @@ private fun CompassElevationStripContent(
                 .testTag("compass-elevation-strip")
                 .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
+            // Dispatch 2026-09-28-645 (Amendment 2, the owner: "Taller strip (Recommended)"; Amendment 3,
+            // RECORD -648: "a 3 dot menu at the far right", 36 dp): a Row so the quick-settings button
+            // sits at the strip's far right, its whole QUICK_SETTINGS_TAP_TARGET square within the
+            // strip's own height: the strip is at least that tall, and nothing hangs over the map. The
+            // Row draws nothing and takes no touches; the button takes them in its own square. Its place
+            // follows the strip, not the screen (RECORD -649, the owner: "far right in the strip").
+            Row(
+                modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
             // Dispatch 2026-09-28-592: a Column so the sundown line can sit under the readout. It draws
             // nothing and takes no touches of its own, like the Box around it.
-            Column(modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth()) {
+            // RECORD -709 (the planner): in a landscape window the strip is content-width under the small fixes' cap, and this
+            // column took all of it before the button was measured, leaving the three-dot button 0 dp wide at 780 x 360 dp. Weighted,
+            // not filling, it is measured after the button, which always keeps its QUICK_SETTINGS_TAP_TARGET; the readouts then give
+            // way inside what is left (readoutsFitBeside), coordinates first.
+            Column(modifier = if (contentWidth) Modifier.weight(1f, fill = false) else Modifier.weight(1f)) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
                 // hardware-caught bug an unbounded-height descendant caused here previously; nothing
@@ -630,10 +652,10 @@ private fun CompassElevationStripContent(
                             // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
                             // Dispatch 2026-09-28-685, Amendment 2 (RECORD -699; the owner: "Coordinates take priority
                             // (Recommended)"): when the strip runs short, the facing and altitude readouts give way first,
-                            // shortening with "…" and then dropping out, and the coordinates stay whole. Measured here, in the
-                            // width this row is offered, by stripReadoutsShown; the coordinates are measured first (no weight)
-                            // and the two readouts share what is left (weight, not filling). Facing drops before altitude: the
-                            // needle beside it still shows the direction.
+                            // shortening with "…" and then dropping out, and the coordinates stay whole. Since RECORD -713 the
+                            // shortening is gone: labels drop first, then facing, then altitude, each shown value whole. Measured
+                            // here, in the width this row is offered, by readoutsFitBeside; the coordinates are measured first.
+                            // Facing drops before altitude: the needle beside it still shows the direction.
                             val readoutStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
                             val readoutLabelStyle = MaterialTheme.typography.labelMedium
                             val readoutMeasurer = rememberTextMeasurer()
@@ -645,26 +667,19 @@ private fun CompassElevationStripContent(
                             BoxWithConstraints(contentAlignment = Alignment.Center) {
                                 val density = LocalDensity.current
                                 fun widthOf(text: String, style: TextStyle) = readoutMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
-                                fun labelled(label: String?, text: String) =
-                                    (label?.let { widthOf(it, readoutLabelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0) + widthOf(text, readoutStyle)
-                                val headingPx = labelled(headingLabel, headingText)
-                                val elevationPx = labelled(elevationLabel, elevationText)
+                                fun labelPx(label: String?) = label?.let { widthOf(it, readoutLabelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0
                                 val availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE
                                 val coordinatesPx = widthOf(coordinatesText, readoutStyle)
                                 val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.sm.roundToPx() }
-                                val shown = stripReadoutsShown(
+                                // RECORD -713 (the owner: "Drop labels, then values (Recommended)"): labels go first, then facing,
+                                // then altitude; whatever is shown is whole. See readoutsFitBeside.
+                                val fit = readoutsFitBeside(
                                     availablePx = availablePx,
                                     coordinatesPx = coordinatesPx,
-                                    headingPx = headingPx,
-                                    elevationPx = elevationPx,
+                                    labelsPx = listOf(labelPx(headingLabel), labelPx(elevationLabel)),
+                                    valuesPx = listOf(widthOf(headingText, readoutStyle), widthOf(elevationText, readoutStyle)),
                                     separatorPx = separatorPx,
-                                    minimumPx = with(density) { STRIP_READOUT_MIN_WIDTH.roundToPx() },
                                 )
-                                // Everything whole: no weights at all, so a rounded share can never cut a readout that fits.
-                                val allWhole = availablePx.toLong() - coordinatesPx - 2L * separatorPx >= headingPx.toLong() + elevationPx
-                                // Weighted by their own widths, so the room left after the coordinates is shared in proportion:
-                                // whole when it is enough, each shortened alike when it is not (equal weights would cut the
-                                // longer one while the shorter left part of its half unused).
                             Row(
                                 // Landscape B2 (S4): no weight when content-width.
                                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
@@ -681,9 +696,9 @@ private fun CompassElevationStripContent(
                                 // Dispatch 2026-09-28-677 (the owner, RECORD -656: "heading and altitude labelled"): each
                                 // reading after its short label, as on the navigation display (LabelledReadout); a status
                                 // ("Compass unavailable", "Elevation unavailable") names itself and has none.
-                                if (shown.heading) {
-                                    Box(modifier = if (allWhole) Modifier else Modifier.weight(headingPx.coerceAtLeast(1).toFloat(), fill = false)) {
-                                        LabelledReadout(label = headingLabel) {
+                                if (fit.shown[0]) {
+                                    Box {
+                                        LabelledReadout(label = headingLabel.takeIf { fit.labels }) {
                                             WordSwap(text = headingText) { shownText ->
                                                 Text(
                                                     text = shownText,
@@ -701,9 +716,9 @@ private fun CompassElevationStripContent(
                                     Text("·", style = readoutLabelStyle)
                                 }
                                 // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
-                                if (shown.elevation) {
-                                    Box(modifier = if (allWhole) Modifier else Modifier.weight(elevationPx.coerceAtLeast(1).toFloat(), fill = false)) {
-                                        LabelledReadout(label = elevationLabel) {
+                                if (fit.shown[1]) {
+                                    Box {
+                                        LabelledReadout(label = elevationLabel.takeIf { fit.labels }) {
                                             WordSwap(text = elevationText) { shownText ->
                                                 Text(
                                                     text = shownText,
@@ -743,8 +758,8 @@ private fun CompassElevationStripContent(
             // Unlike the map's pop-ups this grow is laid out, not drawn: the strip's own background has to grow with it. The
             // strip takes no touch outside its coordinates (the Box's comment above), so the growing band moves no touch;
             // what reads the strip's height (the notice below the bar, the fan's keep-out) follows it frame by frame. Item 6:
-            // a change in its words crossfades, a change in its times alone does not. The Back by line is not on this branch
-            // (dispatch: left to a later merge).
+            // a change in its words crossfades, a change in its times alone does not. The Back by line below does the same
+            // (merged in with dispatch 2026-09-28-645).
             val sundownLineShown = rememberLastShown(sundownLine)
             val reduceMotion = LocalReduceMotion.current
             val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
@@ -776,10 +791,46 @@ private fun CompassElevationStripContent(
                     }
                 }
             }
+            // Back by's line (dispatch 2026-09-28-645; RECORD -687), under the sundown line, with the same pop-up grow and
+            // word crossfade as the line above, so the two behave alike when either window opens or closes.
+            val backByLineShown = rememberLastShown(backByLine)
+            AnimatedVisibility(
+                visible = backByLine != null,
+                enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top),
+                exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top),
+                label = "stripBackByLine",
+            ) {
+                backByLineShown?.let { line ->
+                    WordSwap(
+                        text = line,
+                        modifier = Modifier
+                            .padding(horizontal = Spacing.sm)
+                            .then(if (contentWidth) Modifier else Modifier.fillMaxWidth()),
+                        contentAlignment = Alignment.Center,
+                    ) { shownLine ->
+                        Text(
+                            text = shownLine,
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                                .testTag(STRIP_BACK_BY_LINE_TAG),
+                        )
+                    }
+                }
+            }
+            }
+            if (quickSettings != null) MapQuickSettingsButton(quickSettings)
             }
         }
     }
 }
+
+/** The strip's back-by line (dispatch 2026-09-28-645). */
+internal const val STRIP_BACK_BY_LINE_TAG = "strip-back-by-line"
+
 
 /**
  * The Return control's icon (dispatch 2026-09-28-497, plan task T7): an X in a circle while
