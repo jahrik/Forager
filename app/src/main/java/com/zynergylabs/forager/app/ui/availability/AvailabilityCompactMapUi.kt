@@ -632,6 +632,7 @@ internal fun CompactMapTab(
             // AvailabilityScreen since dispatch 2026-09-28-422, so it also survives this tab
             // unmounting on a tab change; it used to reset then.
             val compassStripTextMeasurer = rememberTextMeasurer()
+            val chromeLayoutDirection = LocalLayoutDirection.current
             // Dispatch 2026-09-28-592: the phone's clock format for the sundown line, in the strip and the HUD.
             val sundownClock = rememberSundownClock()
             val compassStripLabelStyle = MaterialTheme.typography.labelMedium
@@ -930,6 +931,8 @@ internal fun CompactMapTab(
                         Modifier
                             .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                             .padding(controlsPadding)
+                            // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): never wider than the room beside the search bar.
+                            .besideLandscapeSearchBar(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
                     } else {
                         Modifier
                             .align(Alignment.TopCenter)
@@ -1071,6 +1074,8 @@ internal fun CompactMapTab(
                         Modifier
                             .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                             .padding(controlsPadding)
+                            // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): never wider than the room beside the search bar.
+                            .besideLandscapeSearchBar(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
                             .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
                             .fillMaxWidth()
                     } else {
