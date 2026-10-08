@@ -270,7 +270,8 @@ internal fun accuracyLabel(accuracyMeters: Int?, unitSystem: UnitSystem): String
 
 /**
  * Why no window was found, stated specifically with the numbers behind it — never a bare "none
- * found" (CLAUDE.md: partial or empty results are reported as such).
+ * found" (CLAUDE.md: partial or empty results are reported as such). Dates read "Oct 7, 2026"
+ * since data part C (dispatch -668, the owner's choice in RECORD -656); they were "MMM d".
  */
 internal fun noTripWindowMessage(report: TripWindowReport, unitSystem: UnitSystem): String = when (val reason = report.noWindowReason) {
     is NoTripWindowReason.NoQualifyingRainEvent ->
@@ -279,12 +280,12 @@ internal fun noTripWindowMessage(report: TripWindowReport, unitSystem: UnitSyste
             "wettest run reached ${formatRainfall(reason.largestRunTotalMm, unitSystem, metricDecimals = 0)}."
 
     is NoTripWindowReason.LagRangeOutsideHorizon ->
-        "The most recent qualifying rain ended ${TRIP_WINDOW_DATE_FORMAT.format(reason.mostRecentEventEnd)}. " +
+        "The most recent qualifying rain ended ${displayDate(reason.mostRecentEventEnd)}. " +
             "The ${FruitingPatternAssumptions.FRUITING_LAG_DAYS.first}–" +
             "${FruitingPatternAssumptions.FRUITING_LAG_DAYS.last} day window it points to is " +
-            "${TRIP_WINDOW_DATE_FORMAT.format(reason.lagRangeStart)}–" +
-            "${TRIP_WINDOW_DATE_FORMAT.format(reason.lagRangeEnd)}, past the " +
-            "${TRIP_WINDOW_DATE_FORMAT.format(reason.horizonEnd)} horizon this search plans within."
+            "${displayDate(reason.lagRangeStart)} – " +
+            "${displayDate(reason.lagRangeEnd)}, past the " +
+            "${displayDate(reason.horizonEnd)} horizon this search plans within."
 
     is NoTripWindowReason.NoForecastDays ->
         "No forecast days were returned for this location, so there's nothing to plan against."
