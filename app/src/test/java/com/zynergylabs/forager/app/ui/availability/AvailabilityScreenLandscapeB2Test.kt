@@ -101,7 +101,7 @@ class AvailabilityScreenLandscapeB2Test {
     /** Bumped to hand the screen a new [Configuration] object, so it re-reads the display's rotation (a turn from 90 to 270). */
     private var configurationTick by mutableStateOf(0)
 
-    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = B2_SEARCHED_STATE, isReturning: Boolean = false, now: Long = B2_DAY_NOW) {
+    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = B2_SEARCHED_STATE, isReturning: Boolean = false, now: Long = B2_DAY_NOW, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider? = null) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             val base = LocalConfiguration.current
@@ -116,7 +116,7 @@ class AvailabilityScreenLandscapeB2Test {
             }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
                 rotationSeenByScreen = LocalView.current.display?.rotation
-                B2Screen(uiState = uiState, mapSlot = map.slot, isReturning = isReturning, now = now)
+                B2Screen(uiState = uiState, mapSlot = map.slot, isReturning = isReturning, now = now, compassProvider = compassProvider)
             }
         }
         composeRule.waitForIdle()
@@ -340,7 +340,10 @@ class AvailabilityScreenLandscapeB2Test {
 
     @Test
     fun `S5 in landscape the strip's heading, elevation and coordinate text use tabular figures`() {
-        setScreen(Surface.ROTATION_90, B2_FIX_STATE)
+        // RECORD -735: with no compass, the landscape heading slot shows the crossed-out compass, which has no figures, so this
+        // half is given a fixed compass and checks the heading value's figures. The claim is unchanged; only the setup gains a
+        // compass. (The portrait half has none: there the heading reads "Compass unavailable", text in the same style.)
+        setScreen(Surface.ROTATION_90, B2_FIX_STATE, compassProvider = B2FixedCompass)
         assertStripTextUsesTabularFigures(composeRule)
     }
 
@@ -781,13 +784,62 @@ private class B2RecordingMapSlot {
 }
 
 @Composable
-private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long = B2_DAY_NOW) {
+private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long = B2_DAY_NOW, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider? = null) {
+    if (compassProvider != null) {
+        B2ScreenWith(uiState, mapSlot, isReturning, now, compassProvider)
+        return
+    }
     AvailabilityScreen(
         // A pinned clock: the HUD's sundown line follows it (RECORD -621).
         currentTime = { now },
         uiState = uiState,
         isRecording = isReturning,
         isReturning = isReturning,
+        onUseCurrentLocation = {},
+        onManualLatChanged = {},
+        onManualLngChanged = {},
+        onSearchManualCoordinates = {},
+        onRadiusChanged = {},
+        onMonthSelected = {},
+        onMapTabSelected = {},
+        onSeasonalTabSelected = {},
+        onTaxonSearchQueryChanged = {},
+        onTaxonSearchResultSelected = {},
+        onDismissTaxonSuggestions = {},
+        onReopenTaxonSuggestions = {},
+        onPlaceTripPin = { _, _, _ -> },
+        onDeletePlannedTrip = {},
+        onRecentSearchSelected = {},
+        onOfflineMapLatChanged = {},
+        onOfflineMapLngChanged = {},
+        onOfflineMapRadiusChanged = {},
+        onOfflineMapNameChanged = {},
+        onOfflineMapsOpened = {},
+        onDownloadOfflineMaps = {},
+        onDeleteOfflineRegion = {},
+        onNightModeMapsChanged = {},
+        onThemeModeChanged = {},
+        mapSlot = mapSlot,
+    )
+}
+
+/** RECORD -735: a fixed 315 degree compass with tight uncertainty, so the strip shows a heading value. */
+private object B2FixedCompass : com.zynergylabs.forager.app.domain.CompassProvider {
+    override val heading: kotlinx.coroutines.flow.Flow<com.zynergylabs.forager.app.domain.CompassReading?> =
+        kotlinx.coroutines.flow.MutableStateFlow(
+            com.zynergylabs.forager.app.domain.CompassReading(315f, com.zynergylabs.forager.app.domain.HeadingUncertainty.Estimated(2f), 0L),
+        )
+}
+
+/** [B2Screen] with a [compassProvider] (RECORD -735); otherwise the same arguments. */
+@Composable
+private fun B2ScreenWith(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider) {
+    AvailabilityScreen(
+        currentTime = { now },
+        uiState = uiState,
+        isRecording = isReturning,
+        isReturning = isReturning,
+        compassProvider = compassProvider,
         onUseCurrentLocation = {},
         onManualLatChanged = {},
         onManualLngChanged = {},
