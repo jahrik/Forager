@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import android.Manifest
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -32,7 +33,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -423,13 +423,13 @@ internal fun CartographyEntryReportScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    IconButton(onClick = onBack) {
+                    BouncingIconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Cartography")
                     }
                     Text(formatEntryDate(entry.date), style = MaterialTheme.typography.titleMedium)
                 }
                 Box {
-                    IconButton(onClick = { menuExpanded = true }) {
+                    BouncingIconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = "Entry options")
                     }
                     // The menu's default container role, passed explicitly, and its content colour

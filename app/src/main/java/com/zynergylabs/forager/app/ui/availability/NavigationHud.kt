@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import com.zynergylabs.forager.app.domain.hasArrived
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,7 +18,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -320,7 +321,7 @@ internal fun NavigationHud(
                             modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
                         )
                     }
-                    IconButton(
+                    BouncingIconButton(
                         onClick = onExit,
                         modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),
                     ) {
@@ -351,7 +352,7 @@ internal fun NavigationHud(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable(onClick = onToggleCoordinateFormat)
+                                .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
                                 .padding(vertical = Spacing.xs)
                                 .testTag(NAVIGATION_HUD_COORDINATES_TAG),
                         )
@@ -390,7 +391,7 @@ private fun RouteRetryRow(onRetryRoute: () -> Unit) {
     Row(
         modifier = Modifier
             .heightIn(min = RETRY_ROW_MIN_HEIGHT)
-            .clickable(role = Role.Button, onClickLabel = ROUTE_RETRY_TEXT, onClick = onRetryRoute)
+            .clickableWithShapedPress(role = Role.Button, onClickLabel = ROUTE_RETRY_TEXT, onClick = onRetryRoute)
             .testTag(NAVIGATION_HUD_RETRY_TAG),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),

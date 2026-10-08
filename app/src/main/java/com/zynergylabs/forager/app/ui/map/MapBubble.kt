@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -21,7 +22,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -226,7 +226,7 @@ internal fun MapBubbleShell(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp), content = content)
-                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp).testTag(closeTag)) {
+                BouncingIconButton(onClick = onDismiss, modifier = Modifier.size(24.dp).testTag(closeTag)) {
                     Icon(Icons.Filled.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
                 }
             }

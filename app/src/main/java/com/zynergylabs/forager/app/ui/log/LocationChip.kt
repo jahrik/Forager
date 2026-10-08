@@ -1,9 +1,12 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.IconSwap
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,11 +37,16 @@ internal fun LocationChip(
     displayRotation: Int,
 ) {
     val glyph = locationGlyph(autoSaveLocationToPhotos)
-    IconButton(
+    BouncingIconButton(
         onClick = { onAutoSaveLocationToPhotosChanged(!autoSaveLocationToPhotos) },
-        modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_LOCATION_CHIP_TAG),
+        modifier = Modifier
+            .rotateWithDevice(deviceRotation, displayRotation)
+            .testTag(CAMERA_LOCATION_CHIP_TAG)
+            .semantics { contentDescription = glyph.label },
     ) {
-        OverlayIcon(glyph.icon, contentDescription = glyph.label)
+        // Motion Part 1 (dispatch 2026-09-28-652 item 5, with Amendment 1, RECORD -657): the glyph crossfades with a slight grow.
+        // The label is on the button, because both glyphs are composed for the length of the swap.
+        IconSwap(targetState = glyph.icon) { icon -> OverlayIcon(icon, contentDescription = null) }
     }
 }
 

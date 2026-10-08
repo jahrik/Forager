@@ -19,6 +19,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,7 +57,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.JournalEntriesMapChip
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import androidx.compose.animation.core.animate
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -113,6 +119,7 @@ import com.zynergylabs.forager.app.ui.map.focusedObservationId
 import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -189,6 +196,9 @@ internal class MapIconClusterState(
 
     /** Horizontal drag accumulated only during a gesture, read at its end to decide a side flip, then reset. */
     var horizontalDragPx by mutableFloatStateOf(0f)
+
+    /** The glide from the finger to the cluster's side after a drag (motion Part 1, item 6). See [ClusterGlide]. */
+    val glide = ClusterGlide()
 
     /** The map pane's real measured height and top in the root, written by the caller's content box: what the clamps are against. */
     var mapContentBoxHeightPx by mutableFloatStateOf(0f)
@@ -447,16 +457,53 @@ internal fun BoxScope.MapIconCluster(
     // started with, so a turn (portrait to landscape, or 90 to 270) must restart it or a
     // drag would write through the previous orientation's position and side. Constant
     // in portrait (both null), so portrait behaves as the Unit key did.
+    // Motion Part 1 (dispatch 2026-09-28-652, item 6; scout B14, B15; the owner, RECORD -651: "Glide to its side", and back when
+    // released short). Before, a release moved the cluster from the finger to its edge in one frame. Now **where it takes touches
+    // moves exactly as before**, in that one frame, and only what is drawn glides there: the layout lands at once and a draw-only
+    // translation ([clusterGlideDraw]) starts the drawing at the finger and runs it to the layout. A draw translation is not part
+    // of hit testing, so nothing sweeps across the map catching touches mid-glide (the dispatch's condition). The handle side and
+    // the landscape pill's button order change the moment the finger lifts, so it glides there already in its new order and
+    // every touch is as it always was throughout (Amendment 1, RECORD -657, the owner: "At release"). Under reduced motion the
+    // cluster moves at once, as before.
+    val reduceMotionNow by rememberUpdatedState(LocalReduceMotion.current)
+    val glideSpec = MotionTokens.navigationMotionSpec<Float>()
+    fun startGlide() {
+        val glide = state.glide
+        glide.job?.cancel()
+        // Set now, in the same snapshot as the release, so the first frame after it already draws the cluster at the finger.
+        glide.remaining = 1f
+        glide.job = mapIconBarOffsetScope.launch {
+            try {
+                animate(initialValue = 1f, targetValue = 0f, animationSpec = glideSpec) { value, _ -> glide.remaining = value }
+            } finally {
+                // Landed, or cut short by a new drag: either way it is drawn where it is laid out. Only if this is still the
+                // current glide: a glide replaced by the next release must not reset the one that replaced it.
+                if (glide.job === coroutineContext[Job]) glide.remaining = 0f
+            }
+        }
+    }
+    // The release, as it always was (a side change past the threshold on a drag's end, none on a cancel), plus the glide.
+    fun release(commitSide: Boolean) {
+        val from = state.glide.leftInRootPx(minimized = state.isMinimized)
+        val glides = !reduceMotionNow && state.horizontalDragPx != 0f && from != null
+        if (commitSide) {
+            when {
+                state.horizontalDragPx <= -mapIconBarSideSnapThresholdPx -> state.isOnLeftSide = true
+                state.horizontalDragPx >= mapIconBarSideSnapThresholdPx -> state.isOnLeftSide = false
+            }
+        }
+        state.horizontalDragPx = 0f
+        if (glides && from != null) {
+            state.glide.fromLeftInRootPx = from
+            startGlide()
+        }
+    }
     val mapIconBarDragModifier = Modifier.pointerInput(state.railPortEdge, state.punchHoleEdge) {
         detectDragGesturesAfterLongPress(
-            onDragEnd = {
-                when {
-                    state.horizontalDragPx <= -mapIconBarSideSnapThresholdPx -> state.isOnLeftSide = true
-                    state.horizontalDragPx >= mapIconBarSideSnapThresholdPx -> state.isOnLeftSide = false
-                }
-                state.horizontalDragPx = 0f
-            },
-            onDragCancel = { state.horizontalDragPx = 0f },
+            // A new drag takes the cluster from wherever it is drawn: any glide still running ends where its layout already is.
+            onDragStart = { state.glide.job?.cancel() },
+            onDragEnd = { release(commitSide = true) },
+            onDragCancel = { release(commitSide = false) },
         ) { change, dragAmount ->
             change.consume()
             state.horizontalDragPx += dragAmount.x
@@ -542,7 +589,8 @@ internal fun BoxScope.MapIconCluster(
             .align(mapIconBarSideAlignment)
             .padding(controlsPadding)
             .then(mapIconBarPositionOffset)
-            .then(mapIconBarCentreShiftOffset),
+            .then(mapIconBarCentreShiftOffset)
+            .clusterGlideDraw(state.glide, minimized = true),
     ) {
         MapIconBarRestoreHandle(
             onRestore = { state.isMinimized = false },
@@ -560,7 +608,8 @@ internal fun BoxScope.MapIconCluster(
             .align(mapIconBarSideAlignment)
             // Landscape B1: clear of the overlaid rail and the cut-out band.
             .padding(controlsPadding)
-            .then(mapIconBarPositionOffset),
+            .then(mapIconBarPositionOffset)
+            .clusterGlideDraw(state.glide, minimized = false),
     ) {
         Box {
             // Feeds both drag clamps above — see state.clusterHeightPx's own doc comment. Measured on the container (the portrait
@@ -658,6 +707,43 @@ private fun LandscapeLCluster(onLeftSide: Boolean, bar: @Composable () -> Unit, 
 
 /** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
 internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
+
+/**
+ * The cluster's glide after a drag (motion Part 1, dispatch 2026-09-28-652 item 6; scout B14, B15). Holds no layout: the
+ * cluster is laid out where it belongs the moment the finger lifts, as it always was, and [clusterGlideDraw] draws it from
+ * [fromLeftInRootPx] (where it was under the finger) to that layout as [remaining] runs from 1 to 0.
+ */
+internal class ClusterGlide {
+    /** How much of the glide is still to run: 1 at the finger, 0 landed (and whenever none is running). On the cluster's own navigation spec. */
+    var remaining by mutableFloatStateOf(0f)
+
+    /** The running glide, cancelled by a new drag. */
+    internal var job: Job? = null
+
+    /** The glided box's left edge in the root when the finger lifted. */
+    var fromLeftInRootPx = 0f
+
+    internal var clusterCoordinates: LayoutCoordinates? = null
+    internal var handleCoordinates: LayoutCoordinates? = null
+
+    /** The left edge in the root of whichever box is showing: the restore handle's while [minimized], the cluster's otherwise. */
+    fun leftInRootPx(minimized: Boolean): Float? =
+        (if (minimized) handleCoordinates else clusterCoordinates)?.takeIf { it.isAttached }?.positionInRoot()?.x
+}
+
+/**
+ * Draws this box translated from where [glide] started to where it is laid out, by the part of the glide still to run. Drawing
+ * only: hit testing follows the layout, so the box takes touches where it lands from the first frame, exactly as before the
+ * glide existed, and never along the way. Records the box's coordinates for [ClusterGlide.leftInRootPx].
+ */
+private fun Modifier.clusterGlideDraw(glide: ClusterGlide, minimized: Boolean): Modifier = this
+    .onPlaced { coordinates -> if (minimized) glide.handleCoordinates = coordinates else glide.clusterCoordinates = coordinates }
+    .drawWithContent {
+        val remaining = glide.remaining
+        val at = (if (minimized) glide.handleCoordinates else glide.clusterCoordinates)?.takeIf { it.isAttached }
+        val dx = if (remaining == 0f || at == null) 0f else (glide.fromLeftInRootPx - at.positionInRoot().x) * remaining
+        translate(left = dx) { this@drawWithContent.drawContent() }
+    }
 
 /**
  * The two one-shot Toasts the map's controls raise, shared by the phone's Maps tab and the tablet's map: a
