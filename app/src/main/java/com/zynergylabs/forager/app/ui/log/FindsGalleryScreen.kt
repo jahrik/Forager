@@ -46,13 +46,12 @@ import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.IntOffset
 import com.zynergylabs.forager.app.ui.format.displayDate
-import com.zynergylabs.forager.app.ui.format.displayTime
 import com.zynergylabs.forager.app.ui.format.is24HourClock
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.ui.platform.testTag
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 
 /**
  * Records' Finds submenu — **one implementation, responsive layout**, restoring the same "one
@@ -275,7 +274,7 @@ internal fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Mo
  * [FindTile] with a long-press menu (J4b L1): the same tile, whose card takes the tap and the
  * long-press on one node ([tileClickable]), inside a [LongPressOptionsBox] offering Edit and Delete.
  * With no [onDelete] it is [FindTile] exactly, so a caller that gives no delete (`LogPanel`) is
- * unchanged. The long-click reads "Options for <the tile's title>" ([findTileTitle]).
+ * unchanged. The long-click reads "Options for <the tile's title>" ([findTitle]), or for its screen-reader label when blank.
  */
 @Composable
 internal fun FindTileWithOptions(
@@ -291,7 +290,7 @@ internal fun FindTileWithOptions(
         return
     }
     LongPressOptionsBox(
-        longClickLabel = "Options for ${findTileTitle(entry, is24HourClock())}",
+        longClickLabel = "Options for ${findTitle(entry, is24HourClock()) ?: findBlankTitleLabel(entry)}",
         onEdit = onEdit?.let { edit -> { edit(entry.id) } },
         onDelete = { onDelete(entry.id) },
         modifier = modifier,
@@ -309,31 +308,6 @@ internal fun FindTileWithOptions(
         }
     }
 }
-
-/**
- * A find tile's caption (data part D; the owner, RECORD -656: "keep the name they gave on the tile instead of the date", and for
- * an unnamed find "Time it was found (Recommended)", for example "Found 2:14 PM"). The name is the find's own identification,
- * the one name a user gives a find ([MushroomLogEntry.ownIdentification], never app-generated), so the tile never names a
- * species the user did not pick. The date is the heading above the tile.
- *
- * **A find stores no time of day** ([MushroomLogEntry.foundOn] is a date). The time used is the earliest of its photos' own
- * times that falls on [MushroomLogEntry.foundOn] in [zone] ([foundTimeMillis]); a photo from another day (an import) is not
- * taken as the time it was found. A find with no such photo shows [UNNAMED_FIND_NO_TIME], **a placeholder** pending the
- * owner's answer to this part's stop (docs/ui/2026-10-07-search-order-report.md, Amendment 3).
- */
-internal fun findTileTitle(entry: MushroomLogEntry, is24HourClock: Boolean, zone: ZoneId = ZoneId.systemDefault()): String =
-    entry.ownIdentification?.takeIf { it.isNotBlank() }
-        ?: foundTimeMillis(entry, zone)?.let { "Found ${displayTime(it, is24HourClock, zone)}" }
-        ?: UNNAMED_FIND_NO_TIME
-
-/** The earliest of [entry]'s photo times that falls on its [MushroomLogEntry.foundOn] in [zone], or `null` when none does. */
-internal fun foundTimeMillis(entry: MushroomLogEntry, zone: ZoneId = ZoneId.systemDefault()): Long? =
-    entry.photos.mapNotNull { it.createdAtEpochMillis }
-        .filter { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == entry.foundOn }
-        .minOrNull()
-
-/** An unnamed find's tile when no time is known. A placeholder pending the owner (see [findTileTitle]). */
-internal const val UNNAMED_FIND_NO_TIME = "Unnamed find"
 
 /** What a find tile draws inside its card: the cover photo or placeholder, then the caption. */
 @Composable
@@ -368,11 +342,16 @@ private fun FindTileBody(entry: MushroomLogEntry, isDraft: Boolean) {
                 }
             }
             Column(modifier = Modifier.padding(Spacing.sm)) {
+                // Data part D (RECORD -702, -703): the find's name, or the time it was found, or nothing ([findTitle]). A blank
+                // title keeps its line, so tiles in a row stay the same height, and says "Find, <date>" to a screen reader.
+                val title = findTitle(entry, is24HourClock())
+                val blankLabel = findBlankTitleLabel(entry)
                 Text(
-                    findTileTitle(entry, is24HourClock()),
+                    title ?: "",
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = if (title == null) Modifier.semantics { contentDescription = blankLabel } else Modifier,
                 )
                 // Owner ruling, 2026-09-13: no "Incomplete" badge any more. It read from the seven
                 // morphology fields, which the edit form no longer offers, so it described fields

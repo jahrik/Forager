@@ -1096,3 +1096,90 @@ val MIGRATION_18_19: Migration = object : Migration(18, 19) {
         db.execSQL("ALTER TABLE `cached_searches_new` RENAME TO `cached_searches`")
     }
 }
+
+/**
+ * Version 19 to 20: nullable `foundAtEpochMillis` on `mushroom_log_entries`, when a find was found (data part D, dispatch
+ * 2026-09-28-697 Amendment 4, RECORD -703; the owner: "Option 1, but keep it blank instead of showing "Unnamed find""). Written
+ * when a find is created ([com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase]) and read by the find's title
+ * (`ui/log/FindTitles.kt`). Every existing row gets `NULL`: no time of day is known for it, and the title then falls back to the
+ * find's earliest photo of the day, else nothing.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_12_13] records and 17 to 18 and 18 to 19
+ * followed: [MushroomLogEntryEntity] is declared directly by the `LegacyForagerDatabaseVn` fixtures, so their generated tables
+ * already carry this column and an `ADD COLUMN` would fail on them; the explicit source column list below ignores it there. The
+ * two indexes are recreated because `DROP TABLE` takes them with it. No `@ForeignKey` points at this table (this database
+ * declares none), so nothing else is touched. Version 20 was checked against every branch on the remote (only
+ * `guidance-text`, at 19, above `main`'s 18; no `MIGRATION_19_*` anywhere) on 2026-10-08 before being claimed; re-check at build.
+ */
+val MIGRATION_19_20: Migration = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `mushroom_log_entries_new` (
+            `id` TEXT NOT NULL,
+            `lat` REAL,
+            `lng` REAL,
+            `foundOn` TEXT NOT NULL,
+            `entryNotes` TEXT NOT NULL,
+            `ownIdentification` TEXT,
+            `syncStateKind` TEXT NOT NULL,
+            `syncProgress` REAL,
+            `syncRemoteObservationId` TEXT,
+            `syncUploadedAtEpochMillis` INTEGER,
+            `syncFailureReason` TEXT,
+            `capShape` TEXT,
+            `capSurface` TEXT,
+            `capDecorationsState` TEXT NOT NULL,
+            `capDecorationsValue` TEXT,
+            `capMargin` TEXT,
+            `capNotes` TEXT NOT NULL,
+            `hymenophoreKind` TEXT,
+            `gillAttachment` TEXT,
+            `gillSpacing` TEXT,
+            `gillEdge` TEXT,
+            `hymenophoreNotes` TEXT NOT NULL,
+            `stipeKind` TEXT,
+            `stipePosition` TEXT,
+            `stipeInterior` TEXT,
+            `stipeBase` TEXT,
+            `stipeNotes` TEXT NOT NULL,
+            `annulusState` TEXT NOT NULL,
+            `annulusValue` TEXT,
+            `volvaState` TEXT NOT NULL,
+            `volvaValue` TEXT,
+            `veilNotes` TEXT NOT NULL,
+            `fleshTexture` TEXT,
+            `colorChangeState` TEXT NOT NULL,
+            `colorChangeValue` TEXT,
+            `exudateState` TEXT NOT NULL,
+            `exudateValue` TEXT,
+            `contextFleshNotes` TEXT NOT NULL,
+            `sporePrintColorKind` TEXT,
+            `sporePrintOtherText` TEXT,
+            `sporePrintReadOn` TEXT,
+            `sporePrintNotes` TEXT NOT NULL,
+            `associationKind` TEXT,
+            `associationHostSpecies` TEXT,
+            `associationOtherText` TEXT,
+            `forestType` TEXT,
+            `hostHealth` TEXT,
+            `hostSubstrateNotes` TEXT NOT NULL,
+            `offlineRegionId` INTEGER,
+            `isDraft` INTEGER NOT NULL,
+            `draftOfEntryId` TEXT,
+            `foundAtEpochMillis` INTEGER,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `mushroom_log_entries_new` (`id`, `lat`, `lng`, `foundOn`, `entryNotes`, `ownIdentification`, `syncStateKind`, `syncProgress`, `syncRemoteObservationId`, `syncUploadedAtEpochMillis`, `syncFailureReason`, `capShape`, `capSurface`, `capDecorationsState`, `capDecorationsValue`, `capMargin`, `capNotes`, `hymenophoreKind`, `gillAttachment`, `gillSpacing`, `gillEdge`, `hymenophoreNotes`, `stipeKind`, `stipePosition`, `stipeInterior`, `stipeBase`, `stipeNotes`, `annulusState`, `annulusValue`, `volvaState`, `volvaValue`, `veilNotes`, `fleshTexture`, `colorChangeState`, `colorChangeValue`, `exudateState`, `exudateValue`, `contextFleshNotes`, `sporePrintColorKind`, `sporePrintOtherText`, `sporePrintReadOn`, `sporePrintNotes`, `associationKind`, `associationHostSpecies`, `associationOtherText`, `forestType`, `hostHealth`, `hostSubstrateNotes`, `offlineRegionId`, `isDraft`, `draftOfEntryId`, `foundAtEpochMillis`)
+            SELECT `id`, `lat`, `lng`, `foundOn`, `entryNotes`, `ownIdentification`, `syncStateKind`, `syncProgress`, `syncRemoteObservationId`, `syncUploadedAtEpochMillis`, `syncFailureReason`, `capShape`, `capSurface`, `capDecorationsState`, `capDecorationsValue`, `capMargin`, `capNotes`, `hymenophoreKind`, `gillAttachment`, `gillSpacing`, `gillEdge`, `hymenophoreNotes`, `stipeKind`, `stipePosition`, `stipeInterior`, `stipeBase`, `stipeNotes`, `annulusState`, `annulusValue`, `volvaState`, `volvaValue`, `veilNotes`, `fleshTexture`, `colorChangeState`, `colorChangeValue`, `exudateState`, `exudateValue`, `contextFleshNotes`, `sporePrintColorKind`, `sporePrintOtherText`, `sporePrintReadOn`, `sporePrintNotes`, `associationKind`, `associationHostSpecies`, `associationOtherText`, `forestType`, `hostHealth`, `hostSubstrateNotes`, `offlineRegionId`, `isDraft`, `draftOfEntryId`, NULL FROM `mushroom_log_entries`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `mushroom_log_entries`")
+        db.execSQL("ALTER TABLE `mushroom_log_entries_new` RENAME TO `mushroom_log_entries`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_offlineRegionId` ON `mushroom_log_entries` (`offlineRegionId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_foundOn` ON `mushroom_log_entries` (`foundOn`)")
+    }
+}

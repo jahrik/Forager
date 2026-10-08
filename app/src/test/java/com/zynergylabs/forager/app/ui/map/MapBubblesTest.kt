@@ -156,13 +156,13 @@ class MapBubblesTest {
     // Content per kind (B3).
 
     @Test
-    fun `a find shows its identification, its date and its cover photo, an unnamed one its date as the title, and a record gone from its list nothing`() {
+    fun `a find shows its identification, its date and its cover photo, an unnamed one with no time no title but its date line and the tile's label, and a record gone from its list nothing`() {
         assertEquals(
             MapBubbleContent.Find("find-1", "Chanterelle", "Find on Sep 12, 2026", "photos/ph-1.jpg"),
             mapBubbleContentFor(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-1"), sources, is24HourClock = false),
         )
         assertEquals(
-            MapBubbleContent.Find("find-2", "Find on Sep 12, 2026", null, null),
+            MapBubbleContent.Find("find-2", null, "Find on Sep 12, 2026", null, blankTitleLabel = "Find, Sep 12, 2026"),
             mapBubbleContentFor(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-2"), sources, is24HourClock = false),
         )
         // A record no longer in its list (a delete landed, a list reloaded) has no bubble.

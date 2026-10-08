@@ -155,6 +155,11 @@ class TrackRecordingViewModel(
     /** The zone the auto-created origin/end waypoints' default names are written in — injected so a test can pin the wall-clock text. */
     private val zone: ZoneId = ZoneId.systemDefault(),
     /**
+     * The phone's 12/24-hour setting, read each time an origin/end waypoint is named (data part D, RECORD -703). MainActivity
+     * passes `DateFormat.is24HourFormat`; the default, 12-hour, is for tests that do not name waypoints by the clock.
+     */
+    private val is24HourClock: () -> Boolean = { false },
+    /**
      * The sundown line the recording's [com.zynergylabs.forager.app.domain.SundownWatch] publishes
      * (dispatch 2026-09-28-592, Amendment 1, RECORD -593): copied into
      * [TrackRecordingUiState.sundownLine] while it is for this screen's recording. The watch is the
@@ -649,7 +654,7 @@ class TrackRecordingViewModel(
                     lat = endFix.lat,
                     lng = endFix.lng,
                     altitude = endFix.altitude,
-                    name = autoWaypointName(WaypointDesignation.END, currentTime.nowEpochMillis(), zone),
+                    name = autoWaypointName(WaypointDesignation.END, currentTime.nowEpochMillis(), zone, is24HourClock()),
                     trackId = endingTrack.trackId,
                     designation = WaypointDesignation.END,
                 )
@@ -942,7 +947,7 @@ class TrackRecordingViewModel(
                 lat = fix.lat,
                 lng = fix.lng,
                 altitude = fix.altitude,
-                name = autoWaypointName(WaypointDesignation.ORIGIN, namedAtEpochMillis, zone),
+                name = autoWaypointName(WaypointDesignation.ORIGIN, namedAtEpochMillis, zone, is24HourClock()),
                 trackId = active.trackId,
                 designation = WaypointDesignation.ORIGIN,
             )

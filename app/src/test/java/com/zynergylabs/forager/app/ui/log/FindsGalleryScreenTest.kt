@@ -160,7 +160,8 @@ class FindsGalleryScreenTest {
      * Owner ruling, 2026-09-13: the "Incomplete" badge is gone. This entry has every morphology
      * field unrecorded — exactly what used to earn the badge — and is committed, not a draft, so
      * nothing else may take the badge's place. Since data part D (RECORD -702) the tile shows the find's name or the time it
-     * was found, and the date is the heading above it; this find has neither name nor photo, so its tile shows the placeholder.
+     * was found, and the date is the heading above it; this find has neither name, saved time nor photo, so its tile has no title text and says "Find, Aug 1, 2026" to a screen
+     * reader (RECORD -703).
      */
     @Test
     fun `a committed find with nothing recorded shows its title alone under its date, no Incomplete badge`() {
@@ -171,7 +172,7 @@ class FindsGalleryScreenTest {
         }
 
         composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
-        composeRule.onNodeWithText(UNNAMED_FIND_NO_TIME).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Find, Aug 1, 2026").assertIsDisplayed()
         composeRule.onNodeWithText("Incomplete").assertDoesNotExist()
         composeRule.onNodeWithText("Draft").assertDoesNotExist()
     }

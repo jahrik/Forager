@@ -121,7 +121,7 @@ internal class Phone(
     private fun Cursor.columnName(i: Int): String = getColumnName(i)
 
     companion object {
-        const val SCHEMA = 19
+        const val SCHEMA = 20
         val LINK_COLUMNS = setOf("trackId", "originWaypointId", "offlineRegionId", "draftOfEntryId")
 
         fun allTables(): List<String> = SchemaAssets.entities(SCHEMA).map { it.first }

@@ -138,6 +138,7 @@ class TrackRecordingViewModelTest {
         pendingDeleteCommitScope: CoroutineScope? = null,
         findRouteHome: (Track, LatLng, Waypoint?, HopBand) -> RouteHome = ::routeHome,
         shouldPromptBackgroundRun: suspend () -> Boolean = { false },
+        is24HourClock: () -> Boolean = { false },
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
@@ -158,6 +159,7 @@ class TrackRecordingViewModelTest {
         currentTime = offTrackAlertClock,
         getWaypointReferenceCount = getWaypointReferenceCount,
         zone = ZoneOffset.UTC,
+        is24HourClock = is24HourClock,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
         findRouteHome = findRouteHome,
         shouldPromptBackgroundRun = shouldPromptBackgroundRun,
@@ -665,7 +667,7 @@ class TrackRecordingViewModelTest {
     }
 
     // ---- Navigation HUD stage one: the auto-created origin and end waypoints -------------------
-    // fixedTime is 1_000 ms after the epoch, so every default name reads "Jan 1, 12:00 AM" in UTC.
+    // fixedTime is 1_000 ms after the epoch, so every default name reads "Jan 1, 1970, 12:00 AM" in UTC (RECORD -703 added the year).
     // runCurrent(), never advanceUntilIdle(), while a recording is active: the breadcrumb poll is an
     // infinite delay loop, and advancing virtual time until idle never returns (found the hard way —
     // a 77-minute hung test worker). The origin/end saves have no delays, so runCurrent() runs them.
@@ -697,7 +699,7 @@ class TrackRecordingViewModelTest {
         assertEquals(120.0, origin.altitude)
         assertEquals(WaypointDesignation.ORIGIN, origin.designation)
         assertEquals("track-1", origin.trackId)
-        assertEquals("Start · Jan 1, 12:00 AM", origin.name)
+        assertEquals("Start · Jan 1, 1970, 12:00 AM", origin.name)
         assertEquals(listOf(origin), waypointRepository.getAll().getOrThrow())
         assertEquals("waypoint-1", trackRepository.getById("track-1").getOrThrow()?.originWaypointId)
         assertEquals(listOf(origin), vm.uiState.value.waypoints)
@@ -705,6 +707,21 @@ class TrackRecordingViewModelTest {
         fixes.emit(fix(lat = 45.002, accuracy = 10f, t = 4_000L))
         runCurrent()
         assertEquals("a second gated fix must not create a second origin", 1, waypointRepository.getAll().getOrThrow().size)
+        vm.stopRecording()
+    }
+
+    /** Data part D (RECORD -703): on a 24-hour phone the origin's default name is in 24-hour time. */
+    @Test
+    fun `on a 24-hour phone the origin's default name is in 24-hour time`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(InMemoryTrackRepository(), waypointRepository, locationTracker = FakeLocationTracker(fixes), is24HourClock = { true })
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L))
+        runCurrent()
+
+        assertEquals("Start · Jan 1, 1970, 00:00", requireNotNull(vm.uiState.value.originWaypoint).name)
         vm.stopRecording()
     }
 
@@ -751,7 +768,7 @@ class TrackRecordingViewModelTest {
         assertEquals(WaypointDesignation.END, end.designation)
         assertEquals("track-1", end.trackId)
         assertEquals(45.010, end.lat, 1e-9)
-        assertEquals("End · Jan 1, 12:00 AM", end.name)
+        assertEquals("End · Jan 1, 1970, 12:00 AM", end.name)
         assertNull(vm.uiState.value.originWaypoint)
     }
 

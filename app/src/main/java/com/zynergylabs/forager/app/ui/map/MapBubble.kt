@@ -443,7 +443,9 @@ internal fun MapFeatureBubble(
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     content.coverPhotoPath?.let { DecodedPhoto(relativePath = it, modifier = Modifier.size(BUBBLE_THUMBNAIL_SIZE), contentDescription = "Cover photo") }
                     Column {
-                        BubbleTitle(content.title)
+                        // A blank title (RECORD -703) draws nothing and says the tile's label to a screen reader.
+                        content.title?.let { BubbleTitle(it) }
+                            ?: content.blankTitleLabel?.let { label -> Box(Modifier.semantics { contentDescription = label }) }
                         content.date?.let { BubbleLine(it) }
                     }
                 }

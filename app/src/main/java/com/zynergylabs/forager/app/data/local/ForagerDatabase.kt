@@ -139,6 +139,14 @@ import com.zynergylabs.forager.app.BuildConfig
  * was checked by the planner against every open branch (back-by and small-fixes at 18) and against
  * `origin/main` (at 18, `b71c1569`) on 2026-10-08 before being claimed; re-check at build time.
  *
+ * [version] 20 adds nullable `foundAtEpochMillis` to `mushroom_log_entries` via a real [MIGRATION_19_20] — data part D,
+ * dispatch 2026-09-28-697 Amendment 4 (RECORD -703; the owner, "Option 1, but keep it blank instead of showing "Unnamed
+ * find""): when a find was found, written at creation and read by its title. Old rows stay null. A rebuild, like 18 to 19,
+ * because the legacy fixtures declare [MushroomLogEntryEntity] directly. Built on guidance-text's 18 to 19 (merged into
+ * search-order before it reached main, as the planner directed). Version 20 was checked against every branch on the remote
+ * (none above 19, no `MIGRATION_19_*`) on 2026-10-08 before being claimed; re-check at build time. `20.json`'s identity hash was
+ * computed by hand with Room 2.8.5's own rule (reproducing 18's and 19's exactly); the build's own export must match it.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -177,7 +185,7 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryPhotoRefEntity::class,
         CartographyEntryTrackPathEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -238,10 +246,10 @@ abstract class ForagerDatabase : RoomDatabase() {
         internal val ALL_MIGRATIONS = arrayOf(
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
-            MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
+            MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 19
+        const val SCHEMA_VERSION = 20
     }
 }
