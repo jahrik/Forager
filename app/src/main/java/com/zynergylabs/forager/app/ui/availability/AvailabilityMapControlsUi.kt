@@ -40,7 +40,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Directions
-import androidx.compose.material.icons.filled.ExploreOff
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Stop
@@ -417,13 +416,6 @@ internal fun CompassElevationStrip(
      */
     contentWidth: Boolean = false,
     /**
-     * RECORD -735 (the owner: "Same crossed-out icon (Recommended)"): in a short landscape window, with no compass or an
-     * unreliable one, the heading slot shows a crossed-out compass ([StripHeadingStatusIcon]) in place of the words, which do
-     * not fit the room sized for the heading's value (-733's "No compass" and "Compass?" were measured too wide). Portrait
-     * keeps the full words. False everywhere else.
-     */
-    shortHeadingStatus: Boolean = false,
-    /**
      * Dispatch 2026-09-28-510: what the strip says while the position is approximate or last known
      * ([rememberPositionNote]), read here, in this leaf, so its ticking age recomposes the strip alone.
      */
@@ -455,7 +447,6 @@ internal fun CompassElevationStrip(
         onToggleCoordinateFormat = onToggleCoordinateFormat,
         modifier = modifier,
         contentWidth = contentWidth,
-        shortHeadingStatus = shortHeadingStatus,
         positionNote = positionNote?.value,
         sundownLine = sundownLine,
         backByLine = backByLine,
@@ -490,7 +481,6 @@ private fun CompassElevationStripContent(
     onToggleCoordinateFormat: () -> Unit,
     modifier: Modifier = Modifier,
     contentWidth: Boolean = false,
-    shortHeadingStatus: Boolean = false,
     positionNote: PositionNote? = null,
     sundownLine: String? = null,
     backByLine: String? = null,
@@ -578,7 +568,7 @@ private fun CompassElevationStripContent(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(STRIP_NEEDLE_SIZE)
+                            .size(18.dp)
                             .rotate((heading as? TrueHeadingReading.Available)?.degrees ?: 0f),
                     )
                 }
@@ -623,7 +613,6 @@ private fun CompassElevationStripContent(
                             ) {
                                 // Motion Part 2, item 6: words crossfade, numbers change at once (WordSwap).
                                 // Dispatch 2026-09-28-677: labelled, as on the navigation display (LabelledReadout).
-                                if (shortHeadingStatus && heading.isCompassStatus()) StripHeadingStatusIcon(heading) else
                                 LabelledReadout(label = stripHeadingLabel(heading), labelStyle = stripReadoutStyle()) {
                                     WordSwap(text = stripHeadingText(heading)) { shown ->
                                         Text(
@@ -688,8 +677,6 @@ private fun CompassElevationStripContent(
                             val readoutMeasurer = rememberTextMeasurer()
                             val headingLabel = stripHeadingLabel(heading)
                             val headingText = stripHeadingText(heading)
-                            // RECORD -735: the crossed-out compass in landscape, measured as the icon's square, not the words.
-                            val headingIcon = shortHeadingStatus && heading.isCompassStatus()
                             val elevationLabel = ALTITUDE_LABEL.takeIf { elevationMeters != null }
                             val elevationText = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT
                             val coordinatesText = coordinatesStripText(lastLocation, showDecimalDegrees)
@@ -706,10 +693,7 @@ private fun CompassElevationStripContent(
                                     availablePx = availablePx,
                                     coordinatesPx = coordinatesPx,
                                     labelsPx = listOf(labelPx(headingLabel), labelPx(elevationLabel)),
-                                    valuesPx = listOf(
-                                        if (headingIcon) with(density) { stripHeadingIconSize().roundToPx() } else widthOf(headingText, readoutStyle),
-                                        widthOf(elevationText, readoutStyle),
-                                    ),
+                                    valuesPx = listOf(widthOf(headingText, readoutStyle), widthOf(elevationText, readoutStyle)),
                                     separatorPx = separatorPx,
                                 )
                             Row(
@@ -730,7 +714,6 @@ private fun CompassElevationStripContent(
                                 // ("Compass unavailable", "Elevation unavailable") names itself and has none.
                                 if (fit.shown[0]) {
                                     Box {
-                                        if (headingIcon) StripHeadingStatusIcon(heading) else
                                         LabelledReadout(label = headingLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
                                             WordSwap(text = headingText) { shownText ->
                                                 Text(
@@ -860,80 +843,6 @@ private fun CompassElevationStripContent(
         }
     }
 }
-
-/**
- * RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): what the landscape strip needs to show its readout
- * line whole, in pixels, measured the way the strip and readoutsFitBeside measure it: the row's padding (Spacing.sm each side),
- * the needle's 18 dp, the three-dot button's square when there is one, and the readouts without labels (heading, altitude,
- * coordinates, each after its separator). The heading is measured as its widest form ("000°" and the widest compass point,
- * tabular figures), not its current one, so the join does not move as the phone turns. With no fix, the no-fix line. Read by
- * [landscapeStripFit]; the coordinates-only figure is the narrowest the strip may be (coordinates never drop).
- */
-@Composable
-internal fun rememberLandscapeStripNeed(
-    elevationMeters: Double?,
-    unitSystem: UnitSystem,
-    location: LatLng?,
-    showDecimalDegrees: Boolean,
-    hasQuickSettings: Boolean,
-): LandscapeStripNeed {
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    val readoutStyle = stripReadoutStyle().copy(fontFeatureSettings = "tnum")
-    val labelStyle = stripReadoutStyle()
-    fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
-    return with(density) {
-        val chrome = 2 * Spacing.sm.roundToPx() + STRIP_NEEDLE_SIZE.roundToPx() + if (hasQuickSettings) QUICK_SETTINGS_TAP_TARGET.roundToPx() else 0
-        if (location == null) {
-            val noFix = chrome + widthOf(NO_FIX_MESSAGE, labelStyle)
-            LandscapeStripNeed(noFix, noFix)
-        } else {
-            val coordinates = widthOf(coordinatesStripText(location, showDecimalDegrees), readoutStyle)
-            val separator = widthOf("·", labelStyle) + 2 * Spacing.sm.roundToPx()
-            val heading = landscapeHeadingValueWidthPx(::widthOf, readoutStyle)
-            val elevation = widthOf(elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT, readoutStyle)
-            LandscapeStripNeed(fullPx = chrome + coordinates + 2 * separator + heading + elevation, coordinatesOnlyPx = chrome + coordinates)
-        }
-    }
-}
-
-/**
- * RECORD -732, -733: the width the landscape strip keeps for its heading, its widest value form ("000°" and the widest compass
- * point, tabular figures). The strip is sized from this alone, so the join is the same in every compass state; since RECORD
- * -735 the status there is [StripHeadingStatusIcon], whose square ([stripHeadingIconSize]) fits within this width at fonts 1.0
- * and 2.0 (LandscapeHeadingIconFitTest).
- */
-internal fun landscapeHeadingValueWidthPx(widthOf: (String, TextStyle) -> Int, readoutStyle: TextStyle): Int =
-    (0 until 8).maxOf { widthOf("000° ${cardinalDirection(it * 45f)}", readoutStyle) }
-
-/** RECORD -735: no compass, or an unreliable one: the readings the landscape strip shows as the crossed-out compass. */
-internal fun TrueHeadingReading.isCompassStatus(): Boolean =
-    this == TrueHeadingReading.NoSensor || this == TrueHeadingReading.Unreliable
-
-/** RECORD -735: the crossed-out compass's square, the strip readout's line height (20 sp), so it sits in the line. */
-@Composable
-internal fun stripHeadingIconSize(): Dp = with(LocalDensity.current) { STRIP_READOUT_LINE_HEIGHT.toDp() }
-
-/**
- * RECORD -735 (the owner: "Same crossed-out icon (Recommended)"): Material's `Icons.Filled.ExploreOff`, the crossed-out
- * compass, in the landscape strip's heading slot for both no compass and an unreliable one. Its content description is the
- * portrait words, "Compass unavailable" or "Compass unreliable", so a screen reader still tells them apart. No heading value is
- * shown or carried: an unreliable reading has none (`TrueHeadingReading.Unreliable`), on purpose.
- */
-@Composable
-internal fun StripHeadingStatusIcon(heading: TrueHeadingReading) {
-    Icon(
-        imageVector = Icons.Filled.ExploreOff,
-        contentDescription = stripHeadingText(heading),
-        modifier = Modifier.size(stripHeadingIconSize()).testTag(COMPASS_STRIP_HEADING_ICON_TAG),
-    )
-}
-
-/** RECORD -735: the crossed-out compass in the landscape strip's heading slot. */
-internal const val COMPASS_STRIP_HEADING_ICON_TAG = "compass-strip-heading-icon"
-
-/** The strip's compass needle (RECORD -732 measures the strip's need with it). */
-internal val STRIP_NEEDLE_SIZE = 18.dp
 
 /** The strip's back-by line (dispatch 2026-09-28-645). */
 internal const val STRIP_BACK_BY_LINE_TAG = "strip-back-by-line"
