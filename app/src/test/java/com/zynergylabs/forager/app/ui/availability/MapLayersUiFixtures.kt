@@ -15,6 +15,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
+import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.ForecastAvailability
 import com.zynergylabs.forager.app.domain.ForecastBlock
@@ -108,6 +109,16 @@ internal class InMemoryLayerPreferences(var stored: MapLayerPreferences = MapLay
     override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = Result.success(Unit).also { writes += "order ${layerIds.joinToString(",")}" }
 }
 
+/** Reads back [stored] (nothing, by default) and keeps every key written, in order (dispatch 2026-09-28-708). */
+internal class InMemoryBasemapPreference(var stored: String? = null) : BasemapPreferenceRepository {
+    val writes = mutableListOf<String>()
+    override suspend fun getBasemapKey(): Result<String?> = Result.success(stored)
+    override suspend fun setBasemapKey(key: String): Result<Unit> = Result.success(Unit).also {
+        writes += key
+        stored = key
+    }
+}
+
 /** A store with data for [groups] (none: "no forecast data") and no cells: the tests' map slot draws nothing. */
 internal class FixedForecastStore(private val groups: Set<String>) : ForecastCellStore {
     override suspend fun availability(week: LocalDate): ForecastAvailability =
@@ -178,6 +189,8 @@ internal fun mapLayersViewModel(
     // Dispatch 2026-09-28-626: Settings' "Off-track reminder". Defaulted to the repository's default, on.
     getOffTrackReminderEnabled: suspend () -> Result<Boolean> = { Result.success(true) },
     setOffTrackReminderEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
+    // Dispatch 2026-09-28-708: where the Maps tab's basemap is kept. Defaulted to nothing stored, which opens on Topographical as before.
+    basemapPreferences: BasemapPreferenceRepository = InMemoryBasemapPreference(),
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -218,6 +231,7 @@ internal fun mapLayersViewModel(
         onDarknessMarginStored = onDarknessMarginStored,
         getOffTrackReminderEnabled = getOffTrackReminderEnabled,
         setOffTrackReminderEnabled = setOffTrackReminderEnabled,
+        basemapPreferenceRepository = basemapPreferences,
     )
 }
 
@@ -278,6 +292,7 @@ internal fun MapLayersTestScreen(
         onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
         onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
         onColourFieldMoved = viewModel::onColourFieldMoved,
+        onMapModeSelected = viewModel::onMapModeSelected,
         forecastCellStore = store,
         waypoints = waypoints,
         tracks = tracks,
