@@ -1,7 +1,9 @@
 package com.zynergylabs.forager.app.ui.log
 
 import android.text.format.DateFormat
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +40,7 @@ import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.formatTimeSpan
 import com.zynergylabs.forager.app.domain.model.formatWholeLength
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.util.Date
 import java.util.Locale
@@ -50,16 +53,38 @@ import java.util.Locale
  */
 @Composable
 internal fun EntrySummaryTiles(report: EntryReport, distanceUnit: DistanceUnit, modifier: Modifier = Modifier) {
-    val tiles = entrySummaryTiles(report, distanceUnit)
+    LabelledTiles(tiles = entrySummaryTiles(report, distanceUnit), tagOf = ::entryTileTag, modifier = modifier)
+}
+
+/**
+ * Labelled tiles, two to a row, each a label over its value: the entry report's ([EntrySummaryTiles]) and, since dispatch
+ * 2026-09-28-677 (data part B), the track sheet's, laid out by this one function so the two read alike. [tagOf] gives each
+ * tile's test tag from its label. Nothing is drawn for no tiles.
+ */
+@Composable
+internal fun LabelledTiles(
+    tiles: List<Pair<String, String>>,
+    tagOf: (String) -> String,
+    modifier: Modifier = Modifier,
+    /**
+     * Whether the tiles are drawn over a map, inside a container already at the map chrome's alpha (the track sheet opened
+     * from a map). Then they are outlined, with no fill: any fill on that container would composite past 0.8 (CLAUDE.md,
+     * "Nothing fully obstructs the map view"). Off a map they are filled, as the entry report's always were.
+     */
+    overMap: Boolean = false,
+) {
     if (tiles.isEmpty()) return
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         tiles.chunked(2).forEach { row ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 row.forEach { (label, value) ->
+                    val fill = if (overMap) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant
                     Surface(
                         shape = MaterialTheme.shapes.medium,
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.weight(1f).testTag(entryTileTag(label)).semantics(mergeDescendants = true) {},
+                        color = fill,
+                        border = if (overMap) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+                        // The fill a test reads to tell outlined from filled (MapChromeOverMapTest), beside the tag.
+                        modifier = Modifier.weight(1f).testTag(tagOf(label)).mapChromeContainerColor(fill).semantics(mergeDescendants = true) {},
                     ) {
                         Column(modifier = Modifier.padding(Spacing.md)) {
                             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
