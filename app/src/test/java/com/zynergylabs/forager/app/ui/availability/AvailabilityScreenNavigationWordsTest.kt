@@ -186,7 +186,7 @@ class AvailabilityScreenNavigationWordsTest {
         ).forEach { (name, tag) -> assertWhole(name, node(tag)) }
         if (drawn(NAVIGATION_HUD_HEADING_TAG)) assertWhole("heading", node(NAVIGATION_HUD_HEADING_TAG))
         if (drawn(NAVIGATION_HUD_ELEVATION_TAG)) assertWhole("elevation", node(NAVIGATION_HUD_ELEVATION_TAG))
-        if (labelDrawn(NAVIGATION_HUD_TAG, HEADING_LABEL)) assertWhole("heading label", label(NAVIGATION_HUD_TAG, HEADING_LABEL))
+        // RECORD -728: the heading has no label any more ("Facing" removed), so only "Alt" can be drawn.
         if (labelDrawn(NAVIGATION_HUD_TAG, ALTITUDE_LABEL)) assertWhole("altitude label", label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
     }
 
@@ -206,11 +206,9 @@ class AvailabilityScreenNavigationWordsTest {
         assertEquals("45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
         assertEquals("9843 ft", textOf(NAVIGATION_HUD_ELEVATION_TAG))
         // Each label that is drawn sits before its own reading, on its line.
-        val heading = bounds(node(NAVIGATION_HUD_HEADING_TAG))
-        if (labelDrawn(NAVIGATION_HUD_TAG, HEADING_LABEL)) {
-            val facing = bounds(label(NAVIGATION_HUD_TAG, HEADING_LABEL))
-            assertTrue("\"Facing\" $facing is left of the heading $heading", facing.right <= heading.left)
-        }
+        // RECORD -728 (the owner: "just remove the word "facing" and nothing else"): the heading reads alone; it was "Facing"'s
+        // place before it that was checked here.
+        assertNoFacing()
         val elevation = bounds(node(NAVIGATION_HUD_ELEVATION_TAG))
         if (labelDrawn(NAVIGATION_HUD_TAG, ALTITUDE_LABEL)) {
             val alt = bounds(label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
@@ -297,13 +295,42 @@ class AvailabilityScreenNavigationWordsTest {
         assertEquals("9843 ft", textOf(COMPASS_STRIP_ELEVATION_TAG))
         assertWhole("strip heading", node(COMPASS_STRIP_HEADING_TAG))
         assertWhole("strip elevation", node(COMPASS_STRIP_ELEVATION_TAG))
-        for (dropped in listOf(HEADING_LABEL, ALTITUDE_LABEL)) {
+        // RECORD -728: "Facing" is gone altogether (assertNoFacing); "Alt" is the one label left to drop.
+        assertNoFacing()
+        for (dropped in listOf(ALTITUDE_LABEL)) {
             assertTrue(
                 "the label <$dropped> is dropped before any value",
                 composeRule.onAllNodes(hasTestTag(NAVIGATION_LABEL_TAG) and hasText(dropped) and hasAnyAncestor(hasTestTag(STRIP_TAG)), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
             )
         }
         assertWhole("strip coordinates", composeRule.onNode(hasText(coordinatesStripText(LatLng(fix.lat, fix.lng), false)) and hasAnyAncestor(hasTestTag(STRIP_TAG)), useUnmergedTree = true))
+    }
+
+    /** RECORD -728: the word "Facing" is drawn nowhere, as a label or inside any text. */
+    private fun assertNoFacing() {
+        assertTrue(
+            "\"Facing\" is drawn nowhere",
+            composeRule.onAllNodes(hasText("Facing", substring = true, ignoreCase = true), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+        )
+    }
+
+    /**
+     * RECORD -728, the owner: "Keep the the 330° NW metric, just remove the word "facing" and nothing else." On the strip and
+     * on the navigation display's second row the heading reads alone ("315° NW"), with no "Facing" before it; "Alt" still
+     * labels the altitude wherever readoutsFitBeside keeps labels.
+     */
+    @Test
+    fun `the word Facing is never drawn, on the strip or the navigation display, and the heading stays`() {
+        setScreen(facing = 315f, route = null, navigating = false)
+        assertEquals("the strip's heading stays", "315° NW", textOf(COMPASS_STRIP_HEADING_TAG))
+        assertNoFacing()
+    }
+
+    @Test
+    fun `the word Facing is never drawn on the navigation display, and its heading stays`() {
+        setScreen(facing = 45f, route = ReturnRoute.Ahead(east, 1_500.0))
+        assertEquals("the display's heading stays", "45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
+        assertNoFacing()
     }
 
     private class FixedCompass(degrees: Float) : CompassProvider {

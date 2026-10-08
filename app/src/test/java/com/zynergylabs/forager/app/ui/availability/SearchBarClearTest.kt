@@ -64,6 +64,11 @@ class SearchBarClearTest {
         val after = composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).getUnclippedBoundsInRoot().let { it.bottom - it.top }
 
         assertEquals("the bar's height with Clear", before.value, after.value, 0.5f)
+        // RECORD -728, the owner: "Keep 29 dp tall, wide (Recommended)": Clear is the field's height and at least 48 dp wide.
+        val clear = composeRule.onNodeWithTag(SEARCH_BAR_CLEAR_TAG).getUnclippedBoundsInRoot()
+        val field = composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertEquals("Clear is the field's height", (field.bottom - field.top).value, (clear.bottom - clear.top).value, 0.5f)
+        assertTrue("Clear is at least 48 dp wide (${clear.right - clear.left})", (clear.right - clear.left).value >= 48f - 0.5f)
     }
 
     /** Samples across Clear's own bounds, as fractions of its width and height: a finger is not a point. */

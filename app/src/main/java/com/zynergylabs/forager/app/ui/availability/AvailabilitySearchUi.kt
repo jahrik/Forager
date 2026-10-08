@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
@@ -228,7 +229,11 @@ internal fun SearchEntryBar(
         shape = RectangleShape,
         modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
+        // RECORD -728 (the owner: "There is a slightly hang down of chrome from the search menu that extends into the strip
+        // zone, making it look taller than it is"): the bottom padding sat below the divider, so 4 dp of this bar's fill hung
+        // under its seam, against the strip. The padding is now above the divider (the Spacer below is 2 x xs), so the divider
+        // is the bar's last 1 dp and the strip starts at it. The bar's height is unchanged (compactMainScaffold's searchBarHeight).
+        Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Filled.Search,
@@ -264,15 +269,19 @@ internal fun SearchEntryBar(
                         TextButton(
                             onClick = onClearSearch,
                             contentPadding = PaddingValues(horizontal = Spacing.md),
-                            modifier = Modifier.padding(end = Spacing.xs).height(fieldHeight).testTag(SEARCH_BAR_CLEAR_TAG),
+                            // RECORD -728, the owner: "Keep 29 dp tall, wide (Recommended)": the whole word and its padding, at least 48 dp.
+                            modifier = Modifier.padding(end = Spacing.xs).height(fieldHeight).widthIn(min = 48.dp).testTag(SEARCH_BAR_CLEAR_TAG),
                         ) {
                             Text("Clear", color = contentColor)
                         }
                     }
                 }
             }
-            Spacer(Modifier.height(Spacing.xs))
-            HorizontalDivider(color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
+            Spacer(Modifier.height(Spacing.xs * 2))
+            HorizontalDivider(
+                color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
+                modifier = Modifier.testTag(SEARCH_ENTRY_BAR_DIVIDER_TAG),
+            )
         }
     }
 }
@@ -529,6 +538,9 @@ internal const val SEARCH_DROPDOWN_SET_ON_MAP_TAG = "search-dropdown-set-on-map"
 
 /** [SearchDropdown]'s Search button, the right of its bottom row, for tests. */
 internal const val SEARCH_DROPDOWN_SEARCH_TAG = "search-dropdown-search"
+
+/** [SearchEntryBar]'s divider, its visible bottom edge (RECORD -728), for tests. */
+internal const val SEARCH_ENTRY_BAR_DIVIDER_TAG = "search-entry-bar-divider"
 
 /** [SearchEntryBar]'s Clear text button (RECORD -723), for tests. */
 internal const val SEARCH_BAR_CLEAR_TAG = "search-bar-clear"
