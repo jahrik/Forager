@@ -94,6 +94,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
@@ -255,6 +256,8 @@ internal fun CompactMainScaffold(
     isOffTrack: Boolean,
     /** See [AvailabilityScreen]'s own `recordingSundownLine` doc comment. */
     recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
+    /** See [CompactMapTab]'s own `quickSettings` doc comment (dispatch 2026-09-28-645). */
+    quickSettings: MapQuickSettings?,
     compassProvider: CompassProvider,
     computeTrueHeading: ComputeTrueHeadingUseCase,
     navigationTarget: Waypoint?,
@@ -426,6 +429,10 @@ internal fun CompactMainScaffold(
         // positioning — this stays a one-time text-measurement-derived constant instead, the
         // proven-safe shape that doc comment prescribes.
         val searchBarHeight = compassStripClearance * 2 + Spacing.xs * 3 + DividerDefaults.Thickness
+        // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): the Maps tab's compass strip as measured,
+        // handed up through searchBarSlot; 0 while it is not measured (before its first layout, while navigating, in a landscape
+        // window), where the dropdown keeps the one-line clearance above. See CompactMapTab's compassStripBottomClearance.
+        var mapCompassStripHeight by remember { mutableStateOf(0.dp) }
         // Fullscreen-fixes dispatch, Item 2 ("slide the chrome away instead of cutting it") —
         // animated rather than the raw if/else this used to be, so CompassElevationStrip (and the
         // observation bubble/TaxonMapFilterChip below it, both of which also read CompactMapTab's
@@ -1105,6 +1112,7 @@ internal fun CompactMainScaffold(
                                 isNavigating = isNavigating,
                                 isOffTrack = isOffTrack,
                                 recordingSundownLine = recordingSundownLine,
+                                quickSettings = quickSettings,
                                 onToggleReturning = onToggleReturning,
                                 compassProvider = compassProvider,
                                 computeTrueHeading = computeTrueHeading,
@@ -1199,6 +1207,7 @@ internal fun CompactMainScaffold(
                                     { _ -> }
                                 } else {
                                     { compassStripHeight ->
+                                        LaunchedEffect(compassStripHeight) { mapCompassStripHeight = compassStripHeight }
                                         // Fullscreen-slide-out-fixes dispatch, Item 1: the slide distance
                                         // is the bar's own height PLUS the real status-bar inset, not
                                         // fullHeight alone. This bar's top edge is the content area's
@@ -1466,7 +1475,7 @@ internal fun CompactMainScaffold(
                             // one — Kotlin then refuses it ("cannot be called with an implicit
                             // receiver") since a BoxScope, not a ColumnScope, is this call's real one.
                             // fullscreen-fixes dispatch, Item 1 (third design): fed into heightIn below.
-                            val searchDropdownTopOffset = if (compactTab() == CompactTab.MAP) searchBarHeight + compassStripClearance else 0.dp
+                            val searchDropdownTopOffset = if (compactTab() == CompactTab.MAP) searchBarHeight + mapCompassStripHeight.coerceAtLeast(compassStripClearance) else 0.dp
                             // Part 1 layout fixes, item 3 (Part 1's device check, check 8): on the Maps tab
                             // this Box runs to the window's bottom, since the tab's contentWindowInsets
                             // reserve only the top and sides, so the keyboard does not shrink it. The panel's
