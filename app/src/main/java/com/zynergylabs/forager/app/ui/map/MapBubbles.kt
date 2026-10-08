@@ -46,6 +46,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import com.zynergylabs.forager.app.ui.format.displayDate
 import com.zynergylabs.forager.app.ui.format.displayDateTime
+import com.zynergylabs.forager.app.ui.log.findTitle
+import com.zynergylabs.forager.app.ui.log.findBlankTitleLabel
 
 /**
  * M1, tap a map glyph for a bubble (`prompts/preserved/2026-09-28-29.md`, continuation
@@ -191,8 +193,18 @@ const val OPEN_FIND_LABEL = "Open find"
 
 /** What one bubble says, per kind (B3): each starts from what that record's row, sheet or card already shows, kept short. */
 sealed interface MapBubbleContent {
-    /** A find: its identification or "Find on <date>", the date when the title is the identification, and its cover photo. */
-    data class Find(val findId: String, val title: String, val date: String?, val coverPhotoPath: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
+    /** A find: its title by the tile's rule (or none), its date line, and its cover photo (data part D, RECORD -703). */
+    data class Find(
+        val findId: String,
+        /** The tile's title ([findTitle]): the given name, "Found 2:14 PM", or `null` for none (RECORD -703, "Match the tile"). */
+        val title: String?,
+        /** "Find on Oct 7, 2026", always: the bubble has no day heading above it, as the tile has. */
+        val date: String?,
+        val coverPhotoPath: String?,
+        val keptIn: List<JournalEntryOnMap> = emptyList(),
+        /** What a screen reader says for a blank [title], the tile's own label ([findBlankTitleLabel]); `null` when titled. */
+        val blankTitleLabel: String? = null,
+    ) : MapBubbleContent
 
     /**
      * A photo: the photo, its date, and what it is attached to; [attachedTo] is `null` when the bubble's
@@ -238,13 +250,15 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
     fun keptIn(kind: HighlightedRecordKind) = sources.journalEntriesKeeping[HighlightedRecord(kind, id)].orEmpty()
     return when (target.kind) {
         MapBubbleKind.FIND -> sources.finds.firstOrNull { it.id == id }?.let { find ->
-            val identification = find.ownIdentification?.takeIf { it.isNotBlank() }
+            // RECORD -703, "Match the tile": the tile's title rule, blank included; the date line is always there.
+            val title = findTitle(find, is24HourClock)
             MapBubbleContent.Find(
                 findId = find.id,
-                title = identification ?: findDateLabel(find),
-                date = if (identification != null) findDateLabel(find) else null,
+                title = title,
+                date = findDateLabel(find),
                 coverPhotoPath = find.photos.firstOrNull()?.relativePath,
                 keptIn = keptIn(HighlightedRecordKind.FIND),
+                blankTitleLabel = if (title == null) findBlankTitleLabel(find) else null,
             )
         }
         MapBubbleKind.PHOTO -> sources.galleryPhotos.firstOrNull { it.photo.id == id }?.let { gallery ->

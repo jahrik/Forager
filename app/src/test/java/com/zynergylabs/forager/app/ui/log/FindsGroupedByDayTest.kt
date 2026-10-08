@@ -5,12 +5,18 @@ import android.content.ComponentName
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
@@ -21,6 +27,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -39,8 +46,8 @@ import org.robolectric.annotation.Config
  * Through [FindsGalleryScreen], the Finds grid JournalTab hosts, with its own `onOpenEntry` callback, and real touches at screen
  * coordinates on the grouped tiles. Positions are read from laid-out bounds, not from tree order.
  *
- * A find stores no time of day; the time is the find's earliest photo taken on its day (see [findTileTitle]). Where no such
- * photo exists the tile shows [UNNAMED_FIND_NO_TIME], a placeholder pending the owner (this part's stop).
+ * The time is the one saved when the find was created, else its earliest photo taken on its day; with neither the tile has no
+ * title text and says "Find, <date>" to a screen reader (RECORD -703, the owner: "keep it blank"; see [findTitle]).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -77,10 +84,11 @@ class FindsGroupedByDayTest {
     private fun at(day: LocalDate, hour: Int, minute: Int): Long =
         day.atTime(hour, minute).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-    private fun find(id: String, day: LocalDate, name: String? = null, photoTimes: List<Long> = emptyList()) =
+    private fun find(id: String, day: LocalDate, name: String? = null, photoTimes: List<Long> = emptyList(), foundAt: Long? = null) =
         MushroomLogEntry.draft(id = id, location = null, date = day).copy(
             isDraft = false,
             ownIdentification = name,
+            foundAtEpochMillis = foundAt,
             photos = photoTimes.mapIndexed { i, t -> LogPhoto(id = "$id-p$i", relativePath = "photos/$id-$i.jpg", createdAtEpochMillis = t) },
         )
 
@@ -138,13 +146,24 @@ class FindsGroupedByDayTest {
     }
 
     @Test
-    fun `a photo taken on another day is not taken as the time the find was found`() {
+    fun `the time saved when the find was created comes before its photos`() {
+        val day = LocalDate.of(2026, 10, 7)
+        setClock("12")
+        setScreen(listOf(find("f", day, photoTimes = listOf(at(day, 9, 5)), foundAt = at(day, 14, 14))))
+
+        composeRule.onNodeWithText("Found 2:14 PM").assertExists()
+    }
+
+    /** RECORD -703: "keep it blank instead of showing "Unnamed find"". A photo from another day is not the time it was found. */
+    @Test
+    fun `with no name, no saved time and no photo from its day, the tile has no title and says Find with its date`() {
         val day = LocalDate.of(2026, 10, 7)
         setClock("12")
         setScreen(listOf(find("f", day, photoTimes = listOf(at(day.minusDays(3), 9, 30)))))
 
-        composeRule.onNodeWithText(UNNAMED_FIND_NO_TIME).assertExists()
+        composeRule.onNodeWithContentDescription("Find, Oct 7, 2026").assertExists()
         assertEquals(0, composeRule.onAllNodesWithText("Found", substring = true).fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithText("Unnamed", substring = true).fetchSemanticsNodes().size)
     }
 
     /** Real touches at several points across a grouped tile each open that find, and only that find. */
@@ -170,16 +189,42 @@ class FindsGroupedByDayTest {
         }
     }
 
+    /**
+     * RECORD -703, "Match the tile": a find's own report is titled by the tile's rule, a blank title included, with the tile's
+     * label. Through [LogEntryReportScreen], the page JournalTab shows when a tile is tapped.
+     */
+    @Test
+    fun `a find's report is titled by the tile's rule, blank included`() {
+        val day = LocalDate.of(2026, 10, 7)
+        setClock("12")
+        var shown by mutableStateOf(find("f", day, foundAt = at(day, 14, 14)))
+        composeRule.setContent { LogEntryReportScreen(entry = shown, onEdit = {}, onDeleteEntry = {}, onBack = {}) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(FIND_PAGE_TITLE_TAG).assertTextEquals("Found 2:14 PM")
+
+        shown = find("f", day, name = "Morel")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(FIND_PAGE_TITLE_TAG).assertTextEquals("Morel")
+
+        shown = find("f", day)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(FIND_PAGE_TITLE_TAG).assertTextEquals("").assertContentDescriptionEquals("Find, Oct 7, 2026")
+        assertEquals("no Find on title any more", 0, composeRule.onAllNodesWithText("Find on", substring = true).fetchSemanticsNodes().size)
+    }
+
     // Headless: the title rule and the grouping, with the zone fixed.
 
     @Test
-    fun `the title is the given name, else the time found, else the placeholder`() {
+    fun `the title is the given name, else the saved time, else the earliest photo of the day, else nothing`() {
         val day = LocalDate.of(2026, 10, 7)
+        val nineFive = day.atTime(9, 5).toInstant(ZoneOffset.UTC).toEpochMilli()
         val twoFourteen = day.atTime(14, 14).toInstant(ZoneOffset.UTC).toEpochMilli()
-        assertEquals("Morel", findTileTitle(find("a", day, "Morel", listOf(twoFourteen)), is24HourClock = false, zone = ZoneOffset.UTC))
-        assertEquals("a blank name is no name", "Found 2:14 PM", findTileTitle(find("b", day, "  ", listOf(twoFourteen)), is24HourClock = false, zone = ZoneOffset.UTC))
-        assertEquals("Found 14:14", findTileTitle(find("c", day, null, listOf(twoFourteen)), is24HourClock = true, zone = ZoneOffset.UTC))
-        assertEquals(UNNAMED_FIND_NO_TIME, findTileTitle(find("d", day), is24HourClock = false, zone = ZoneOffset.UTC))
+        assertEquals("Morel", findTitle(find("a", day, "Morel", listOf(twoFourteen), foundAt = nineFive), is24HourClock = false, zone = ZoneOffset.UTC))
+        assertEquals("the saved time first", "Found 9:05 AM", findTitle(find("s", day, null, listOf(twoFourteen), foundAt = nineFive), is24HourClock = false, zone = ZoneOffset.UTC))
+        assertEquals("a blank name is no name", "Found 2:14 PM", findTitle(find("b", day, "  ", listOf(twoFourteen)), is24HourClock = false, zone = ZoneOffset.UTC))
+        assertEquals("Found 14:14", findTitle(find("c", day, null, listOf(twoFourteen)), is24HourClock = true, zone = ZoneOffset.UTC))
+        assertNull(findTitle(find("d", day), is24HourClock = false, zone = ZoneOffset.UTC))
+        assertEquals("Find, Oct 7, 2026", findBlankTitleLabel(find("d", day)))
     }
 
     @Test

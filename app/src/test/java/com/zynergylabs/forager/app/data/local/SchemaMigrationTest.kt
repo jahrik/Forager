@@ -28,12 +28,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 18→19, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 19→20, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→19.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→20.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -176,15 +176,28 @@ class SchemaMigrationTest {
             assertNull("the category discriminant is a separate column", db.scalar("SELECT filterIconicTaxonName FROM cached_searches"))
         }
 
+    // Data part D, dispatch -697 Amendment 4 (RECORD -703): the mushroom_log_entries rebuild. Every seeded column is carried
+    // (assertEverySeededValueSurvived compares them all by name) and the old row's new foundAtEpochMillis is NULL: no time of
+    // day is known for a find saved before this column. Both indexes are back, and the column takes a value.
+    @Test fun `19 to 20 - the mushroom_log_entries rebuild adds foundAtEpochMillis null, every value carried`() =
+        migrate(19, 20, MIGRATION_19_20, overrides = mapOf("mushroom_log_entries" to mapOf("ownIdentification" to "Morel", "foundOn" to "2026-10-07", "lat" to 45.43, "lng" to -122.29, "draftOfEntryId" to null))) { db ->
+            assertEquals("Morel", db.scalar("SELECT ownIdentification FROM mushroom_log_entries"))
+            assertEquals("2026-10-07", db.scalar("SELECT foundOn FROM mushroom_log_entries"))
+            assertNull("an old find has no time of day", db.scalar("SELECT foundAtEpochMillis FROM mushroom_log_entries"))
+            db.execSQL("UPDATE mushroom_log_entries SET foundAtEpochMillis = 1791403440000")
+            assertEquals(1_791_403_440_000L, db.scalar("SELECT foundAtEpochMillis FROM mushroom_log_entries"))
+            assertEquals("both indexes are back", 2L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'mushroom_log_entries' AND name IN ('index_mushroom_log_entries_offlineRegionId', 'index_mushroom_log_entries_foundOn')"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // Amendment 1 to -695: the chain now ends at 19, the current version (it ended at 18 before MIGRATION_18_19).
-    @Test fun `4 to 19 - the full chain, validated against 19_json, every seeded value survives`() {
+    // The chain now ends at 20, the current version (RECORD -703; it ended at 19 before MIGRATION_19_20).
+    @Test fun `4 to 20 - the full chain, validated against 20_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 19, true, *ForagerDatabase.ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 20, true, *ForagerDatabase.ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 19)
+            assertEverySeededValueSurvived(db, seeded, 4, 20)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }

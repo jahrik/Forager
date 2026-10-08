@@ -56,6 +56,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.hasContentDescription
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * Journal redesign J1, S3 (`prompts/preserved/2026-09-27-16.md`; plan J4): Records' four-tab
@@ -263,7 +265,7 @@ class RecordsFilterChipsTest {
         touchChipAcrossItsBounds(FINDS_CHIP) {
             composeRule.onNodeWithContentDescription("New log entry").assertExists()
             // The gallery's tile for the one find, and its day heading (data part D, RECORD -702).
-            composeRule.onNodeWithText(UNNAMED_FIND_NO_TIME).assertExists()
+            composeRule.onNodeWithContentDescription(findBlankTitleLabel(CHIPS_FIND)).assertExists()
             composeRule.onNodeWithTag(findsDayHeaderTag(CHIPS_FIND.foundOn)).assertExists()
         }
     }
@@ -419,10 +421,10 @@ class RecordsFilterChipsTest {
         // The same rows the single-type chips show: find tiles, the track row's share action, the
         // waypoint row's Directions and its swipe-to-delete row (J4: the trash icon is gone), the
         // region row and its swipe-to-delete row (J4: its "Delete" button is gone).
-        // Each find row is a find tile, titled as the tile titles an unnamed find with no photo (data part D, RECORD -702; it
-        // read "Find on <d1>" before, counted twice for d1's two finds).
+        // Each find row is a find tile: an unnamed find with no time shows no title and says "Find, <date>" to a screen reader
+        // (data part D, RECORD -702 and -703; it read "Find on <d1>" before, counted twice for d1's two finds).
         for (id in listOf("F1", "F2")) {
-            composeRule.onNode(hasText(UNNAMED_FIND_NO_TIME) and hasAnyAncestor(hasTestTag(rowTag("finds", id))), useUnmergedTree = true).assertExists()
+            composeRule.onNode(hasContentDescription("Find, ${displayDate(d1)}") and hasAnyAncestor(hasTestTag(rowTag("finds", id))), useUnmergedTree = true).assertExists()
         }
         composeRule.onNodeWithTag("share-track-T1").assertExists()
         composeRule.onNodeWithContentDescription("Directions to Morning pin").assertExists()
