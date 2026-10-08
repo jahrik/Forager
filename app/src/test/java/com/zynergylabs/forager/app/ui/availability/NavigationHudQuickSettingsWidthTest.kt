@@ -120,7 +120,8 @@ class NavigationHudQuickSettingsWidthTest {
         if (words.isEmpty()) return null
         val visibleEnd = layout.getLineEnd(0, visibleEnd = true)
         val whole = visibleEnd == words.length && !layout.isLineEllipsized(0) && layout.lineCount == 1
-        return if (whole) null else "'$words' shows ${words.take(visibleEnd)}"
+        val oneLineEllipsis = layout.lineCount == 1 && layout.isLineEllipsized(0)
+        return if (whole) null else "'$words' shows ${words.take(visibleEnd)}" + if (oneLineEllipsis) ONE_LINE_ELLIPSIS else ""
     }
 
     private fun measure(button: Boolean): Map<String, List<String>> {
@@ -166,10 +167,19 @@ class NavigationHudQuickSettingsWidthTest {
         val with = measure(button = true)
         assertEquals("every case measured", cases.size, with.size)
         val causedByButton = with.filter { (name, cut) -> cut.isNotEmpty() && without[name].orEmpty().isEmpty() }
+        // Changed by RECORD -715 (the owner: "Keep it, 12 dp taller (Recommended)"; the planner): a line cut with or without the
+        // button is not the button's, and is held to RECORD -694's rule for the status line, one line ending in "…", in place
+        // of "whole". The one such line here is "No origin waypoint for this track", too long for this column even with no
+        // button. A line the button alone cuts must still be whole.
         val clippedBoth = with.filter { (name, cut) -> cut.isNotEmpty() && without[name].orEmpty().isNotEmpty() }
+        val notOneLineEllipsis = clippedBoth.filterValues { cuts -> cuts.any { !it.endsWith(ONE_LINE_ELLIPSIS) } }
         assertTrue(
-            "clipped with the button and not without it: $causedByButton; clipped either way (not the button's): $clippedBoth",
-            causedByButton.isEmpty() && clippedBoth.isEmpty(),
+            "clipped with the button and not without it: $causedByButton; clipped either way, and not one line ending in \"…\" (RECORD -694): $notOneLineEllipsis",
+            causedByButton.isEmpty() && notOneLineEllipsis.isEmpty(),
         )
+    }
+
+    private companion object {
+        const val ONE_LINE_ELLIPSIS = " [one line, ends in …]"
     }
 }
