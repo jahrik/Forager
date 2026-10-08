@@ -47,8 +47,9 @@ import com.zynergylabs.forager.app.ui.theme.MapPalette
  * stopgaps for the inversion an earlier session believed needed tile interception, because the
  * raster paint properties have no per-pixel invert. The brightness-range swap is that invert.
  *
- * **Satellite stays day** (owner: "Satellite stays as it is at night"): [basemapTakesNightPaint]
- * is the one place that says so, and [styleJsonFor] reads it.
+ * Every basemap takes it. Satellite was the one exception (owner: "Satellite stays as it is at
+ * night"), held by a per-basemap `basemapTakesNightPaint`; both went with Satellite (dispatch
+ * 2026-09-28-708, see [Basemap]'s class doc).
  *
  * All three are MapLibre style-spec v8 raster paint properties, so they need no code path of their
  * own; they ride in the style JSON the basemap swap already rebuilds.
@@ -88,8 +89,7 @@ internal const val NIGHT_STREET_LAYER_ID = "basemap-street"
 /**
  * The basemap a night [basemap] shows below [NIGHT_FADE_START_ZOOM] (and under its own layer until [NIGHT_FADE_END_ZOOM]), or `null` when it shows itself at
  * every zoom. Only Topographical has one: [Basemap.OSM_STANDARD]. A per-basemap decision rather than an
- * inline `if`, like [basemapTakesNightPaint], so the style and the attribution caption read the same
- * answer and a test can pin the set.
+ * inline `if`, so the style and the attribution caption read the same answer and a test can pin the set.
  *
  * **Why.** The owner, on the S22, with three screenshots: "When maps are in topo night mode, they are in
  * night mode when zoomed in, but after zooming out to a certain point, it goes back to day mode. I
@@ -132,23 +132,14 @@ internal const val NIGHT_STREET_LAYER_ID = "basemap-street"
  * off no switch to street occurs." So at topo night, below 9.5, the layer is OSM Standard, which V1 turns
  * dark at every zoom (mean 0.15 to 0.23 on tile zoom 7 to 15, one to four tiles each), with the same
  * [NIGHT_RASTER_PAINT] on both layers, unchanged, and the topo layer fading in over 9.5 to 9.7. Topo day,
- * every other basemap, Satellite and the offline style are untouched.
+ * every other basemap and the offline style are untouched.
  */
 internal fun nightLowZoomBasemap(basemap: Basemap): Basemap? =
     if (basemap == Basemap.OPEN_TOPO_MAP) Basemap.OSM_STANDARD else null
 
-/**
- * Whether [basemap]'s raster style takes [NIGHT_RASTER_PAINT] when night mode is on. `false` only
- * for [Basemap.USGS_IMAGERY_ONLY], by the owner's ruling: "Satellite stays as it is at night; only
- * the markers switch to night colours". A per-basemap decision
- * rather than an inline `if` in [styleJsonFor], so a new basemap has to be placed on one side of it
- * and a test can pin the set.
- */
-internal fun basemapTakesNightPaint(basemap: Basemap): Boolean = basemap != Basemap.USGS_IMAGERY_ONLY
-
 internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String {
     val below = nightLowZoomBasemap(basemap)
-    return if (night && below != null && basemapTakesNightPaint(basemap)) nightStyleJsonWithBasemapBelow(basemap, below) else singleLayerStyleJson(basemap, night)
+    return if (night && below != null) nightStyleJsonWithBasemapBelow(basemap, below) else singleLayerStyleJson(basemap, night)
 }
 
 /**
@@ -211,7 +202,7 @@ private fun singleLayerStyleJson(basemap: Basemap, night: Boolean): String = """
         }
       },
       "layers": [
-        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID"${if (night && basemapTakesNightPaint(basemap)) NIGHT_RASTER_PAINT else ""}}
+        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID"${if (night) NIGHT_RASTER_PAINT else ""}}
       ]
     }
 """.trimIndent()
@@ -235,8 +226,7 @@ sealed interface MapStyleSource {
 
 /**
  * The offline style when [useOfflineTiles] is on, regardless of [basemap] and [night]; the
- * basemap's own raster style otherwise, with the night paint when [night] is on and the basemap
- * takes it ([basemapTakesNightPaint]).
+ * basemap's own raster style otherwise, with the night paint when [night] is on.
  *
  * The offline source ignores [night] because the store holds one style document, keyed by its one
  * URL: `NIGHT_RASTER_PAINT` is a raster paint block, and the offline style has 57 vector layers and
@@ -272,7 +262,7 @@ internal fun mapCreditsFor(
     // At topo night the style also draws Street below 9.7 ([nightLowZoomBasemap]), so its credit is owed. The
     // caption has no zoom input, so both credits show at every zoom; hiding one above the crossfade would need a zoom
     // listener for no gain. Offline is the vector style, which carries neither.
-    val below = if (!useOfflineTiles && nightMode && basemapTakesNightPaint(basemap)) nightLowZoomBasemap(basemap) else null
+    val below = if (!useOfflineTiles && nightMode) nightLowZoomBasemap(basemap) else null
     return (listOf(mapAttributionFor(basemap, useOfflineTiles)) + listOfNotNull(below?.attribution) + layerCredits).distinct()
 }
 
@@ -281,8 +271,8 @@ internal fun attributionCaption(credits: List<String>): String = credits.joinToS
 
 /**
  * Between two credits in the caption. A middle dot rather than a comma or a dash, because both of
- * those already occur inside the basemap credits ("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
- * "USGS The National Map, orthoimagery — public domain").
+ * those already occur inside credits ("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)", and the
+ * removed Satellite's "USGS The National Map, orthoimagery — public domain").
  */
 internal const val ATTRIBUTION_SEPARATOR = " · "
 
@@ -297,31 +287,20 @@ internal const val ATTRIBUTION_SEPARATOR = " · "
 internal data class AppliedMapStyle(
     val basemap: Basemap,
     /**
-     * The marker palette: `MapPalette.forMode` of the **raw** Night Maps toggle, on every basemap,
-     * Satellite included (colour build C2; the owner decided that on Satellite only the markers switch).
-     * The overlay layers bake these colours in when the style loads, so a palette change is a reload:
-     * that is why a toggle over Satellite reloads, even though [night] stays false there.
+     * The marker palette: `MapPalette.forMode` of the Night Maps toggle (colour build C2). The overlay
+     * layers bake these colours in when the style loads, so a palette change is a reload.
      */
     val palette: MapPalette,
     val useOfflineTiles: Boolean,
     /**
-     * **Effective** night ([effectiveNight]), not the raw toggle: whether the *basemap* takes its night
-     * paint. Night Maps did nothing before colour build C1 partly because this value had no night
-     * component at all, so a toggle compared equal and never reached `setStyle`. Over Satellite it is
-     * false either way, since Satellite's style does not change at night; the reload a toggle there
-     * causes comes from [palette].
+     * Whether the basemap takes its night style: the Night Maps toggle, on every basemap and over the
+     * offline style alike. Night Maps did nothing before colour build C1 partly because this value had
+     * no night component at all, so a toggle compared equal and never reached `setStyle`. It differed
+     * from the toggle only over Satellite, whose style stayed day; that exception (`effectiveNight`)
+     * went with Satellite (dispatch 2026-09-28-708).
      */
     val night: Boolean,
 )
-
-/**
- * Whether the style [SightingsMap] loads should be the night one: the Night Maps toggle, except on
- * Satellite's own raster style, which stays day ([basemapTakesNightPaint]). Over the offline style
- * it is the toggle whatever the basemap, because the offline style's night is its post-load
- * recolour ([offlineNightRecolourOf]), not a raster paint.
- */
-internal fun effectiveNight(basemap: Basemap, nightMode: Boolean, useOfflineTiles: Boolean): Boolean =
-    nightMode && (useOfflineTiles || basemapTakesNightPaint(basemap))
 
 /**
  * What [SightingsMap]'s style effect should load for these inputs, or `null` while the Night Maps
@@ -344,7 +323,7 @@ internal fun requestedMapStyle(
             basemap = basemap,
             palette = MapPalette.forMode(nightMode),
             useOfflineTiles = useOfflineTiles,
-            night = effectiveNight(basemap, nightMode = nightMode, useOfflineTiles = useOfflineTiles),
+            night = nightMode,
         )
     }
 

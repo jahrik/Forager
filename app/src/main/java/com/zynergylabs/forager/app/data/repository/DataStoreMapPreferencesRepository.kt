@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
@@ -42,7 +43,7 @@ class DataStoreMapPreferencesRepository(
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
     settingsReset: SettingsResetListener = SettingsResetListener.None,
-) : MapPreferencesRepository, MapLayerPreferencesRepository {
+) : MapPreferencesRepository, MapLayerPreferencesRepository, BasemapPreferenceRepository {
 
     private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope)
 
@@ -132,6 +133,20 @@ class DataStoreMapPreferencesRepository(
         dataStore.edit { prefs -> prefs[KEY_LAYER_ORDER] = layerIds.joinToString(LAYER_ORDER_SEPARATOR) }
     }
 
+    /**
+     * Dispatch 2026-09-28-708: the Maps tab's basemap, one string under [KEY_BASEMAP] in this same file
+     * and [dataStore], for the same one-instance reason as the layer choices above. Stored as given and
+     * read back as stored; `AvailabilityViewModel` resolves it against `MapMode` and replaces a key
+     * that names no mode.
+     */
+    override suspend fun getBasemapKey(): Result<String?> = runCatchingCancellable {
+        dataStore.data.first()[KEY_BASEMAP]
+    }
+
+    override suspend fun setBasemapKey(key: String): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_BASEMAP] = key }
+    }
+
     private companion object {
         const val DATA_STORE_NAME = "map_preferences"
         val KEY_LAST_PICKED_LAT = doublePreferencesKey("offline_map.last_picked_lat")
@@ -140,6 +155,7 @@ class DataStoreMapPreferencesRepository(
         val KEY_STALE_THRESHOLD_DAYS = intPreferencesKey("offline_map.stale_threshold_days")
         val KEY_NIGHT_MODE_MAPS = booleanPreferencesKey("night_mode.maps")
         val KEY_MAP_FULLSCREEN = booleanPreferencesKey("map.fullscreen")
+        val KEY_BASEMAP = stringPreferencesKey("map.basemap")
 
         // Map layers L0b, B3: per-layer keys are built from the registry id at use.
         const val LAYER_KEY_PREFIX = "map.layer."

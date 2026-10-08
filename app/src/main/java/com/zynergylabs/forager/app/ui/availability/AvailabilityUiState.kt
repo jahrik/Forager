@@ -24,6 +24,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
+import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.time.LocalDate
 
@@ -210,6 +211,16 @@ data class AvailabilityUiState(
      * failure (logged, [nightModeMaps] left `false`), so it can never hold the map blank forever.
      */
     val nightModeMapsLoaded: Boolean = false,
+    /**
+     * The Maps tab's basemap (dispatch 2026-09-28-708): restored at start from
+     * [com.zynergylabs.forager.app.domain.BasemapPreferenceRepository] and kept in step with every pick
+     * ([AvailabilityViewModel.onMapModeSelected]). `null` until that read has finished, successfully or
+     * not, which is the second half of the cold-launch gate: `AvailabilityScreen` tells the map no style
+     * may load until this and [nightModeMapsLoaded] are both in, so a phone that left Street never draws
+     * a first frame of Topographical. A failed read, or a stored key naming no map type (Satellite's,
+     * after its removal), is logged and lands here as a real mode, so it can never hold the map blank.
+     */
+    val mapMode: MapMode? = null,
 
     /**
      * Settings' "Automatically Save Location to Photos" checkbox — see

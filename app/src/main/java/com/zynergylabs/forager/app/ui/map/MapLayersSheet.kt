@@ -213,9 +213,10 @@ data class MapLayersControls(
  * window it takes the height it has). It replaces the basemap-only `MapModePicker` popover on all
  * three hosts.
  *
- * - **"Map type"**: Street, Topographical and Satellite, one chosen. A tap applies it and the sheet
- *   **stays open** (owner's ruling on Q3, "Stays open (Recommended)"); it closes on a swipe, Back or
- *   a tap outside, all through [onDismiss]. The basemap stays session-only.
+ * - **"Map type"**: Street and Topographical, one chosen (Satellite removed, dispatch
+ *   2026-09-28-708; see [MapMode]). A tap applies it and the sheet **stays open** (owner's ruling on
+ *   Q3, "Stays open (Recommended)"); it closes on a swipe, Back or a tap outside, all through
+ *   [onDismiss]. On the Maps tab the choice persists across restarts ([MapMode]'s doc).
  * - **"Overlays"**: one switch per [overlays] entry, then the colour fields [colourFields] (only the
  *   ones with data, top of the draw order first, the way Gaia and CalTopo list stacked layers), each
  *   with its switch, an "Opacity" slider and a drag handle. Listed after the record overlays because

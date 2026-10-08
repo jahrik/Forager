@@ -116,6 +116,7 @@ import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.GetMapRecordsUseCase
+import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.forecast.forecastCellStore
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
@@ -278,6 +279,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     private val dataStoreMapPreferencesRepository = DataStoreMapPreferencesRepository(context, settingsReset = settingsResetNotice)
     val mapPreferencesRepository: MapPreferencesRepository = dataStoreMapPreferencesRepository
     val mapLayerPreferencesRepository: MapLayerPreferencesRepository = dataStoreMapPreferencesRepository
+    val basemapPreferenceRepository: BasemapPreferenceRepository = dataStoreMapPreferencesRepository
 
     /**
      * Where the map's colour fields read their cells (map layers L0b, B5 and B6): one source-set-split

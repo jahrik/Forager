@@ -156,7 +156,7 @@ const val NAVIGATION_VIEW_ZOOM = 18.0
  * [NAVIGATION_VIEW_ZOOM] while navigating (Amendment 1; the owner: "Zoom in past the cap"). Only
  * the camera's limit moves. The tile sources' own `maxzoom` in the style ([styleJsonFor], which takes
  * no navigation input, held by `BasemapStyleTest`) does not, so no tile beyond a basemap's limit is
- * ever requested: MapLibre enlarges the deepest tiles instead, softer on Topo, blurrier on Satellite.
+ * ever requested: MapLibre enlarges the deepest tiles instead, softer on Topo.
  */
 fun navigationMaxZoom(basemap: Basemap, navigating: Boolean): Double =
     if (navigating) maxOf(basemap.maxZoom.toDouble(), NAVIGATION_VIEW_ZOOM) else basemap.maxZoom.toDouble()

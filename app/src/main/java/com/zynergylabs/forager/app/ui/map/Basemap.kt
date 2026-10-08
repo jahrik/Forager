@@ -1,27 +1,11 @@
 package com.zynergylabs.forager.app.ui.map
 
 /**
- * Where a basemap has tiles, and what to tell the user when the answer isn't "everywhere".
- *
- * [note] is non-null only for a limited-coverage basemap, so the UI has nothing to say — and says
- * nothing — about one that works anywhere. The limit is stated rather than detected: see
- * [Basemap]'s doc comment for why blank-tile detection was rejected.
- */
-enum class BasemapCoverage(val note: String?) {
-    WORLDWIDE(null),
-
-    UNITED_STATES_ONLY(
-        "United States only. Outside the US this basemap has no tiles and the map will come up " +
-            "empty — switch to OpenStreetMap or OpenTopoMap there.",
-    ),
-}
-
-/**
  * The basemaps the map can draw its tiles from, as this project's own type rather than a vendor's.
  *
  * This is the [MapSlot] idea one level down: the choice a user makes is described here in pure
  * Kotlin — no MapLibre, no Compose, no Android — and [styleJsonFor] (in `BasemapStyles.kt`) is the
- * single place that turns it into a MapLibre `Style`. So the coverage notes and the zoom ceilings
+ * single place that turns it into a MapLibre `Style`. So the zoom ceilings and credits
  * are all unit-testable headless (see `BasemapTest`); the vendor type stays behind one function
  * (`BasemapStyleTest` checks the style each entry actually produces).
  *
@@ -51,27 +35,23 @@ enum class BasemapCoverage(val note: String?) {
  *
  * ## How a basemap actually gets chosen
  *
- * Not from this enum directly. [MapMode] names exactly three — Street and Topographical (both
- * OpenStreetMap-derived), Satellite (USGS) — picked from the map's own quick-fire "Map Mode"
- * control, [MapModePicker]. See [MapMode]'s own doc comment for the full picture, including what
- * this superseded (a two-tier service/mode split, and PR #13's original USGS Topo default).
+ * Not from this enum directly. [MapMode] names exactly two, Street and Topographical (both
+ * OpenStreetMap-derived), picked from the Layers sheet's "Map type" row (`MapLayersSheet`) or the
+ * map's own quick-fire [MapModePicker]. See [MapMode]'s own doc comment for the full picture,
+ * including what this superseded (a two-tier service/mode split, and PR #13's original USGS Topo
+ * default), and for how the choice persists across restarts.
  *
- * **USGS National Map covers the United States only**, which is why it cannot be a hardcoded
- * default regardless of which type resolves it: that would break the map outright for any user
- * outside the US. Two alternatives to stating the limit outright were rejected:
+ * ## Satellite was removed (dispatch 2026-09-28-708)
  *
- * - **Auto-detecting coverage and falling back to OpenStreetMap.** Blank-tile detection is
- *   unreliable, and CLAUDE.md forbids an unlogged silent fallback. Worse, the failure here is not
- *   even blank tiles: the service answers **HTTP 404** outside the US (measured — see
- *   `scripts/verify-usgs-basemap.sh`), which a raster loader reports as a missing tile
- *   indistinguishable from a network failure or a not-yet-loaded tile. A heuristic on top of that
- *   would be invented, not derived.
- * - **Picking by device locale or GPS position.** Both guess at the answer, and both switch the map
- *   out from under the user without being asked. The user chooses; nothing switches behind their
- *   back.
- *
- * So the coverage limit is carried as [BasemapCoverage] text shown next to the choice, which is
- * what the app can honestly say: it knows the documented limit, it cannot detect the boundary.
+ * `USGS_IMAGERY_ONLY` (USGS The National Map's orthoimagery, shown as "Satellite") was deleted with
+ * everything that existed only for it: its night-paint exemption in `BasemapStyles.kt`, its credit,
+ * its chip, and the United-States-only coverage note it was the last user of. The owner: "I'm also
+ * wondering about what would be lost if I removed satellite view from the maps and leave it at Topo
+ * + street view. Satellite loses quality fast and is less useful when zoomed in", then "Remove now,
+ * revisit later (Recommended)". **To be revisited once the forecast's habitat layers are on the
+ * map.** Anyone who had Satellite chosen is moved to Topographical ("Topo (Recommended)"); see
+ * [MapMode.forStoredKey]. Its service facts (real tiles through z16, 404 from z17 and outside the
+ * US) are in git history and in `scripts/verify-usgs-basemap.sh`, for whoever revisits it.
  *
  * ## [maxZoom] is an operating limit, not a reported range
  *
@@ -84,7 +64,8 @@ enum class BasemapCoverage(val note: String?) {
  * `setTileSource` + `setMaxZoomLevel` did for osmdroid, now split the same way MapLibre's own API
  * splits it (declared-in-source vs. camera-preference).
  *
- * The USGS figure is a case study in why the rule exists. Three sources disagree:
+ * The USGS figure is a case study in why the rule exists (USGS left the app with Satellite, see above;
+ * the case is kept as the reason the rule is applied to the two that remain). Three sources disagree:
  *
  * - The service's own metadata (`MapServer?f=json`) advertises `tileInfo.lods` up to level **23**.
  * - Requesting tiles directly returns 200 with a JPEG body through **z16** and **404 from z17** —
@@ -115,43 +96,23 @@ enum class BasemapCoverage(val note: String?) {
 enum class Basemap(
     val label: String,
     val description: String,
-    val coverage: BasemapCoverage,
     /** The highest zoom this app will let the user reach on this basemap. See the class doc. */
     val maxZoom: Int,
     val attribution: String,
     /**
      * The raw `{z}`/`{x}`/`{y}` tile URL template MapLibre substitutes into, per basemap.
      *
-     * The USGS pair use ArcGIS's `tile/{z}/{y}/{x}` — row before column — not the `{z}/{x}/{y}` the
-     * other two use. Getting that backwards is the failure mode worth naming: transposed
-     * coordinates return a perfectly valid tile from the wrong place on Earth, so the map looks
-     * like it works. `BasemapStyleTest` pins the built URL for a known tile the same way
-     * `BasemapTileSourceTest` did for osmdroid, and `scripts/verify-usgs-basemap.sh` is the live
-     * check that this exact shape serves a real JPEG.
+     * Both remaining basemaps use `{z}/{x}/{y}`. The removed USGS basemaps used ArcGIS's
+     * `tile/{z}/{y}/{x}` — row before column — which is the failure mode worth naming for any
+     * basemap added back: transposed coordinates return a perfectly valid tile from the wrong place
+     * on Earth, so the map looks like it works. `BasemapStyleTest` pins the built URL for a known
+     * tile.
      */
     internal val tileUrlTemplate: String,
 ) {
-    /**
-     * Pure aerial orthoimagery, no topo labels drawn over it — the "other one," per the project
-     * owner's own distinction from [USGS_IMAGERY_TOPO]'s look (deleted alongside [USGS_TOPO]; see
-     * [MapMode]'s own doc comment for why neither is reachable any more). Confirmed live: real
-     * JPEGs through z16, 404 from z17, 404 outside the US — the same behaviour this project already
-     * verified for its USGS siblings before they were removed, via the same three-part check
-     * `scripts/verify-usgs-basemap.sh` runs.
-     */
-    USGS_IMAGERY_ONLY(
-        label = "USGS Satellite",
-        description = "Aerial orthoimagery, no labels. Public domain.",
-        coverage = BasemapCoverage.UNITED_STATES_ONLY,
-        maxZoom = 15,
-        attribution = "USGS The National Map, orthoimagery — public domain",
-        tileUrlTemplate = "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
-    ),
-
     OPEN_TOPO_MAP(
         label = "OpenTopoMap",
         description = "Topographic contours and hillshading, worldwide.",
-        coverage = BasemapCoverage.WORLDWIDE,
         maxZoom = 17,
         // Shortened from "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)" -- the
         // full form wrapped to two lines over the always-visible caption (see SightingsMap.kt),
@@ -165,7 +126,6 @@ enum class Basemap(
     OSM_STANDARD(
         label = "OpenStreetMap",
         description = "The standard street map: roads, paths and buildings.",
-        coverage = BasemapCoverage.WORLDWIDE,
         maxZoom = 19,
         attribution = "© OpenStreetMap contributors",
         tileUrlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
