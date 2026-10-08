@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
+import androidx.compose.ui.unit.height
 import com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepository
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.CompassReading
