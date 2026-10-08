@@ -138,7 +138,12 @@ fun entryReportOf(
     )
 }
 
-private fun heightProfileOf(tracks: List<Track>): HeightProfile {
+/**
+ * The height profile of [tracks] walked in order, under [PROVISIONAL_PROFILE_HEIGHT_LIMIT]. Not private since dispatch
+ * 2026-09-28-677 (data part B), whose track sheet draws one track's profile with it, so the entry report and the track sheet
+ * draw a walk's heights by the one rule.
+ */
+fun heightProfileOf(tracks: List<Track>): HeightProfile {
     val totalPoints = tracks.sumOf { it.points.size }
     val withHeight = tracks.sumOf { track -> track.points.count { it.altitude != null } }
     val limit = PROVISIONAL_PROFILE_HEIGHT_LIMIT
