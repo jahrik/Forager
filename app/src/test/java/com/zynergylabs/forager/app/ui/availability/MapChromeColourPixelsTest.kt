@@ -135,7 +135,12 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
         val token = if (dark) SurfaceContainerDark else SurfaceContainerLight
         val panel = composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).getUnclippedBoundsInRoot()
         // The panel covers the middle of the screen, so the reference is the bare map at the foot's edge, above the bottom bar.
-        val reference = at(root.left + 4.dp, root.bottom - 200.dp)
+        // Changed by RECORD -713 (the planner): the point was a fixed 200 dp above the bottom, which the panel came to cover
+        // when it moved down to follow the compass strip's real height (RECORD -709), so "bare map" read the panel itself. It
+        // is now 8 dp below the panel's measured bottom, still bare map and above the bottom bar; the claim is unchanged.
+        val reference = at(root.left + 4.dp, panel.bottom + 8.dp)
+        val navTop = composeRule.onNodeWithTag(COMPACT_BOTTOM_NAV_TAG).getUnclippedBoundsInRoot().top
+        check(panel.bottom + 8.dp < navTop) { "the reference point ${panel.bottom + 8.dp} must be above the bottom bar at $navTop" }
         assertSame("the search panel is the token at 0.8", over(token, MAP_CHROME_OVER_MAP_ALPHA, reference), at(panel.left + 3.dp, panel.top + 3.dp))
     }
 
