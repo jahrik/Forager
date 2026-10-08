@@ -15,6 +15,9 @@
     <!-- The owner's wording, 2026-10-05: clock times, so a notification read late stays true. %1$s the walk back, %2$s the start-by time. "The way you came" because loops come home longer. -->
     <string name="sundown_walk_back_measured">The walk back the way you came is about %1$s. To finish it before dark, start by %2$s.</string>
     <string name="sundown_walk_back_at_least">The walk back is at least %1$s. To finish it before dark, start by %2$s at the latest.</string>
+    <!-- Dispatch 2026-09-28-685, fix 4 (the owner, RECORD -678: "'Start back now' (Recommended)"): when the start-by time is already gone as the alert fires, never name it. %1$s the walk back. Wording proposed to the owner before the build. -->
+    <string name="sundown_walk_back_measured_now">The walk back the way you came is about %1$s. Start back now to finish before dark.</string>
+    <string name="sundown_walk_back_at_least_now">The walk back is at least %1$s. Start back now to finish before dark.</string>
     <string name="sundown_walk_back_unknown">The walk back is unknown.</string>
     <string name="sundown_sunset_notification_title">The sun has set</string>
     <string name="sundown_sunset_notification_text">Light is going now.</string>

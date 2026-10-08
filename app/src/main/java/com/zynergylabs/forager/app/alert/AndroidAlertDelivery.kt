@@ -296,9 +296,19 @@ internal fun sundownNotificationText(context: Context, alert: Alert): Pair<Strin
     val clock = DateFormat.getTimeFormat(context)
     val title = context.getString(R.string.sundown_alert_title, clock.format(Date(detail.sunsetAtEpochMillis)))
     val startBy = clock.format(Date(detail.leaveByAtEpochMillis))
+    // Dispatch 2026-09-28-685, fix 4: a start-by time already gone is never named ("Start back now").
+    val startByGone = detail.leaveByHasPassed
     val text = when (val walkBack = detail.walkBack) {
-        is WalkBack.About -> context.getString(R.string.sundown_walk_back_measured, formatWalkDuration(walkBack.millis), startBy)
-        is WalkBack.AtLeast -> context.getString(R.string.sundown_walk_back_at_least, formatWalkDuration(walkBack.millis), startBy)
+        is WalkBack.About -> if (startByGone) {
+            context.getString(R.string.sundown_walk_back_measured_now, formatWalkDuration(walkBack.millis))
+        } else {
+            context.getString(R.string.sundown_walk_back_measured, formatWalkDuration(walkBack.millis), startBy)
+        }
+        is WalkBack.AtLeast -> if (startByGone) {
+            context.getString(R.string.sundown_walk_back_at_least_now, formatWalkDuration(walkBack.millis))
+        } else {
+            context.getString(R.string.sundown_walk_back_at_least, formatWalkDuration(walkBack.millis), startBy)
+        }
         WalkBack.Unknown -> context.getString(R.string.sundown_walk_back_unknown)
     }
     return title to text

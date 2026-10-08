@@ -56,7 +56,24 @@ data class SundownAlertDetail(
     val sunsetAtEpochMillis: Long,
     val walkBack: WalkBack,
     val leaveByAtEpochMillis: Long,
-)
+    /**
+     * When the alert was decided ([SundownWatch]'s clock), so its text can tell a start-by time
+     * already gone (dispatch 2026-09-28-685, fix 4). `null` from a caller that does not say, which
+     * keeps the clock time as before.
+     */
+    val decidedAtEpochMillis: Long? = null,
+) {
+    /**
+     * The start-by time is already gone: its clock minute, the one the text would name, is before the
+     * minute the alert was decided in. Happens when the leave-by alert fires late: a margin change or
+     * a longer walk back moved leave-by behind now, or the recording started after it (the
+     * 2026-10-07 S22 walk: "start by 5:07 PM" sent at 5:08). Whole minutes since the epoch match the
+     * local clock's minutes in every zone whose offset is whole minutes, which is all in use today.
+     * The heads-up cannot reach this: once leave-by has passed, the leave-by alert fires in its place.
+     */
+    val leaveByHasPassed: Boolean
+        get() = decidedAtEpochMillis != null && Math.floorDiv(leaveByAtEpochMillis, 60_000L) < Math.floorDiv(decidedAtEpochMillis, 60_000L)
+}
 
 /**
  * One alert to deliver. [overridesSilence] is **deliberately a parameter of the call, not a
