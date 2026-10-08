@@ -69,6 +69,7 @@ import com.zynergylabs.forager.app.ui.map.layers.restoreMapLayersState
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -184,6 +185,23 @@ class AvailabilityViewModel(
 
     /** The region+month+filter the current [AvailabilityUiState.seasonalPattern] was fetched for, or null if none fetched yet. */
     private var loadedSeasonalPatternQuery: Triple<Region, Int, TaxonFilter>? = null
+
+    /**
+     * RECORD -723: the parent of every fetch a search starts (the ranked list, rainfall, today's forecast, trip
+     * windows, and the map's sightings and the seasonal pattern fetched for it), so [clearSearch] can cancel the
+     * ones still running; otherwise a fetch finishing after Clear would put the cleared search back. A child of
+     * the ViewModel's own scope, so it is cancelled with it; a supervisor, so one failed fetch cancels no other,
+     * as when each was launched on the scope directly.
+     */
+    private var searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
+
+    /**
+     * RECORD -725: the region, month and filter of the search last run ([refresh]), which the map's sightings and
+     * the seasonal pattern are fetched for. Read instead of the UI state's current values because picking a species
+     * suggestion now selects it without searching ("no search yet"); the map must go on showing the search that ran,
+     * not fetch the newly picked species for the old region. Null before any search and after [clearSearch].
+     */
+    private var activeSearch: Triple<Region, Int, TaxonFilter>? = null
     private var taxonSearchJob: Job? = null
 
     /**
@@ -446,7 +464,9 @@ class AvailabilityViewModel(
                 taxonSearchHasNoResults = false,
             )
         }
-        _uiState.value.region?.let { refresh(it, _uiState.value.selectedMonth, filter) }
+        // RECORD -725, the owner: "instead of having it automatically search, just keep the keyboard open and fill
+        // it in, no search yet". The species is selected (the bar's summary names it) and nothing is fetched; the
+        // next search the user runs carries it. Before this, a region already searched was searched again here.
     }
 
     /**
@@ -775,14 +795,13 @@ class AvailabilityViewModel(
      * map view the user never opens shouldn't cost an extra API call.
      */
     fun onMapTabSelected() {
-        val state = _uiState.value
-        val region = state.region ?: return
-        val query = Triple(region, state.selectedMonth, state.taxonFilter)
+        val query = activeSearch ?: return
+        val (region, month, filter) = query
         if (loadedSightingsQuery == query) return
 
-        viewModelScope.launch {
+        viewModelScope.launch(searchJobs) {
             _uiState.update { it.copy(isLoadingSightings = true, sightingsErrorMessage = null) }
-            getSightings(region, state.selectedMonth, state.taxonFilter).fold(
+            getSightings(region, month, filter).fold(
                 onSuccess = { page ->
                     loadedSightingsQuery = query
                     _uiState.update {
@@ -810,14 +829,13 @@ class AvailabilityViewModel(
      * repeat on every tab switch.
      */
     fun onSeasonalTabSelected() {
-        val state = _uiState.value
-        val region = state.region ?: return
-        val query = Triple(region, state.selectedMonth, state.taxonFilter)
+        val query = activeSearch ?: return
+        val (region, month, filter) = query
         if (loadedSeasonalPatternQuery == query) return
 
-        viewModelScope.launch {
+        viewModelScope.launch(searchJobs) {
             _uiState.update { it.copy(isLoadingSeasonalPattern = true, seasonalPatternErrorMessage = null) }
-            getSeasonalPattern(region, state.selectedMonth, state.taxonFilter).fold(
+            getSeasonalPattern(region, month, filter).fold(
                 onSuccess = { distribution ->
                     loadedSeasonalPatternQuery = query
                     _uiState.update { it.copy(isLoadingSeasonalPattern = false, seasonalPattern = distribution) }
@@ -837,10 +855,13 @@ class AvailabilityViewModel(
     }
 
     private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
+        activeSearch = Triple(region, month, filter)
         // A new search invalidates any sightings loaded for a previous region/month/filter.
         loadedSightingsQuery = null
         _uiState.update {
-            it.copy(sightings = emptyList(), sightingsErrorMessage = null)
+            // searchSerial: so the screen fetches the sightings again even when this search is the one
+            // already showing (RECORD -723; see AvailabilityUiState.searchSerial).
+            it.copy(sightings = emptyList(), sightingsErrorMessage = null, searchSerial = it.searchSerial + 1)
         }
 
         // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.
@@ -851,7 +872,7 @@ class AvailabilityViewModel(
 
         // Read now, while the selection is the one this search was started for.
         val speciesGroup = speciesGroupToStore(filter)
-        viewModelScope.launch {
+        viewModelScope.launch(searchJobs) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             getAvailability(region, month, filter, speciesGroup).fold(
                 onSuccess = { result ->
@@ -900,7 +921,7 @@ class AvailabilityViewModel(
             // Independent of the forecast fetch above: a conditions failure must not block or
             // fail the main forecast, same independence pattern as onMapTabSelected's sightings
             // fetch.
-            viewModelScope.launch {
+            viewModelScope.launch(searchJobs) {
                 _uiState.update { it.copy(isLoadingConditions = true, conditionsErrorMessage = null) }
                 getConditions(region).fold(
                     onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
@@ -923,7 +944,7 @@ class AvailabilityViewModel(
             // production, a separate identical-parameter request — see GetTodaysForecastUseCase's
             // own doc comment for why that duplication is accepted rather than threaded through
             // GetTripWindowsUseCase's unrelated, already-tested return type).
-            viewModelScope.launch {
+            viewModelScope.launch(searchJobs) {
                 _uiState.update { it.copy(isLoadingTodaysForecast = true, todaysForecastErrorMessage = null) }
                 getTodaysForecast(region).fold(
                     onSuccess = { forecast -> _uiState.update { it.copy(isLoadingTodaysForecast = false, todaysForecast = forecast) } },
@@ -956,7 +977,7 @@ class AvailabilityViewModel(
         // conditions above they are fetched regardless of which month is selected for the ranked
         // list — browsing "what's typical in November" in August doesn't make this week's rain
         // and forecast irrelevant to planning a trip this week.
-        viewModelScope.launch {
+        viewModelScope.launch(searchJobs) {
             _uiState.update { it.copy(isLoadingTripWindows = true, tripWindowsErrorMessage = null) }
             getTripWindows(region).fold(
                 onSuccess = { report -> _uiState.update { it.copy(isLoadingTripWindows = false, tripWindowReport = report) } },
@@ -1004,6 +1025,47 @@ class AvailabilityViewModel(
      * slider, the manual-coordinate boxes and the summary strip all describe the search that just
      * ran — the same fields [useCurrentLocation] fills in for the same reason.
      */
+    /**
+     * RECORD -723, the search bar's Clear: "One tap removes the observations from the map, clears the bar's summary
+     * back to 'Search a location', and leaves recent searches untouched." The search's region and every result
+     * fetched for it go: the map's sightings, the ranked list, rainfall, today's forecast, trip windows and the
+     * seasonal pattern, so no tab goes on showing results for a search the bar says is not there. Fetches still
+     * running are cancelled first ([searchJobs]). Kept: recent searches, the month, the radius, the species
+     * selection and the coordinate fields, which are the user's settings for the next search, not results.
+     */
+    fun clearSearch() {
+        searchJobs.cancel()
+        searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
+        activeSearch = null
+        loadedSightingsQuery = null
+        loadedSeasonalPatternQuery = null
+        _uiState.update {
+            it.copy(
+                region = null,
+                forecast = null,
+                isLoading = false,
+                errorMessage = null,
+                isShowingCachedResults = false,
+                cachedResultsAsOfEpochMillis = null,
+                sightings = emptyList(),
+                isLoadingSightings = false,
+                sightingsErrorMessage = null,
+                conditions = null,
+                isLoadingConditions = false,
+                conditionsErrorMessage = null,
+                todaysForecast = null,
+                isLoadingTodaysForecast = false,
+                todaysForecastErrorMessage = null,
+                tripWindowReport = null,
+                isLoadingTripWindows = false,
+                tripWindowsErrorMessage = null,
+                seasonalPattern = null,
+                isLoadingSeasonalPattern = false,
+                seasonalPatternErrorMessage = null,
+            )
+        }
+    }
+
     fun onRecentSearchSelected(summary: CachedSearchSummary) {
         val region = summary.region
         _uiState.update {

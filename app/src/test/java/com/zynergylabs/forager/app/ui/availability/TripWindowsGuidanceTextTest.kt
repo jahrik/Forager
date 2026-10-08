@@ -19,11 +19,22 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-private const val FUNGI_HEADING = "Rain and fungi: the general pattern"
-
-/** The two texts dispatch 2026-09-28-695 removed, as they read on screen before it. */
-private const val REMOVED_NO_GUIDANCE_HEADING = "No weather guidance for this selection"
-private const val REMOVED_SPECIES_NOTE = "No species-specific data is available for"
+/**
+ * Every text the Trip Windows card's guidance section ever showed, as it read on screen: RECORD -727 removed the last
+ * two (the fungi and plants blocks), dispatch 2026-09-28-695 the two before them. Headings and one phrase from each
+ * paragraph, so a block that came back under a new heading would still be caught by its body.
+ */
+private val GUIDANCE_TEXTS = listOf(
+    "Rain and fungi: the general pattern",
+    "one to three weeks after sustained rain",
+    "is often quoted as broadly typical for temperate fleshy fungi",
+    "Forager has not measured any relationship between these conditions",
+    "Rain and plants: no pattern to offer",
+    "no weather-based pattern for plants",
+    "The rainfall and soil measurements are still shown, without an interpretation",
+    "No weather guidance for this selection",
+    "No species-specific data is available for",
+)
 
 private val FLY_AGARIC = TaxonSearchResult(
     taxonId = 48715,
@@ -34,7 +45,16 @@ private val FLY_AGARIC = TaxonSearchResult(
     photoUrl = null,
 )
 
-/** A species in a group Forager has written no weather guidance for. */
+private val RAMPS = TaxonSearchResult(
+    taxonId = 54713,
+    scientificName = "Allium tricoccum",
+    commonName = "Ramps",
+    rank = "species",
+    iconicTaxonName = "Plantae",
+    photoUrl = null,
+)
+
+/** A species in a group Forager never wrote weather guidance for. */
 private val LADYBIRD = TaxonSearchResult(
     taxonId = 48484,
     scientificName = "Harmonia axyridis",
@@ -45,22 +65,18 @@ private val LADYBIRD = TaxonSearchResult(
 )
 
 /**
- * Dispatch 2026-09-28-695: the Trip Windows card's guidance text, through the real [AvailabilityScreen] over the real
- * [AvailabilityViewModel] (`mapLayersViewModel`, `MapLayersTestScreen`), read in the Tools drawer's Trip Planner
- * section a user opens to see it.
+ * RECORD -727, the owner: "remove the block of text here labeled Rain and Fungi: the general pattern", then "Remove
+ * both" for the plants block. The Trip Windows card shows no guidance text for fungi, plants or an unknown group,
+ * through the real [AvailabilityScreen] over the real [AvailabilityViewModel] (`mapLayersViewModel`,
+ * `MapLayersTestScreen`), read in the Tools drawer's Trip Planner section a user opens to see it.
  *
- * The species is picked by calling [AvailabilityViewModel.onTaxonSearchResultSelected], the callback a suggestion
- * row's tap calls, and not by typing and tapping a row: the shared fixture's species search returns no results, so
- * there is no row to tap. The region is searched the same way, through the callbacks the coordinate boxes and the
- * "Search this location" button call. Both are the screen's own entry points; what is read back is rendered text.
+ * The selection is made by calling [AvailabilityViewModel.onTaxonSearchResultSelected], the callback a suggestion
+ * row's tap calls (the shared fixture's species search returns no rows to tap); the starting selection is the Fungi
+ * category. Before -727, fungi and plants each showed a block here (this class, as it stood, asserted the fungi one).
  *
- * The trip-window weather fetch fails in this fixture, so the card shows its error line above the guidance. That line
- * is what each test holds as proof the card itself rendered, so an absent guidance block is the card's choice and not
- * a card that never composed.
- *
- * A species reopened from a recent search is reopened through [AvailabilityViewModel.onRecentSearchSelected], the
- * callback a recent-search row's tap calls, with the entry the ViewModel itself loaded from the (in-memory) store
- * after the species had been searched by name (amendment 1, RECORD -696: the group is saved with the search).
+ * The trip-window weather fetch fails in this fixture, so the card shows its error line. That line is what each test
+ * holds as proof the card itself rendered, so an absent guidance block is the card's choice and not a card that never
+ * composed.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -104,73 +120,48 @@ class TripWindowsGuidanceTextTest {
         composeRule.onNodeWithText("Couldn't load trip-window weather.").performScrollTo().assertIsDisplayed()
     }
 
-    private fun assertNoRemovedText() {
-        composeRule.onAllNodesWithText(REMOVED_NO_GUIDANCE_HEADING).assertCountEquals(0)
-        composeRule.onAllNodesWithText(REMOVED_SPECIES_NOTE, substring = true).assertCountEquals(0)
+    private fun assertNoGuidanceText() {
+        GUIDANCE_TEXTS.forEach { text -> composeRule.onAllNodesWithText(text, substring = true).assertCountEquals(0) }
     }
 
     @Test
-    fun `a fungus species picked by name shows the fungi pattern and no species note`() {
-        val viewModel = setScreenWithARegionSearched()
-        pickByName(viewModel, FLY_AGARIC)
-        assertEquals(
-            "the precondition: the species is the selection",
-            TaxonFilter.SpecificTaxon(taxonId = 48715, label = "Fly Agaric"),
-            viewModel.uiState.value.taxonFilter,
-        )
-
-        openTripPlanner()
-
-        assertTripWindowsCardShown()
-        composeRule.onNodeWithText(FUNGI_HEADING).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("one to three weeks after sustained rain", substring = true).performScrollTo().assertIsDisplayed()
-        assertNoRemovedText()
-    }
-
-    /**
-     * The Fungi category, which is what the screen starts on (`ForagingSelection.forChip(TaxonFilter.FUNGI)`), shows
-     * the same pattern and no note. No picker offers a species as a chip at this base, so this is the chip case.
-     */
-    @Test
-    fun `the fungi category shows the fungi pattern and no species note`() {
+    fun `the fungi category shows no guidance text`() {
         val viewModel = setScreenWithARegionSearched()
         assertEquals("the precondition: the default selection", TaxonFilter.FUNGI, viewModel.uiState.value.taxonFilter)
+        assertEquals("the precondition: its group is fungi", "Fungi", viewModel.uiState.value.foragingSelection.iconicTaxonName)
 
         openTripPlanner()
 
         assertTripWindowsCardShown()
-        composeRule.onNodeWithText(FUNGI_HEADING).performScrollTo().assertIsDisplayed()
-        assertNoRemovedText()
+        assertNoGuidanceText()
     }
 
-    /**
-     * Amendment 1 to -695 (RECORD -696; the owner, "Save it with the search"): Fly Agaric searched by name, then
-     * another species picked so the selection is no longer Fly Agaric's, then Fly Agaric reopened from the recent
-     * searches. Before the amendment this reopened with no group and so no guidance.
-     */
     @Test
-    fun `a fungus species reopened from a recent search shows the fungi pattern and no species note`() {
+    fun `a fungus species shows no guidance text`() {
         val viewModel = setScreenWithARegionSearched()
         pickByName(viewModel, FLY_AGARIC)
-        pickByName(viewModel, LADYBIRD)
-        val flyAgaric = TaxonFilter.SpecificTaxon(taxonId = 48715, label = "Fly Agaric")
-        val recent = composeRule.runOnIdle { viewModel.uiState.value.recentSearches.single { it.filter == flyAgaric } }
-
-        composeRule.runOnIdle { viewModel.onRecentSearchSelected(recent) }
-        composeRule.waitForIdle()
-        assertEquals("the precondition: the reopened species is the selection", flyAgaric, viewModel.uiState.value.taxonFilter)
+        assertEquals("the precondition: its group is fungi", "Fungi", viewModel.uiState.value.foragingSelection.iconicTaxonName)
 
         openTripPlanner()
 
         assertTripWindowsCardShown()
-        composeRule.onNodeWithText(FUNGI_HEADING).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("one to three weeks after sustained rain", substring = true).performScrollTo().assertIsDisplayed()
-        assertNoRemovedText()
+        assertNoGuidanceText()
     }
 
-    /** A selection whose group has no written guidance: the card ends at its measurements, with no heading at all. */
     @Test
-    fun `a species in a group with no written guidance shows no guidance block at all`() {
+    fun `a plant species shows no guidance text`() {
+        val viewModel = setScreenWithARegionSearched()
+        pickByName(viewModel, RAMPS)
+        assertEquals("the precondition: its group is plants", "Plantae", viewModel.uiState.value.foragingSelection.iconicTaxonName)
+
+        openTripPlanner()
+
+        assertTripWindowsCardShown()
+        assertNoGuidanceText()
+    }
+
+    @Test
+    fun `a species in an unknown group shows no guidance text`() {
         val viewModel = setScreenWithARegionSearched()
         pickByName(viewModel, LADYBIRD)
         assertEquals(
@@ -182,8 +173,6 @@ class TripWindowsGuidanceTextTest {
         openTripPlanner()
 
         assertTripWindowsCardShown()
-        composeRule.onAllNodesWithText(FUNGI_HEADING).assertCountEquals(0)
-        composeRule.onAllNodesWithText("Rain and plants: no pattern to offer").assertCountEquals(0)
-        assertNoRemovedText()
+        assertNoGuidanceText()
     }
 }

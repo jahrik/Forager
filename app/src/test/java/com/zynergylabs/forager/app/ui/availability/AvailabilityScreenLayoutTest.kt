@@ -702,46 +702,43 @@ abstract class AvailabilityScreenLayoutTest {
         openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
-        // Scrolled to the guidance heading below both assertions, not to "Trip Windows" itself:
-        // performScrollTo() bottom-aligns its target flush with the scrollable viewport's edge, and
-        // the whole card is short enough to fit the viewport once scrolled this far — so anchoring
-        // on the last piece brings the earlier two into view with clearance instead of flush against
-        // the boundary, which at this fontScale is exactly where "Trip Windows" itself would land.
-        composeRule.onNodeWithText("Rain and fungi: the general pattern").performScrollTo()
-
-        composeRule.onNodeWithText("Trip Windows").assertIsDisplayed()
+        // Scrolled to the card's last piece, not to "Trip Windows" itself: performScrollTo()
+        // bottom-aligns its target flush with the scrollable viewport's edge, so anchoring on the last
+        // piece brings the title into view with clearance. That last piece was the guidance heading
+        // until RECORD -727 removed the guidance; the card now ends at its measurements line.
         composeRule.onNodeWithText(
             "No forecast days were returned for this location, so there's nothing to plan against.",
-        ).assertIsDisplayed()
+        ).performScrollTo().assertIsDisplayed()
+
+        composeRule.onNodeWithText("Trip Windows").performScrollTo().assertIsDisplayed()
     }
 
     /**
      * Dispatch 2026-09-28-549: under Imperial (US) the window's soil temperature reads in °F to one
-     * decimal (11.3 °C × 9/5 + 32 = 52.34) and the guidance band in whole °F (10–20 °C = 50–68 °F).
-     * Driven through the real drawer as the test above is; the metric strings are the next test.
+     * decimal (11.3 °C × 9/5 + 32 = 52.34). The guidance band it also read (10–20 °C = 50–68 °F) went
+     * with the guidance text (RECORD -727), and that assertion with it. Driven through the real drawer
+     * as the test above is; the metric strings are the next test.
      */
     @Test
-    fun `under the imperial setting the trip window's soil temperature and the guidance band read in Fahrenheit`() {
+    fun `under the imperial setting the trip window's soil temperature reads in Fahrenheit`() {
         setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_ONE_WINDOW, unitSystem = UnitSystem.IMPERIAL))
 
         openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNode(hasText("Soil temperature") and hasText("52.3°F")).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("roughly 50–68 °F", substring = true).performScrollTo().assertIsDisplayed()
         composeRule.onAllNodesWithText("°C", substring = true).assertCountEquals(0)
     }
 
-    /** The metric half: the same window and band read exactly as before. */
+    /** The metric half: the same window reads exactly as before (its guidance band went with RECORD -727). */
     @Test
-    fun `under the metric setting the trip window's soil temperature and the guidance band read as before`() {
+    fun `under the metric setting the trip window's soil temperature reads as before`() {
         setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_ONE_WINDOW))
 
         openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
         composeRule.onNode(hasText("Soil temperature") and hasText("11.3°C")).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("roughly 10–20 °C", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     /**
