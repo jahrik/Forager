@@ -136,10 +136,33 @@ fun interface AlertDelivery {
  * What an alert's delivery did: whether its notification was posted and its vibration issued, and
  * if not, why ([notificationProblem], [vibrationProblem]: a permission denied, or the exception's
  * class). For the Return record; nothing a walker sees.
+ *
+ * [vibrationSkipped] (dispatch 2026-09-28-685, fix 3; the owner, RECORD -678: "Fix: record it as
+ * skipped (Recommended)"): the vibration was issued without error but Android does not play it, and
+ * why, in words ([VIBRATION_SKIPPED_PHONE_ON_SILENT]). [vibrated] is then `false`. Until that
+ * dispatch the record said `vibration=done` for an off-track buzz a silenced phone dropped
+ * (`ignored_for_ringer_mode` in Android's own vibrator history, the 2026-10-07 S22 walk): a failure
+ * reported as success. Defaulted so a caller that cannot tell says nothing it does not know.
  */
 data class AlertDeliveryOutcome(
     val notificationPosted: Boolean,
     val notificationProblem: String?,
     val vibrated: Boolean,
     val vibrationProblem: String?,
+    val vibrationSkipped: String? = null,
 )
+
+/** Why a vibration was skipped: the phone is on silent and the alert does not override it. */
+const val VIBRATION_SKIPPED_PHONE_ON_SILENT = "phone on silent"
+
+/**
+ * Why Android will not play an alert's vibration, or `null` when nothing here says it won't
+ * (dispatch 2026-09-28-685, fix 3). Only one case is known from the ringer alone: a silenced ringer
+ * and an alert that does not override silence ([Alert.overridesSilence] `false`, the off-track
+ * alert by the owner's 2026-09-11 ruling), which Android drops as `ignored_for_ringer_mode`. Vibrate
+ * and normal modes play it; an alert that overrides silence carries alarm usage and plays on silent
+ * (both seen on the S22, 2026-10-07). This decides what is recorded, never what is delivered: the
+ * vibration is still issued either way, so the alert's behaviour is unchanged.
+ */
+fun vibrationSkippedBecause(overridesSilence: Boolean, ringerMode: RingerMode): String? =
+    if (!overridesSilence && ringerMode == RingerMode.SILENT) VIBRATION_SKIPPED_PHONE_ON_SILENT else null
