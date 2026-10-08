@@ -34,9 +34,23 @@ data class ForagingSelection(
             ForagingSelection(result.toFilter(), result.iconicTaxonName)
 
         /**
+         * A search reopened from the recent-searches list: a category carries its own group, and a
+         * species the group stored with the search (dispatch 2026-09-28-695, amendment 1; the owner,
+         * "Save it with the search"), so Fly Agaric reopened there shows the fungi pattern as it did
+         * when it was searched by name. A species saved before that was stored, or the Lichens chip,
+         * has none, and shows no guidance.
+         */
+        fun fromRecentSearch(summary: CachedSearchSummary): ForagingSelection = when (val filter = summary.filter) {
+            is TaxonFilter.IconicCategory -> fromCategory(filter)
+            is TaxonFilter.SpecificTaxon -> ForagingSelection(filter, summary.speciesIconicTaxonName)
+        }
+
+        /**
          * The selection behind an [TaxonFilter.IconicCategory] or [TaxonFilter.SpecificTaxon]
-         * chosen some way other than a name search (e.g. [TaxonFilter.LICHENS], restorable from a
-         * recent search even though no picker offers it directly any more).
+         * chosen some way other than a name search or a recent search: today only the screen's
+         * starting selection, the Fungi category. A species given here has no group to carry, so it
+         * shows no guidance; a recent search goes through [fromRecentSearch] instead, which carries
+         * the group stored with it.
          *
          * A lichens selection is deliberately given a null group rather than "Fungi". iNaturalist
          * does file lichens under Fungi, but the general pattern this app states — fleshy fungi
