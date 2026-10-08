@@ -132,6 +132,13 @@ import com.zynergylabs.forager.app.BuildConfig
  * because the legacy fixtures declare [TrackEntity] directly. Version 18 was checked against every branch
  * on both remotes (none above 17, no `MIGRATION_17_*`) on 2026-10-07 before being claimed.
  *
+ * [version] 19 adds nullable `speciesIconicTaxonName` to `cached_searches` via a real [MIGRATION_18_19] —
+ * dispatch 2026-09-28-695, amendment 1 (RECORD -696; the owner, "Save it with the search"): a species
+ * reopened from a recent search keeps its group, and so its weather guidance. Old rows stay null. A
+ * rebuild, like 17 to 18, because the legacy fixtures declare [CachedSearchEntity] directly. Version 19
+ * was checked by the planner against every open branch (back-by and small-fixes at 18) and against
+ * `origin/main` (at 18, `b71c1569`) on 2026-10-08 before being claimed; re-check at build time.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -170,7 +177,7 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryPhotoRefEntity::class,
         CartographyEntryTrackPathEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -231,10 +238,10 @@ abstract class ForagerDatabase : RoomDatabase() {
         internal val ALL_MIGRATIONS = arrayOf(
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
-            MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18,
+            MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 18
+        const val SCHEMA_VERSION = 19
     }
 }

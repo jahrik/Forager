@@ -28,12 +28,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 17→18, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 18→19, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→18.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→19.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -161,15 +161,30 @@ class SchemaMigrationTest {
             assertEquals("both time indexes are back", 2L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'tracks' AND name IN ('index_tracks_startedAtEpochMillis', 'index_tracks_endedAtEpochMillis')"))
         }
 
+    // Dispatch 2026-09-28-695, amendment 1 (RECORD -696): the cached_searches rebuild. Every seeded column is
+    // carried (assertEverySeededValueSurvived compares them all by name, filterIconicTaxonName included, which
+    // still tells a category row from a species row), and the pre-existing row's new speciesIconicTaxonName is
+    // NULL: no backfill, since nothing stored says which group an old species row belongs to. The column then
+    // takes a species row's group.
+    @Test fun `18 to 19 - the cached_searches rebuild adds speciesIconicTaxonName null, every value carried`() =
+        migrate(18, 19, MIGRATION_18_19, overrides = mapOf("cached_searches" to mapOf("key" to "k-species", "filterLabel" to "Fly Agaric", "filterIconicTaxonName" to null, "filterTaxonId" to 48715L, "filterExcludedTaxonId" to null))) { db ->
+            assertEquals("Fly Agaric", db.scalar("SELECT filterLabel FROM cached_searches"))
+            assertEquals(48715L, db.scalar("SELECT filterTaxonId FROM cached_searches"))
+            assertNull("an old row is not given a group", db.scalar("SELECT speciesIconicTaxonName FROM cached_searches"))
+            db.execSQL("UPDATE cached_searches SET speciesIconicTaxonName = 'Fungi' WHERE `key` = 'k-species'")
+            assertEquals("Fungi", db.scalar("SELECT speciesIconicTaxonName FROM cached_searches"))
+            assertNull("the category discriminant is a separate column", db.scalar("SELECT filterIconicTaxonName FROM cached_searches"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // T16: the chain now ends at 18, the current version (it ended at 17 before MIGRATION_17_18).
-    @Test fun `4 to 18 - the full chain, validated against 18_json, every seeded value survives`() {
+    // Amendment 1 to -695: the chain now ends at 19, the current version (it ended at 18 before MIGRATION_18_19).
+    @Test fun `4 to 19 - the full chain, validated against 19_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 18, true, *ForagerDatabase.ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 19, true, *ForagerDatabase.ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 18)
+            assertEverySeededValueSurvived(db, seeded, 4, 19)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }

@@ -5,7 +5,6 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,11 +13,15 @@ class ForagingWeatherGuidanceTest {
 
     // Metric unless a test says otherwise: the band's own constant is in °C, so the metric text is
     // the one the assumption tests below read against (dispatch 2026-09-28-549).
+    // Null when no guidance is written for the selection's group (dispatch 2026-09-28-695).
     private fun guidanceFor(selection: ForagingSelection, unitSystem: UnitSystem = UnitSystem.METRIC) =
         ForagingWeatherGuidance.forSelection(selection, unitSystem)
 
+    private fun writtenGuidanceFor(selection: ForagingSelection, unitSystem: UnitSystem = UnitSystem.METRIC) =
+        requireNotNull(guidanceFor(selection, unitSystem)) { "expected written guidance for ${selection.filter.label}" }
+
     private fun textOf(selection: ForagingSelection, unitSystem: UnitSystem = UnitSystem.METRIC) =
-        guidanceFor(selection, unitSystem).paragraphs.joinToString(" ")
+        writtenGuidanceFor(selection, unitSystem).paragraphs.joinToString(" ")
 
     // ---- selection plumbing ----------------------------------------------------------------
 
@@ -47,17 +50,29 @@ class ForagingWeatherGuidanceTest {
         assertEquals("Fungi", selection.iconicTaxonName)
     }
 
+    /** Amendment 1 to -695: a recent search hands back the group stored with it, and only a species carries one. */
+    @Test
+    fun `a recent search rebuilds the selection with its stored group, and an old or lichens one has none`() {
+        val flyAgaric = TaxonFilter.SpecificTaxon(taxonId = 48715, label = "Fly Agaric")
+        val region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+        fun summary(filter: TaxonFilter, group: String?) =
+            CachedSearchSummary(region = region, month = 10, filter = filter, cachedAtEpochMillis = 0L, speciesIconicTaxonName = group)
+
+        assertEquals(ForagingSelection(flyAgaric, "Fungi"), ForagingSelection.fromRecentSearch(summary(flyAgaric, "Fungi")))
+        assertEquals("saved before version 19", ForagingSelection(flyAgaric, null), ForagingSelection.fromRecentSearch(summary(flyAgaric, null)))
+        assertEquals(ForagingSelection(TaxonFilter.LICHENS, null), ForagingSelection.fromRecentSearch(summary(TaxonFilter.LICHENS, null)))
+        assertEquals(ForagingSelection.fromCategory(TaxonFilter.PLANTS), ForagingSelection.fromRecentSearch(summary(TaxonFilter.PLANTS, null)))
+    }
+
     // ---- category guidance varies by category ----------------------------------------------
 
     @Test
     fun `fungi guidance states the rain lag pattern and hedges it as a rule of thumb`() {
-        val guidance = guidanceFor(ForagingSelection.fromCategory(TaxonFilter.FUNGI))
-        val text = guidance.paragraphs.joinToString(" ")
+        val text = textOf(ForagingSelection.fromCategory(TaxonFilter.FUNGI))
 
         assertTrue(text.contains("one to three weeks after sustained rain"))
         // Traceability: the claim is attributed and explicitly not presented as measured here.
         assertTrue(text.contains("not a figure Forager has measured"))
-        assertNull(guidance.speciesDataCaveat)
     }
 
     @Test
@@ -106,91 +121,81 @@ class ForagingWeatherGuidanceTest {
 
     @Test
     fun `plants guidance says plainly that there is no weather pattern to offer`() {
-        val guidance = guidanceFor(ForagingSelection.fromCategory(TaxonFilter.PLANTS))
+        val guidance = writtenGuidanceFor(ForagingSelection.fromCategory(TaxonFilter.PLANTS))
 
         assertEquals("Rain and plants: no pattern to offer", guidance.heading)
         assertTrue(guidance.paragraphs.first().contains("no weather-based pattern for plants"))
     }
 
+    /**
+     * Dispatch 2026-09-28-695: the "No weather guidance for this selection" block is gone. A group
+     * with nothing written for it gets no guidance at all, so the screen shows no heading and no
+     * paragraph, and still never borrows another group's text.
+     */
     @Test
-    fun `a category with no written guidance says so rather than borrowing another's`() {
+    fun `a category with no written guidance shows none rather than borrowing another's`() {
         val insects = TaxonFilter.IconicCategory(iconicTaxonName = "Insecta", label = "Insects")
 
-        val guidance = guidanceFor(ForagingSelection.fromCategory(insects))
-        val text = guidance.paragraphs.joinToString(" ")
-
-        assertEquals("No weather guidance for this selection", guidance.heading)
-        assertFalse(text.contains("one to three weeks after sustained rain"))
-        assertTrue(text.contains("nothing sourced for this selection"))
+        assertNull(guidanceFor(ForagingSelection.fromCategory(insects)))
     }
 
-    // ---- a specific taxon always gets the caveat -------------------------------------------
+    // ---- a specific taxon shows its group's pattern, with nothing added ---------------------
 
     @Test
-    fun `a specific species falls back to its category's guidance`() {
+    fun `a specific species shows exactly its category's guidance`() {
         val chanterelles = ForagingSelection(
             filter = TaxonFilter.SpecificTaxon(taxonId = 47348, label = "chanterelles"),
             iconicTaxonName = "Fungi",
         )
-
-        val guidance = guidanceFor(chanterelles)
 
         assertEquals(
-            guidanceFor(ForagingSelection.fromCategory(TaxonFilter.FUNGI)).paragraphs,
-            guidance.paragraphs,
+            writtenGuidanceFor(ForagingSelection.fromCategory(TaxonFilter.FUNGI)),
+            writtenGuidanceFor(chanterelles),
         )
     }
 
+    /** Dispatch 2026-09-28-695: the italic "No species-specific data is available for ..." note is gone everywhere. */
     @Test
-    fun `a specific species states explicitly that no species-specific data exists`() {
-        val chanterelles = ForagingSelection(
-            filter = TaxonFilter.SpecificTaxon(taxonId = 47348, label = "chanterelles"),
+    fun `a specific species carries no species note and nothing names it`() {
+        val flyAgaric = ForagingSelection(
+            filter = TaxonFilter.SpecificTaxon(taxonId = 48715, label = "Fly Agaric"),
             iconicTaxonName = "Fungi",
         )
 
-        val caveat = guidanceFor(chanterelles).speciesDataCaveat
+        val guidance = writtenGuidanceFor(flyAgaric)
+        val text = (listOf(guidance.heading) + guidance.paragraphs).joinToString(" ")
 
-        assertNotNull("a specific taxon must always carry the no-species-data statement", caveat)
-        assertTrue(caveat!!.contains("No species-specific data is available for chanterelles"))
-        assertTrue(caveat.contains("not a claim about chanterelles"))
-        assertTrue(caveat.contains("general pattern for fungi in general"))
+        assertEquals("Rain and fungi: the general pattern", guidance.heading)
+        assertFalse(text, text.contains("No species-specific data"))
+        assertFalse(text, text.contains("Fly Agaric"))
     }
 
     @Test
-    fun `the caveat is present even when the species has no category guidance to fall back on`() {
+    fun `a species with no known group shows no guidance at all`() {
         val unknownGroup = ForagingSelection(
             filter = TaxonFilter.SpecificTaxon(taxonId = 99999, label = "Some Beetle"),
             iconicTaxonName = null,
         )
 
-        val guidance = guidanceFor(unknownGroup)
-
-        assertEquals("No weather guidance for this selection", guidance.heading)
-        assertNotNull(guidance.speciesDataCaveat)
-        assertTrue(guidance.speciesDataCaveat!!.contains("No species-specific data is available for Some Beetle"))
+        assertNull(guidanceFor(unknownGroup))
     }
 
     @Test
-    fun `the lichens chip is not given the fungi fruiting pattern`() {
+    fun `the lichens chip is not given the fungi fruiting pattern, or any other`() {
         // iNaturalist files lichens under Fungi, but the stated pattern is about fruiting bodies.
         // Reusing it here would present it as a claim about organisms it was not written about.
-        val guidance = guidanceFor(ForagingSelection.forChip(TaxonFilter.LICHENS))
-        val text = guidance.paragraphs.joinToString(" ")
-
-        assertFalse(text.contains("one to three weeks after sustained rain"))
-        assertNotNull(guidance.speciesDataCaveat)
-        assertTrue(guidance.speciesDataCaveat!!.contains("Lichens (approx.)"))
+        assertNull(guidanceFor(ForagingSelection.forChip(TaxonFilter.LICHENS)))
     }
 
     @Test
-    fun `every default selection produces guidance, and only a specific-taxon selection carries a caveat`() {
-        val caveats = listOf(TaxonFilter.FUNGI, TaxonFilter.PLANTS, TaxonFilter.LICHENS).associate { filter ->
-            filter.label to guidanceFor(ForagingSelection.forChip(filter)).speciesDataCaveat
+    fun `of the default selections, fungi and plants have guidance and lichens has none`() {
+        val hasGuidance = listOf(TaxonFilter.FUNGI, TaxonFilter.PLANTS, TaxonFilter.LICHENS).associate { filter ->
+            filter.label to (guidanceFor(ForagingSelection.forChip(filter)) != null)
         }
 
         assertEquals(
-            mapOf("Fungi" to false, "Plants" to false, "Lichens (approx.)" to true),
-            caveats.mapValues { it.value != null },
+            mapOf("Fungi" to true, "Plants" to true, "Lichens (approx.)" to false),
+            hasGuidance,
         )
     }
 
@@ -206,7 +211,7 @@ class ForagingWeatherGuidanceTest {
 
         val offenders = UnitSystem.entries.flatMap { system -> everySelection.map { it to system } }.flatMap { (selection, system) ->
             val guidance = guidanceFor(selection, system)
-            val text = (guidance.paragraphs + listOfNotNull(guidance.speciesDataCaveat)).joinToString(" ")
+            val text = listOfNotNull(guidance?.heading).plus(guidance?.paragraphs.orEmpty()).joinToString(" ")
             forbidden.filter { text.lowercase().contains(it) }.map { "${selection.filter.label}: $it" }
         }
 
