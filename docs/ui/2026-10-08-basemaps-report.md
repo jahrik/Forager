@@ -54,6 +54,8 @@ same line is in `ui/map/Basemap.kt`'s class doc and `ui/map/MapMode.kt`'s.
 
 ## Decided beyond scope (for the planner to confirm or reverse)
 
+**Planner's ruling, 2026-10-08: all five accepted as built** (coverage removed; USGS script kept as the revisit's record; `chosenMapMode` stays with its reason in the comment; the gate's field name stays with its comment updated; an unknown key writes Topographical back and a failed read writes nothing). No code changed for it: each was already in that state.
+
 1. **`BasemapCoverage` and `Basemap.coverage` removed.** No production code ever read them (only `BasemapTest` and
    `MapModeTest`); `UNITED_STATES_ONLY` existed for USGS, and with it gone every value would be `WORLDWIDE` with a `null` note.
    I read that as code whose only purpose was Satellite. Reversible from git if the revisit wants it back.
