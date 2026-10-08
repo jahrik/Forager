@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
 import com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TRANSITION_MILLIS
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 
@@ -138,7 +139,7 @@ object MotionTokens {
     // §2 "Night mode" (motion Part 3, item 4; the owner, RECORD -651: "Fade the colours", and RECORD -652: "the fade is
     // permissible if it's fast and smooth, and not ceremonial and boring"): every colour of the theme blends from the old
     // scheme to the new (theme/Theme.kt). Effects, and the **fast** one, so the blend is quick and cannot overshoot a colour.
-    @Composable
-    @ReadOnlyComposable
-    fun <T> nightModeFadeSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.fastEffectsSpec()
+    // The one category read **above** the theme, from the [scheme] the theme is about to provide, because what it fades is the
+    // theme's own colours: `ForagerTheme` works out the colour scheme before there is a [MaterialTheme.motionScheme] to read.
+    fun <T> nightModeFadeSpec(scheme: MotionScheme): FiniteAnimationSpec<T> = scheme.fastEffectsSpec()
 }
