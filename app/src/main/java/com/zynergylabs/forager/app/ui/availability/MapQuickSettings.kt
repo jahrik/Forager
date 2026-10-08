@@ -42,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.BACK_BY_QUICK_HOURS
 import com.zynergylabs.forager.app.domain.BackByChoice
@@ -138,7 +137,7 @@ internal fun backByLineText(backBy: BackByShown?, clock: SundownClock): String? 
  * Motion Part 1 (RECORD -687): the press goes through [BouncingIconButton], as every icon button in the
  * app does: the icon dips and springs back, and Material's own press is drawn clipped to the button's
  * round shape, not as a square. Material's icon button would otherwise claim its 48 dp minimum touch
- * size around the 36 dp the owner set; [LocalMinimumInteractiveComponentSize] is unset for this one
+ * size around the 36 dp the owner set; [LocalMinimumInteractiveComponentSize] is 0 dp for this one
  * button so its touch area stays exactly the [QUICK_SETTINGS_TAP_TARGET] square.
  */
 @Composable
@@ -155,7 +154,7 @@ internal fun MapQuickSettingsButton(
         modifier = modifier.size(QUICK_SETTINGS_TAP_TARGET),
         contentAlignment = Alignment.Center,
     ) {
-        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
             BouncingIconButton(
                 onClick = { expanded = true },
                 modifier = Modifier
