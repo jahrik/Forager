@@ -122,7 +122,14 @@ internal class FixedForecastStore(private val groups: Set<String>) : ForecastCel
  * plain tap that reaches it (so a test can tell a touch reached the map, not a control over it), and
  * reports [shown] as the dates of the cells in view through the forecast feed, as `SightingsMap` does.
  */
-internal class LayersRecordingMapSlot(private val shown: Map<String, ForecastCellsShown> = emptyMap()) {
+/**
+ * [zoomedOut] is what this stand-in map reports through `MapForecastFeed.onZoomedOutChanged`, as the real
+ * map does at each camera idle (data part C): whether the camera is below the colour fields' minimum zoom.
+ */
+internal class LayersRecordingMapSlot(
+    private val shown: Map<String, ForecastCellsShown> = emptyMap(),
+    private val zoomedOut: Boolean = false,
+) {
     var renderMode: MapRenderMode? = null
     var content: MapOverlayContent? = null
     var taps = 0
@@ -133,6 +140,7 @@ internal class LayersRecordingMapSlot(private val shown: Map<String, ForecastCel
         val feed = renderMode.forecast
         LaunchedEffect(feed?.groupsByLayer) {
             feed?.onCellsShown?.invoke(shown.filterKeys { it in feed.groupsByLayer })
+            feed?.onZoomedOutChanged?.invoke(zoomedOut)
         }
         Box(
             modifier
