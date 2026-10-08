@@ -368,8 +368,9 @@ internal fun darknessMarginTag(minutes: Int) = "settings-darkness-margin-$minute
  * The Tools drawer's "Sundown" section (dispatch 2026-09-28-707; the owner: "move the Sundown area to
  * the Tools so that it's one button away instead of two", then "Section in the Tools drawer
  * (Recommended)"): "Sundown alerts", "Dark under trees" with its explanation and four choices, and
- * the "Off-track reminder". Drawn at the top of the Tools page, above the Trip Planner, inside
- * [SearchControls]' scroll so a short screen still reaches everything. It was Settings' section,
+ * the "Off-track reminder". Drawn near the top of the Tools page, under the Trip Planner's one-line
+ * header (collapsed by default), inside [SearchControls]' scroll so a short screen still reaches
+ * everything; why under it and not above it is on [SearchControls]' `following`. It was Settings' section,
  * moved whole: same rows, same tags, same values and callbacks.
  *
  * **No fill of its own**: the drawer's container is the one 80% layer over the map
@@ -574,7 +575,7 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
  *
  * 1. **[SearchControls]** — Trip Planner only. Waypoints moved
  *    out (Journal restructure Stage 1) into the Journal's own Records tab. Since dispatch
- *    2026-09-28-707 the **Sundown** section ([ToolsSundownSection]) sits above it, in the same
+ *    2026-09-28-707 the **Sundown** section ([ToolsSundownSection]) sits under it, in the same
  *    scroll, moved here from Settings so it is one tap away instead of two.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
@@ -654,9 +655,9 @@ internal fun CompactToolsDrawerContent(
             modifier = Modifier.weight(1f),
             uiState = uiState,
             onDeletePlannedTrip = onDeletePlannedTrip,
-            leading = {
-                ToolsSundownSection(sundown = sundown, offTrackReminder = offTrackReminder)
+            following = {
                 HorizontalDivider()
+                ToolsSundownSection(sundown = sundown, offTrackReminder = offTrackReminder)
             },
         )
         SettingsEntryRow(onClick = { showSettings = true })
