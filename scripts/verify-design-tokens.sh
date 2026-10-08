@@ -71,10 +71,15 @@ report "no palette constant imported outside the theme package" "$hits"
 #    (NAVIGATION_VIEW_TRANSITION_MILLIS), which a spring cannot match. Excluded by its file and its exact
 #    text, so a second tween in that file, or this one copied anywhere else, still fails. ADR-0002 records it.
 #    (Merged 2026-10-07: -660's word-boundary pattern applied to both greps below, -672's exception kept.)
-hits=$(grep -rnE "(^|[^[:alnum:]_])tween\(" $UI --include=*.kt \
+#    Typed tweens too (dispatch 2026-09-28-685, fix 5; the owner, RECORD -655: "Fix and prove they bite
+#    (Recommended)"): the pattern was blind to explicit type arguments, so `tween<Float>(300)` passed (found by
+#    motion Part 2). It now takes an optional <...> between the name and the bracket, with no bracket inside it.
+#    Shown failing on a planted `tween<Float>(300)` and restored from a saved copy; see that dispatch's report.
+TWEEN_CALL="(^|[^[:alnum:]_])tween(<[^()]*>)?\\("
+hits=$(grep -rnE "$TWEEN_CALL" $UI --include=*.kt \
        | grep -vF "$UI/motion/MotionTokens.kt:" \
        || true)
-allowed=$(grep -HnE "(^|[^[:alnum:]_])tween\(" $UI/motion/MotionTokens.kt \
+allowed=$(grep -HnE "$TWEEN_CALL" $UI/motion/MotionTokens.kt \
        | grep -vF "fun <T> navigationViewChromeSpec(): FiniteAnimationSpec<T> = tween(durationMillis = NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(), easing = FastOutSlowInEasing)" \
        || true)
 hits=$(printf '%s\n%s' "$hits" "$allowed" | sed '/^$/d')

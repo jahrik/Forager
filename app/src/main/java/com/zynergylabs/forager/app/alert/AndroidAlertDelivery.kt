@@ -18,10 +18,13 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.Alert
+import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.WalkBack
+import com.zynergylabs.forager.app.domain.DoNotDisturbSource
+import com.zynergylabs.forager.app.domain.vibrationSkipReason
 import java.util.Date
 
 /**
@@ -49,8 +52,25 @@ class AndroidAlertDelivery internal constructor(
     private val postNotification: (Context, Alert) -> Boolean,
     /** Issues the alert's vibration. A seam for tests. */
     private val vibrate: (Context, Boolean) -> Unit,
+    /**
+     * The ringer, read as each vibration is issued, to record whether Android will play it
+     * (dispatch 2026-09-28-685, fix 3). The trip-start warning's own seam, reused; faked in tests.
+     */
+    private val audibility: AlertAudibility,
+    /** Do Not Disturb, read with the ringer (dispatch 2026-09-28-685, Amendment 1, RECORD -694). Faked in tests. */
+    private val doNotDisturb: DoNotDisturbSource,
 ) : AlertDelivery {
     constructor(context: Context) : this(context, ::postNotificationFor, ::vibrateForAlert)
+
+    /**
+     * The two seams tests replace most, with the platform's ringer and Do Not Disturb. Its own constructor, not defaults on
+     * the one above, so a call ending in a trailing lambda still means the vibration (dispatch 2026-09-28-685).
+     */
+    internal constructor(
+        context: Context,
+        postNotification: (Context, Alert) -> Boolean,
+        vibrate: (Context, Boolean) -> Unit,
+    ) : this(context, postNotification, vibrate, AndroidAlertAudibility(context), AndroidDoNotDisturbSource(context))
 
     private val appContext = context.applicationContext
 
@@ -87,7 +107,29 @@ class AndroidAlertDelivery internal constructor(
             vibrationProblem = e::class.simpleName
             false
         }
-        return AlertDeliveryOutcome(posted, notificationProblem, vibrated, vibrationProblem)
+        val skipped = if (vibrated) vibrationSkipped(alert) else null
+        return AlertDeliveryOutcome(posted, notificationProblem, vibrated && skipped == null, vibrationProblem, skipped)
+    }
+
+    /**
+     * Why Android will not play the vibration just issued ([vibrationSkipReason]), for the record
+     * only: what was delivered is already decided and unchanged (dispatch 2026-09-28-685, fix 3; the
+     * owner, RECORD -678; Do Not Disturb added by Amendment 1, RECORD -694). A reading that fails is logged and says nothing.
+     */
+    private fun vibrationSkipped(alert: Alert): String? {
+        val filter = try {
+            doNotDisturb.current()
+        } catch (e: Exception) {
+            Log.w(TAG, "Do Not Disturb could not be read; the ${alert.kind} alert's vibration is not checked against it.", e)
+            null
+        }
+        val ringerMode = try {
+            audibility.current().ringerMode
+        } catch (e: Exception) {
+            Log.w(TAG, "The ringer could not be read; the ${alert.kind} alert's vibration is not checked against it.", e)
+            null
+        }
+        return vibrationSkipReason(alert.overridesSilence, filter, ringerMode)
     }
 
     private companion object {
@@ -273,9 +315,19 @@ internal fun sundownNotificationText(context: Context, alert: Alert): Pair<Strin
     val clock = DateFormat.getTimeFormat(context)
     val title = context.getString(R.string.sundown_alert_title, clock.format(Date(detail.sunsetAtEpochMillis)))
     val startBy = clock.format(Date(detail.leaveByAtEpochMillis))
+    // Dispatch 2026-09-28-685, fix 4: a start-by time already gone is never named ("Start back now").
+    val startByGone = detail.leaveByHasPassed
     val text = when (val walkBack = detail.walkBack) {
-        is WalkBack.About -> context.getString(R.string.sundown_walk_back_measured, formatWalkDuration(walkBack.millis), startBy)
-        is WalkBack.AtLeast -> context.getString(R.string.sundown_walk_back_at_least, formatWalkDuration(walkBack.millis), startBy)
+        is WalkBack.About -> if (startByGone) {
+            context.getString(R.string.sundown_walk_back_measured_now, formatWalkDuration(walkBack.millis))
+        } else {
+            context.getString(R.string.sundown_walk_back_measured, formatWalkDuration(walkBack.millis), startBy)
+        }
+        is WalkBack.AtLeast -> if (startByGone) {
+            context.getString(R.string.sundown_walk_back_at_least_now, formatWalkDuration(walkBack.millis))
+        } else {
+            context.getString(R.string.sundown_walk_back_at_least, formatWalkDuration(walkBack.millis), startBy)
+        }
         WalkBack.Unknown -> context.getString(R.string.sundown_walk_back_unknown)
     }
     return title to text

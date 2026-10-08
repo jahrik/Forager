@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.MgrsConverter
@@ -520,13 +521,27 @@ private fun OfflineRegionDetails(region: OfflineRegionSummary, distanceUnit: Dis
 
 @Composable
 private fun DetailsTitle(title: String, stale: Boolean = false, label: String? = null) {
+    // Dispatch 2026-09-28-685, fix 1 (the owner, RECORD -644: "Fix it (Recommended)"): beside a long title the
+    // "Imported" label was measured last into what the title left, and drew one letter per line (an imported
+    // file's name, "forager-track-2026-09-27-192346", on the S22). Now the title takes only what the label and
+    // "Stale" leave (a weight that does not fill), the words beside it never wrap, and a title with a word beside
+    // it stays on one line and shortens with "…". A title with nothing beside it wraps as before.
+    val besideTitle = label != null || stale
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag(RECORD_DETAILS_TITLE_TAG))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = if (besideTitle) 1 else Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false).testTag(RECORD_DETAILS_TITLE_TAG),
+        )
         if (label != null) {
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.testTag(RECORD_DETAILS_LABEL_TAG),
             )
         }
@@ -535,6 +550,8 @@ private fun DetailsTitle(title: String, stale: Boolean = false, label: String? =
                 "Stale",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.testTag(RECORD_DETAILS_STALE_TAG),
             )
         }

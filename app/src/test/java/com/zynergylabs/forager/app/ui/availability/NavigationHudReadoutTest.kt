@@ -399,6 +399,10 @@ class NavigationHudReadoutTest {
         val r = readout(target = fiftyMetres, now = t + 45_000L, unit = DistanceUnit.KILOMETERS)
 
         assertEquals("Approaching · last fix 45 s ago", r.statusText)
+        // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): its short form, and which one a width gets.
+        assertEquals("Last fix 45 s ago", r.statusShortText)
+        assertEquals("Approaching · last fix 45 s ago", statusTextThatFits(r, maxWidthPx = 100) { it.length })
+        assertEquals("Last fix 45 s ago", statusTextThatFits(r, maxWidthPx = 30) { it.length })
         assertEquals("≈ 50 m", r.distanceText)
         assertTrue(r.distanceDeEmphasised)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
