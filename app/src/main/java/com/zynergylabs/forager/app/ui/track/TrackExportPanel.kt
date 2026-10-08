@@ -185,7 +185,7 @@ internal fun TrackExportRow(
                 // time otherwise, as the details sheet's title already reads (trackTitle). A recorded walk has
                 // no name, so its row reads as before.
                 Text(trackTitle(track, is24Hour), style = MaterialTheme.typography.bodyLarge)
-                Text(trackSubtitle(track), style = MaterialTheme.typography.bodySmall)
+                Text(trackSubtitle(track, is24Hour), style = MaterialTheme.typography.bodySmall)
             }
         }
         // testTag, not contentDescription alone, is what a test (and this dispatch's own testing
@@ -196,7 +196,7 @@ internal fun TrackExportRow(
             onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
             modifier = Modifier.testTag("share-track-${track.id}"),
         ) {
-            Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${formatTrackTimestamp(track)}")
+            Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${displayDateTime(track.startedAtEpochMillis, is24Hour)}")
         }
     }
 }
@@ -206,7 +206,7 @@ internal fun TrackExportRow(
  * fixes (timestamp-filter dispatch, Item 3) — what it left out, so a short or empty track is never a
  * silent one. The ordinary track, including one the rule quietly cleaned, reads exactly as before.
  */
-internal fun trackSubtitle(track: Track): String {
+internal fun trackSubtitle(track: Track, is24HourClock: Boolean): String {
     val pointCount = track.points.size
     val pointsText = if (pointCount == 1) "1 point" else "$pointCount points"
     val note = networkFixExclusionNote(track)
@@ -217,7 +217,7 @@ internal fun trackSubtitle(track: Track): String {
     }
     // Plan T16: an imported track says so first ("Imported" label, the owner's answer in -636), then the
     // date it carries, since its title is its name rather than its time.
-    if (track.importedAtEpochMillis != null) return "$IMPORTED_LABEL · ${formatTrackTimestamp(track)} · $body"
+    if (track.importedAtEpochMillis != null) return "$IMPORTED_LABEL · ${displayDateTime(track.startedAtEpochMillis, is24HourClock)} · $body"
     return if (track.endedAtEpochMillis == null) "$body · recording" else body
 }
 
