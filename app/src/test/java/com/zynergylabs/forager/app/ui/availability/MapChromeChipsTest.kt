@@ -46,20 +46,52 @@ internal abstract class LayersChipsTests(private val baseChipTopDp: Float) {
 
     private fun chip(label: String): DpRect = composeRule.onNodeWithText(label).getUnclippedBoundsInRoot()
 
+    /**
+     * The box the Row actually lays [label]'s chip out in: its minimum touch target. A chip narrower than 48 dp is
+     * measured 48 dp wide by `minimumInteractiveComponentSize` and drawn centred in that box, while its semantic bounds
+     * ([chip]) are the drawn chip only. The box's width is measured (the chip's layout node, `layoutInfo.width`); its left
+     * edge is the drawn chip's left less half the padding, because the minimum-size modifier centres the chip in it.
+     */
+    private fun laidOutBox(label: String): ClosedFloatingPointRange<Float> {
+        val node = composeRule.onNodeWithText(label).fetchSemanticsNode()
+        val drawn = chip(label)
+        val boxWidthDp = with(composeRule.density) { node.layoutInfo.width.toDp().value }
+        val left = drawn.left.value - (boxWidthDp - (drawn.right.value - drawn.left.value)) / 2f
+        return left..(left + boxWidthDp)
+    }
+
+    /**
+     * Two checks, because semantic bounds alone are off-centre by design (RECORD -719). Two chips of unequal width get
+     * unequal minimum-touch padding: under Robolectric's near-zero-width fonts Street is 39 dp and Topographical 46 dp
+     * wide, so their 48 dp boxes pad them 4.5 dp and 1 dp a side. The row the Row centres is the boxes', 362.5 to 462 dp
+     * in landscape, centre 412.25 against the sheet's 412; the drawn chips span 367 to 461, centre 414. This test passed
+     * on the drawn chips while the row ended in Satellite (dispatch 2026-09-28-708 removed it), whose padding happened to
+     * balance Street's.
+     *
+     * So the row of laid-out boxes is held to 1 dp, the centring the Row is asked for, and the drawn chips' own centre to
+     * 2 dp, so a real centring bug still fails here: the padding cannot move what is drawn further than that.
+     */
     @Test
     fun `the map-type chips are centred between the sheet's sides`() {
         openSheet()
         val sheet = composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).getUnclippedBoundsInRoot()
-        val first = chip("Street")
-        val last = chip("Satellite")
-
-        val rowCentre = (first.left.value + last.right.value) / 2f
         val sheetCentre = (sheet.left.value + sheet.right.value) / 2f
+        // The last chip has been Topographical since dispatch 2026-09-28-708 removed Satellite.
+        val firstBox = laidOutBox("Street")
+        val lastBox = laidOutBox("Topographical")
         assertEquals(
-            "the chip row [${first.left.value}, ${last.right.value}] is centred on the sheet [${sheet.left.value}, ${sheet.right.value}]",
+            "the row of laid-out chip boxes [${firstBox.start}, ${lastBox.endInclusive}] is centred on the sheet [${sheet.left.value}, ${sheet.right.value}]",
             sheetCentre,
-            rowCentre,
+            (firstBox.start + lastBox.endInclusive) / 2f,
             1f,
+        )
+        val first = chip("Street")
+        val last = chip("Topographical")
+        assertEquals(
+            "the drawn chips [${first.left.value}, ${last.right.value}] are centred on the sheet [${sheet.left.value}, ${sheet.right.value}]",
+            sheetCentre,
+            (first.left.value + last.right.value) / 2f,
+            2f,
         )
     }
 

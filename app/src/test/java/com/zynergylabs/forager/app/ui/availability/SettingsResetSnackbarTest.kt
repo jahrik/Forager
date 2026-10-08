@@ -82,7 +82,9 @@ class SettingsResetSnackbarTest {
         composeRule.waitForIdle()
 
         assertEquals("the snackbar is gone", 0, composeRule.onAllNodesWithText(SETTINGS_RESET_MESSAGE).fetchSemanticsNodes().size)
-        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText(LOCK_CAMERA_SETTING_LABEL).fetchSemanticsNodes().isNotEmpty() }
+        // Settings' own row shows: "Night Maps", since "Lock camera to portrait", which this waited for, moved into the
+        // camera's gear panel (dispatch 2026-09-28-707).
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("Night Maps").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test

@@ -6,7 +6,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -102,40 +101,14 @@ class BasemapStyleTest {
     }
 
     /**
-     * USGS uses ArcGIS's `tile/{z}/{y}/{x}` — row before column — not the `{z}/{x}/{y}` the
-     * OSM-derived pair use. Getting that backwards is the failure mode worth a test: transposed
-     * coordinates return a perfectly valid tile from the wrong place on Earth, so the map looks like
-     * it works. Asserted against the real style JSON's `tiles` array, the same discipline the deleted
-     * test applied to osmdroid's built `getTileURLString` output.
+     * The OSM-derived sources put x before y. This was the contrast case to a USGS test pinning ArcGIS's
+     * row-before-column order, removed with Satellite (dispatch 2026-09-28-708); it stays as the pin on
+     * the two templates the app still uses.
      */
-    @Test
-    fun `the USGS source declares ArcGIS row-column order in its tile template`() {
-        assertEquals(
-            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
-            tileTemplateFor(Basemap.USGS_IMAGERY_ONLY),
-        )
-    }
-
-    /** The contrast case: the OSM-derived sources put x before y, so the two orderings are demonstrably different. */
     @Test
     fun `the OSM-derived sources declare x-y order in their tile template`() {
         assertEquals("https://tile.openstreetmap.org/{z}/{x}/{y}.png", tileTemplateFor(Basemap.OSM_STANDARD))
         assertEquals("https://a.tile.opentopomap.org/{z}/{x}/{y}.png", tileTemplateFor(Basemap.OPEN_TOPO_MAP))
-    }
-
-    /**
-     * USGS Imagery really does stop lower than the OSM standard map, in the JSON MapLibre actually
-     * reads — not just in [Basemap]'s own field, which `BasemapTest` already covers. A future
-     * `styleJsonFor` bug that dropped or miscomputed `maxzoom` for one basemap but not the other
-     * would fail here even if `BasemapTest` stayed green.
-     */
-    @Test
-    fun `USGS Imagery's declared maxzoom is lower than the OSM standard map's`() {
-        val usgsMaxZoom = parsedStyle(Basemap.USGS_IMAGERY_ONLY).getValue("sources").jsonObject
-            .getValue(RASTER_SOURCE_ID).jsonObject.getValue("maxzoom").jsonPrimitive.int
-        val osmMaxZoom = parsedStyle(Basemap.OSM_STANDARD).getValue("sources").jsonObject
-            .getValue(RASTER_SOURCE_ID).jsonObject.getValue("maxzoom").jsonPrimitive.int
-        assertTrue("USGS Imagery ($usgsMaxZoom) is expected to cap lower than OpenStreetMap ($osmMaxZoom).", usgsMaxZoom < osmMaxZoom)
     }
 
     /** Every basemap's raster layer must actually reference the source declared alongside it, or MapLibre renders nothing. */

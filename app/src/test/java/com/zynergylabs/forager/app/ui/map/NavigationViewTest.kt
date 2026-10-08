@@ -85,10 +85,8 @@ class NavigationViewTest {
     @Test
     fun `while navigating the camera may reach the start zoom on every basemap, and not otherwise`() {
         assertEquals(18.0, navigationMaxZoom(Basemap.OPEN_TOPO_MAP, navigating = true), 0.0)
-        assertEquals(18.0, navigationMaxZoom(Basemap.USGS_IMAGERY_ONLY, navigating = true), 0.0)
         assertEquals("a higher cap is not lowered", 19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = true), 0.0)
         assertEquals(17.0, navigationMaxZoom(Basemap.OPEN_TOPO_MAP, navigating = false), 0.0)
-        assertEquals(15.0, navigationMaxZoom(Basemap.USGS_IMAGERY_ONLY, navigating = false), 0.0)
         assertEquals(19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
     }
 

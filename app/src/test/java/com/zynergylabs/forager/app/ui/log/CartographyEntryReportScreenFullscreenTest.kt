@@ -8,6 +8,8 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -170,7 +172,9 @@ class CartographyEntryReportScreenFullscreenTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        listOf("Street", "Topographical", "Satellite").forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+        listOf("Street", "Topographical").forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+        // Satellite was removed by dispatch 2026-09-28-708; the entry map's sheet offers it nowhere.
+        composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
     }
 
     @Test

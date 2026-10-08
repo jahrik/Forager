@@ -278,7 +278,7 @@ private fun BackBySection(settings: MapQuickSettings, clock: SundownClock, onPic
     }
 }
 
-/** Settings' "Sundown" section in short: its checkbox, and its four margins in one row. Settings keeps the explanation line. */
+/** The "Sundown" section in short: its checkbox, and its four margins in one row. The Tools drawer's section (`ToolsSundownSection`, Settings' until dispatch 2026-09-28-707) keeps the explanation line. */
 @Composable
 private fun QuickSundownSection(sundown: SundownSettings) {
     QuickCheckboxRow(

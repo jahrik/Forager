@@ -52,6 +52,7 @@ import com.zynergylabs.forager.app.ui.diagnostics.DIAGNOSTICS_TITLE
 import com.zynergylabs.forager.app.ui.diagnostics.directoryHeading
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.MapMode
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -316,9 +317,14 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(false, capturedNightModeLoaded)
     }
 
+    /**
+     * Since dispatch 2026-09-28-708 the gate also waits for the stored basemap
+     * ([AvailabilityUiState.mapMode]), so "loaded" here is both reads landed. The state gained
+     * `mapMode` for that; the assertion is unchanged.
+     */
     @Test
     fun `the main map is told once the Night Maps preference has loaded`() {
-        setScreenWithOfflineMapsState(initial = SEARCHED_STATE.copy(nightModeMapsLoaded = true))
+        setScreenWithOfflineMapsState(initial = SEARCHED_STATE.copy(nightModeMapsLoaded = true, mapMode = MapMode.DEFAULT))
         composeRule.onNodeWithTag(MAP_SLOT_TAG).assertExists()
 
         assertEquals(true, capturedNightModeLoaded)
@@ -430,14 +436,16 @@ class AvailabilityScreenSettingsPanelTest {
 
         assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
         // Map layers L0b (owner's ruling on Q3, "Stays open"): the sheet stays open on a map-type
-        // tap, so the other chips are still on screen. Before L0b the picker closed itself here and
-        // this asserted Satellite's count was 0.
-        composeRule.onAllNodesWithText("Satellite").assertCountEquals(1)
-        composeRule.onNodeWithText("Satellite").assertIsDisplayed().performClick()
+        // tap, so the other chip is still on screen. Before L0b the picker closed itself here and
+        // this asserted Satellite's count was 0; until dispatch 2026-09-28-708 it then went on to
+        // Satellite, which that dispatch removed, so it now goes back to Topographical and checks
+        // that no Satellite chip is offered.
+        composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
+        composeRule.onNodeWithText("Topographical").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
         assertNotEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        assertEquals(Basemap.USGS_IMAGERY_ONLY, capturedBasemap)
+        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
     }
 
     @Test
@@ -805,54 +813,30 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     /**
-     * Settings' "Automatically Save Location to Photos" checkbox (owner request, 2026-09-14).
-     * Driven through the real checkbox row, and asserted on the exact strings the panel draws —
-     * both imported from `AvailabilityScreen` rather than retyped here, so a reworded label or
-     * explanation cannot pass this test by accident.
+     * Dispatch 2026-09-28-707 (the owner: "Move the two camera options at the bottom to a settings
+     * menu inside the camera itself"): Settings no longer shows "Automatically Save Location to
+     * Photos" or "Lock camera to portrait", nor their explanations. They are the camera's gear panel's
+     * now, where `InAppCameraSettingsPanelTest` holds what these two tests held here: the defaults
+     * (location on, lock off), the explanations, and that a touch writes the value.
      *
-     * On by default, which is the ruling this guards as much as the toggling: a privacy setting
-     * that shipped defaulting to off would silently take away the location features built the day
-     * before, for every existing install.
+     * Replaces `the photo-location checkbox starts on, explains itself, and toggles` and `the
+     * lock-camera checkbox starts off, explains that sideways photos save portrait, and toggles`,
+     * which found both rows in Settings.
      */
     @Test
-    fun `the photo-location checkbox starts on, explains itself, and toggles`() {
+    fun `Settings no longer shows the two camera settings`() {
         setScreenWithOfflineMapsState()
         openSettings()
+        composeRule.waitForIdle()
 
-        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performScrollTo().assertIsDisplayed()
-        // Scrolled to like the label: since the Sundown section above it (dispatch 2026-09-28-592), the
-        // explanation sits below the fold at h640dp once the label is scrolled into view.
-        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_EXPLANATION).performScrollTo().assertIsDisplayed()
+        // Settings is the page showing: its own rows are there.
+        composeRule.onNodeWithText("Night Maps").assertIsDisplayed()
+        composeRule.onNodeWithText("Crash Logs").performScrollTo().assertIsDisplayed()
+        for (text in listOf(PHOTO_LOCATION_SETTING_LABEL, PHOTO_LOCATION_SETTING_EXPLANATION, LOCK_CAMERA_SETTING_LABEL, LOCK_CAMERA_SETTING_EXPLANATION)) {
+            assertEquals("'$text' is not in Settings", 0, composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size)
+        }
         assertEquals("nothing is written just by opening Settings", null, capturedAutoSaveLocation)
-
-        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performClick()
-        composeRule.waitForIdle()
-        assertEquals("on by default, so the first tap must turn it off", false, capturedAutoSaveLocation)
-
-        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performClick()
-        composeRule.waitForIdle()
-        assertEquals(true, capturedAutoSaveLocation)
-    }
-
-    /** "Lock camera to portrait" (owner request, 2026-09-15): off by default, explains its consequence, toggles; the strings are the panel's own constants. */
-    @Test
-    fun `the lock-camera checkbox starts off, explains that sideways photos save portrait, and toggles`() {
-        setScreenWithOfflineMapsState()
-        openSettings()
-
-        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performScrollTo().assertIsDisplayed()
-        // Scrolled to like the label: since the Sundown section above it (dispatch 2026-09-28-592), the
-        // explanation sits below the fold at h640dp once the label is scrolled into view.
-        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_EXPLANATION).performScrollTo().assertIsDisplayed()
-        assertEquals("nothing is written just by opening Settings", null, capturedLockCamera)
-
-        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performClick()
-        composeRule.waitForIdle()
-        assertEquals("off by default, so the first tap turns it on", true, capturedLockCamera)
-
-        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performClick()
-        composeRule.waitForIdle()
-        assertEquals(false, capturedLockCamera)
+        assertEquals(null, capturedLockCamera)
     }
 
     /**

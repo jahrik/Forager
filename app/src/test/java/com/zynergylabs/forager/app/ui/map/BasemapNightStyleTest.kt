@@ -16,8 +16,8 @@ import org.junit.Test
  * initialiser — so this asserts the document handed to MapLibre, not the render.
  *
  * That boundary is the point of the check rather than a limitation of it: the failure this guards
- * against is the paint block being absent, malformed, applied in day mode, or applied to Satellite,
- * all of which are properties of the JSON. Whether the V1 inversion looks right on a device, and
+ * against is the paint block being absent, malformed, applied in day mode, or missing from a basemap
+ * (Satellite was once exempt; dispatch 2026-09-28-708 removed it), all of which are properties of the JSON. Whether the V1 inversion looks right on a device, and
  * whether markers stay legible against the inverted ground (colour build C2), are device questions
  * and no assertion here speaks to either.
  */
@@ -76,22 +76,21 @@ class BasemapNightStyleTest {
         assertEquals(9.5, layer.getValue("minzoom").jsonPrimitive.double, 0.0)
     }
 
-    /** Owner ruling: "Satellite stays as it is at night". Its night document is its day document. */
+    /**
+     * Replaces "Satellite's night style JSON equals its day style JSON" and "only Satellite opts out of
+     * the night paint" (dispatch 2026-09-28-708): Satellite was the one basemap that stayed day, and the
+     * per-basemap opt-out went with it. What remains to pin is that no basemap stays day, so a basemap
+     * added back cannot silently skip night mode.
+     */
     @Test
-    fun `Satellite's night style JSON equals its day style JSON`() {
-        val day = json.parseToJsonElement(styleJsonFor(Basemap.USGS_IMAGERY_ONLY, night = false))
-        val night = json.parseToJsonElement(styleJsonFor(Basemap.USGS_IMAGERY_ONLY, night = true))
-
-        assertEquals(day, night)
-    }
-
-    /** The per-basemap decision behind the Satellite case, asserted on its own so a new basemap has to choose. */
-    @Test
-    fun `only Satellite opts out of the night paint`() {
-        assertEquals(
-            setOf(Basemap.OPEN_TOPO_MAP, Basemap.OSM_STANDARD),
-            Basemap.entries.filter { basemapTakesNightPaint(it) }.toSet(),
-        )
+    fun `every basemap's own layer takes the V1 paint at night`() {
+        for (basemap in Basemap.entries) {
+            val paint = rasterLayer(basemap, night = true)["paint"]?.jsonObject
+                ?: error("${basemap.name} has no raster paint in night mode")
+            assertEquals("${basemap.name} brightness-min", 1.0, paint.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
+            assertEquals("${basemap.name} brightness-max", 0.0, paint.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
+            assertEquals("${basemap.name} hue-rotate", 180.0, paint.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)
+        }
     }
 
     @Test

@@ -1,8 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -21,7 +20,6 @@ class MapModeTest {
     fun `each mode resolves to its own fixed basemap`() {
         assertEquals(Basemap.OSM_STANDARD, MapMode.STREET.basemap)
         assertEquals(Basemap.OPEN_TOPO_MAP, MapMode.TOPOGRAPHIC.basemap)
-        assertEquals(Basemap.USGS_IMAGERY_ONLY, MapMode.SATELLITE.basemap)
     }
 
     @Test
@@ -41,22 +39,32 @@ class MapModeTest {
         assertEquals(labels.toSet().size, labels.size)
     }
 
+    /**
+     * Dispatch 2026-09-28-708: the map offers exactly Street and Topographical. Replaces "only Satellite
+     * resolves to a USGS basemap" and "only Satellite is US-only coverage", whose subject is gone.
+     */
     @Test
-    fun `only Satellite resolves to a USGS basemap`() {
-        // The structural half of decision #7 (see AvailabilityScreen's OfflineMapsPanel doc
-        // comment): offline downloads never followed live basemap selection anyway, but this pins
-        // the fact that Street and Topographical are never USGS, so nothing about them could
-        // accidentally start depending on US-only coverage.
-        assertTrue(MapMode.SATELLITE.basemap.attribution.contains("USGS"))
-        assertTrue(!MapMode.STREET.basemap.attribution.contains("USGS"))
-        assertTrue(!MapMode.TOPOGRAPHIC.basemap.attribution.contains("USGS"))
+    fun `the modes are Street and Topographical, in that order`() {
+        assertEquals(listOf(MapMode.STREET, MapMode.TOPOGRAPHIC), MapMode.entries.toList())
+        assertEquals(listOf("Street", "Topographical"), MapMode.entries.map { it.label })
+    }
+
+    /**
+     * The stored key is what a phone holds across restarts, so it is pinned literally: a renamed key
+     * would read back as unknown and quietly move every user who had picked that mode to Topographical.
+     */
+    @Test
+    fun `each mode is stored under a fixed key, and reads back from it`() {
+        assertEquals("street", MapMode.STREET.storageKey)
+        assertEquals("topographic", MapMode.TOPOGRAPHIC.storageKey)
+        MapMode.entries.forEach { assertEquals(it, MapMode.forStoredKey(it.storageKey)) }
     }
 
     @Test
-    fun `only Satellite is US-only coverage`() {
-        assertEquals(BasemapCoverage.UNITED_STATES_ONLY, MapMode.SATELLITE.basemap.coverage)
-        assertEquals(BasemapCoverage.WORLDWIDE, MapMode.STREET.basemap.coverage)
-        assertEquals(BasemapCoverage.WORLDWIDE, MapMode.TOPOGRAPHIC.basemap.coverage)
-        assertNotEquals(MapMode.STREET.basemap, MapMode.TOPOGRAPHIC.basemap)
+    fun `a stored key that names no mode reads as none, and the caller moves it to Topographical`() {
+        assertNull(MapMode.forStoredKey("satellite"))
+        assertNull(MapMode.forStoredKey("SATELLITE"))
+        assertNull(MapMode.forStoredKey(""))
+        assertEquals("the owner's answer for anyone on Satellite: \"Topo (Recommended)\"", MapMode.TOPOGRAPHIC, MapMode.REPLACEMENT_FOR_UNKNOWN)
     }
 }

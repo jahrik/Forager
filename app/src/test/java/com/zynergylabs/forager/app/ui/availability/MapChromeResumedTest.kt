@@ -163,8 +163,10 @@ class MapChromeEntryMapTest {
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.CARTOGRAPHY_MAP_TEST_TAG).performTouchInput { click(center) }
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
-        pickMapType("Satellite", closeWithBack = false)
-        assertEquals("the entry map took Satellite", Basemap.USGS_IMAGERY_ONLY, recorder.entryMode()?.basemap)
+        // Topographical rather than Satellite since dispatch 2026-09-28-708 removed Satellite: the entry map
+        // starts on the Maps tab's Street, so Topographical is the other choice it can take.
+        pickMapType("Topographical", closeWithBack = false)
+        assertEquals("the entry map took Topographical", Basemap.OPEN_TOPO_MAP, recorder.entryMode()?.basemap)
 
         // Back leaves fullscreen, which unmounts the sheet with it.
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }

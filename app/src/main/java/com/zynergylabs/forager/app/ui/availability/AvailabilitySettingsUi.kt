@@ -18,6 +18,9 @@ package com.zynergylabs.forager.app.ui.availability
 // J6 (2026-09-29): PhotoGalleryEntryRow and PhotoGalleryHeader, two of the rows moved here, were removed
 // with the standalone Photo Gallery panel (the owner's ruling 2, 2026-09-28: "the old Photo Gallery panel
 // is removed. Only the album remains, as on the phone"), and the list above records the move as it was.
+//
+// Dispatch 2026-09-28-707: PhotoLocationSection and CameraPortraitLockSection, two more of the moved names, were removed when
+// the two camera settings moved into the camera's gear panel (ui/log/CameraSettingsPanel.kt); the list above is still history.
 
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.PageSlide
@@ -190,11 +193,6 @@ private fun CompactSettingsTab(
     /** Night mode for the map, and Settings' own checkbox value. */
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    /** Settings' "Automatically Save Location to Photos" checkbox value — see [AvailabilityUiState.autoSaveLocationToPhotos]. */
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    lockCameraToPortrait: Boolean,
-    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
@@ -202,9 +200,6 @@ private fun CompactSettingsTab(
     backup: BackupControls,
     showBackupRequest: Int = 0,
     modifier: Modifier = Modifier,
-    sundown: SundownSettings = SundownSettings(),
-    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626, plan T14). */
-    offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
 ) {
     var showCrashLogs by remember { mutableStateOf(false) }
     // Debug builds only — the row that sets this composes nothing in release. Same drill-in shape
@@ -259,18 +254,12 @@ private fun CompactSettingsTab(
                     onDistanceUnitSelected = onDistanceUnitSelected,
                     nightModeMaps = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
-                    autoSaveLocationToPhotos = autoSaveLocationToPhotos,
-                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-                    lockCameraToPortrait = lockCameraToPortrait,
-                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                     themeMode = themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     onOpenCrashLogs = { showCrashLogs = true },
                     onOpenDiagnostics = { showDiagnostics = true },
                     backup = backup,
                     showBackupRequest = showBackupRequest,
-                    sundown = sundown,
-                    offTrackReminder = offTrackReminder,
                 )
                 BuildIdentityFooter()
             }
@@ -284,12 +273,21 @@ private fun CompactSettingsTab(
 private enum class SettingsDrawerPage { SETTINGS, CRASH_LOGS, DIAGNOSTICS }
 
 /**
- * The Settings panel's body: [DistanceUnitSection], theme, night maps, and Crash Logs.
+ * The Settings panel's body: [DistanceUnitSection], theme, night maps, Backup, and Crash Logs.
+ *
+ * **No longer has the Sundown section, the Off-track reminder, or the two camera settings**
+ * (dispatch 2026-09-28-707; the owner: "move the Sundown area to the Tools so that it's one button
+ * away instead of two. Move the two camera options at the bottom to a settings menu inside the
+ * camera itself"). Sundown and Off-track are drawn by [ToolsSundownSection] at the top of the Tools
+ * drawer; "Automatically Save Location to Photos" and "Lock camera to portrait" by the camera's
+ * gear panel (`ui/log/CameraSettingsPanel.kt`). Only where the controls are drawn moved: the
+ * values, their DataStore keys and the ViewModel functions they call are unchanged.
  *
  * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
  * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
- * pinned Street/Topographical to OpenStreetMap and added Satellite (USGS) as a third, always-on
- * option reachable only from the map's own [MapModePicker]. See [MapMode]'s own doc comment for the
+ * pinned Street/Topographical to OpenStreetMap and added Satellite (USGS) as a third option
+ * reachable only from the map's own [MapModePicker] (Satellite itself removed since, dispatch
+ * 2026-09-28-708). See [MapMode]'s own doc comment for the
  * full account of what this removed and why.
  *
  * **No longer has Offline Maps or Recorded Tracks entries.** Journal restructure Stage 1 moved
@@ -308,10 +306,6 @@ internal fun SettingsContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    lockCameraToPortrait: Boolean,
-    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     onOpenCrashLogs: () -> Unit,
     /** Debug builds only: the row this opens composes nothing in release — see [DiagnosticsEntryRow]'s two source-set versions. */
     onOpenDiagnostics: () -> Unit,
@@ -319,10 +313,6 @@ internal fun SettingsContent(
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
     showBackupRequest: Int = 0,
-    /** The Sundown section's two settings (dispatch 2026-09-28-592, plan task T4). */
-    sundown: SundownSettings = SundownSettings(),
-    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626, plan T14). */
-    offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
 ) {
     // Scrolls to the Backup section when a notification's tap asks (dispatch 2026-09-28-153): its top is measured as it is
     // laid out, and the scroll waits for that measurement, so a section that is not yet laid out (the drawer still opening)
@@ -346,12 +336,6 @@ internal fun SettingsContent(
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
-        SundownSection(sundown)
-        OffTrackReminderSection(offTrackReminder)
-        HorizontalDivider()
-        PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
-        CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
-        HorizontalDivider()
         BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
@@ -360,9 +344,10 @@ internal fun SettingsContent(
 }
 
 /**
- * Settings' "Sundown" section (dispatch 2026-09-28-592, plan task T4; the owner's step path, RECORD
- * -592): what the sundown alerts and the line read, from
- * [com.zynergylabs.forager.app.domain.SundownPreferencesRepository].
+ * The "Sundown" section's two settings (dispatch 2026-09-28-592, plan task T4; the owner's step path,
+ * RECORD -592): what the sundown alerts and the line read, from
+ * [com.zynergylabs.forager.app.domain.SundownPreferencesRepository]. Drawn in the Tools drawer since
+ * dispatch 2026-09-28-707 ([ToolsSundownSection]); in Settings before that.
  */
 internal data class SundownSettings(
     val alertsEnabled: Boolean = true,
@@ -381,17 +366,30 @@ internal const val SUNDOWN_ALERTS_TAG = "settings-sundown-alerts"
 internal fun darknessMarginTag(minutes: Int) = "settings-darkness-margin-$minutes"
 
 /**
- * "Sundown alerts" is a checkbox row, the shape of this screen's other on/off settings
- * ([NightModeMapsSection], [PhotoLocationSection]); the owner said "switch", and the planner chose the
+ * The Tools drawer's "Sundown" section (dispatch 2026-09-28-707; the owner: "move the Sundown area to
+ * the Tools so that it's one button away instead of two", then "Section in the Tools drawer
+ * (Recommended)"): "Sundown alerts", "Dark under trees" with its explanation and four choices, and
+ * the "Off-track reminder". Drawn near the top of the Tools page, under the Trip Planner's one-line
+ * header (collapsed by default), inside [SearchControls]' scroll so a short screen still reaches
+ * everything; why under it and not above it is on [SearchControls]' `following`. It was Settings' section,
+ * moved whole: same rows, same tags, same values and callbacks.
+ *
+ * **No fill of its own**: the drawer's container is the one 80% layer over the map
+ * (MapChromeAlphaTest's rule), and this section sits on the Tools page, which slides with motion
+ * Part 3's drawer pages. Its rows are Settings' own shared rows ([SettingsCheckboxRow],
+ * [SettingsRadioRow], dispatch 2026-09-28-658) with their press feedback unchanged.
+ *
+ * "Sundown alerts" is a checkbox row, the shape of Settings' other on/off settings
+ * ([NightModeMapsSection]); the owner said "switch", and the planner chose the
  * screen's own control and told the owner (RECORD -593). Off stops the notifications only; the line
  * stays. "Dark under trees" is a radio group, the shape [DistanceUnitSection] and [ThemeModeSection]
  * give a choice of more than two, so every choice shows without a tap. A stored value that is not one
  * of the four (none is offered anywhere) selects none rather than pretending to be one.
  */
 @Composable
-private fun SundownSection(sundown: SundownSettings) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text("Sundown", style = MaterialTheme.typography.titleMedium)
+internal fun ToolsSundownSection(sundown: SundownSettings, offTrackReminder: OffTrackReminderSettings) {
+    Column(modifier = Modifier.testTag(TOOLS_SUNDOWN_SECTION_TAG), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(SUNDOWN_SECTION_TITLE, style = MaterialTheme.typography.titleMedium)
         SettingsCheckboxRow(sundown.alertsEnabled, sundown.onAlertsEnabledChanged, SUNDOWN_ALERTS_LABEL, tag = SUNDOWN_ALERTS_TAG)
         Text(DARK_UNDER_TREES_LABEL, style = MaterialTheme.typography.bodyLarge)
         Text(DARK_UNDER_TREES_EXPLANATION, style = MaterialTheme.typography.bodySmall)
@@ -403,10 +401,16 @@ private fun SundownSection(sundown: SundownSettings) {
                 tag = darknessMarginTag(minutes),
             )
         }
+        OffTrackReminderSection(offTrackReminder)
     }
 }
 
-/** Settings' "Off-track reminder" checkbox (dispatch 2026-09-28-626, plan T14; Amendment 1, RECORD -627), from [com.zynergylabs.forager.app.domain.OffTrackReminderPreferenceRepository]. */
+internal const val SUNDOWN_SECTION_TITLE = "Sundown"
+
+/** [ToolsSundownSection]'s column, for tests. */
+internal const val TOOLS_SUNDOWN_SECTION_TAG = "tools-sundown-section"
+
+/** The "Off-track reminder" checkbox (dispatch 2026-09-28-626, plan T14; Amendment 1, RECORD -627), from [com.zynergylabs.forager.app.domain.OffTrackReminderPreferenceRepository]; in the Tools drawer's Sundown section since dispatch 2026-09-28-707. */
 internal data class OffTrackReminderSettings(
     val enabled: Boolean = true,
     val onEnabledChanged: (Boolean) -> Unit = {},
@@ -462,40 +466,13 @@ private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) ->
 }
 
 /**
- * Whether the app captures the device's current position for a photo and its find (owner request,
- * 2026-09-14) — see [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what
- * the one flag actually gates, which is wider than the label says, and for why it defaults to on.
- *
- * Carries explanatory text, unlike every other control in this panel. That is not decoration: the
- * other settings announce their effect the moment they are flipped (the map recolours, units
- * change), while this one changes what is *written to a record the user cannot see from here*, and
- * whose point is what happens to a photo after it leaves the app. The wording is the owner's own,
- * kept verbatim.
- */
-@Composable
-private fun PhotoLocationSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    ExplainedSettingsCheckbox(checked, onCheckedChange, PHOTO_LOCATION_SETTING_LABEL, PHOTO_LOCATION_SETTING_EXPLANATION)
-}
-
-/**
- * Settings' "Lock camera to portrait" (owner request, 2026-09-15). Same shape as
- * [PhotoLocationSection] above. The supporting line is there because the consequence is not
- * obvious from the label: a sideways photo is saved portrait. What it gates, and why it is one
- * gate, is on [com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository].
- */
-@Composable
-private fun CameraPortraitLockSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    ExplainedSettingsCheckbox(checked, onCheckedChange, LOCK_CAMERA_SETTING_LABEL, LOCK_CAMERA_SETTING_EXPLANATION)
-}
-
-/**
  * One Settings checkbox row: the whole row toggles, with the checkbox and its label in it. The one
  * copy (dispatch 2026-09-28-658, F6) of the row this panel had written out five times. The row is
  * the touch target, full width, exactly as each copy built it, and carries [tag] as its test tag when given,
  * after the click as before.
  */
 @Composable
-private fun SettingsCheckboxRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, tag: String? = null) {
+internal fun SettingsCheckboxRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, tag: String? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -509,11 +486,16 @@ private fun SettingsCheckboxRow(checked: Boolean, onCheckedChange: (Boolean) -> 
     }
 }
 
-/** [SettingsCheckboxRow] with a supporting line under it, the shape [PhotoLocationSection] and [CameraPortraitLockSection] share. */
+/**
+ * [SettingsCheckboxRow] with a supporting line under it: "Automatically Save Location to Photos" and
+ * "Lock camera to portrait" share it. They were Settings' two explained rows; since dispatch
+ * 2026-09-28-707 they are drawn by the camera's gear panel (`ui/log/CameraSettingsPanel.kt`), which is
+ * why this and the row are `internal`. [tag] goes on the row, as [SettingsCheckboxRow] places it.
+ */
 @Composable
-private fun ExplainedSettingsCheckbox(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, explanation: String) {
+internal fun ExplainedSettingsCheckbox(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, explanation: String, tag: String? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        SettingsCheckboxRow(checked, onCheckedChange, label)
+        SettingsCheckboxRow(checked, onCheckedChange, label, tag = tag)
         Text(
             explanation,
             style = MaterialTheme.typography.bodySmall,
@@ -593,7 +575,9 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
  * things live here now, none of them search:
  *
  * 1. **[SearchControls]** — Trip Planner only. Waypoints moved
- *    out (Journal restructure Stage 1) into the Journal's own Records tab.
+ *    out (Journal restructure Stage 1) into the Journal's own Records tab. Since dispatch
+ *    2026-09-28-707 the **Sundown** section ([ToolsSundownSection]) sits under it, in the same
+ *    scroll, moved here from Settings so it is one tap away instead of two.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
  *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
@@ -612,10 +596,6 @@ internal fun CompactToolsDrawerContent(
     onDeletePlannedTrip: (String) -> Unit,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    lockCameraToPortrait: Boolean,
-    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
@@ -624,8 +604,9 @@ internal fun CompactToolsDrawerContent(
     openSettingsRequest: Int = 0,
     /** Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): open Settings, at the top. */
     openSettingsOnlyRequest: Int = 0,
+    /** The Tools page's Sundown section (dispatch 2026-09-28-707), drawn by [ToolsSundownSection]. */
     sundown: SundownSettings = SundownSettings(),
-    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626, plan T14). */
+    /** The "Off-track reminder", the last row of that section. */
     offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
 ) {
     // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
@@ -661,18 +642,12 @@ internal fun CompactToolsDrawerContent(
             onDistanceUnitSelected = onDistanceUnitSelected,
             isNightMode = isNightMode,
             onNightModeMapsChanged = onNightModeMapsChanged,
-            autoSaveLocationToPhotos = autoSaveLocationToPhotos,
-            onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-            lockCameraToPortrait = lockCameraToPortrait,
-            onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
             crashFileStore = crashFileStore,
             backup = backup,
             showBackupRequest = openSettingsRequest,
             modifier = Modifier.fillMaxSize(),
-            sundown = sundown,
-            offTrackReminder = offTrackReminder,
         )
     } else {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -681,6 +656,10 @@ internal fun CompactToolsDrawerContent(
             modifier = Modifier.weight(1f),
             uiState = uiState,
             onDeletePlannedTrip = onDeletePlannedTrip,
+            following = {
+                HorizontalDivider()
+                ToolsSundownSection(sundown = sundown, offTrackReminder = offTrackReminder)
+            },
         )
         SettingsEntryRow(onClick = { showSettings = true })
     }
