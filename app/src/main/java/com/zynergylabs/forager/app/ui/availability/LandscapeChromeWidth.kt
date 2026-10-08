@@ -58,3 +58,40 @@ internal fun Modifier.besideLandscapeSearchBar(
         layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
 }
+
+/**
+ * RECORD -729 (dispatch 2026-09-28-729). The owner, verbatim: "Landscape mode strip can extend to meet the search bar. The
+ * search bar height can change to meet the height of the strip. The two can meet at direct center, and they can be split by a
+ * simple vertical line between the two"; shown as steps, "Yes, that's it (Recommended)"; on navigation, "Strip only
+ * (Recommended)". So in a short landscape window, not navigating, the strip takes the rail-side half of the top edge exactly:
+ * from the window's centre to the rail-side controls edge. The search bar takes the other half (the scaffold's
+ * `landscapeSearchWidth`), so the two meet at the centre. While navigating the display keeps [besideLandscapeSearchBar].
+ *
+ * Like [besideLandscapeSearchBar] this goes **after** `padding(controlsPadding)` on a child aligned to the rail-side top corner,
+ * and recovers the window from the width it is offered; the width is worked out, not read back from a measurement. With no
+ * rail, or the bar on the rail's side, it changes nothing.
+ */
+internal fun Modifier.landscapeStripHalf(
+    railEdge: ScreenEdge?,
+    searchEdge: ScreenEdge?,
+    controlsPadding: PaddingValues,
+    layoutDirection: LayoutDirection,
+): Modifier {
+    if (railEdge == null || searchEdge == null || railEdge == searchEdge) return this
+    val left = controlsPadding.calculateLeftPadding(layoutDirection)
+    val right = controlsPadding.calculateRightPadding(layoutDirection)
+    val (searchSideInset, railSideInset) = if (searchEdge == ScreenEdge.Left) left to right else right to left
+    return layout { measurable, constraints ->
+        if (!constraints.hasBoundedWidth) {
+            val placeable = measurable.measure(constraints)
+            return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+        }
+        val window = constraints.maxWidth.toDp() + searchSideInset + railSideInset
+        val half = (window / 2 - railSideInset).coerceAtLeast(0.dp).roundToPx().coerceAtMost(constraints.maxWidth)
+        val placeable = measurable.measure(constraints.copy(minWidth = half, maxWidth = half))
+        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+    }
+}
+
+/** RECORD -729: the 1 dp line at the window's centre between the search bar and the strip in a short landscape window. */
+internal const val LANDSCAPE_BAR_STRIP_LINE_TAG = "landscape-bar-strip-line"

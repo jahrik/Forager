@@ -173,6 +173,14 @@ internal fun SearchEntryBar(
     onClearSearch: () -> Unit = {},
     /** Whether this bar is the Maps tab's, over its map: its species suggestions are then at the map chrome's alpha (owner, "1 A"). */
     overMap: Boolean = false,
+    /**
+     * RECORD -729: in a short landscape window, not navigating, the compass strip's measured height, which this bar takes so
+     * the two meet at the centre at one height (the owner: "The search bar height can change to meet the height of the
+     * strip"). The field is centred in what is above the divider. The strip is never shorter than this bar's field and divider
+     * (CompactMapTab's landscapeBarContentFloor), so the field is never cut. `null` keeps the bar's own height (portrait, the
+     * other tabs, navigating, and before the strip is first measured).
+     */
+    landscapeHeight: Dp? = null,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = mapChromeContentColor(isDarkTheme)
@@ -233,8 +241,18 @@ internal fun SearchEntryBar(
         // zone, making it look taller than it is"): the bottom padding sat below the divider, so 4 dp of this bar's fill hung
         // under its seam, against the strip. The padding is now above the divider (the Spacer below is 2 x xs), so the divider
         // is the bar's last 1 dp and the strip starts at it. The bar's height is unchanged (compactMainScaffold's searchBarHeight).
-        Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = if (landscapeHeight != null) {
+                Modifier.fillMaxWidth().height(landscapeHeight)
+            } else {
+                Modifier.fillMaxWidth().padding(top = Spacing.xs)
+            },
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                // RECORD -729: with the strip's height, the field row takes what is above the divider and centres in it.
+                modifier = if (landscapeHeight != null) Modifier.weight(1f) else Modifier,
+            ) {
                 Icon(
                     Icons.Filled.Search,
                     contentDescription = null,
@@ -277,7 +295,7 @@ internal fun SearchEntryBar(
                     }
                 }
             }
-            Spacer(Modifier.height(Spacing.xs * 2))
+            if (landscapeHeight == null) Spacer(Modifier.height(Spacing.xs * 2))
             HorizontalDivider(
                 color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
                 modifier = Modifier.testTag(SEARCH_ENTRY_BAR_DIVIDER_TAG),

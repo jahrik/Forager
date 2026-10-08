@@ -56,6 +56,10 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.background
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.List
@@ -347,6 +351,11 @@ internal fun CompactMapTab(
     landscapeSearchWidth: Dp? = null,
     /** Reports the overlaid rail's measured width up, as [onBottomNavHeightMeasured] does the bar's. */
     onRailWidthMeasured: (Float) -> Unit = {},
+    /**
+     * RECORD -729: the compass strip's measured height in a landscape window, while it shows and is not leaving; 0 otherwise.
+     * The scaffold gives the search bar this height, so the two meet at the centre at one height.
+     */
+    onLandscapeStripHeightMeasured: (Dp) -> Unit = {},
     /**
      * Landscape B1: what this tab's controls are padded by, and never the map itself —
      * [compactMainScaffold]'s `mapControlsPadding` (the rail's measured width or, in fullscreen,
@@ -712,6 +721,8 @@ internal fun CompactMapTab(
             // The strip's real height, measured on the strip itself where it is composed below (item 2). Not
             // compassStripClearance, which is one text line's height.
             var compassStripHeightPx by remember { mutableIntStateOf(0) }
+            // RECORD -729: the strip's measured height in a landscape window (the search bar is given it); 0 elsewhere.
+            var landscapeStripHeightPx by remember { mutableIntStateOf(0) }
             val compassStripClearance = remember(compassStripLabelStyle, compassStripDensity) {
                 with(compassStripDensity) {
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
@@ -728,6 +739,9 @@ internal fun CompactMapTab(
             // test that caught that regression ("tapping elsewhere on the map dismisses the observation bubble") is @Ignore'd
             // for an unrelated harness reason, so whether the regression returns is a device item.
             val compassStripBottomClearance = with(compassStripDensity) { compassStripHeightPx.toDp() }.coerceAtLeast(compassStripClearance)
+            // RECORD -729: the search bar's own content in a landscape window, its field (twice the "Mg" line, SearchEntryBar's
+            // fieldHeight) and its divider; the landscape strip is at least this tall, so the bar can take the strip's height.
+            val landscapeBarContentFloor = compassStripClearance * 2 + DividerDefaults.Thickness
             Box(
                 modifier = modifier
                     .fillMaxSize()
@@ -1010,12 +1024,13 @@ internal fun CompactMapTab(
                     modifier = if (railPortEdge != null) {
                         // Landscape B2 (S4): the top corner on the rail side, below the
                         // status bar only (the Scaffold's top inset), not below the search
-                        // bar, which is on the other side now; content-width.
+                        // bar, which is on the other side.
                         Modifier
                             .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                             .padding(controlsPadding)
-                            // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): never wider than the room beside the search bar.
-                            .besideLandscapeSearchBar(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
+                            // RECORD -729: the rail-side half exactly, from the window's centre, where the search bar ends. It
+                            // replaced the content width capped beside the bar (RECORD -694), which the navigation display keeps.
+                            .landscapeStripHalf(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
                     } else {
                         Modifier
                             .align(Alignment.TopCenter)
@@ -1041,14 +1056,23 @@ internal fun CompactMapTab(
                         // default) reproduces the old flush-against-the-map-top behavior exactly. The
                         // alignment and the padding are on the AnimatedVisibility above (motion Part 2).
                         modifier = if (railPortEdge != null) {
+                            // RECORD -729: the strip fills its half, and is at least as tall as the search bar's own content (its
+                            // field and divider), so the bar can take the strip's height without cutting its field. At the default
+                            // font that floor (33 dp) is under the strip's own 36 dp, so the bar follows the strip; at a large font
+                            // the field is the taller and the strip grows to it. Its measured height goes up to the scaffold, which
+                            // gives the bar that height; not while it leaves (motion Part 2).
                             Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = landscapeBarContentFloor)
+                                .onSizeChanged { if (!isNavigating) landscapeStripHeightPx = it.height }
                         } else {
                             Modifier
                                 .fillMaxWidth()
                                 // The strip's own height (item 2), and not while it leaves (motion Part 2).
                                 .onSizeChanged { if (!isNavigating) compassStripHeightPx = it.height }
                         }.then(if (!isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
-                        contentWidth = railPortEdge != null,
+                        // RECORD -729: full width of its half in landscape too, so the readouts take the whole half.
+                        contentWidth = false,
                         positionNote = positionNote,
                         // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
                         sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
@@ -1057,11 +1081,27 @@ internal fun CompactMapTab(
                         // not the screen (RECORD -649): the strip's own right end in every orientation.
                         quickSettings = quickSettings,
                     )
-                    DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
+                    DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0 } }
                 }
                 }
                 // Motion Part 2: the strip's measured height goes the moment it starts to leave, as it did when it left at once.
-                LaunchedEffect(isNavigating) { if (isNavigating) compassStripHeightPx = 0 }
+                LaunchedEffect(isNavigating) { if (isNavigating) { compassStripHeightPx = 0; landscapeStripHeightPx = 0 } }
+                // RECORD -729: the landscape strip's measured height, up to the scaffold, which gives the search bar that height; 0
+                // while it is not measured (portrait, navigating, before its first layout), where the bar keeps its own.
+                LaunchedEffect(landscapeStripHeightPx) { onLandscapeStripHeightMeasured(with(compassStripDensity) { landscapeStripHeightPx.toDp() }) }
+                // RECORD -729, item 4: a 1 dp vertical line at the window's centre, where the bar and the strip meet, in the bar's
+                // divider colour, as tall as the two. Drawn over their join and nothing else, so it adds no fill over the map, and
+                // it takes no touch (a Box with a background has no pointer input). Not in fullscreen, where the bar is away.
+                if (railPortEdge != null && punchHoleEdge != null && railPortEdge != punchHoleEdge && !isNavigating && !isFullscreen && landscapeStripHeightPx > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .width(1.dp)
+                            .height(with(compassStripDensity) { landscapeStripHeightPx.toDp() })
+                            .background(mapIconStackBorderColor())
+                            .testTag(LANDSCAPE_BAR_STRIP_LINE_TAG),
+                    )
+                }
 
                 // Below the compass strip (topInset + compassStripClearance as top padding), same
                 // reasoning as AnchoredAtScreenPoint's own minY: the strip is drawn across the map's
