@@ -467,8 +467,8 @@ internal fun BoxScope.MapIconCluster(
     // LandscapeLCluster). **Display only**: the floor is applied to what is drawn, never written to the user's stored offset or
     // side (CLAUDE.md, UX defaults), so when navigation ends the L goes back to exactly where the user put it. Where the window
     // is too short for the L under the display (a 360 dp window at font 1.3 or more with an evening line; font 2.0), the L goes
-    // as low as it may and the display, drawn after it, covers the shortfall at the top of its first row (the planner's stop,
-    // option A, pending the owner: see the T11 report's "Fixes").
+    // as low as it may and the display, drawn after it, covers the shortfall at the top of its first row, Fullscreen (RECORD
+    // -768, the owner: "Slide as far as it can (Recommended)"; the shortfalls are in the T11 report's "Fixes").
     val slideApplies = navigationSlideApplies(state.landscape, isNavigating, state.isOnLeftSide, state.railPortEdge) &&
         state.navigationDisplayBottomInRootPx != null
     val navigationFloorPx: Float? = if (slideApplies) (state.navigationDisplayBottomInRootPx ?: 0f) - state.clusterRestTopInRootPx else null
@@ -809,7 +809,8 @@ private fun LandscapeLCluster(
  * T11 fixes (RECORD -766, P4): whether the landscape L slides below the navigation display. Only in a landscape window (the
  * L), only while navigating, and only with the L on the display's side, which is the rail side (the display sits in the rail
  * side's top corner): the right at ROTATION_90, the left at ROTATION_270. The owner's words were "Right side only, left side
- * doesn't get this"; reading "right" as the display's side is the planner's stop 1, option A, pending the owner's answer.
+ * doesn't get this"; asked whether "right" meant the screen's right or the display's side, the owner answered "Follow the
+ * display (Recommended)" (RECORD -768): a bar on the display's side, at either rotation.
  * Portrait, and the L on the other side, never change.
  */
 internal fun navigationSlideApplies(landscape: Boolean, isNavigating: Boolean, clusterOnLeftSide: Boolean, displayEdge: ScreenEdge?): Boolean =

@@ -320,6 +320,8 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
             "join" to boundsOf(LANDSCAPE_BAR_STRIP_LINE_TAG),
             "centralThird" to third,
             "cluster" to boundsOf(MAP_ICON_CLUSTER_TAG),
+            // T11 fixes: the bar on its own, for its top against the display's bottom.
+            "bar" to boundsOf(com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_TAG),
             "recordButton" to boundsOf("control-pill-record"),
             "returnButton" to boundsOf("control-pill-return-to-vehicle"),
             "rail" to boundsOf(COMPACT_NAVIGATION_RAIL_TAG),
@@ -363,14 +365,16 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
         // 1. Recording and Return tapped, no fix yet (route pending).
         composeRule.runOnIdle { recording = true; returning = true; route = ReturnRoute.Pending }
         settle()
-        assertHudReads("01", NAVIGATION_HUD_STATUS_TAG) { it == NO_FIX_MESSAGE }
+        // T11 fixes (RECORD -766): the no-fix message may now take its short form, "No location".
+        assertHudReads("01", NAVIGATION_HUD_STATUS_TAG) { it == NO_FIX_MESSAGE || it == NO_FIX_SHORT_TEXT }
         measure("01-return-nofix")
 
         // 2. The route home with data part B's longest lines: "Sharp right · 169°", "1280 ft" "by trail", "≈ 1250 ft straight", 9843 ft.
         emitFix(here.lat)
         composeRule.runOnIdle { route = ReturnRoute.Ahead(east, 390.0) }
         settle()
-        assertHudReads("02", NAVIGATION_HUD_TARGET_TAG) { it == "Sharp right · 169°" }
+        // T11 fixes: the turn words may give way to the bearing alone, or go; the needle's state is read off the route figure then.
+        assertHudReads("02", NAVIGATION_HUD_TARGET_TAG) { it == "Sharp right · 169°" || it == "169°" || (it == "" && textOf(NAVIGATION_HUD_DISTANCE_TAG) == "390 m") }
         measure("02-return-longest")
 
         // 2f. The same in feet, data part B's own longest ("1280 ft", "≈ 1250 ft straight"); feet from here on. The fixture's
@@ -383,7 +387,7 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
         // 3. Route unavailable, with "Try again" (the one state that adds a row).
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
         settle()
-        assertHudReads("03", NAVIGATION_HUD_DISTANCE_TAG) { it == ROUTE_UNAVAILABLE_TEXT }
+        assertHudReads("03", NAVIGATION_HUD_DISTANCE_TAG) { it == ROUTE_UNAVAILABLE_TEXT || it == ROUTE_UNAVAILABLE_SHORT_TEXT }
         measure("03-return-unavailable-retry")
 
         // 4. Stale fix, 45 s old.
@@ -418,7 +422,8 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
 
         emitFix(creek.lat - 50.0 / metresPerDegreeLat)
         settle()
-        assertHudReads("09", NAVIGATION_HUD_STATUS_TAG) { it?.contains("Approaching") == true }
+        // T11 fixes: "Approaching" goes whole where it does not fit; the approach is then read off the figure (≈ 150 ft).
+        assertHudReads("09", NAVIGATION_HUD_STATUS_TAG) { it?.contains("Approaching") == true || (it == "" && textOf(NAVIGATION_HUD_DISTANCE_TAG)?.contains("150") == true) }
         measure("09-waypoint-approaching")
 
         composeRule.runOnIdle { now = morning + 45_000L }

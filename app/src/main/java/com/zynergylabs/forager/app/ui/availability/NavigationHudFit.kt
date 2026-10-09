@@ -3,7 +3,9 @@ package com.zynergylabs.forager.app.ui.availability
 /**
  * T11 fixes (dispatch 2026-10-09-02, RECORD -766): what the navigation display drops, and in what order, when its text does
  * not fit. The owner chose "Distance first, short status (Recommended)", option A of P1 and P2 in
- * `docs/navigation/2026-10-09-t11-hud-landscape-check.md`. The pure half: every choice here is a function of measured widths,
+ * `docs/navigation/2026-10-09-t11-hud-landscape-check.md`. The order and the short strings below were proposed by the coder and
+ * confirmed by the owner (RECORD -768: "Yes, use these (Recommended)"; the evening line and "No route": "Yes (Recommended)").
+ * The pure half: every choice here is a function of measured widths,
  * so a wrong order is a pinned-literal test failure (`NavigationHudFitTest`), not a visual one.
  *
  * What is kept longest, first to last:
