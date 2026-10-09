@@ -366,3 +366,165 @@ in this report.
   so nothing written to its database.
 - `user_rotation` changed and restored, besides the font scale the dispatch named.
 - No guard tests: the two classes are labelled measurement harnesses. Guards should follow the owner's choice of options.
+
+## Fixes
+
+Dispatch 2026-10-09-02 (RECORD intent -766; the owner's answers in -766, the strings and both stops confirmed in -768, the
+portrait ruling in -769). Branch `t11-hud-fixes`, cut from `origin/t11-hud-landscape` (577532e9); merging `origin/main`
+(c81b326d) was a no-op, as main was already in it. Written 2026-10-09 (UTC) by the T11 fixes coder. The check above is left as
+it was; this section supersedes its "Options" for what was built.
+
+### What changed
+
+1. **Text that fits** (P1, P2, P5; the owner: "Distance first, short status (Recommended)", and "Yes, use these" for the
+   strings). The order is in `NavigationHudFit.kt`, pure and pinned in `NavigationHudFitTest`. Kept longest, first to last:
+   - the distance;
+   - the needle;
+   - the fix-age warning;
+   - "by trail" / "straight";
+   - the turn words;
+   - "Approaching";
+   - the straight-line note.
+
+   On the first row, "by trail" moves into the status line first (as -713). Then the turn words shrink to the bearing
+   ("169°") and go, and only then does the figure take a short form ("within 16 ft" becomes "≤ 16 ft").
+
+   The status lines and their short forms:
+   - "No fix for 6 min" → "No fix 6 min";
+   - "Approaching · last fix 45 s ago" → "Last fix 45 s ago" → "45 s old";
+   - "Last fix 45 s ago" → "45 s old";
+   - "≈ 1250 ft straight" → "≈ 1250 ft" → nothing (whole or nothing while "By trail ·" leads the line);
+   - "Approaching" → nothing;
+   - "Location services unavailable" → "No location";
+   - "No origin waypoint for this track" → "No start point".
+
+   A warning or message is never dropped. The lead goes before it is cut, and the turn words also give way for it.
+
+   The three-dot button moves up to the first row when the coordinates would not be whole beside it on the second, but only
+   while the figure shown still fits there (distance wins, as the planner said).
+
+   This applies everywhere, portrait too (RECORD -769, "Same rule everywhere (Recommended)").
+2. **Height** (P3; the owner: "Combine lines, allow the rest (Recommended)").
+   - In landscape the sundown line and Back by share one line (`HudEveningLine`). Back by is measured first and stays whole;
+     the sundown part takes the "…".
+   - In landscape "Try again" sits beside its message, as tall as the two lines beside it, so the display is no taller for it.
+     Where even "No route" cannot sit beside it (font 2.0 at 780 dp), it keeps its own line as before.
+   - In landscape a withheld route's message takes "No route" in the status type when the whole message does not fit.
+   - The central-third exception for the navigating display is written where S10 is tested
+     (`AvailabilityScreenLandscapeB2Test`, quoting the owner). The four navigating S10 cases no longer hold the display to the
+     central third; all other chrome still is.
+   - `HudLandscapeT11FixesTest` holds what the exception does not allow: at its tallest (font 2.0, Try again, both evening
+     lines) the display ends above the walker's dot, and nothing covers the needle.
+3. **The icon bar while navigating** (P4; the owner: "Right, landscape only" with the pill's return; "Follow the display";
+   "Slide as far as it can").
+   - On the navigation display's side (the right at ROTATION_90, the left at ROTATION_270), while navigating, the L is drawn
+     below the display, and the pill moves beside "+" on its inboard side (`LandscapeLCluster`, `navigationSlideApplies`).
+   - The pill moves across first, then up, so it never passes over a bar button.
+   - The move is in the layout, so touches follow it. It runs on the cluster's navigation motion spec, and is a cut under
+     reduced motion.
+   - The floor is applied only to what is drawn. The stored offset and side are never written by it, and a drag while it
+     holds moves the stored offset by the finger's distance only.
+   - When navigation ends, both go back to where the user put them.
+   - Where the window is too short, the L goes as low as it may, and the display covers the top of Fullscreen.
+4. **T19.** `ui/theme/Theme.kt`'s comment no longer describes the "not a walking route" disclaimer as present. It also
+   records that `tertiary` is still read as text: the Tracks accent in `RecordTypeStyle`.
+
+No change to `MapQuickSettings.kt`, `AvailabilityMapControlsUi.kt` or the recording service (T17's files).
+
+### The harness, before and after
+
+`HudLandscapeT11MeasurementTest` was re-run on the fixes at 03:47Z and again after the last change. Its positive controls were
+widened to accept the confirmed short forms, and it now also prints the bar's own bounds. The rows covered the same 24
+compositions × 13 states (9,240 `T11|` lines). Rotation 90 and 270 are again identical (0 differences). "Before" is the
+tables above (main's code).
+
+| Window, font | Before: cuts and depth into the central third | After |
+|---|---|---|
+| 823, 1.0 | Try again 132 dp tall (−4); sundown + Back by 124 (+4) | Try again 92 (+36); sundown + Back by 108 (+20); nothing cut but the " · " separator's trailing space (counted by the harness, not a cut) |
+| 823, 1.3 | "≈ 1250 ft straight" 3/18, "Last fix 45 s ago" 3/17, "Location services unavailable" 22/29; Try again 134 (−6); both lines 137 (−9) | nothing cut but the sundown part beside Back by (25/37); Try again 92 (+36); both lines 116 (+12) |
+| 823, 2.0 | distance 0/7; "By trail" 1/8; every status 0; Try again 160 (−32); both lines 186 (−58) | distance, kind, status, grid reference whole in every state; turn "169°"; Try again 160 (−32), "No route"; both lines 154 (−26), sundown part 6/37 beside Back by whole; "Straight" 7/8 (as before) |
+| 780, 1.0 | "Location services unavailable" 25/29, "≈ 1250 ft straight" 4/18, "Last fix 45 s ago" 5/17; Try again and both lines 124 (−4) | nothing cut but the sundown part beside Back by (30/37); Try again 92 (+28); both lines 108 (+12) |
+| 780, 1.3 | "1280 ft" 4/7, statuses 0/16 to 18/29, "Approaching" 4/11; Try again 134 (−14); both lines 137 (−17) | none cut but the sundown part (20/37 with Back by; screen line 39/42); Try again 92 (+28); both lines 116 (+4) |
+| 780, 2.0 | distance 0/7 or 2/8, every status 0, grid reference 16/18 everywhere; Try again 160 (−40); both lines 186 (−66) | distance whole everywhere; statuses whole ("No location", "45 s old"); grid reference whole except approaching a waypoint and Try again (16/18: distance wins); Try again 160 (−40); both lines 154 (−34); "Straight" 7/8 (as before) |
+
+The bar against the display, cluster on the display's side:
+- Clear (its top on the display's bottom) at every font at 823, and at fonts 1.0 and 1.3 at 780.
+- At font 2.0 it is under the display by 2 dp (plain), 34 dp (evening line) and 40 dp (Try again) at 780, and by 10 and
+  16 dp at 823.
+- That is under 48 dp in every row, so only Fullscreen is covered.
+- Not in the harness: Try again plus an evening line at 780, font 2.0. By arithmetic that state is about 72 dp, which reaches
+  into Reset north. It is a device item.
+
+The pill, beside "+", is clear of the display in every row.
+
+### Tests and revert checks
+
+New tests:
+- `NavigationHudFitTest` (13 tests, pure).
+- `HudLandscapeT11FixesTest`: 16 tests in each of the two windows, through the real `AvailabilityScreen`. They cover the
+  distance whole at 1.3 and 2.0; the stale warning whole; the grid reference and distance whole at 2.0; the evening line; Try
+  again beside, with real touches across it; the walker's dot and needle; the slide at 90 and 270, there and back, with the
+  stored placement unwritten; the other side; long-presses beside the L; and every bar and pill button by five real coordinate
+  touches, not navigating, navigating at 90 and 270, and mid-slide with the clock held where bar and pill are both mid-move.
+  That is 35 touches per state, each on a fresh screen.
+
+Changed tests:
+- `NavigationHudKindInStatusTest`: expects "By trail" alone (RECORD -769).
+- `LandscapeLargeFontTest`: accepts "No start point".
+- The S10 cases: the exception, as above.
+- The harness's controls.
+
+Each revert was one edit, run against the affected classes by a runner that restores from a saved copy (never git), deletes
+the classes' old XML first, refuses results when the build log has a compile error, and checks the forward file's sha256
+after. Every forward file was confirmed restored, and `git status` was clean after each batch.
+
+| Revert | Result |
+|---|---|
+| R1b: draw the turn words whole (`readout.targetText` for `rowFit.turnText`) | bites: "the distance <1280 ft> is drawn whole" at 1.3 and 2.0, both windows |
+| R1: no turn shortening in `firstRowFit` | bites in `NavigationHudFitTest` only (the fallback still drops the turn, so the screen guards pass; R1b is the screen-level revert) |
+| R2: no "45 s old" | bites: "the stale warning <Last fix 45 s ago> is drawn whole" at 2.0, both windows |
+| R3: evening lines apart in landscape | bites: "one line: the sundown line … and Back by … overlap vertically" |
+| R4: Try again not beside | bites: "beside: Try again … starts right of the message" |
+| R5: no slide | bites: "the bar's top … is not above the display's bottom", plus Fullscreen touches covered by the display |
+| R6: pill kept under the bar | bites, through the same slide and touch guards (the L stays 296 dp, so it cannot get under the display); not through its own "level with +" message, which the earlier assertion pre-empts |
+| R7/R7b: button never moves up | bites: "the grid reference <10T ER 24991 40768> is whole (-699)" at 780, font 2.0 |
+| R8: turn does not yield to a message | bites: "Target goes when it would not" |
+
+Not shown by a revert:
+- The walker's-dot and needle guard is a ceiling that held before the fixes too (the display was never that tall).
+- The other-side test checks a non-change.
+- The display-only floor (stored offset never written) is shown by the slide test's write count, not by a revert.
+
+Full suite: FULLSUITE_PLACEHOLDER
+
+### Disclosures
+
+#### Confirmed vs inferred
+
+- Confirmed, headless: everything in the tables and tests above.
+- Inferred: the S22. Headless widths are 70 to 80 dp wider than the phone's, and its status bar puts every bottom 30 dp
+  lower. So on the S22 at font 1.0 with an evening line the L is about 2 dp short of fitting under the display (the stop's
+  arithmetic), and at font 2.0 the cuts the S22 showed may persist where the headless 823 rows are whole.
+
+#### Could not determine
+
+- Anything on the S22: the slide's look, the pill's path, how the narrower phone takes the new order, and the 72 dp case.
+  These are device items for the owner, as the dispatch says.
+
+#### Premises that were wrong
+
+- My own: that the L on the other side does not move while navigating. It moves 1 to 9 dp, by what it moved before T11. The
+  search bar is 45 dp tall while navigating against 36 dp otherwise (at font 1.0), and the L's top limit is the search bar's
+  bottom.
+  - Measured headless at ROTATION_90, font 1.0: from 36 to 45 dp at 780 × 360, and from 44 to 45 dp at 823 × 384 (where the
+    centred L already sat lower).
+  - This existed before the fixes; it is recorded for the owner to rule on (RECORD -769). The test was corrected, not the app.
+- The dispatch's example for P5, "moving the three-dot button to the first row", cannot keep both the grid reference and the
+  distance whole at 780 dp, font 2.0 in every state. Distance wins (RECORD -768).
+
+#### Decided beyond scope
+
+- "No route" where "Try again" keeps its own line, in the status type only (reported to the planner).
+- The turn words give way for a warning or message, not only for the figure.
+- The three-dot button's row now follows the figure shown, so it can change rows when the figure's width changes; the
+  display's height does not.

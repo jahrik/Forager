@@ -1574,6 +1574,13 @@ private fun BoxScope.CompactMapNavigationDisplay(
             // T11 fixes (RECORD -766, P3): beside the landscape search bar, the evening lines share one and "Try again" sits
             // beside its message.
             landscape = railPortEdge != null,
+            // RECORD -770: with the L below the display, the display ends no lower than the bar's lowest top plus its
+            // Fullscreen row, or its evening line leaves.
+            eveningLineBottomLimitInRootPx = if (navigationSlideApplies(cluster.landscape, isNavigating, cluster.isOnLeftSide, cluster.railPortEdge)) {
+                cluster.navigationLowestBarTopInRootPx?.let { it + with(LocalDensity.current) { com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET.toPx() } }
+            } else {
+                null
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier)

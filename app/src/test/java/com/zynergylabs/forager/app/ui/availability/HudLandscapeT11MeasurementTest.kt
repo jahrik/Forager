@@ -406,6 +406,16 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
         assertHudReads("06", NAVIGATION_HUD_BACK_BY_LINE_TAG) { it != null && it.startsWith("Back by") }
         measure("06-return-sundown-backby-longest")
 
+        // 06r. T11 fixes, RECORD -770: the route withheld with "Try again" and both evening lines, the state the owner ruled on
+        // ("Drop the evening line then"): with the L below the display, the line leaves where it would push the bar past its
+        // Fullscreen row. Not a guard here; HudLandscapeT11FixesTest holds it.
+        composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
+        settle()
+        assertHudReads("06r", NAVIGATION_HUD_DISTANCE_TAG) { it == ROUTE_UNAVAILABLE_TEXT || it == ROUTE_UNAVAILABLE_SHORT_TEXT }
+        measure("06r-return-unavailable-retry-evening")
+        composeRule.runOnIdle { route = ReturnRoute.Ahead(east, 390.0) }
+        settle()
+
         // 7. Return stopped, still recording, both lines: the strip carries them (its height against portrait's is -759's).
         composeRule.runOnIdle { returning = false }
         settle()
