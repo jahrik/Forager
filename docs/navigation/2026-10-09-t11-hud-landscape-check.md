@@ -521,11 +521,18 @@ tests), then the R9 revert.
 - The planner then set the line at 1.0 GB for the three -770 runs. Their low points were 1.34 GB, 1.56 GB and 1.55 GB.
 - The earlier targeted runs tonight were not watched, and very likely crossed 1.5 GB too.
 
+**S22 launch check** (`scripts/s22-launch-check.sh`, after the T17 battery measurement had ended and on the planner's word,
+2026-10-09 ~08:17Z): build 1.0.3122+gd1fa6641 (head d1fa6641), `install -r` on R5CT321008R. Result:
+`PASS: verified (status=verify), launched, process 24174 alive after 8 s, crash buffer empty`. Nothing else was done on the
+phone: no screen driven, no setting changed.
+
 ### Disclosures
 
 #### Confirmed vs inferred
 
 - Confirmed, headless: everything in the tables and tests above.
+- Confirmed on the S22: ART verified the build and it cold-launched without a crash. Nothing about the layout was checked
+  there.
 - Inferred: the S22. Headless widths are 70 to 80 dp wider than the phone's, and its status bar puts every bottom 30 dp
   lower. So on the S22 at font 1.0 with an evening line the L is about 2 dp short of fitting under the display (the stop's
   arithmetic), and at font 2.0 the cuts the S22 showed may persist where the headless 823 rows are whole.
