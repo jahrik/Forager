@@ -119,11 +119,14 @@ the pushed head afterwards.
 | R6 | sundown alarm delivery evaluates nothing | "expected:<[HEADS_UP]> but was:<[]>" |
 | R7 | Diagnostics switch does not tell the logger | "switched on mid-recording, the log starts for that recording" |
 
+**No local full suite.** The planner ruled it out: root had 1.7 GB free, and the last full run here dipped to 0.94 GB. The full suite runs in CI on this branch's pull request. CI is not triggered by a push to this branch (`.github/workflows/ci.yml` runs on pushes to main and pre-main, and on pull requests), and this dispatch said no PR. So the full suite stays **unrun** until a PR is opened.
+
+`assembleDebug` built at `54274939` (1 min 30 s; free space 1.7 GB before, 1.4 GB after).
+
 `scripts/verify-policy-permissions.sh`: all checks passed, so the manifest gained a receiver and no permission.
 
 ## PENDING
 
-- Full suite (asked of the planner, disk).
 - S22: the launch check, and the desk check including screen off past the time, with the two record files read
   afterwards.
 - The four disclosure sections and the index row.
