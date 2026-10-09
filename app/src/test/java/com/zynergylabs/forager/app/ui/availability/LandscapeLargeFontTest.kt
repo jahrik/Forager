@@ -209,7 +209,9 @@ class LandscapeLargeFontTest {
         // The S22's "No": the status now runs to the width it has and ends in "…", or shows whole.
         val status = composeRule.onNodeWithTag(NAVIGATION_HUD_STATUS_TAG, useUnmergedTree = true).fetchSemanticsNode()
         val layout = layoutOf(status)
-        assertEquals("No origin waypoint for this track", textOf(status))
+        // T11 fixes (RECORD -766, the short form confirmed in RECORD -768): the message may take its short form where the whole
+        // one does not fit; either way it is a message, never dropped.
+        assertTrue("the status is the no-origin message or its short form: <${textOf(status)}>", textOf(status) in setOf("No origin waypoint for this track", "No start point"))
         assertTrue(
             "the status line is cut with an ellipsis or shown whole, never cut at a word; visible ${layout.getLineEnd(0, visibleEnd = true)}",
             layout.isLineEllipsized(0) || layout.getLineEnd(0, visibleEnd = true) == textOf(status).length,

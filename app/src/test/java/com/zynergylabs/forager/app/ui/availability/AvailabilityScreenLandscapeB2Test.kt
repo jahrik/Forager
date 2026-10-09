@@ -535,22 +535,29 @@ class AvailabilityScreenLandscapeB2Test {
         assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, B2_STRIP_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
+    // T11 fixes (dispatch 2026-10-09-02, RECORD -766), a recorded exception to S10 for the navigating display only. The owner,
+    // asked about the display growing into the central third (T11 check, P3), answered "Combine lines, allow the rest
+    // (Recommended)": its lines are combined (one evening line, "Try again" beside its message), and whatever still reaches
+    // into the central third while navigating is allowed. So the four navigating cases below no longer hold the display
+    // (NAVIGATION_HUD_TAG) to the central third; every other piece of chrome still is. What the exception does not allow is
+    // held by HudLandscapeT11FixesTest: the display never covers the walker's dot or the needle. Not navigating, nothing
+    // changes (the two cases above).
     // The navigating cases run at B2_DAY_NOW, when the sundown line (dispatch 2026-09-28-592) is
     // hidden: the HUD computes that line from the screen's clock, and this class used to read the
     // real one, so these two failed from 2 h 30 min before the fixture's sunset until sunrise
     // (RECORD -621). The line-shown cases are the dusk pair below.
     @Test
-    fun `S10 at ROTATION_90 while navigating, the HUD and the rest leave the central third clear`() {
+    fun `S10 at ROTATION_90 while navigating, the chrome other than the HUD leaves the central third clear`() {
         setScreen(Surface.ROTATION_90, B2_FIX_STATE, isReturning = true)
         assertHudSundownLine(shown = false)
-        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
     @Test
-    fun `S10 at ROTATION_270 while navigating, the HUD and the rest leave the central third clear`() {
+    fun `S10 at ROTATION_270 while navigating, the chrome other than the HUD leaves the central third clear`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE, isReturning = true)
         assertHudSundownLine(shown = false)
-        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
     // RECORD -621: S10 with the sundown line in the HUD, at dusk (41 min before the fixture's sunset).
@@ -561,18 +568,18 @@ class AvailabilityScreenLandscapeB2Test {
     // reports no status bar, which on the S22 puts the HUD 30 dp lower; that clearance is a device item.
     @Test
     @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
-    fun `S10 at ROTATION_90 while navigating at dusk, the HUD with its sundown line leaves the central third clear`() {
+    fun `S10 at ROTATION_90 while navigating at dusk, the HUD carries its sundown line and the other chrome leaves the central third clear`() {
         setScreen(Surface.ROTATION_90, b2FixStateAt(B2_DUSK_NOW), isReturning = true, now = B2_DUSK_NOW)
         assertHudSundownLine(shown = true)
-        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
     @Test
     @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
-    fun `S10 at ROTATION_270 while navigating at dusk, the HUD with its sundown line leaves the central third clear`() {
+    fun `S10 at ROTATION_270 while navigating at dusk, the HUD carries its sundown line and the other chrome leaves the central third clear`() {
         setScreen(Surface.ROTATION_270, b2FixStateAt(B2_DUSK_NOW), isReturning = true, now = B2_DUSK_NOW)
         assertHudSundownLine(shown = true)
-        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
     /** The HUD's sundown line is drawn (inside the HUD, with the text the dusk instant gives) or absent. */
