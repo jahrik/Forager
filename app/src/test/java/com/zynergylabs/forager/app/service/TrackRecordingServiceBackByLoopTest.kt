@@ -13,7 +13,13 @@ import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.alert.BACK_BY_NOTIFICATION_ID
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
+import android.app.AlarmManager
+import com.zynergylabs.forager.app.alert.AndroidWakeUpAlarms
+import com.zynergylabs.forager.app.domain.BACK_BY_LATER_MILLIS
+import com.zynergylabs.forager.app.domain.WakeUpAlarm
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertNull
+import org.robolectric.shadows.ShadowAlarmManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -155,14 +161,87 @@ class TrackRecordingServiceBackByLoopTest {
         }
         val kinds = file.readLines().map { it.substringAfter(' ').substringBefore(' ') }
         val story = kinds.filter { it != "evaluated" }
-        assertEquals("the record: ${file.readLines()}", listOf("started", "set", "fired", "ended"), story)
+        assertEquals("the record: ${file.readLines()}", listOf("started", "set", "alarm-scheduled", "fired", "ended", "alarm-cancelled"), story)
         val lines = file.readLines()
         assertTrue("an evaluation before the alert: $lines", kinds.indexOf("evaluated") in 0 until kinds.indexOf("fired"))
         assertTrue("accepted: $lines", lines.single { " set " in it }.endsWith(" accepted"))
         assertTrue("posted: $lines", " notification=posted " in lines.single { " fired " in it })
-        assertTrue("ended by the stop: $lines", lines.last().endsWith(" reason=stop"))
+        assertTrue("ended by the stop: $lines", lines.single { " ended " in it }.endsWith(" reason=stop"))
         assertTrue("every line names this track: $lines", lines.all { "track=$trackId" in it })
         assertTrue("no coordinate in any line: $lines", lines.none { "-122." in it || "lat=" in it || "lng=" in it })
+    }
+
+    // ── The wake-up alarm (dispatch 2026-09-28-796; the owner, RECORD -797) ──
+
+    private fun shadowAlarms() = shadowOf(context.getSystemService(AlarmManager::class.java))
+
+    private fun backByAlarm(): ShadowAlarmManager.ScheduledAlarm? {
+        val ours = AndroidWakeUpAlarms.pendingIntentFor(context, WakeUpAlarm.BACK_BY)
+        return shadowAlarms().scheduledAlarms.singleOrNull { it.operation == ours }
+    }
+
+    /** Set, "+30 min" and Clear, through the real container: an inexact allow-while-idle wake-up at the time, moved, then gone. */
+    @Test
+    fun `a set time asks for an inexact allow-while-idle wake-up at that time, +30 min moves it, Clear and Stop take it away`() {
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            val (c, trackId) = startedRecording()
+            controller = c
+            val at = System.currentTimeMillis() + 60 * 60_000L
+            assertTrue(container.backByWatch.set(trackId, at))
+            val alarm = backByAlarm()
+            assertNotNull("a wake-up for Back by: ${shadowAlarms().scheduledAlarms.map { it.triggerAtMs }}", alarm)
+            assertEquals("wakes the phone", AlarmManager.RTC_WAKEUP, alarm!!.type)
+            assertEquals("at the time set", at, alarm.triggerAtMs)
+            assertTrue("delivered in Doze too", alarm.isAllowWhileIdle)
+            assertTrue("inexact: no exact-alarm permission", alarm.windowLengthMs != ShadowAlarmManager.WINDOW_EXACT)
+
+            val before = System.currentTimeMillis()
+            container.backByWatch.later(trackId)
+            val moved = backByAlarm()!!.triggerAtMs
+            assertTrue("+30 min moves the wake-up to 30 minutes from now: $moved", moved in before + BACK_BY_LATER_MILLIS..System.currentTimeMillis() + BACK_BY_LATER_MILLIS)
+
+            container.backByWatch.clear(trackId)
+            assertNull("Clear cancels it", backByAlarm())
+
+            assertTrue(container.backByWatch.set(trackId, at))
+            assertNotNull(backByAlarm())
+            end(c)
+            controller = null
+            assertNull("stopping the recording cancels it", backByAlarm())
+        } finally {
+            controller?.let { end(it) }
+        }
+    }
+
+    /**
+     * The alarm path alone: the time passes with no fix after it and long before the service's next 15 s
+     * tick, and the wake-up arrives (fired through its own PendingIntent, to the real receiver). The alert
+     * must come from the alarm. On the walk the screen was off from 13:48:37 to 13:57:10, across 13:55.
+     */
+    @Test
+    fun `the wake-up alarm, delivered with no fix and before the timer's next tick, brings the alert`() {
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            val (c, trackId) = startedRecording()
+            controller = c
+            val at = System.currentTimeMillis() + 500L
+            assertTrue(container.backByWatch.set(trackId, at))
+            val alarm = backByAlarm()
+            assertNotNull(alarm)
+            while (System.currentTimeMillis() <= at) Thread.sleep(50L)
+            alarm!!.operation.send()
+            val deliveredAt = System.currentTimeMillis()
+            val notification = awaitBackByNotification(timeoutMillis = FIX_WAIT_MILLIS)
+            assertNotNull(
+                "no back-by alert within ${FIX_WAIT_MILLIS / 1_000} s of the wake-up alarm, delivered ${deliveredAt - at} ms past the time",
+                notification,
+            )
+            val lines = java.io.File(context.filesDir, com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME).readLines()
+            assertTrue("the record says the alarm arrived and woke the evaluation: $lines", lines.any { " alarm-delivered track=$trackId" in it } && lines.any { " by=alarm" in it && " due=yes " in it })
+        } finally {
+            controller?.let { end(it) }
+        }
     }
 
     private fun startedRecording(): Pair<ServiceController<TrackRecordingService>, String> {
