@@ -148,3 +148,12 @@ internal fun routeMessageFit(availablePx: Int, widthInLargeType: (String) -> Int
     )
     return candidates.firstOrNull { (if (it.inStatusType) widthInStatusType(it.text) else widthInLargeType(it.text)) <= availablePx } ?: candidates.last()
 }
+
+/**
+ * RECORD -770 (the owner: "Drop the evening line then (Recommended)"): whether the evening line may stay on the landscape
+ * display. With [limitPx] (the bar's lowest top plus its Fullscreen row, while the L is below the display), the display with
+ * the line, the rows' bottom [rowsBottomPx] plus the line and the display's bottom padding, must end within it; without a
+ * limit, or before the rows are measured, it always may.
+ */
+internal fun eveningLineFits(rowsBottomPx: Float, lineHeightPx: Float, bottomPaddingPx: Float, limitPx: Float?): Boolean =
+    limitPx == null || rowsBottomPx.isNaN() || rowsBottomPx + lineHeightPx + bottomPaddingPx <= limitPx + 0.5f

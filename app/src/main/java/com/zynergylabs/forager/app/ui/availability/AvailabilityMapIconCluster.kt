@@ -240,6 +240,13 @@ internal class MapIconClusterState(
      */
     var clusterRestTopInRootPx by mutableFloatStateOf(0f)
 
+    /**
+     * RECORD -770: in a landscape window, where the bar's top is at the lowest the L may go with the pill beside "+" (the bar
+     * alone, at the bottom of what the clamps allow); null until measured. The navigation display reads it to keep the bar's
+     * overlap within the Fullscreen row ([eveningLineFits]).
+     */
+    var navigationLowestBarTopInRootPx: Float? by mutableStateOf(null)
+
     val sideAlignment: Alignment get() = if (isOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
 
     /**
@@ -479,6 +486,18 @@ internal fun BoxScope.MapIconCluster(
         val lowest = clampBelowChromeVerticalOffset(Float.MAX_VALUE)
         return maxOf(clamped, minOf(floor, lowest))
     }
+    // RECORD -770 (the owner: "Drop the evening line then (Recommended)"): how low the bar can go with the pill beside "+",
+    // from the clamps' own arithmetic (the L's content top is (box - L) / 2 + offset, its bottom no lower than the nav's bound),
+    // at the bar's own height rather than the L's current one, so it does not move while the pill does. Published for the
+    // display, which leaves out its evening line rather than push the bar past its Fullscreen row.
+    val navigationLowestBarTopPx: Float? = run {
+        val barHeightPx = 2f * state.centreInClusterPx
+        if (!state.landscape || state.clusterHeightPx <= 0f || barHeightPx <= 0f) return@run null
+        val boxTopInRootPx = state.clusterRestTopInRootPx - (state.mapContentBoxHeightPx - state.clusterHeightPx) / 2f
+        val navBoundPx = state.mapContentBoxHeightPx - (if (isFullscreen) 0f else state.bottomNavHeightPx)
+        boxTopInRootPx + navBoundPx - barHeightPx
+    }
+    androidx.compose.runtime.SideEffect { state.navigationLowestBarTopInRootPx = navigationLowestBarTopPx }
     // The pill's move, under the bar (0) to beside "+" (1), on the cluster's own navigation spec; a cut under reduced motion.
     val pillBeside = remember { Animatable(if (slideApplies) 1f else 0f) }
     val reduceMotionForSlide = LocalReduceMotion.current

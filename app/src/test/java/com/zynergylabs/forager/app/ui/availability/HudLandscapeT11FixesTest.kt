@@ -367,6 +367,44 @@ abstract class HudLandscapeT11Fixes {
         }
     }
 
+    // ── RECORD -770: the evening line leaves rather than push the bar past its Fullscreen row ──
+
+    /** The route withheld with "Try again", the sundown line and Back by, the L on the display's side. */
+    private fun setWithheldEveningScreen() {
+        route = ReturnRoute.Unavailable(canRetry = true)
+        line = recordingLine
+        backBy = BackByShown(trackId = "t1", backByAtEpochMillis = morning + 40 * minute, nowEpochMillis = morning)
+        setScreen(Surface.ROTATION_90, clusterOnRailSide = true)
+        assertTrue("positive control: Try again is offered", nodes(NAVIGATION_HUD_RETRY_TAG).isNotEmpty())
+    }
+
+    /** Reset north, the bar's second row, is clear of the display and takes five real touches across it; at most Fullscreen is under it. */
+    private fun assertResetNorthClear() {
+        val hud = tag(NAVIGATION_HUD_TAG)
+        val reset = described("Reset orientation to north")
+        val b = bar()
+        assertTrue("Reset north $reset is clear of the display $hud", reset.top >= hud.bottom - 0.5.dp)
+        assertTrue("the display $hud covers no more than the bar's Fullscreen row (bar $b)", hud.bottom <= b.top + 48.5.dp)
+        val before = map.content?.resetOrientationRequestId ?: 0
+        fractions().forEach { (fx, fy) -> composeRule.touchAt(reset.left + (reset.right - reset.left) * fx, reset.top + (reset.bottom - reset.top) * fy) }
+        composeRule.waitForIdle()
+        assertEquals("five real touches across Reset north $reset all reached it", before + 5, map.content?.resetOrientationRequestId ?: 0)
+    }
+
+    @Test @Config(fontScale = 2.0f)
+    fun `-770 at font 2,0 with the route withheld in the evening, Reset north stays clear and the evening line leaves where it must`() {
+        setWithheldEveningScreen()
+        assertResetNorthClear()
+    }
+
+    @Test
+    fun `-770 at font 1,0 the evening line stays where the bar fits under the display with it`() {
+        setWithheldEveningScreen()
+        assertTrue("the evening line is shown: there is room", nodes(NAVIGATION_HUD_EVENING_LINE_TAG).isNotEmpty())
+        assertTrue("and the bar's top ${bar().top} is on the display's bottom ${tag(NAVIGATION_HUD_TAG).bottom}", bar().top >= tag(NAVIGATION_HUD_TAG).bottom - 0.5.dp)
+        assertResetNorthClear()
+    }
+
     // ── Item 3: the icon bar while navigating ──
 
     private fun bar(): DpRect = nodes(MAP_ICON_BAR_TAG).single().dp()

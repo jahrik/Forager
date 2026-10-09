@@ -40,6 +40,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -277,6 +282,12 @@ internal fun NavigationHud(
      * share one ([HudEveningLine]) and "Try again" sits beside its message. Portrait keeps both as they were.
      */
     landscape: Boolean = false,
+    /**
+     * RECORD -770 (the owner: "Drop the evening line then (Recommended)"): the lowest the display may end, in the root, while the
+     * landscape L is below it, so that the bar is covered by no more than its Fullscreen row; `null` puts no limit. Where the
+     * evening line would take the display past it, the line leaves the display ([eveningLineFits]); the alerts are unaffected.
+     */
+    eveningLineBottomLimitInRootPx: Float? = null,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -328,11 +339,15 @@ internal fun NavigationHud(
             // width: the kind moves to the status line, then the turn words shrink to the bearing and go, before the figure is
             // cut. The order is NavigationHudFit.kt's.
             val rowFit = measuredFirstRowFit(readout, constraints.maxWidth, buttonInFirstRow)
+            // RECORD -770: where the rows above the evening line end, which the line does not change, so the decision to leave
+            // it out cannot feed back into what it is decided on.
+            var rowsBottomInRootPx by remember { mutableFloatStateOf(Float.NaN) }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             ) {
+                Column(modifier = Modifier.onGloballyPositioned { rowsBottomInRootPx = it.positionInRoot().y + it.size.height }) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -504,6 +519,7 @@ internal fun NavigationHud(
                     }
                     }
                 }
+                }
                 val reduceMotion = LocalReduceMotion.current
                 val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
                 val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
@@ -513,7 +529,13 @@ internal fun NavigationHud(
                     // T11 fixes (RECORD -766, P3; the owner: "Combine lines, allow the rest (Recommended)"): in landscape the
                     // sundown line and Back by share one line, so the evening adds one row to the display, not two. See
                     // HudEveningLine.
-                    HudEveningLine(sundownLine, backByLine, lineEnter, lineExit)
+                    // RECORD -770: the line stays only while the display, with it, still ends within the limit.
+                    val eveningMeasurer = rememberTextMeasurer()
+                    val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+                    val lineHeightPx = eveningMeasurer.measure("Sunset", eveningStyle, maxLines = 1).size.height
+                    val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
+                    val fits = eveningLineFits(rowsBottomInRootPx, lineHeightPx.toFloat(), bottomPaddingPx, eveningLineBottomLimitInRootPx)
+                    HudEveningLine(sundownLine.takeIf { fits }, backByLine.takeIf { fits }, lineEnter, lineExit)
                 } else {
                     // Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the display's sundown line fades and grows like the
                     // strip's: when its window opens the display grows down to hold it, from under the rows above, and the reverse when
