@@ -201,6 +201,9 @@ internal fun mapLayersViewModel(
     // Dispatch 2026-09-28-626: Settings' "Off-track reminder". Defaulted to the repository's default, on.
     getOffTrackReminderEnabled: suspend () -> Result<Boolean> = { Result.success(true) },
     setOffTrackReminderEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
+    // Dispatch 2026-09-28-767: the quick menu's "Battery saver". Defaulted to the repository's default, off.
+    getBatterySaverEnabled: suspend () -> Result<Boolean> = { Result.success(false) },
+    setBatterySaverEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
     // Dispatch 2026-09-28-708: where the Maps tab's basemap is kept. Defaulted to nothing stored, which opens on Topographical as before.
     basemapPreferences: BasemapPreferenceRepository = InMemoryBasemapPreference(),
     // RECORD -711: where the icon cluster's side and height are kept. Defaulted to nothing stored, which opens it where it always opened.
@@ -245,6 +248,8 @@ internal fun mapLayersViewModel(
         onDarknessMarginStored = onDarknessMarginStored,
         getOffTrackReminderEnabled = getOffTrackReminderEnabled,
         setOffTrackReminderEnabled = setOffTrackReminderEnabled,
+        getBatterySaverEnabled = getBatterySaverEnabled,
+        setBatterySaverEnabled = setBatterySaverEnabled,
         basemapPreferenceRepository = basemapPreferences,
         mapIconClusterPlacementRepository = clusterPlacements,
     )
