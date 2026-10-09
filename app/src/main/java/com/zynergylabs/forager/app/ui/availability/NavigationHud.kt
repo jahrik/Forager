@@ -317,8 +317,9 @@ internal fun NavigationHud(
             // T11 fixes (RECORD -766, P5; the -699 extension: the grid reference stays whole): the button also moves up to the
             // first row when the coordinates, measured in this window and font, would not be whole beside it on the second, as
             // long as the figure still fits on the first (distance first, item 1 of the same answer). See buttonMovesUpForCoordinates.
-            val buttonInFirstRow = quickSettings != null &&
-                (firstRowHoldsTheButton(constraints.maxWidth) || buttonMovesUpForCoordinates(constraints.maxWidth, showDecimalDegrees))
+            val rowHoldsButton = firstRowHoldsTheButton(constraints.maxWidth)
+            val buttonMovesUp = buttonMovesUpForCoordinates(constraints.maxWidth, showDecimalDegrees)
+            val buttonInFirstRow = quickSettings != null && (rowHoldsButton || buttonMovesUp)
             // T11 fixes (the owner: "Distance first, short status (Recommended)"): what the first row draws, from this window's
             // width: the kind moves to the status line, then the turn words shrink to the bearing and go, before the figure is
             // cut. The order is NavigationHudFit.kt's.
