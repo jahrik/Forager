@@ -3,7 +3,7 @@ package com.zynergylabs.forager.app.data.diagnostics
 import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.BackByEndReason
 import com.zynergylabs.forager.app.domain.BackByRecordEvent
-import com.zynergylabs.forager.app.domain.BackByTrigger
+import com.zynergylabs.forager.app.domain.EvaluationTrigger
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -31,10 +31,10 @@ class FileBackByRecordTest {
         record.write(BackByRecordEvent.Set("track-1", at, accepted = true, watchedTrackId = null))
         record.write(BackByRecordEvent.Set("track-2", at, accepted = false, watchedTrackId = "track-1"))
         record.write(BackByRecordEvent.SetWithNoRecording)
-        record.write(BackByRecordEvent.Evaluated("track-1", at, due = false, trigger = BackByTrigger.TIMER))
+        record.write(BackByRecordEvent.Evaluated("track-1", at, due = false, trigger = EvaluationTrigger.TIMER))
         now += 61_500L
         FileBackByRecord(file, clock).apply {
-            write(BackByRecordEvent.Evaluated("track-1", at, due = true, trigger = BackByTrigger.FIX))
+            write(BackByRecordEvent.Evaluated("track-1", at, due = true, trigger = EvaluationTrigger.FIX))
             write(BackByRecordEvent.Fired("track-1", at, AlertDeliveryOutcome(true, null, false, null, vibrationSkipped = "phone on silent")))
             write(BackByRecordEvent.Fired("track-1", at, AlertDeliveryOutcome(false, "POST_NOTIFICATIONS denied", true, null)))
             write(BackByRecordEvent.Fired("track-1", at, null))

@@ -19,7 +19,10 @@ import kotlinx.coroutines.sync.withLock
  * Held by `AppContainer` for the life of the process and driven by `TrackRecordingService`, the way
  * [SundownWatch] and [ReturnWatch] are, so it fires with the app swiped away and needs **no
  * exact-alarm permission**: [begin] when a recording starts, [onFix] for every raw fix, [tick] on the
- * service's own 15 s timer, [end] when the recording stops or the service is destroyed. The screen
+ * service's own 15 s timer, [end] when the recording stops or the service is destroyed. Since dispatch
+ * 2026-09-28-796 (RECORD -797) also on a GPS fix once the time has come ([onFix] returns `true`), and on
+ * an inexact allow-while-idle wake-up alarm at the time ([onAlarm]): the timer alone stalled with the
+ * screen off and Back by never posted on the L3 walk. The screen
  * calls [set] and [clear] (through [BackByControl]); the alert's two buttons reach the service, which
  * calls [imBack] and [later]. Nothing else drives it.
  *
@@ -72,6 +75,11 @@ class BackByWatch(
      * the app. Written outside [lock]. Never positions.
      */
     private val record: BackByRecord = NoBackByRecord,
+    /**
+     * The wake-up at the set time (dispatch 2026-09-28-796; the owner, RECORD -797): asked for on every
+     * set and "+30 min", cancelled whenever the reminder ends. Called outside [lock].
+     */
+    private val alarms: WakeUpAlarms = NoWakeUpAlarms,
 ) : BackByControl {
     private val lock = Any()
     private val tickMutex = Mutex()
@@ -113,12 +121,52 @@ class BackByWatch(
             endedId
         } ?: return
         record.write(BackByRecordEvent.Ended(ended, if (trackId == null) BackByEndReason.SERVICE_DESTROYED else BackByEndReason.STOP))
+        cancelAlarm(ended)
     }
 
-    /** One raw fix from the service's collector. Only a GPS fix can decide arrival ([FixProvider.mayAct]). */
-    fun onFix(fix: TrackPoint, provider: FixProvider) = synchronized(lock) {
-        if (trackId == null) return@synchronized
+    /**
+     * One raw fix from the service's collector. Only a GPS fix can decide arrival ([FixProvider.mayAct]).
+     *
+     * Returns `true` when the time has come and its alert has not been given: the service then evaluates
+     * at once, without waiting for its timer (dispatch 2026-09-28-796; the owner, RECORD -797). A fix is
+     * proof the service is running; the timer alone counts only time the processor is awake, which with
+     * the screen off it often is not, and on the L3 walk Back by never posted.
+     */
+    fun onFix(fix: TrackPoint, provider: FixProvider): Boolean = synchronized(lock) {
+        if (trackId == null) return@synchronized false
         if (provider.mayAct) newestGpsFix = fix
+        val at = backByAt ?: return@synchronized false
+        clock.nowEpochMillis() >= at && alertedFor != at
+    }
+
+    /**
+     * The wake-up alarm arrived (dispatch 2026-09-28-796): recorded, then one evaluation, as the timer's.
+     * With nothing watched (a process started fresh for an alarm left from an ended one) it records that
+     * and does nothing else.
+     */
+    suspend fun onAlarm() {
+        val watched = synchronized(lock) { trackId?.takeIf { backByAt != null } }
+        record.write(BackByRecordEvent.AlarmDelivered(watched))
+        if (watched != null) tick(EvaluationTrigger.ALARM)
+    }
+
+    private fun armAlarm(trackId: String, at: Long) {
+        val accepted = try {
+            alarms.schedule(WakeUpAlarm.BACK_BY, at)
+        } catch (e: Exception) {
+            errorLog.w(TAG, "The back-by wake-up could not be scheduled; the timer and fixes still evaluate it.", e)
+            false
+        }
+        record.write(BackByRecordEvent.AlarmScheduled(trackId, at, accepted))
+    }
+
+    private fun cancelAlarm(trackId: String) {
+        try {
+            alarms.cancel(WakeUpAlarm.BACK_BY)
+        } catch (e: Exception) {
+            errorLog.w(TAG, "The back-by wake-up could not be cancelled; it will find nothing set.", e)
+        }
+        record.write(BackByRecordEvent.AlarmCancelled(trackId))
     }
 
     override fun set(trackId: String, atEpochMillis: Long): Boolean {
@@ -138,6 +186,7 @@ class BackByWatch(
             true
         }
         record.write(BackByRecordEvent.Set(trackId, atEpochMillis, accepted, watched))
+        if (accepted) armAlarm(trackId, atEpochMillis)
         return accepted
     }
 
@@ -158,7 +207,10 @@ class BackByWatch(
             endReminder()
             was
         }
-        if (wasSet) record.write(BackByRecordEvent.Ended(trackId, reason))
+        if (wasSet) {
+            record.write(BackByRecordEvent.Ended(trackId, reason))
+            cancelAlarm(trackId)
+        }
     }
 
     /** "+30 min" on the alert: the time moves to now plus [BACK_BY_LATER_MILLIS], and alerts again then. */
@@ -172,10 +224,11 @@ class BackByWatch(
             backByAt
         } ?: return
         record.write(BackByRecordEvent.Later(trackId, at))
+        armAlarm(trackId, at)
     }
 
     /** One evaluation. See the class header. */
-    suspend fun tick(trigger: BackByTrigger = BackByTrigger.TIMER) = tickMutex.withLock {
+    suspend fun tick(trigger: EvaluationTrigger = EvaluationTrigger.TIMER) = tickMutex.withLock {
         val (id, at, alerted, gpsFix) = synchronized(lock) {
             val id = trackId ?: return@withLock
             val at = backByAt ?: return@withLock
@@ -185,7 +238,10 @@ class BackByWatch(
 
         if (hasArrivedAfterReturn(id, gpsFix, now)) {
             val ended = synchronized(lock) { (trackId == id && backByAt == at).also { if (it) endReminder() } }
-            if (ended) record.write(BackByRecordEvent.Ended(id, BackByEndReason.ARRIVAL))
+            if (ended) {
+                record.write(BackByRecordEvent.Ended(id, BackByEndReason.ARRIVAL))
+                cancelAlarm(id)
+            }
             return@withLock
         }
         record.write(BackByRecordEvent.Evaluated(id, at, due = now >= at, trigger = trigger))

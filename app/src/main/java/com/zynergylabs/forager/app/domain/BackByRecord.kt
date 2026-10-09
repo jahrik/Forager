@@ -35,16 +35,25 @@ sealed interface BackByRecordEvent {
      * time had come. Recorded so a device check can see how often the service actually evaluated:
      * the walk's question was whether it evaluated at all.
      */
-    data class Evaluated(val trackId: String, val atMillis: Long, val due: Boolean, val trigger: BackByTrigger) : BackByRecordEvent
+    data class Evaluated(val trackId: String, val atMillis: Long, val due: Boolean, val trigger: EvaluationTrigger) : BackByRecordEvent
 
     /** The alert for the time [atMillis] was handed to delivery; [outcome] what delivery reported. */
     data class Fired(val trackId: String, val atMillis: Long, val outcome: AlertDeliveryOutcome?) : BackByRecordEvent
+
+    /** A wake-up was asked for at [atMillis] (dispatch 2026-09-28-796, RECORD -797); [accepted] false when the platform refused it. */
+    data class AlarmScheduled(val trackId: String, val atMillis: Long, val accepted: Boolean) : BackByRecordEvent
+
+    /** The wake-up was cancelled: the reminder ended. */
+    data class AlarmCancelled(val trackId: String) : BackByRecordEvent
+
+    /** The wake-up arrived. [trackId] null when nothing was being watched by then (a process started fresh for it). */
+    data class AlarmDelivered(val trackId: String?) : BackByRecordEvent
 
     /** The reminder ended, for [reason]. */
     data class Ended(val trackId: String, val reason: BackByEndReason) : BackByRecordEvent
 }
 
-/** What made an evaluation happen. */
-enum class BackByTrigger { TIMER, FIX }
+/** What made an evaluation happen: the service's 15 s timer, a GPS fix, or a wake-up alarm. Shared with the sundown record. */
+enum class EvaluationTrigger { TIMER, FIX, ALARM }
 
 enum class BackByEndReason { ARRIVAL, IM_BACK, CLEAR, STOP, SERVICE_DESTROYED }

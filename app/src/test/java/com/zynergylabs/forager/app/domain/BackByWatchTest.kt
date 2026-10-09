@@ -339,7 +339,7 @@ class BackByWatchTest {
         val evaluations = recorded.filterIsInstance<BackByRecordEvent.Evaluated>()
         assertEquals("one evaluation per tick, 15 s apart, from start to the time: $kinds", 5, evaluations.size)
         assertEquals(listOf(false, false, false, false, true), evaluations.map { it.due })
-        assertTrue(evaluations.all { it.trigger == BackByTrigger.TIMER })
+        assertTrue(evaluations.all { it.trigger == EvaluationTrigger.TIMER })
         assertEquals(BackByRecordEvent.Fired("t1", backBy, null), recorded.filterIsInstance<BackByRecordEvent.Fired>().single())
         assertEquals(BackByRecordEvent.Ended("t1", BackByEndReason.STOP), recorded.last())
     }

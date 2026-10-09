@@ -56,11 +56,15 @@ internal fun backByLineFor(event: BackByRecordEvent, atMillis: Long): String {
             "evaluated track=${event.trackId} at=${utcMillis(event.atMillis)} due=${if (event.due) "yes" else "no"} by=${event.trigger.name.lowercase()}"
         is BackByRecordEvent.Fired -> "fired track=${event.trackId} at=${utcMillis(event.atMillis)} " + deliveryWords(event.outcome)
         is BackByRecordEvent.Ended -> "ended track=${event.trackId} reason=${event.reason.name.lowercase().replace('_', '-')}"
+        is BackByRecordEvent.AlarmScheduled ->
+            "alarm-scheduled track=${event.trackId} at=${utcMillis(event.atMillis)} ${if (event.accepted) "accepted" else "refused"}"
+        is BackByRecordEvent.AlarmCancelled -> "alarm-cancelled track=${event.trackId}"
+        is BackByRecordEvent.AlarmDelivered -> "alarm-delivered " + (event.trackId?.let { "track=$it" } ?: "nothing-set")
     }
     return "${utcMillis(atMillis)} $details"
 }
 
-private fun deliveryWords(outcome: AlertDeliveryOutcome?): String = outcome?.let { o ->
+internal fun deliveryWords(outcome: AlertDeliveryOutcome?): String = outcome?.let { o ->
     val vibration = when {
         o.vibrationSkipped != null -> "skipped(${o.vibrationSkipped})"
         o.vibrated -> "done"
@@ -71,7 +75,7 @@ private fun deliveryWords(outcome: AlertDeliveryOutcome?): String = outcome?.let
 
 private val BACK_BY_UTC_MILLIS: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)
 
-private fun utcMillis(millis: Long): String = BACK_BY_UTC_MILLIS.format(Instant.ofEpochMilli(millis))
+internal fun utcMillis(millis: Long): String = BACK_BY_UTC_MILLIS.format(Instant.ofEpochMilli(millis))
 
 /** The record's file name in app storage (`filesDir`). */
 const val BACK_BY_RECORD_FILE_NAME = "back-by-record.log"
