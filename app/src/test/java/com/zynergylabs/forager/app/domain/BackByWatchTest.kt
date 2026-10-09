@@ -406,7 +406,7 @@ class BackByWatchTest {
     }
 
     @Test
-    fun `the wake-up follows the time: set, +30 min, Clear, arrival, stop and the service destroyed`() {
+    fun `the wake-up follows the time through set, +30 min, Clear, arrival, stop and the service destroyed`() {
         watch.begin("t1")
         watch.set("t1", start + hour)
         watch.later("t1")
