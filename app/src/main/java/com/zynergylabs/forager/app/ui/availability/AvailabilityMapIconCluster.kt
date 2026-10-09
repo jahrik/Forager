@@ -228,6 +228,25 @@ internal class MapIconClusterState(
     /** The legend chip's top edge in the content box's coordinates, or null while none shows: a further lowest edge for the cluster. */
     var legendChipTopPx: Float? by mutableStateOf(null)
 
+    /**
+     * T11 fixes (RECORD -766, P4): the navigation display's bottom edge in the root while navigating, written by the display;
+     * null while not navigating. What the landscape L slides down below ([navigationSlideApplies]).
+     */
+    var navigationDisplayBottomInRootPx: Float? by mutableStateOf(null)
+
+    /**
+     * T11 fixes: where the L's top would be in the root at a drag offset of 0, at its current height. Measured with the cluster
+     * (its top less the offset it was placed at), so the slide's floor is a plain difference and does not move as the bar does.
+     */
+    var clusterRestTopInRootPx by mutableFloatStateOf(0f)
+
+    /**
+     * RECORD -770: in a landscape window, where the bar's top is at the lowest the L may go with the pill beside "+" (the bar
+     * alone, at the bottom of what the clamps allow); null until measured. The navigation display reads it to keep the bar's
+     * overlap within the Fullscreen row ([eveningLineFits]).
+     */
+    var navigationLowestBarTopInRootPx: Float? by mutableStateOf(null)
+
     val sideAlignment: Alignment get() = if (isOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
 
     /**
@@ -275,6 +294,8 @@ internal fun BoxScope.MapIconCluster(
      */
     landscapeBar: (@Composable (Modifier) -> Unit)? = null,
     landscapePill: (@Composable (onLeftSide: Boolean) -> Unit)? = null,
+    /** T11 fixes (RECORD -766, P4): navigation is on; with [MapIconClusterState.navigationDisplayBottomInRootPx], see [navigationSlideApplies]. */
+    isNavigating: Boolean = false,
 ) {
     // RECORD -711: nothing is drawn until a stored side and height have been applied, so a cluster restored
     // to the left never shows a frame on the right first. See MapIconClusterPositionState.
@@ -447,6 +468,44 @@ internal fun BoxScope.MapIconCluster(
         val lowestPx = clampBelowChromeVerticalOffset(Float.MAX_VALUE)
         return maxOf(clamped, minOf(noticeFloorPx, lowestPx))
     }
+    // T11 fixes (RECORD -766, P4; the owner: "Right, landscape only", with "have the recording pill move back into its original
+    // place when the icon bar moves back up"). While navigating, with the L on the navigation display's side of a landscape
+    // window, the L is drawn below the display: its top no higher than the display's bottom, the pill beside "+" (see
+    // LandscapeLCluster). **Display only**: the floor is applied to what is drawn, never written to the user's stored offset or
+    // side (CLAUDE.md, UX defaults), so when navigation ends the L goes back to exactly where the user put it. Where the window
+    // is too short for the L under the display (a 360 dp window at font 1.3 or more with an evening line; font 2.0), the L goes
+    // as low as it may and the display, drawn after it, covers the shortfall at the top of its first row, Fullscreen (RECORD
+    // -768, the owner: "Slide as far as it can (Recommended)"; the shortfalls are in the T11 report's "Fixes").
+    val slideApplies = navigationSlideApplies(state.landscape, isNavigating, state.isOnLeftSide, state.railPortEdge) &&
+        state.navigationDisplayBottomInRootPx != null
+    val navigationFloorPx: Float? = if (slideApplies) (state.navigationDisplayBottomInRootPx ?: 0f) - state.clusterRestTopInRootPx else null
+    val currentNavigationFloorPx by rememberUpdatedState(navigationFloorPx)
+    fun displayedOffsetFor(userOffsetPx: Float): Float {
+        val clamped = clampMapIconBarVerticalOffset(userOffsetPx)
+        val floor = currentNavigationFloorPx ?: return clamped
+        val lowest = clampBelowChromeVerticalOffset(Float.MAX_VALUE)
+        return maxOf(clamped, minOf(floor, lowest))
+    }
+    // RECORD -770 (the owner: "Drop the evening line then (Recommended)"): how low the bar can go with the pill beside "+",
+    // from the clamps' own arithmetic (the L's content top is (box - L) / 2 + offset, its bottom no lower than the nav's bound),
+    // at the bar's own height rather than the L's current one, so it does not move while the pill does. Published for the
+    // display, which leaves out its evening line rather than push the bar past its Fullscreen row.
+    val navigationLowestBarTopPx: Float? = run {
+        val barHeightPx = 2f * state.centreInClusterPx
+        if (!state.landscape || state.clusterHeightPx <= 0f || barHeightPx <= 0f) return@run null
+        val boxTopInRootPx = state.clusterRestTopInRootPx - (state.mapContentBoxHeightPx - state.clusterHeightPx) / 2f
+        val navBoundPx = state.mapContentBoxHeightPx - (if (isFullscreen) 0f else state.bottomNavHeightPx)
+        boxTopInRootPx + navBoundPx - barHeightPx
+    }
+    androidx.compose.runtime.SideEffect { state.navigationLowestBarTopInRootPx = navigationLowestBarTopPx }
+    // The pill's move, under the bar (0) to beside "+" (1), on the cluster's own navigation spec; a cut under reduced motion.
+    val pillBeside = remember { Animatable(if (slideApplies) 1f else 0f) }
+    val reduceMotionForSlide = LocalReduceMotion.current
+    val pillSpec = MotionTokens.navigationMotionSpec<Float>()
+    LaunchedEffect(slideApplies, reduceMotionForSlide) {
+        val target = if (slideApplies) 1f else 0f
+        if (reduceMotionForSlide) pillBeside.snapTo(target) else pillBeside.animateTo(target, pillSpec)
+    }
     // Expanded-panels dispatch: where AddActionTile below anchors — the bar's live
     // position, not its default one. (The map mode popover anchored here too until map
     // layers L0b replaced it with the Layers sheet, a bottom sheet with no anchor.)
@@ -521,9 +580,13 @@ internal fun BoxScope.MapIconCluster(
             // becomes the memory and is drawn immediately (snapTo, which also cancels
             // any bounds-change glide still in flight) — see
             // state.userChosenOffsetPx's own doc comment.
-            val draggedToPx = clampMapIconBarVerticalOffset(state.displayedOffsetPx.value + dragAmount.y)
+            // T11 fixes: while the L is held below the navigation display, the finger moves the stored offset by its own
+            // distance, and what is drawn is that offset with the floor applied: a drag there never writes the floor itself into
+            // the memory. Otherwise unchanged (displayedOffsetFor is the plain clamp when there is no floor).
+            val fromPx = if (currentNavigationFloorPx != null) state.userChosenOffsetPx else state.displayedOffsetPx.value
+            val draggedToPx = clampMapIconBarVerticalOffset(fromPx + dragAmount.y)
             state.userChosenOffsetPx = draggedToPx
-            mapIconBarOffsetScope.launch { state.displayedOffsetPx.snapTo(draggedToPx) }
+            mapIconBarOffsetScope.launch { state.displayedOffsetPx.snapTo(displayedOffsetFor(draggedToPx)) }
         }
     }
     // Expanded-panels dispatch (sweep finding, owner-approved "fix the clamp"): the
@@ -561,15 +624,20 @@ internal fun BoxScope.MapIconCluster(
     // at the clamp of the first frame, before the strip was measured. A key only in landscape: portrait's limit animates with
     // the fullscreen slide (CompactMapTab's searchBarBottom comment), and portrait is unchanged.
     val landscapeTopLimitKey = if (state.landscape) topLimitPx else 0f
-    LaunchedEffect(state.clusterHeightPx, state.mapContentBoxHeightPx, state.bottomNavHeightPx, isFullscreen, state.landscape, legendBoundPx, currentNoticeBottomPx, landscapeTopLimitKey) {
-        val targetPx = clampMapIconBarVerticalOffset(state.userChosenOffsetPx)
+    // T11 fixes: the navigation floor is a key too, so the L slides down when navigation starts, follows the display as its
+    // evening line comes and goes, and slides back up when navigation ends; a cut under reduced motion for that move alone.
+    val previousFloor = remember { arrayOfNulls<Float>(1) }
+    LaunchedEffect(state.clusterHeightPx, state.mapContentBoxHeightPx, state.bottomNavHeightPx, isFullscreen, state.landscape, legendBoundPx, currentNoticeBottomPx, landscapeTopLimitKey, navigationFloorPx) {
+        val targetPx = displayedOffsetFor(state.userChosenOffsetPx)
+        val floorMoved = previousFloor[0] != navigationFloorPx
+        previousFloor[0] = navigationFloorPx
         // RECORD -711: a height restored at launch is fitted to this window's limits with a snap, not a
         // glide, so it never slides in from beyond them; from the first measured fit on, as before.
         if (state.snapRestored) {
             if (targetPx != state.displayedOffsetPx.value) state.displayedOffsetPx.snapTo(targetPx)
             if (state.clusterHeightPx > 0f) state.snapRestored = false
         } else if (targetPx != state.displayedOffsetPx.value) {
-            state.displayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
+            if (floorMoved && reduceMotionForSlide) state.displayedOffsetPx.snapTo(targetPx) else state.displayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
         }
     }
     // Owner request (alongside the fullscreen-slide-out-fixes dispatch): minimising
@@ -641,6 +709,8 @@ internal fun BoxScope.MapIconCluster(
                     state.clusterHeightPx = coordinates.size.height.toFloat()
                     state.clusterWidthPx = coordinates.size.width.toFloat()
                     state.clusterBoundsInRoot = coordinates.boundsInRoot()
+                    // T11 fixes: the top at offset 0, read in the same pass the offset was placed with.
+                    state.clusterRestTopInRootPx = coordinates.positionInRoot().y - state.displayedOffsetPx.value
                 }
                 .testTag(MAP_ICON_CLUSTER_TAG)
             // Feeds the panels' and handles' anchors — see MapIconClusterState.centreInClusterPx.
@@ -652,6 +722,7 @@ internal fun BoxScope.MapIconCluster(
                 Box(modifier = clusterMeasure) {
                     LandscapeLCluster(
                         onLeftSide = state.isOnLeftSide,
+                        pillBeside = pillBeside.value,
                         bar = { (landscapeBar ?: bar)(barMeasure) },
                         pill = { (landscapePill ?: pill)(state.isOnLeftSide) },
                     )
@@ -715,15 +786,54 @@ private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
  * outside them is the map's. Compact-only: the tablet never sets [MapIconClusterState.landscape].
  */
 @Composable
-private fun LandscapeLCluster(onLeftSide: Boolean, bar: @Composable () -> Unit, pill: @Composable () -> Unit) {
-    Column(
-        horizontalAlignment = if (onLeftSide) Alignment.Start else Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
-    ) {
-        bar()
-        pill()
+private fun LandscapeLCluster(
+    onLeftSide: Boolean,
+    /**
+     * T11 fixes (RECORD -766, P4; the owner: "Have the recording pill to the left side of the + button on the icon bar, rather
+     * than below it. Same L, more compact", while navigating on the display's side): 0 is the pill under the bar, as above; 1
+     * is the pill beside "+", the bar's last row, on its inboard side, its bottom on the bar's bottom, so the L is the bar's
+     * 240 dp tall. Between the two the pill moves across first and then up (an L-shaped path), so at no point does it pass over
+     * a bar button: every button keeps its own touches mid-move, and the move is in the layout, so touches follow it.
+     */
+    pillBeside: Float = 0f,
+    bar: @Composable () -> Unit,
+    pill: @Composable () -> Unit,
+) {
+    val gapPx = with(LocalDensity.current) { CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR.roundToPx() }
+    androidx.compose.ui.layout.Layout(contents = listOf(bar, pill)) { (barMeasurables, pillMeasurables), _ ->
+        val loose = androidx.compose.ui.unit.Constraints()
+        val b = barMeasurables.first().measure(loose)
+        val p = pillMeasurables.first().measure(loose)
+        val across = (pillBeside * 2f).coerceIn(0f, 1f)
+        val up = (pillBeside * 2f - 1f).coerceIn(0f, 1f)
+        // The pill's outer end, from the bar's outer edge inward: 0 under the bar (flush with it), the bar's width and the gap
+        // beside "+". Its top: the gap under the bar, then level with "+".
+        val pillInset = ((b.width + gapPx) * across).roundToInt()
+        val pillTop = (b.height + gapPx + (-gapPx - p.height) * up).roundToInt()
+        val width = maxOf(b.width, pillInset + p.width)
+        val height = maxOf(b.height, pillTop + p.height)
+        layout(width, height) {
+            if (onLeftSide) {
+                b.place(0, 0)
+                p.place(pillInset, pillTop)
+            } else {
+                b.place(width - b.width, 0)
+                p.place(width - pillInset - p.width, pillTop)
+            }
+        }
     }
 }
+
+/**
+ * T11 fixes (RECORD -766, P4): whether the landscape L slides below the navigation display. Only in a landscape window (the
+ * L), only while navigating, and only with the L on the display's side, which is the rail side (the display sits in the rail
+ * side's top corner): the right at ROTATION_90, the left at ROTATION_270. The owner's words were "Right side only, left side
+ * doesn't get this"; asked whether "right" meant the screen's right or the display's side, the owner answered "Follow the
+ * display (Recommended)" (RECORD -768): a bar on the display's side, at either rotation.
+ * Portrait, and the L on the other side, never change.
+ */
+internal fun navigationSlideApplies(landscape: Boolean, isNavigating: Boolean, clusterOnLeftSide: Boolean, displayEdge: ScreenEdge?): Boolean =
+    landscape && isNavigating && displayEdge != null && clusterOnLeftSide == (displayEdge == ScreenEdge.Left)
 
 /** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
 internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"

@@ -77,12 +77,14 @@ internal val DarkColors = darkColorScheme(
     secondaryContainer = MushroomContainerDark,
     onSecondaryContainer = MushroomContainerLight,
 
-    // ForestGreen (used at this role before) is dark enough that as literal text color -- see the
-    // "not a walking route" disclaimer, the one place this role is used as a text color rather
-    // than a fill -- it read poorly against a background that's now neutral gray rather than warm
-    // brown. That reasoning stands; what changed is that the fix is no longer "reuse MossGreen,"
-    // which collided with `primary`. The cool third note comes from the map's own trip blue
-    // instead, lightened for this theme the same way the green is.
+    // ForestGreen (used at this role before) is dark enough that as literal text color it read
+    // poorly against a background that's now neutral gray rather than warm brown. It was judged on
+    // a "not a walking route" disclaimer that is no longer in the app (T19, RECORD -765; this
+    // comment corrected by T11 fixes, RECORD -766). The role is still read as text: it is the
+    // Tracks accent in RecordTypeStyle, drawn as the Journal's stat text and chip labels. That
+    // reasoning stands; what changed is that the fix is no longer "reuse MossGreen," which
+    // collided with `primary`. The cool third note comes from the map's own trip blue instead,
+    // lightened for this theme the same way the green is.
     tertiary = TrailBlueLight,
     onTertiary = TrailBlueOnContainerLight,
     tertiaryContainer = TrailBlueContainerDark,
