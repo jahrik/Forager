@@ -135,9 +135,10 @@ class TrackRecordingServiceBackByLoopTest {
             simulateGpsFix(metresNorth = 0.0)
             val notification = awaitBackByNotification(timeoutMillis = FIX_WAIT_MILLIS)
             assertNotNull(
-                "no back-by alert within ${FIX_WAIT_MILLIS / 1_000} s of a GPS fix ${fixAt - at} ms past the time: the alert waits for the 15 s timer, not the fix",
+                "no back-by alert within ${FIX_WAIT_MILLIS / 1_000} s of a GPS fix ${fixAt - at} ms past the time: the alert waits for the 15 s timer, not the fix. The record: ${recordLines()}",
                 notification,
             )
+            assertTrue("woken by the fix: ${recordLines()}", recordLines().any { " by=fix" in it && " due=yes " in it })
         } finally {
             controller?.let { end(it) }
         }
@@ -230,7 +231,7 @@ class TrackRecordingServiceBackByLoopTest {
             val alarm = backByAlarm()
             assertNotNull(alarm)
             while (System.currentTimeMillis() <= at) Thread.sleep(50L)
-            alarm!!.operation.send()
+            alarm!!.operation!!.send()
             val deliveredAt = System.currentTimeMillis()
             val notification = awaitBackByNotification(timeoutMillis = FIX_WAIT_MILLIS)
             assertNotNull(
@@ -243,6 +244,9 @@ class TrackRecordingServiceBackByLoopTest {
             controller?.let { end(it) }
         }
     }
+
+    private fun recordLines(): List<String> =
+        java.io.File(context.filesDir, com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME).takeIf { it.exists() }?.readLines().orEmpty()
 
     private fun startedRecording(): Pair<ServiceController<TrackRecordingService>, String> {
         val trackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id
@@ -265,15 +269,22 @@ class TrackRecordingServiceBackByLoopTest {
 
     private fun stopIntent() = Intent(context, TrackRecordingService::class.java).setAction(TrackRecordingService.ACTION_STOP)
 
-    /** One GPS fix [metresNorth] of a fixed start, stamped now on a whole second, as the S22's GPS stamps them. */
+    private var lastFixTime = 0L
+
+    /**
+     * One GPS fix [metresNorth] of a fixed start, stamped on a whole second, as the S22's GPS stamps them, and
+     * at least a second after the previous one: the shadow drops a fix sooner than the registration's 1 s
+     * interval after the last, which is how run 2's first try of the fix test saw no fix at all.
+     */
     private fun simulateGpsFix(metresNorth: Double) {
+        lastFixTime = maxOf(System.currentTimeMillis() / 1_000L * 1_000L, lastFixTime + 1_000L)
         shadowLocationManager.simulateLocation(
             Location(LocationManager.GPS_PROVIDER).apply {
                 latitude = 45.0 + metresNorth / 111_195.0
                 longitude = -122.0
                 accuracy = 5f
-                time = System.currentTimeMillis() / 1_000L * 1_000L
-                elapsedRealtimeNanos = 10_000_000_000L
+                time = lastFixTime
+                elapsedRealtimeNanos = lastFixTime * 1_000_000L
             },
         )
         shadowOf(Looper.getMainLooper()).idle()

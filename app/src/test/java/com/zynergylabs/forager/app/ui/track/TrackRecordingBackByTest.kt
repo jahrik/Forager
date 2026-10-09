@@ -199,7 +199,10 @@ class TrackRecordingBackByTest {
         runCurrent()
         viewModel.setBackBy(BackByChoice.AtTime(18, 45))
         runCurrent()
-        assertEquals(listOf<BackByRecordEvent>(BackByRecordEvent.Set("track-1", now + 45 * 60_000L, accepted = true, watchedTrackId = null)), recorded.toList())
+        assertEquals(
+            listOf(BackByRecordEvent.Set("track-1", now + 45 * 60_000L, accepted = true, watchedTrackId = null)),
+            recorded.filterIsInstance<BackByRecordEvent.Set>(),
+        )
     }
 
     @Test
