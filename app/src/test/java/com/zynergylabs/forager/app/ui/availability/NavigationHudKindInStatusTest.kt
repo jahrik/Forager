@@ -150,7 +150,7 @@ class NavigationHudKindInStatusTest {
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().single().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
 
     @Test
-    fun `at 320 dp the kind starts the status line, whole, and the first row stays 48 dp`() {
+    fun `at 320 dp the kind leads the status line, whole, the note gives way, and the first row stays 48 dp`() {
         val longest = cases.single { it.name == "Sharp right, by trail" }
         composeRule.setContent {
             val c = case ?: return@setContent
@@ -177,14 +177,16 @@ class NavigationHudKindInStatusTest {
         assertEquals("the figure is whole", null, clipped(NAVIGATION_HUD_DISTANCE_TAG))
         val kind = bounds(NAVIGATION_HUD_DISTANCE_KIND_TAG)
         val figure = bounds(NAVIGATION_HUD_DISTANCE_TAG)
-        val status = bounds(NAVIGATION_HUD_STATUS_TAG)
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
         val hud = bounds(NAVIGATION_HUD_TAG)
         assertTrue("the kind $kind is below the figure $figure", kind.top >= figure.bottom - 0.5.dp)
-        assertTrue("the kind $kind starts the status line $status", kind.right <= status.left && kind.top < status.bottom && kind.bottom > status.top)
-        // The first row is the X's 48 dp touch box, centred on the X: the status line must end inside it.
+        // T11 fixes, RECORD -769 (the owner: "Same rule everywhere (Recommended)"): the order confirmed in RECORD -768 applies in
+        // portrait too. At 320 dp "≈ 1250 ft straight" does not fit after "By trail ·", and the straight-line note gives way
+        // whole rather than ending in "…" (it read "By trail · ≈ 125…" before), so the kind leads an otherwise empty line.
+        assertEquals("the note gives way whole: the kind stands alone", "", textOf(NAVIGATION_HUD_STATUS_TAG))
+        // The first row is the X's 48 dp touch box, centred on the X: the status line, here the kind, must end inside it.
         val firstRowBottom = (exit.top + exit.bottom) / 2 + 24.dp
-        assertTrue("the status line $status ends inside the 48 dp first row (bottom $firstRowBottom)", status.bottom <= firstRowBottom + 0.5.dp)
+        assertTrue("the status line, the kind $kind, ends inside the 48 dp first row (bottom $firstRowBottom)", kind.bottom <= firstRowBottom + 0.5.dp)
         assertEquals("the first row is 48 dp from the display's top padding", 48f, (firstRowBottom - hud.top - 4.dp).value, 0.5f)
     }
 }
