@@ -352,7 +352,9 @@ abstract class HudLandscapeT11Fixes {
         route = ReturnRoute.Unavailable(canRetry = true)
         line = recordingLine
         backBy = BackByShown(trackId = "t1", backByAtEpochMillis = morning + 40 * minute, nowEpochMillis = morning)
-        setScreen(Surface.ROTATION_90, clusterOnRailSide = true)
+        // The L away from the display: with it below the display, RECORD -770 takes the evening line off at this size, and the
+        // display would not be at its tallest.
+        setScreen(Surface.ROTATION_90, clusterOnRailSide = false)
         val hud = tag(NAVIGATION_HUD_TAG)
         val mapArea = tag(LAYOUT_FIXES_MAP_TAG)
         val height = mapArea.bottom - mapArea.top

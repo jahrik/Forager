@@ -425,7 +425,12 @@ it was; this section supersedes its "Options" for what was built.
    - The floor is applied only to what is drawn. The stored offset and side are never written by it, and a drag while it
      holds moves the stored offset by the finger's distance only.
    - When navigation ends, both go back to where the user put them.
-   - Where the window is too short, the L goes as low as it may, and the display covers the top of Fullscreen.
+   - Where the window is too short, the L goes as low as it may, and the display covers the top of Fullscreen (RECORD -768:
+     "Slide as far as it can").
+   - RECORD -770 (the owner: "Drop the evening line then (Recommended)"). Where keeping the evening line would push the bar's
+     overlap past the Fullscreen row, the line leaves the display (`eveningLineFits`). The limit is the bar's lowest top plus
+     48 dp, published by the cluster from its own clamp arithmetic. The display measures its rows above the line, which the
+     line does not change, so the decision cannot feed back on itself. The alerts are unaffected.
 4. **T19.** `ui/theme/Theme.kt`'s comment no longer describes the "not a walking route" disclaimer as present. It also
    records that `tertiary` is still read as text: the Tracks accent in `RecordTypeStyle`.
 
@@ -433,9 +438,10 @@ No change to `MapQuickSettings.kt`, `AvailabilityMapControlsUi.kt` or the record
 
 ### The harness, before and after
 
-`HudLandscapeT11MeasurementTest` was re-run on the fixes at 03:47Z and again after the last change. Its positive controls were
-widened to accept the confirmed short forms, and it now also prints the bar's own bounds. The rows covered the same 24
-compositions × 13 states (9,240 `T11|` lines). Rotation 90 and 270 are again identical (0 differences). "Before" is the
+`HudLandscapeT11MeasurementTest` was re-run on the fixes at 03:47Z and after each later change, last after the -770 rule.
+Its positive controls were widened to accept the confirmed short forms. It now also prints the bar's own bounds, and it has
+one new state, 06r: the route withheld with "Try again" and both evening lines, which is the -770 case. That makes 24
+compositions × 14 states, 9,978 `T11|` lines. Rotation 90 and 270 are again identical (0 differences). "Before" is the
 tables above (main's code).
 
 | Window, font | Before: cuts and depth into the central third | After |
@@ -452,21 +458,27 @@ The bar against the display, cluster on the display's side:
 - At font 2.0 it is under the display by 2 dp (plain), 34 dp (evening line) and 40 dp (Try again) at 780, and by 10 and
   16 dp at 823.
 - That is under 48 dp in every row, so only Fullscreen is covered.
-- Not in the harness: Try again plus an evening line at 780, font 2.0. By arithmetic that state is about 72 dp, which reaches
-  into Reset north. It is a device item.
+- State 06r (Try again and both evening lines), on the display's side, at font 2.0:
+  - At 780 the evening line leaves (RECORD -770): the display is 160 dp tall, and the bar is under it by 40 dp.
+  - At 823 the line stays: the display is 192 dp, and the bar is under it by exactly 48 dp, Fullscreen only.
+  - At fonts 1.0 and 1.3 the line stays and the bar is clear (108 and 113 dp displays).
+- With the L on the other side, nothing limits the display: 06r is 192 dp at font 2.0, −72 at 780 and −64 at 823 against
+  the central third. It stays above the walker's dot (guarded).
 
 The pill, beside "+", is clear of the display in every row.
 
 ### Tests and revert checks
 
 New tests:
-- `NavigationHudFitTest` (13 tests, pure).
-- `HudLandscapeT11FixesTest`: 16 tests in each of the two windows, through the real `AvailabilityScreen`. They cover the
+- `NavigationHudFitTest` (12 tests, pure).
+- `HudLandscapeT11FixesTest`: 18 tests in each of the two windows, through the real `AvailabilityScreen`. They cover the
   distance whole at 1.3 and 2.0; the stale warning whole; the grid reference and distance whole at 2.0; the evening line; Try
   again beside, with real touches across it; the walker's dot and needle; the slide at 90 and 270, there and back, with the
   stored placement unwritten; the other side; long-presses beside the L; and every bar and pill button by five real coordinate
   touches, not navigating, navigating at 90 and 270, and mid-slide with the clock held where bar and pill are both mid-move.
-  That is 35 touches per state, each on a fresh screen.
+  That is 35 touches per state, each on a fresh screen. Two -770 tests, in each window: with the route withheld in the
+  evening, Reset north is clear of the display and takes five real touches, the display covers at most the Fullscreen row,
+  and at font 1.0 the evening line stays.
 
 Changed tests:
 - `NavigationHudKindInStatusTest`: expects "By trail" alone (RECORD -769).
@@ -489,13 +501,25 @@ after. Every forward file was confirmed restored, and `git status` was clean aft
 | R6: pill kept under the bar | bites, through the same slide and touch guards (the L stays 296 dp, so it cannot get under the display); not through its own "level with +" message, which the earlier assertion pre-empts |
 | R7/R7b: button never moves up | bites: "the grid reference <10T ER 24991 40768> is whole (-699)" at 780, font 2.0 |
 | R8: turn does not yield to a message | bites: "Target goes when it would not" |
+| R9 (-770): the evening line always stays | bites: "Reset north [618, 168][666, 216] is clear of the display [382, 0][674, 192]", at 780, font 2.0 |
 
 Not shown by a revert:
 - The walker's-dot and needle guard is a ceiling that held before the fixes too (the display was never that tall).
 - The other-side test checks a non-change.
 - The display-only floor (stored offset never written) is shown by the slide test's write count, not by a revert.
 
-Full suite: FULLSUITE_PLACEHOLDER
+Full suite, run once before the -770 change (at c3d9c4c8): 4,580 tests in 589 classes, 0 failures, 0 errors, 24 skipped (all
+skips already present; none added). It was not re-run after -770, by the planner's call: only the -770 classes, the harness
+and its revert check were run. The final head is af8baf66 plus the report. The -770 runs were the affected classes (138 tests:
+the new and changed classes, B2, the sundown line, quick settings, return route, the L, large fonts), then the T11 classes (62
+tests), then the R9 revert.
+
+**Disk.** The dispatch's line was to stop under 1.5 GB free.
+- During the full suite free disk fell to about 0.94 GB, and the run was not stopped: the watcher only logged it. That was the
+  coder's slip, disclosed to the planner at the time. Nothing was deleted.
+- From then on the runner killed Gradle under the line, and it did so on the first -770 run, at 1.38 GB.
+- The planner then set the line at 1.0 GB for the three -770 runs. Their low points were 1.34 GB, 1.56 GB and 1.55 GB.
+- The earlier targeted runs tonight were not watched, and very likely crossed 1.5 GB too.
 
 ### Disclosures
 
@@ -524,7 +548,16 @@ Full suite: FULLSUITE_PLACEHOLDER
 
 #### Decided beyond scope
 
-- "No route" where "Try again" keeps its own line, in the status type only (reported to the planner).
-- The turn words give way for a warning or message, not only for the figure.
-- The three-dot button's row now follows the figure shown, so it can change rows when the figure's width changes; the
-  display's height does not.
+- "No route" where "Try again" keeps its own line, in the status type only (reported to the planner; noted by the owner in
+  RECORD -770).
+- The turn words give way for a warning or message, not only for the figure (the same).
+- The three-dot button's row follows the figure shown, so it can change rows when the figure's width changes; the display's
+  height does not. Confirmed by the owner in RECORD -770 ("Yes, distance wins"). The grid reference is then cut 16 of 18 at
+  780, font 2.0, approaching a waypoint and with the route withheld.
+
+#### Remaining, for the owner
+
+- The " · " between the sundown part and Back by counts 2 of 3 characters "visible" in the harness. That is its trailing
+  space, not a cut.
+- "Straight" beside the figure is 7 of 8 at font 2.0 when navigating to a far waypoint, as before the fixes.
+- The pre-existing 1 to 9 dp move of the other-side L (above).
