@@ -135,14 +135,15 @@ internal fun statusLineFit(
  */
 internal fun retryFitsBeside(columnPx: Int, retryPx: Int, gapPx: Int, shortMessagePx: Int): Boolean = shortMessagePx + gapPx + retryPx <= columnPx
 
-/** The route message beside "Try again": the first of the whole message, then its short form, that fits [availablePx]; the short form if neither does. */
+/** The route message in landscape: the whole message in the large type, then in the status type, then "No route" in the status type; "No route" if none fits. */
 internal data class RouteMessageFit(val text: String, val inStatusType: Boolean)
 
 internal fun routeMessageFit(availablePx: Int, widthInLargeType: (String) -> Int, widthInStatusType: (String) -> Int): RouteMessageFit {
     val candidates = listOf(
         RouteMessageFit(ROUTE_UNAVAILABLE_TEXT, inStatusType = false),
         RouteMessageFit(ROUTE_UNAVAILABLE_TEXT, inStatusType = true),
-        RouteMessageFit(ROUTE_UNAVAILABLE_SHORT_TEXT, inStatusType = false),
+        // The short form only in the status line's type: in the large type it made the display 10 dp taller at font 2.0 (first
+        // build, 160 to 170 dp), which pushed the icon bar 50 dp under it at 780, past the Fullscreen row the owner accepted.
         RouteMessageFit(ROUTE_UNAVAILABLE_SHORT_TEXT, inStatusType = true),
     )
     return candidates.firstOrNull { (if (it.inStatusType) widthInStatusType(it.text) else widthInLargeType(it.text)) <= availablePx } ?: candidates.last()
