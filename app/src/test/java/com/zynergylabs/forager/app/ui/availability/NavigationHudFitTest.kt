@@ -86,6 +86,16 @@ class NavigationHudFitTest {
         assertEquals(FirstRowFit("", "≤ 16 ft", kindInStatus = false), firstRow(within, 9))
     }
 
+    @Test
+    fun `the turn words also give way to a warning or a message that would not fit under the figure`() {
+        // No fix: "Target" under a dimmed needle, "—" in the large slot, "Location services unavailable" or "No location".
+        val r = readout(liveFix = null)
+        assertEquals(11, statusMinWidth(r, chars))
+        assertEquals("Target stays while the short message fits", "Target", firstRowFit(r, 6 + 11, 2, 1, chars, chars, chars, statusMinWidth(r, chars)).turnText)
+        assertEquals("Target goes when it would not", "", firstRowFit(r, 6 + 10, 2, 1, chars, chars, chars, statusMinWidth(r, chars)).turnText)
+        assertEquals("a droppable note asks for no width", 0, statusMinWidth(readout(), chars))
+    }
+
     // ── The status line ──
 
     private fun status(r: NavigationHudReadout, kindInStatus: Boolean, max: Int) = statusLineFit(r, kindInStatus, max, leadSeparatorPx = 3, widthOf = chars)

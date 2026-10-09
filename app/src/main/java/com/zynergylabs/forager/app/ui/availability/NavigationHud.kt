@@ -318,7 +318,10 @@ internal fun NavigationHud(
             // first row when the coordinates, measured in this window and font, would not be whole beside it on the second, as
             // long as the figure still fits on the first (distance first, item 1 of the same answer). See buttonMovesUpForCoordinates.
             val rowHoldsButton = firstRowHoldsTheButton(constraints.maxWidth)
-            val buttonMovesUp = buttonMovesUpForCoordinates(constraints.maxWidth, showDecimalDegrees)
+            // Only while there are coordinates to keep whole: with no fix the second row is not drawn, and moving the button up
+            // would only take the first row's width from the status (seen in the harness: "No location" cut to 1 of 11 at 780,
+            // font 2.0).
+            val buttonMovesUp = buttonMovesUpForCoordinates(constraints.maxWidth, showDecimalDegrees) && readout.coordinatesText != null && readout.secondRowShown
             val buttonInFirstRow = quickSettings != null && (rowHoldsButton || buttonMovesUp)
             // T11 fixes (the owner: "Distance first, short status (Recommended)"): what the first row draws, from this window's
             // width: the kind moves to the status line, then the turn words shrink to the bearing and go, before the figure is
@@ -678,6 +681,7 @@ private fun measuredFirstRowFit(readout: NavigationHudReadout, hudWidthPx: Int, 
             turnWidth = { widthOf(it, small) },
             figureWidth = { widthOf(it, figureStyle) },
             kindWidth = { widthOf(it, small) },
+            statusMinPx = statusMinWidth(readout) { widthOf(it, small) },
         )
     }
 }

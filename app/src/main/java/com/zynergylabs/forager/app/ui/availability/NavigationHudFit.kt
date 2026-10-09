@@ -72,18 +72,30 @@ internal fun firstRowFit(
     turnWidth: (String) -> Int,
     figureWidth: (String) -> Int,
     kindWidth: (String) -> Int,
+    /**
+     * The narrowest the status line may be ([statusMinWidth]): a warning or a message ranks above the turn words, so the turn
+     * also gives way until the status's shortest form fits under the figure. 0 when the status may be dropped.
+     */
+    statusMinPx: Int = 0,
 ): FirstRowFit {
     fun columnPx(turn: String) = sharedPx - maxOf(needlePx, turnWidth(turn))
     val kind = readout.distanceKindText
     val figurePx = figureWidth(readout.distanceText)
     val whole = readout.targetText
     if (kind == null || figurePx + kindGapPx + kindWidth(kind) <= columnPx(whole)) {
-        if (figurePx <= columnPx(whole)) return FirstRowFit(whole, readout.distanceText, kindInStatus = false)
+        if (figurePx <= columnPx(whole) && statusMinPx <= columnPx(whole)) return FirstRowFit(whole, readout.distanceText, kindInStatus = false)
     }
     val kindInStatus = kind != null
     val turns = listOfNotNull(whole, turnShortForm(whole), "").distinct()
+    turns.firstOrNull { figurePx <= columnPx(it) && statusMinPx <= columnPx(it) }?.let { return FirstRowFit(it, readout.distanceText, kindInStatus) }
     turns.firstOrNull { figurePx <= columnPx(it) }?.let { return FirstRowFit(it, readout.distanceText, kindInStatus) }
     return FirstRowFit("", distanceShortForm(readout.distanceText) ?: readout.distanceText, kindInStatus)
+}
+
+/** The width the status line needs at the least: its shortest form when it may not be dropped (a warning or a message), else 0. */
+internal fun statusMinWidth(readout: NavigationHudReadout, widthOf: (String) -> Int): Int {
+    val forms = readout.statusForms()
+    return if (forms.contains("")) 0 else widthOf(forms.last())
 }
 
 /** The status line as drawn: the kind's lead ("By trail"), or `null`, and the status itself, "" for none. */

@@ -418,17 +418,29 @@ abstract class HudLandscapeT11Fixes {
 
     @Test fun `item 3 at ROTATION_270 the L on the display's side slides below it and comes back`() = assertSlideOnTheDisplaysSide(Surface.ROTATION_270)
 
+    /**
+     * On the side away from the display the slide does not apply: the pill stays under the bar and the L is not pushed down to
+     * the display. It does move by what it moved before T11: its top limit is the search bar's bottom (owner's ruling (a),
+     * continuation -172), and the search bar is taller while navigating (45 dp against 36 at font 1.0, a side observation in
+     * the T11 report), so an L that sat at that limit follows the search bar down, and no further.
+     */
     @Test
-    fun `item 3 the L on the other side does not move when navigation starts`() {
+    fun `item 3 the L on the other side keeps its pill under the bar and only follows the search bar`() {
         setScreen(Surface.ROTATION_90, clusterOnRailSide = false, navigating = false)
         val barBefore = bar()
         val recordBefore = record()
+        val searchBefore = tag(SEARCH_ENTRY_BAR_TAG)
         composeRule.runOnIdle { returning = true }
         settle()
         assertTrue("positive control: navigating", nodes(NAVIGATION_HUD_TAG).isNotEmpty())
-        assertEquals("the bar did not move", barBefore.top.value, bar().top.value, 0.5f)
-        assertEquals("the pill did not move", recordBefore.top.value, record().top.value, 0.5f)
-        assertEquals("the pill did not move", recordBefore.left.value, record().left.value, 0.5f)
+        val barNow = bar()
+        val recordNow = record()
+        val searchNow = tag(SEARCH_ENTRY_BAR_TAG)
+        // Where it was, or the search bar's new bottom if that is lower: the -172 limit, nothing more.
+        val expectedTop = maxOf(barBefore.top, searchNow.bottom)
+        assertEquals("the bar is where it was or just under the taller search bar ($searchBefore then $searchNow): $barBefore then $barNow", expectedTop.value, barNow.top.value, 0.5f)
+        assertEquals("the pill is still under the bar", (recordBefore.top - barBefore.bottom).value, (recordNow.top - barNow.bottom).value, 0.5f)
+        assertEquals("the pill did not move sideways", recordBefore.left.value, recordNow.left.value, 0.5f)
     }
 
     // ── Item 3: touches ──
