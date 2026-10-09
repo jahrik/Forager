@@ -14,6 +14,7 @@ import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.alert.BACK_BY_NOTIFICATION_ID
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -134,6 +135,34 @@ class TrackRecordingServiceBackByLoopTest {
         } finally {
             controller?.let { end(it) }
         }
+    }
+
+    /**
+     * Dispatch 2026-09-28-796, step 3: the app's real record file says what happened, in order, through
+     * the real service and container: started, set, evaluated, fired with its delivery, ended by stop.
+     */
+    @Test
+    fun `the back-by record file tells the story set, evaluated, fired, ended, with no positions`() {
+        val file = java.io.File(context.filesDir, com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME)
+        file.delete()
+        val (c, trackId) = startedRecording()
+        try {
+            simulateGpsFix(metresNorth = 0.0)
+            assertTrue(container.backByWatch.set(trackId, System.currentTimeMillis() + 2_000L))
+            assertNotNull("the alert, for the record to report", awaitBackByNotification(timeoutMillis = LOOP_WAIT_MILLIS))
+        } finally {
+            end(c)
+        }
+        val kinds = file.readLines().map { it.substringAfter(' ').substringBefore(' ') }
+        val story = kinds.filter { it != "evaluated" }
+        assertEquals("the record: ${file.readLines()}", listOf("started", "set", "fired", "ended"), story)
+        val lines = file.readLines()
+        assertTrue("an evaluation before the alert: $lines", kinds.indexOf("evaluated") in 0 until kinds.indexOf("fired"))
+        assertTrue("accepted: $lines", lines.single { " set " in it }.endsWith(" accepted"))
+        assertTrue("posted: $lines", " notification=posted " in lines.single { " fired " in it })
+        assertTrue("ended by the stop: $lines", lines.last().endsWith(" reason=stop"))
+        assertTrue("every line names this track: $lines", lines.all { "track=$trackId" in it })
+        assertTrue("no coordinate in any line: $lines", lines.none { "-122." in it || "lat=" in it || "lng=" in it })
     }
 
     private fun startedRecording(): Pair<ServiceController<TrackRecordingService>, String> {
