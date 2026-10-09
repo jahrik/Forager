@@ -98,6 +98,10 @@ internal const val NAVIGATION_HUD_ELEVATION_TAG = "navigation-hud-elevation"
 internal const val NAVIGATION_HUD_COORDINATES_TAG = "navigation-hud-coordinates"
 internal const val NAVIGATION_HUD_RETRY_TAG = "navigation-hud-retry"
 internal const val NAVIGATION_HUD_DISTANCE_KIND_TAG = "navigation-hud-distance-kind"
+/** The needle: the target compass's arrow (T11 fixes, so a test can say nothing covers it). */
+internal const val NAVIGATION_HUD_NEEDLE_TAG = "navigation-hud-needle"
+/** The landscape display's one evening line, the sundown line and Back by side by side (T11 fixes). */
+internal const val NAVIGATION_HUD_EVENING_LINE_TAG = "navigation-hud-evening-line"
 /** Every [LabelledReadout]'s label, on the display and the strip alike: a test finds them by text within a parent. */
 internal const val NAVIGATION_LABEL_TAG = "navigation-label"
 
@@ -268,6 +272,11 @@ internal fun NavigationHud(
      * when "+30 min" matters. `null` draws none.
      */
     quickSettings: MapQuickSettings? = null,
+    /**
+     * T11 fixes (RECORD -766, P3): the display is in a landscape window, beside the search bar. There the evening's two lines
+     * share one ([HudEveningLine]) and "Try again" sits beside its message. Portrait keeps both as they were.
+     */
+    landscape: Boolean = false,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -305,7 +314,15 @@ internal fun NavigationHud(
             // this second: decided by the window and the font, the button does not move between rows, and the display does
             // not change height, as the walk's statuses come and go.
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val buttonInFirstRow = quickSettings != null && firstRowHoldsTheButton(constraints.maxWidth)
+            // T11 fixes (RECORD -766, P5; the -699 extension: the grid reference stays whole): the button also moves up to the
+            // first row when the coordinates, measured in this window and font, would not be whole beside it on the second, as
+            // long as the figure still fits on the first (distance first, item 1 of the same answer). See buttonMovesUpForCoordinates.
+            val buttonInFirstRow = quickSettings != null &&
+                (firstRowHoldsTheButton(constraints.maxWidth) || buttonMovesUpForCoordinates(constraints.maxWidth, showDecimalDegrees))
+            // T11 fixes (the owner: "Distance first, short status (Recommended)"): what the first row draws, from this window's
+            // width: the kind moves to the status line, then the turn words shrink to the bearing and go, before the figure is
+            // cut. The order is NavigationHudFit.kt's.
+            val rowFit = measuredFirstRowFit(readout, constraints.maxWidth, buttonInFirstRow)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -325,7 +342,7 @@ internal fun NavigationHud(
                             .size(COMPASS_ICON_SIZE)
                             .rotate(readout.northArrowDegrees ?: 0f),
                     )
-                    // Target compass.
+                    // Target compass: the needle stays whatever the words beneath it do (T11 fixes).
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             imageVector = Icons.Filled.Navigation,
@@ -333,9 +350,10 @@ internal fun NavigationHud(
                             tint = if (readout.targetArrowDegrees != null) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.3f),
                             modifier = Modifier
                                 .size(COMPASS_ICON_SIZE)
-                                .rotate(readout.targetArrowDegrees ?: 0f),
+                                .rotate(readout.targetArrowDegrees ?: 0f)
+                                .testTag(NAVIGATION_HUD_NEEDLE_TAG),
                         )
-                        WordSwap(text = readout.targetText, contentAlignment = Alignment.Center) { shown ->
+                        WordSwap(text = rowFit.turnText, contentAlignment = Alignment.Center) { shown ->
                             Text(
                                 text = shown,
                                 style = MaterialTheme.typography.labelMedium,
@@ -348,66 +366,31 @@ internal fun NavigationHud(
                     }
                     // Distance and status.
                     BoxWithConstraints(modifier = Modifier.weight(1f)) {
-                    val columnPx = constraints.maxWidth
-                    Column {
-                        val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
-                        val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
-                        val statusStyle = MaterialTheme.typography.labelMedium
-                        val lineMeasurer = rememberTextMeasurer()
-                        fun widthOf(text: String, style: TextStyle) = lineMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
-                        val gapPx = with(LocalDensity.current) { Spacing.xs.roundToPx() }
-                        // RECORD -713 (the owner: "Move it into the status line (Recommended)"): when the first row cannot fit the
-                        // figure and what it measures, "by trail" or "straight" moves to the start of the status line ("By trail ·
-                        // Approaching"), and a word in the large slot that does not fit there ("Unable to calculate route") takes the
-                        // status line's size. Nothing is added below, so the row stays the X's 48 dp.
-                        val distancePx = widthOf(readout.distanceText, distanceStyle)
-                        val wordShrunk = readout.distanceText == ROUTE_UNAVAILABLE_TEXT && distancePx > columnPx
-                        val kindInStatus = readout.distanceKindText?.let { kind -> distancePx + gapPx + widthOf(kind, statusStyle) > columnPx } ?: false
-                        // Dispatch -677 (the owner, RECORD -656: "0.4 mi by trail" or "0.3 mi straight"; "Numbers stay big and
-                        // instant"): the figure stays in its large type and is measured first, so it is never the one cut short; what
-                        // it measures follows it in the status line's type, on its baseline, in the width left.
-                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            // The distance itself stays instant; "Arrived" and "Unable to calculate route" are words, and fade in.
-                            WordSwap(text = readout.distanceText, modifier = Modifier.alignByBaseline()) { shown ->
-                                Text(
-                                    text = shown,
-                                    style = if (wordShrunk) statusStyle else distanceStyle,
-                                    color = distanceColor,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
-                                )
-                            }
-                            if (!kindInStatus) readout.distanceKindText?.let { kind -> DistanceKindText(kind, distanceColor, Modifier.alignByBaseline()) }
-                        }
-                        if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
-                        // The fix age ticks every second: numbers, so it changes at once.
-                        // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694; the owner: "Drop 'Approaching ·' if needed
-                        // (Recommended)"): a status with a shorter form shows it when the whole one does not fit this width.
-                        // Either way the line is one line and ends in "…" when it still overflows ("Stay beside the search
-                        // bar, '…' (Recommended)"): it used to wrap at a word and draw only the first ("No", S22, font 2.0).
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            val kindLead = if (kindInStatus) readout.distanceKindText?.replaceFirstChar { it.uppercase() } else null
-                            if (kindLead != null) {
-                                DistanceKindText(kindLead, distanceColor)
-                                Text("·", style = statusStyle)
-                            }
-                            BoxWithConstraints {
-                                val status = statusTextThatFits(readout, constraints.maxWidth) { text -> widthOf(text, statusStyle) }
-                                WordSwap(text = status) { shown ->
-                                    Text(
-                                        text = shown,
-                                        style = statusStyle,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
-                                    )
+                        val columnPx = constraints.maxWidth
+                        val density = LocalDensity.current
+                        // T11 fixes (RECORD -766, P3; the owner: "Combine lines, allow the rest (Recommended)"): in landscape "Try
+                        // again" sits beside its message, at the column's end and as tall as the two lines it stands beside,
+                        // so the display is no taller for it. Where even the message's short form cannot sit beside it (font 2.0
+                        // in a narrow window), it keeps its own line under the message, as before and as in portrait.
+                        val retryMeasurer = rememberTextMeasurer()
+                        val retryPx = with(density) { (RETRY_ICON_SIZE + Spacing.xs).roundToPx() } +
+                            retryMeasurer.measure(ROUTE_RETRY_TEXT, retryTextStyle(), maxLines = 1, softWrap = false).size.width
+                        val besideGapPx = with(density) { Spacing.sm.roundToPx() }
+                        val shortMessagePx = retryMeasurer.measure(ROUTE_UNAVAILABLE_SHORT_TEXT, MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false).size.width
+                        val retryBeside = landscape && readout.routeRetryOffered && retryFitsBeside(columnPx, retryPx, besideGapPx, shortMessagePx)
+                        if (retryBeside) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    HudFigureAndStatus(readout, rowFit, columnPx - retryPx - besideGapPx, routeMessageBeside = true)
                                 }
+                                RouteRetryRow(onRetryRoute)
+                            }
+                        } else {
+                            Column {
+                                HudFigureAndStatus(readout, rowFit, columnPx, routeMessageBeside = false)
+                                if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
                             }
                         }
-                    }
                     }
                     if (buttonInFirstRow && quickSettings != null) MapQuickSettingsButton(quickSettings)
                     BouncingIconButton(
@@ -516,50 +499,59 @@ internal fun NavigationHud(
                     }
                     }
                 }
-                // Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the display's sundown line fades and grows like the
-                // strip's: when its window opens the display grows down to hold it, from under the rows above, and the reverse when
-                // it closes; the fade alone, the height changing at once, under reduced motion. Its words crossfade (item 6). The
-                // display takes no touch beside its coordinates and its buttons, so the growing band moves no touch.
-                val sundownLineShown = rememberLastShown(sundownLine)
                 val reduceMotion = LocalReduceMotion.current
                 val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
                 val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
-                AnimatedVisibility(
-                    visible = sundownLine != null,
-                    enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top),
-                    exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top),
-                    label = "hudSundownLine",
-                ) {
-                    sundownLineShown?.let { line ->
-                        WordSwap(text = line) { shown ->
-                            Text(
-                                text = shown,
-                                style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
-                            )
+                val lineEnter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top)
+                val lineExit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top)
+                if (landscape) {
+                    // T11 fixes (RECORD -766, P3; the owner: "Combine lines, allow the rest (Recommended)"): in landscape the
+                    // sundown line and Back by share one line, so the evening adds one row to the display, not two. See
+                    // HudEveningLine.
+                    HudEveningLine(sundownLine, backByLine, lineEnter, lineExit)
+                } else {
+                    // Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the display's sundown line fades and grows like the
+                    // strip's: when its window opens the display grows down to hold it, from under the rows above, and the reverse when
+                    // it closes; the fade alone, the height changing at once, under reduced motion. Its words crossfade (item 6). The
+                    // display takes no touch beside its coordinates and its buttons, so the growing band moves no touch.
+                    val sundownLineShown = rememberLastShown(sundownLine)
+                    AnimatedVisibility(
+                        visible = sundownLine != null,
+                        enter = lineEnter,
+                        exit = lineExit,
+                        label = "hudSundownLine",
+                    ) {
+                        sundownLineShown?.let { line ->
+                            WordSwap(text = line) { shown ->
+                                Text(
+                                    text = shown,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
+                                )
+                            }
                         }
                     }
-                }
-                // Back by's line (dispatch 2026-09-28-645; RECORD -687), under the sundown line, with the same pop-up grow and
-                // word crossfade, so the two lines behave alike when either window opens or closes.
-                val backByLineShown = rememberLastShown(backByLine)
-                AnimatedVisibility(
-                    visible = backByLine != null,
-                    enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top),
-                    exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top),
-                    label = "hudBackByLine",
-                ) {
-                    backByLineShown?.let { line ->
-                        WordSwap(text = line) { shown ->
-                            Text(
-                                text = shown,
-                                style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.testTag(NAVIGATION_HUD_BACK_BY_LINE_TAG),
-                            )
+                    // Back by's line (dispatch 2026-09-28-645; RECORD -687), under the sundown line, with the same pop-up grow and
+                    // word crossfade, so the two lines behave alike when either window opens or closes.
+                    val backByLineShown = rememberLastShown(backByLine)
+                    AnimatedVisibility(
+                        visible = backByLine != null,
+                        enter = lineEnter,
+                        exit = lineExit,
+                        label = "hudBackByLine",
+                    ) {
+                        backByLineShown?.let { line ->
+                            WordSwap(text = line) { shown ->
+                                Text(
+                                    text = shown,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.testTag(NAVIGATION_HUD_BACK_BY_LINE_TAG),
+                                )
+                            }
                         }
                     }
                 }
@@ -629,6 +621,184 @@ internal fun firstRowHoldsTheButton(hudWidthPx: Int): Boolean {
     }
 }
 
+/**
+ * T11 fixes (RECORD -766, P5; the planner's -699 extension, that the grid reference stays whole): whether the three-dot
+ * button moves to the first row because the coordinates would not be whole beside it on the second. Measured against a
+ * reference in the format shown, so the button does not move as the digits change, only when the window, the font or the
+ * format does. It moves only if the first row then still holds the reference figure with the turn words gone, since the
+ * distance comes first; where it does not, the button stays and the coordinates end in "…" (reported, not decided here).
+ */
+@Composable
+internal fun buttonMovesUpForCoordinates(hudWidthPx: Int, showDecimalDegrees: Boolean): Boolean {
+    val measurer = rememberTextMeasurer()
+    val typography = MaterialTheme.typography
+    val density = LocalDensity.current
+    fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    with(density) {
+        val rowPx = hudWidthPx - 2 * Spacing.sm.roundToPx()
+        val secondRowBesideButtonPx = rowPx - (QUICK_SETTINGS_TAP_TARGET + Spacing.sm).roundToPx()
+        val coordinatesPx = widthOf(if (showDecimalDegrees) REFERENCE_DECIMAL else REFERENCE_MGRS, typography.labelMedium)
+        if (coordinatesPx <= secondRowBesideButtonPx) return false
+        val figureStyle = typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
+        val firstRowColumnPx = rowPx - 2 * COMPASS_ICON_SIZE.roundToPx() - HUD_EXIT_TOUCH_SIZE.roundToPx() -
+            QUICK_SETTINGS_TAP_TARGET.roundToPx() - 4 * Spacing.md.roundToPx()
+        return widthOf(REFERENCE_FIGURE, figureStyle) <= firstRowColumnPx
+    }
+}
+
+/** T11 fixes: the grid reference the report measured cut at font 2.0 ("10T ER 24991 40768", 18 characters, every MGRS reference's length here). */
+private const val REFERENCE_MGRS = "10T ER 24991 40768"
+
+/** T11 fixes: the decimal pair at its widest ordinary length ([coordinatesStripText], four decimals, both signs). */
+private const val REFERENCE_DECIMAL = "-45.5234, -122.6876"
+
+/**
+ * T11 fixes: [firstRowFit] for this display, [hudWidthPx] wide, in its own types at the current font scale: the turn column
+ * and the distance column share what the row leaves after its padding, the north arrow, the exit's 48 dp, the three-dot
+ * button when it is on this row, and the gaps between the row's four or five children.
+ */
+@Composable
+private fun measuredFirstRowFit(readout: NavigationHudReadout, hudWidthPx: Int, buttonInFirstRow: Boolean): FirstRowFit {
+    val measurer = rememberTextMeasurer()
+    val typography = MaterialTheme.typography
+    val density = LocalDensity.current
+    fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    val small = typography.labelMedium
+    val figureStyle = typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
+    return with(density) {
+        val children = if (buttonInFirstRow) 5 else 4
+        val sharedPx = hudWidthPx - 2 * Spacing.sm.roundToPx() - COMPASS_ICON_SIZE.roundToPx() - HUD_EXIT_TOUCH_SIZE.roundToPx() -
+            (if (buttonInFirstRow) QUICK_SETTINGS_TAP_TARGET.roundToPx() else 0) - (children - 1) * Spacing.md.roundToPx()
+        firstRowFit(
+            readout = readout,
+            sharedPx = sharedPx,
+            needlePx = COMPASS_ICON_SIZE.roundToPx(),
+            kindGapPx = Spacing.xs.roundToPx(),
+            turnWidth = { widthOf(it, small) },
+            figureWidth = { widthOf(it, figureStyle) },
+            kindWidth = { widthOf(it, small) },
+        )
+    }
+}
+
+/**
+ * The large slot and the status line under it, [widthPx] wide (T11 fixes: drawn from [rowFit] and [statusLineFit] rather
+ * than cut where they overflow). [routeMessageBeside]: "Try again" is beside this in landscape, so a withheld route's message
+ * takes the first of its forms that fits ([routeMessageFit]).
+ */
+@Composable
+private fun HudFigureAndStatus(readout: NavigationHudReadout, rowFit: FirstRowFit, widthPx: Int, routeMessageBeside: Boolean) {
+    Column {
+        val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
+        val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
+        val statusStyle = MaterialTheme.typography.labelMedium
+        val lineMeasurer = rememberTextMeasurer()
+        fun widthOf(text: String, style: TextStyle) = lineMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+        val gapPx = with(LocalDensity.current) { Spacing.xs.roundToPx() }
+        // RECORD -713 (the owner: "Move it into the status line (Recommended)"): a word in the large slot that does not fit there
+        // ("Unable to calculate route") takes the status line's size. Beside "Try again" (T11 fixes) the message may also take
+        // its short form, "No route".
+        val message = if (routeMessageBeside && rowFit.distanceText == ROUTE_UNAVAILABLE_TEXT) {
+            routeMessageFit(widthPx, { widthOf(it, distanceStyle) }, { widthOf(it, statusStyle) })
+        } else {
+            null
+        }
+        val distanceText = message?.text ?: rowFit.distanceText
+        val wordShrunk = message?.inStatusType ?: (distanceText == ROUTE_UNAVAILABLE_TEXT && widthOf(distanceText, distanceStyle) > widthPx)
+        // Dispatch -677 (the owner, RECORD -656: "0.4 mi by trail" or "0.3 mi straight"; "Numbers stay big and instant"): the
+        // figure stays in its large type and is measured first, so it is never the one cut short; what it measures follows it
+        // in the status line's type, on its baseline, in the width left.
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            // The distance itself stays instant; "Arrived" and "Unable to calculate route" are words, and fade in.
+            WordSwap(text = distanceText, modifier = Modifier.alignByBaseline()) { shown ->
+                Text(
+                    text = shown,
+                    style = if (wordShrunk) statusStyle else distanceStyle,
+                    color = distanceColor,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+                )
+            }
+            if (!rowFit.kindInStatus) readout.distanceKindText?.let { kind -> DistanceKindText(kind, distanceColor, Modifier.alignByBaseline()) }
+        }
+        // The fix age ticks every second: numbers, so it changes at once. Dispatch 2026-09-28-685, Amendment 1 (RECORD -694)
+        // and T11 fixes (RECORD -766): the status takes the longest of its forms that fits beside the kind's lead, in the
+        // order NavigationHudFit.kt states, and the line is one line ending in "…" only where nothing shorter is left ("Stay
+        // beside the search bar, '…' (Recommended)").
+        val separatorPx = widthOf("·", statusStyle) + 2 * gapPx
+        val statusFit = statusLineFit(readout, rowFit.kindInStatus, widthPx, separatorPx) { widthOf(it, statusStyle) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            statusFit.kindLead?.let { lead ->
+                DistanceKindText(lead, distanceColor)
+                if (statusFit.status.isNotEmpty()) Text("·", style = statusStyle)
+            }
+            WordSwap(text = statusFit.status) { shown ->
+                Text(
+                    text = shown,
+                    style = statusStyle,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * T11 fixes (RECORD -766, P3; the owner: "Combine lines, allow the rest (Recommended)"), landscape only: the sundown line and
+ * Back by on one line, "Sunset 10:58 PM · start back by 10:48 · Back by 11:30 PM". Back by is the walker's own deadline, so
+ * it is measured first and stays whole; the sundown part takes whatever is left and ends in "…" when it must. Each part keeps
+ * its own tag, so its words read as they did on their own lines. The line grows and fades as each line did ([enter],
+ * [exit]). While it stays up, a part that comes or goes does so at once (no crossfade between the two layouts): the line's
+ * height does not change, so nothing on the map moves.
+ */
+@Composable
+private fun HudEveningLine(
+    sundownLine: String?,
+    backByLine: String?,
+    enter: androidx.compose.animation.EnterTransition,
+    exit: androidx.compose.animation.ExitTransition,
+) {
+    // What was drawn the moment both went, so the line leaves with its words on it.
+    val lastPair = rememberLastShown(if (sundownLine != null || backByLine != null) EveningParts(sundownLine, backByLine) else null)
+    val parts = if (sundownLine != null || backByLine != null) EveningParts(sundownLine, backByLine) else lastPair
+    val lineStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+    AnimatedVisibility(visible = sundownLine != null || backByLine != null, enter = enter, exit = exit, label = "hudEveningLine") {
+        Row(modifier = Modifier.testTag(NAVIGATION_HUD_EVENING_LINE_TAG), verticalAlignment = Alignment.CenterVertically) {
+            parts?.sundown?.let { line ->
+                WordSwap(text = line, modifier = Modifier.weight(1f, fill = false)) { shown ->
+                    Text(
+                        text = shown,
+                        style = lineStyle,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
+                    )
+                }
+            }
+            if (parts?.sundown != null && parts.backBy != null) Text(" · ", style = lineStyle, maxLines = 1, softWrap = false)
+            parts?.backBy?.let { line ->
+                WordSwap(text = line) { shown ->
+                    Text(
+                        text = shown,
+                        style = lineStyle,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.testTag(NAVIGATION_HUD_BACK_BY_LINE_TAG),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class EveningParts(val sundown: String?, val backBy: String?)
+
 /** RECORD -714: the reference line the button's place is measured against, data part B's longest route line (dispatch -677). */
 private const val REFERENCE_TURN = "Sharp right · 169°"
 private const val REFERENCE_FIGURE = "1280 ft"
@@ -680,12 +850,16 @@ private fun RouteRetryRow(onRetryRoute: () -> Unit) {
         Icon(imageVector = Icons.Filled.Refresh, contentDescription = null, tint = primary, modifier = Modifier.size(RETRY_ICON_SIZE))
         Text(
             text = ROUTE_RETRY_TEXT,
-            style = MaterialTheme.typography.labelLarge.copy(textDecoration = TextDecoration.Underline),
+            style = retryTextStyle(),
             color = primary,
             maxLines = 1,
         )
     }
 }
+
+/** "Try again"'s type: the primary colour comes from the row; measured with this by the landscape layout (T11 fixes). */
+@Composable
+private fun retryTextStyle(): TextStyle = MaterialTheme.typography.labelLarge.copy(textDecoration = TextDecoration.Underline)
 
 /** The refresh control's label, the planner's wording (dispatch 2026-09-28-423), shown to the owner with its placement. */
 internal const val ROUTE_RETRY_TEXT = "Try again"
@@ -720,12 +894,34 @@ internal data class NavigationHudReadout(
      */
     val headingIsReading: Boolean = false,
     /**
-     * Dispatch 2026-09-28-685, Amendment 1 (RECORD -694; the owner: "Drop 'Approaching ·' if needed (Recommended)"): a
-     * shorter [statusText] for when the whole one does not fit, or `null` when there is none. Today only "Approaching ·
-     * last fix 45 s ago", whose short form is the plain stale line, "Last fix 45 s ago". See [statusTextThatFits].
+     * T11 fixes (dispatch 2026-10-09-02, RECORD -766; the owner: "Distance first, short status (Recommended)"): [statusText]'s
+     * shorter forms, longest first, for when the whole one does not fit; "" last means the line may be left empty (see
+     * [NavigationHudFit]'s order). Read only while [statusFallbacksFor] is still [statusText], so a readout copied with a new
+     * status (the approximate and last-known displays) never shows another status's short form. Before T11 there was one
+     * short form, Amendment 1 of dispatch -685 (RECORD -694, "Drop 'Approaching ·' if needed"): "Last fix 45 s ago" for
+     * "Approaching · last fix 45 s ago", kept as the first here.
      */
-    val statusShortText: String? = null,
+    val statusFallbacks: List<String> = emptyList(),
+    val statusFallbacksFor: String? = null,
+    /** T11 fixes: [statusText] is the straight-line note on the way home, whose "≈ 1250 ft" form is not used while "By trail ·" leads the line. */
+    val statusIsStraightNote: Boolean = false,
 ) {
+    /**
+     * The status's forms, longest first (T11 fixes). With "By trail ·" leading the line ([kindInStatus]) the straight-line
+     * note is shown whole or not at all, so the line never reads "By trail · ≈ 1250 ft" (a figure the lead would seem to name).
+     */
+    fun statusForms(kindInStatus: Boolean = false): List<String> {
+        if (statusFallbacksFor != statusText) return listOf(statusText)
+        val all = (listOf(statusText) + statusFallbacks).distinct()
+        return if (statusIsStraightNote && kindInStatus) all.filter { it == statusText || it.isEmpty() } else all
+    }
+
+    /**
+     * Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): the first shorter status, or `null` when there is none. See
+     * [statusTextThatFits] and, since T11, [statusLineFit].
+     */
+    val statusShortText: String? get() = statusForms().drop(1).firstOrNull { it.isNotEmpty() }
+
     /**
      * Dispatch -677: whether the second row is drawn. Since the heading moved there (with its label, out of the space under
      * the north arrow, which at 360 dp could not hold a labelled heading beside the turn words and the distance), the row
@@ -901,10 +1097,16 @@ internal fun navigationReadout(
     val coordinatesText = liveFix?.let { coordinatesStripText(LatLng(it.lat, it.lng), showDecimalDegrees) }
 
     if (liveFix == null) {
-        return NavigationHudReadout(headingText, northArrowDegrees, "Target", null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading)
+        return NavigationHudReadout(
+            headingText, northArrowDegrees, "Target", null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading,
+            statusFallbacks = listOf(NO_FIX_SHORT_TEXT), statusFallbacksFor = NO_FIX_MESSAGE,
+        )
     }
     if (target == null) {
-        return NavigationHudReadout(headingText, northArrowDegrees, "No target", null, "—", false, "No origin waypoint for this track", elevationText, coordinatesText, headingIsReading = headingIsReading)
+        return NavigationHudReadout(
+            headingText, northArrowDegrees, "No target", null, "—", false, NO_ORIGIN_TEXT, elevationText, coordinatesText, headingIsReading = headingIsReading,
+            statusFallbacks = listOf(NO_ORIGIN_SHORT_TEXT), statusFallbacksFor = NO_ORIGIN_TEXT,
+        )
     }
 
     val here = LatLng(liveFix.lat, liveFix.lng)
@@ -1008,6 +1210,19 @@ internal fun navigationReadout(
             else -> ""
         }
     }
+    // T11 fixes (RECORD -766): the shorter forms, in the order NavigationHudFit.kt states. A warning has no empty form, so it
+    // is never dropped; "Approaching" and the straight-line note may be.
+    val statusFallbacks = when (freshness) {
+        FixFreshness.LOST -> listOf(lostFixShortText(age))
+        FixFreshness.STALE -> listOfNotNull(staleFixText(age).takeIf { approaching }, staleFixShortText(age))
+        FixFreshness.FRESH -> when {
+            arrived -> emptyList()
+            approaching -> listOf("")
+            route != null -> listOf(straightLineText, "")
+            else -> emptyList()
+        }
+    }
+    val statusIsStraightNote = freshness == FixFreshness.FRESH && !arrived && !approaching && route != null
     return NavigationHudReadout(
         headingText = headingText,
         northArrowDegrees = northArrowDegrees,
@@ -1021,7 +1236,9 @@ internal fun navigationReadout(
         routeRetryOffered = freshness != FixFreshness.LOST && route is ReturnRoute.Unavailable && route.canRetry,
         distanceKindText = distanceKind?.words,
         headingIsReading = headingIsReading,
-        statusShortText = if (freshness == FixFreshness.STALE && approaching) staleFixText(age) else null,
+        statusFallbacks = statusFallbacks,
+        statusFallbacksFor = statusText,
+        statusIsStraightNote = statusIsStraightNote,
     )
 }
 
@@ -1031,14 +1248,12 @@ private fun staleFixText(ageMillis: Long): String = "Last fix ${formatFixAge(age
 private const val APPROACHING_PREFIX = "Approaching · "
 
 /**
- * The status line to draw in [maxWidthPx]: [NavigationHudReadout.statusText] when [widthOf] says it fits, else its short
- * form when it has one (dispatch 2026-09-28-685, Amendment 1, RECORD -694). The short form is not checked in turn: if it
- * overflows too, the line's own ellipsis cuts it.
+ * The status line to draw in [maxWidthPx] with no lead before it: [NavigationHudReadout.statusText] when [widthOf] says it
+ * fits, else the longest shorter form that does (dispatch 2026-09-28-685, Amendment 1, RECORD -694; since T11, RECORD -766,
+ * every form is checked in turn, and a line that may be dropped can come back empty). See [statusLineFit].
  */
-internal fun statusTextThatFits(readout: NavigationHudReadout, maxWidthPx: Int, widthOf: (String) -> Int): String {
-    val short = readout.statusShortText ?: return readout.statusText
-    return if (widthOf(readout.statusText) <= maxWidthPx) readout.statusText else short
-}
+internal fun statusTextThatFits(readout: NavigationHudReadout, maxWidthPx: Int, widthOf: (String) -> Int): String =
+    statusLineFit(readout, kindInStatus = false, maxPx = maxWidthPx, leadSeparatorPx = 0, widthOf = widthOf).status
 
 /** "48 s" under a minute, "6 min" from a minute on — coarse on purpose; the number's job is "old", not a stopwatch. */
 internal fun formatFixAge(ageMillis: Long): String {
