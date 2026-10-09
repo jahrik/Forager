@@ -120,8 +120,11 @@ class AvailabilityScreenQuickSettingsTest {
 
     private lateinit var viewModel: AvailabilityViewModel
 
+    /** What the Battery saver row stored, in order (dispatch 2026-09-28-767). */
+    private val storedBatterySaver = mutableListOf<Boolean>()
+
     private fun setScreen() {
-        viewModel = mapLayersViewModel()
+        viewModel = mapLayersViewModel(setBatterySaverEnabled = { storedBatterySaver += it; Result.success(Unit) })
         viewModel.onEnteredForeground()
         composeRule.setContent {
             val state by viewModel.uiState.collectAsState()
@@ -158,6 +161,7 @@ class AvailabilityScreenQuickSettingsTest {
                     onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
                     onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
                     onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
+                    onBatterySaverChanged = viewModel::onBatterySaverChanged,
                     mapSlot = map,
                     isRecording = recording,
                     isReturning = returning,
@@ -412,6 +416,33 @@ class AvailabilityScreenQuickSettingsTest {
         assertEquals("Dark under trees: 1 h 30", 90, viewModel.uiState.value.darknessMarginMinutes)
         touchCentreOf(QUICK_OFF_TRACK_TAG)
         assertFalse("Off-track reminder off", viewModel.uiState.value.offTrackReminderEnabled)
+    }
+
+    /**
+     * Dispatch 2026-09-28-767: the Battery saver row, off by default, in the owner's words (RECORD -768),
+     * and real touches across the row's own width, not one at its centre (CLAUDE.md), each flipping it
+     * and each stored, which is what moves the fix requests.
+     */
+    @Test
+    fun `the Battery saver row starts off, says what it does, and real touches across it turn it on and off and store each`() {
+        setScreen()
+        assertFalse("off by default", viewModel.uiState.value.batterySaverEnabled)
+        touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        assertTrue(shown(QUICK_BATTERY_SAVER_TAG))
+        assertTrue(
+            "the label and its one line",
+            composeRule.onAllNodes(androidx.compose.ui.test.hasText(QUICK_BATTERY_SAVER_LABEL)).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodes(androidx.compose.ui.test.hasText(QUICK_BATTERY_SAVER_EXPLANATION)).fetchSemanticsNodes().isNotEmpty(),
+        )
+        val expected = mutableListOf<Boolean>()
+        for (fraction in listOf(0.05f, 0.3f, 0.6f, 0.95f)) {
+            composeRule.onNodeWithTag(QUICK_BATTERY_SAVER_TAG).performTouchInput { click(Offset(width * fraction, height / 2f)) }
+            composeRule.waitForIdle()
+            val on = expected.size % 2 == 0
+            expected += on
+            assertEquals("a touch at $fraction of the row's width", on, viewModel.uiState.value.batterySaverEnabled)
+        }
+        assertEquals("each change stored, in order", expected, storedBatterySaver)
     }
 
     // ── The line (Amendment 1) ──

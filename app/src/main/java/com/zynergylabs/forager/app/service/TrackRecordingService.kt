@@ -195,6 +195,13 @@ class TrackRecordingService : Service() {
                     Log.w(TAG, "Couldn't read whether the off-track reminder is on; the alert stays on, the default.", error)
                 }
             }
+            // Dispatch 2026-09-28-767: read the Battery saver switch, so a recording the system
+            // restarted with no screen still asks at the stored interval; the tracker follows it.
+            launch {
+                container.batterySaverPreferences.getEnabled().onFailure { error ->
+                    Log.w(TAG, "Couldn't read whether Battery saver is on; asking for a position every second, the default.", error)
+                }
+            }
             launch {
                 container.locationTracker.fixes.collect { fix ->
                     when (fix) {

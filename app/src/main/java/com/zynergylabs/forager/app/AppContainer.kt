@@ -58,6 +58,8 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.alert.AndroidAlertAudibility
 import com.zynergylabs.forager.app.alert.AndroidBackgroundRunCheck
 import com.zynergylabs.forager.app.data.repository.DataStoreOffTrackReminderPreferenceRepository
+import com.zynergylabs.forager.app.data.repository.DataStoreBatterySaverPreferenceRepository
+import com.zynergylabs.forager.app.domain.BatterySaverPreferenceRepository
 import com.zynergylabs.forager.app.domain.OffTrackReminderCheck
 import com.zynergylabs.forager.app.domain.OffTrackReminderPreferenceRepository
 import com.zynergylabs.forager.app.alert.AndroidAlertDelivery
@@ -194,7 +196,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val tripPlanningWeatherProvider: TripPlanningWeatherProvider = openMeteo
     val historicalWeatherProvider: HistoricalWeatherProvider = OpenMeteoHistoricalWeatherProvider(historicalWeatherApi)
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
-    val locationTracker: LocationTracker = AndroidLocationTracker(context.applicationContext)
+    /** Dispatch 2026-09-28-767: the quick menu's Battery saver switch, which every fix request follows. One per process, as DataStore requires. */
+    val batterySaverPreferences: BatterySaverPreferenceRepository = DataStoreBatterySaverPreferenceRepository(context, settingsReset = settingsResetNotice)
+    val locationTracker: LocationTracker = AndroidLocationTracker(context.applicationContext, batterySaverPreferences.enabled)
     /** Dispatch 2026-09-28-510: the platform's last known position, shown greyed until anything live arrives. */
     val lastKnownLocation: LastKnownLocationSource = AndroidLastKnownLocationSource(context.applicationContext)
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
