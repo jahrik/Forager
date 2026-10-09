@@ -68,6 +68,8 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME
+import com.zynergylabs.forager.app.data.diagnostics.FileBackByRecord
 import com.zynergylabs.forager.app.data.diagnostics.FileReturnRecord
 import com.zynergylabs.forager.app.data.diagnostics.RETURN_RECORD_FILE_NAME
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
@@ -416,6 +418,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         readWaypoint = waypointRepository::getById,
         isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
         errorLog = errorLog,
+        // Dispatch 2026-09-28-796: each set, evaluation, alert and end, to files/back-by-record.log; no positions.
+        record = FileBackByRecord(java.io.File(context.filesDir, BACK_BY_RECORD_FILE_NAME), currentTimeProvider),
     )
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
     val getWaypointsUseCase = GetWaypointsUseCase(waypointRepository)

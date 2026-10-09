@@ -409,6 +409,15 @@ class AvailabilityScreenQuickSettingsTest {
             touchCentreOf(QUICK_BACK_BY_PICK_TAG)
             composeRule.onNodeWithContentDescription("1 o'clock").performClick()
             composeRule.waitForIdle()
+            // The dial moves to minutes on a finger's tap; a semantic click does not, so the header's
+            // minutes selector is chosen first when the minutes are not up yet.
+            if (composeRule.onAllNodes(hasContentDescription("55 minutes")).fetchSemanticsNodes().isEmpty()) {
+                val selectors = composeRule.onAllNodes(hasContentDescription("Select minutes", substring = true)).fetchSemanticsNodes()
+                val labels = composeRule.onAllNodes(isRoot()).fetchSemanticsNodes().flatMap { root -> descriptionsUnder(root) }
+                assertTrue("no minutes selector; the picker's labels: $labels", selectors.isNotEmpty())
+                composeRule.onAllNodes(hasContentDescription("Select minutes", substring = true)).onFirst().performClick()
+                composeRule.waitForIdle()
+            }
             composeRule.onNodeWithContentDescription("55 minutes").performClick()
             composeRule.waitForIdle()
             touchCentreOf(BACK_BY_TIME_PICKER_SET_TAG)
@@ -417,6 +426,9 @@ class AvailabilityScreenQuickSettingsTest {
             TimeZone.setDefault(zoneBefore)
         }
     }
+
+    private fun descriptionsUnder(node: androidx.compose.ui.semantics.SemanticsNode): List<String> =
+        node.config.getOrElseNullable(SemanticsProperties.ContentDescription) { null }.orEmpty() + node.children.flatMap { descriptionsUnder(it) }
 
     /** Q3, "Menu shows it + dot (Recommended)", kept by Amendment 3: with a time set, the menu's top line says it, Clear clears, and the button has its dot. */
     @Test
