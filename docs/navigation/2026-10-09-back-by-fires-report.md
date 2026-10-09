@@ -127,6 +127,7 @@ the pushed head afterwards.
 
 ## PENDING
 
-- S22: the launch check, and the desk check including screen off past the time, with the two record files read
+- S22 launch check: **passed** (`scripts/s22-launch-check.sh`). Install -r, 1.0.3139+g54274939, status=verify, cold launch, process alive after 8 s, crash buffer empty. Output at `~/Zynergy/device-evidence/2026-10-09-back-by/launch-check.txt` (outside the repository).
+- S22: the desk check including screen off past the time, with the two record files read
   afterwards.
 - The four disclosure sections and the index row.
