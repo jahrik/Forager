@@ -32,6 +32,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -386,6 +388,34 @@ class AvailabilityScreenQuickSettingsTest {
         assertFalse(shown(BACK_BY_TIME_PICKER_TAG))
         assertEquals("one picked time, a clock time", 1, choices.size)
         assertTrue(choices.single() is BackByChoice.AtTime)
+    }
+
+    /**
+     * Dispatch 2026-09-28-796, the walk's "Pick a time, showed 1:55" (RECORD -795): the owner picked an
+     * afternoon time with the clock starting at an afternoon hour (an hour from now). Whatever reaches
+     * `BackByChoice.AtTime` must be that afternoon's hour, 13, not 1: an hour of 1 is 1:55 AM, which
+     * `backByAtFor` makes tomorrow's, so it would never fire on the walk. The phone's zone is pinned to
+     * UTC so the picker opens at 7 PM ([now] is 18:00 UTC). The dial's numbers are reached by their
+     * own accessibility labels; the claim is what the picker hands on, not what a finger reaches.
+     */
+    @Test
+    fun `Pick a time, an afternoon hour picked on a clock that opened in the afternoon, hands on that afternoon's hour`() {
+        val zoneBefore = TimeZone.getDefault()
+        TimeZone.setDefault(utc)
+        try {
+            setScreen()
+            recordingWithBackBy(null)
+            touchCentreOf(MAP_QUICK_SETTINGS_BUTTON_TAG)
+            touchCentreOf(QUICK_BACK_BY_PICK_TAG)
+            composeRule.onNodeWithContentDescription("1 o'clock").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithContentDescription("55 minutes").performClick()
+            composeRule.waitForIdle()
+            touchCentreOf(BACK_BY_TIME_PICKER_SET_TAG)
+            assertEquals("the picked time, as the ViewModel receives it", listOf(BackByChoice.AtTime(13, 55)), choices.toList())
+        } finally {
+            TimeZone.setDefault(zoneBefore)
+        }
     }
 
     /** Q3, "Menu shows it + dot (Recommended)", kept by Amendment 3: with a time set, the menu's top line says it, Clear clears, and the button has its dot. */
