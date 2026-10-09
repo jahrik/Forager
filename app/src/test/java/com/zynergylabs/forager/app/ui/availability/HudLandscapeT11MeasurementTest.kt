@@ -81,6 +81,8 @@ import org.robolectric.shadows.ShadowDisplay
  * Back by) is what `TrackRecordingViewModel` hands the screen, passed as the screen's own parameters, as every landscape
  * test in this package does; that ViewModel is not in the loop (its poll loop, CLAUDE.md).
  *
+ * Metric first (the fixture's stored unit), switched to feet after state 02 (data part B's longest is in feet).
+ *
  * One composition per rotation, cluster side and font scale; the walk's states are stepped through it in order, as a walk
  * steps through them, and each is settled (3 s of the test clock) before it is measured. The no-fix state comes first,
  * because a fix once given to the ViewModel cannot be taken back.
@@ -370,6 +372,13 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
         settle()
         assertHudReads("02", NAVIGATION_HUD_TARGET_TAG) { it == "Sharp right · 169°" }
         measure("02-return-longest")
+
+        // 2f. The same in feet, data part B's own longest ("1280 ft", "≈ 1250 ft straight"); feet from here on. The fixture's
+        // stored unit is metric, so the walker's switch in Settings is made through the ViewModel's own entry point.
+        composeRule.runOnIdle { viewModel.onDistanceUnitSelected(com.zynergylabs.forager.app.domain.model.DistanceUnit.MILES) }
+        settle()
+        assertHudReads("02f", NAVIGATION_HUD_DISTANCE_TAG) { it == "1280 ft" }
+        measure("02f-return-longest-feet")
 
         // 3. Route unavailable, with "Try again" (the one state that adds a row).
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
