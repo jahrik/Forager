@@ -460,6 +460,8 @@ fun AvailabilityScreen(
     onDarknessMarginChanged: (Int) -> Unit = {},
     /** Settings' "Off-track reminder" (dispatch 2026-09-28-626) — see [AvailabilityUiState.offTrackReminderEnabled]. */
     onOffTrackReminderChanged: (Boolean) -> Unit = {},
+    /** The quick menu's "Battery saver" (dispatch 2026-09-28-767) — see [AvailabilityUiState.batterySaverEnabled]. */
+    onBatterySaverChanged: (Boolean) -> Unit = {},
     /**
      * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127): its state and callbacks.
      * Defaulted, so a caller with no backup still composes the section, inert.
@@ -1687,6 +1689,10 @@ fun AvailabilityScreen(
                 offTrackReminder = OffTrackReminderSettings(
                     enabled = uiState.offTrackReminderEnabled,
                     onEnabledChanged = onOffTrackReminderChanged,
+                ),
+                batterySaver = BatterySaverSettings(
+                    enabled = uiState.batterySaverEnabled,
+                    onEnabledChanged = onBatterySaverChanged,
                 ),
             ),
             compassProvider = compassProvider,

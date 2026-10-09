@@ -270,6 +270,8 @@ data class AvailabilityUiState(
     val sundownAlertsEnabled: Boolean = true,
     /** Settings' "Off-track reminder" (dispatch 2026-09-28-626): on until the stored value loads, the repository's default. */
     val offTrackReminderEnabled: Boolean = true,
+    /** The quick menu's "Battery saver" (dispatch 2026-09-28-767): off until the stored value loads, the repository's default. */
+    val batterySaverEnabled: Boolean = false,
     /** Settings' "Dark under trees", in minutes (dispatch 2026-09-28-592): one hour until the stored value loads, the repository's default. */
     val darknessMarginMinutes: Int = com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES,
     /**
