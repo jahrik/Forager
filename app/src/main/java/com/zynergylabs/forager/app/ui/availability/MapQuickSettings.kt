@@ -85,6 +85,14 @@ internal data class MapQuickSettings(
     val onClearBackBy: () -> Unit,
     val sundown: SundownSettings,
     val offTrackReminder: OffTrackReminderSettings,
+    /** The Battery saver switch (dispatch 2026-09-28-767); in this menu only (the owner: "Quick menu, logger off (Recommended)", RECORD -768). */
+    val batterySaver: BatterySaverSettings = BatterySaverSettings(),
+)
+
+/** The quick menu's "Battery saver" switch, from [com.zynergylabs.forager.app.domain.BatterySaverPreferenceRepository]. Off by default. */
+internal data class BatterySaverSettings(
+    val enabled: Boolean = false,
+    val onEnabledChanged: (Boolean) -> Unit = {},
 )
 
 internal const val MAP_QUICK_SETTINGS_BUTTON_TAG = "map-quick-settings-button"
@@ -107,6 +115,7 @@ internal const val QUICK_BACK_BY_PICK_TAG = "quick-back-by-pick"
 internal const val QUICK_BACK_BY_NOT_RECORDING_TAG = "quick-back-by-not-recording"
 internal const val QUICK_SUNDOWN_ALERTS_TAG = "quick-sundown-alerts"
 internal const val QUICK_OFF_TRACK_TAG = "quick-off-track-reminder"
+internal const val QUICK_BATTERY_SAVER_TAG = "quick-battery-saver"
 internal const val BACK_BY_TIME_PICKER_TAG = "back-by-time-picker"
 internal const val BACK_BY_TIME_PICKER_SET_TAG = "back-by-time-picker-set"
 internal fun quickBackByHoursTag(hours: Int) = "quick-back-by-${hours}h"
@@ -118,6 +127,9 @@ internal const val BACK_BY_PICK_LABEL = "Pick a time…"
 internal const val BACK_BY_CLEAR_LABEL = "Clear"
 internal const val BACK_BY_NOT_RECORDING_TEXT = "Start a recording to set a Back by time."
 internal const val QUICK_OFF_TRACK_LABEL = "Off-track reminder"
+/** The owner's chosen wording, verbatim (RECORD -768). No claim of a saving: none is measured into it. */
+internal const val QUICK_BATTERY_SAVER_LABEL = "Battery saver"
+internal const val QUICK_BATTERY_SAVER_EXPLANATION = "Checks your position every 5 seconds instead of every second. Alerts can come a few seconds later."
 internal fun backByQuickLabel(hours: Int) = "+$hours h"
 
 /** "Back by 3:30 PM", in the phone's clock (the sundown line's [SundownClock.full]). */
@@ -199,7 +211,7 @@ internal fun MapQuickSettingsButton(
 }
 
 /**
- * The menu: Back by, Sundown, Off-track, as laid out in the -645 Amendment 1 report and confirmed by
+ * The menu: Back by, Sundown, Off-track, and Battery saver last (dispatch 2026-09-28-767), as laid out in the -645 Amendment 1 report and confirmed by
  * the owner. At the map chrome's 80% (dialogs and menus over a map, the owner's ruling recorded in
  * `docs/plans/journal-redesign.md`), its content colour opaque, the J8 menus' colours. It stays open
  * after a choice, so the time just set shows at its top (Q3); a tap on the map or Back closes it.
@@ -241,6 +253,16 @@ private fun MapQuickSettingsMenu(
                     onCheckedChange = settings.offTrackReminder.onEnabledChanged,
                     tag = QUICK_OFF_TRACK_TAG,
                 )
+                HorizontalDivider()
+                // Dispatch 2026-09-28-767: a checkbox row like the two walk settings above it, with its
+                // one line beneath, as "Dark under trees" has its label.
+                QuickCheckboxRow(
+                    label = QUICK_BATTERY_SAVER_LABEL,
+                    checked = settings.batterySaver.enabled,
+                    onCheckedChange = settings.batterySaver.onEnabledChanged,
+                    tag = QUICK_BATTERY_SAVER_TAG,
+                )
+                Text(QUICK_BATTERY_SAVER_EXPLANATION, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
