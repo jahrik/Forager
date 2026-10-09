@@ -40,6 +40,11 @@ class FileBackByRecordTest {
             write(BackByRecordEvent.Fired("track-1", at, null))
             write(BackByRecordEvent.Later("track-1", at))
             write(BackByRecordEvent.Ended("track-1", BackByEndReason.SERVICE_DESTROYED))
+            write(BackByRecordEvent.AlarmScheduled("track-1", at, accepted = true))
+            write(BackByRecordEvent.AlarmScheduled("track-1", at, accepted = false))
+            write(BackByRecordEvent.AlarmCancelled("track-1"))
+            write(BackByRecordEvent.AlarmDelivered("track-1"))
+            write(BackByRecordEvent.AlarmDelivered(null))
         }
         assertEquals(
             listOf(
@@ -54,6 +59,11 @@ class FileBackByRecordTest {
                 "2026-10-03T20:01:01.500Z fired track=track-1 at=2026-10-03T20:45:00.000Z outcome=not-reported",
                 "2026-10-03T20:01:01.500Z later track=track-1 at=2026-10-03T20:45:00.000Z",
                 "2026-10-03T20:01:01.500Z ended track=track-1 reason=service-destroyed",
+                "2026-10-03T20:01:01.500Z alarm-scheduled track=track-1 at=2026-10-03T20:45:00.000Z accepted",
+                "2026-10-03T20:01:01.500Z alarm-scheduled track=track-1 at=2026-10-03T20:45:00.000Z refused",
+                "2026-10-03T20:01:01.500Z alarm-cancelled track=track-1",
+                "2026-10-03T20:01:01.500Z alarm-delivered track=track-1",
+                "2026-10-03T20:01:01.500Z alarm-delivered nothing-set",
             ),
             file.readLines(),
         )
