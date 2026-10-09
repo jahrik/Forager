@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.diagnostics.DiagnosticsLog
+import com.zynergylabs.forager.app.diagnostics.WalkLogger
 import com.zynergylabs.forager.app.diagnostics.walklog.WalkLoggerSwitch
 import com.zynergylabs.forager.app.forecast.SyntheticForecastSwitch
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -253,11 +254,12 @@ private fun SyntheticForecastRow(switch: SyntheticForecastSwitch) {
 
 /**
  * The "Walk logger" toggle (dispatch 2026-09-28-532, Amendment 3, RECORD -560): off by default; while
- * on, each track recording writes everything the phone senses to a file in `walklogs/`. Read when a
- * recording starts, which the second line says. Same read and write rules as [SyntheticForecastRow].
+ * on, each track recording writes everything the phone senses to a file in `walklogs/`. Since dispatch
+ * 2026-09-28-796 a change takes effect at once, during a recording too, which the second line says. Same read and write rules as [SyntheticForecastRow].
  */
 @Composable
 private fun WalkLoggerRow(switch: WalkLoggerSwitch) {
+    val context = LocalContext.current
     var enabled by remember(switch) { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(switch) {
         enabled = switch.isWalkLoggerEnabled().getOrElse { error ->
@@ -274,7 +276,12 @@ private fun WalkLoggerRow(switch: WalkLoggerSwitch) {
             .toggleable(value = current, role = Role.Switch) { wanted ->
                 scope.launch {
                     switch.setWalkLoggerEnabled(wanted).fold(
-                        onSuccess = { enabled = wanted },
+                        onSuccess = {
+                            enabled = wanted
+                            // Dispatch 2026-09-28-796 (the owner, RECORD -795: "Start straight away"): a
+                            // recording running now follows the switch at once, on and off.
+                            WalkLogger.of(context).onSwitchChanged(wanted)
+                        },
                         onFailure = { error -> Log.w(TAG, "Couldn't store the walk logger switch.", error) },
                     )
                 }
@@ -472,7 +479,7 @@ internal const val DIAGNOSTICS_SHARE_ERROR_TAG = "diagnostics-share-error"
 internal const val SYNTHETIC_FORECAST_TOGGLE_LABEL = "Synthetic forecast layers"
 internal const val DIAGNOSTICS_SYNTHETIC_FORECAST_TAG = "diagnostics-synthetic-forecast"
 internal const val WALK_LOGGER_TOGGLE_LABEL = "Walk logger"
-internal const val WALK_LOGGER_TOGGLE_DETAIL = "Records everything the phone senses during each track recording, to walklogs/. Starts with the next recording."
+internal const val WALK_LOGGER_TOGGLE_DETAIL = "Records everything the phone senses during each track recording, to walklogs/. Takes effect at once, also during a recording."
 internal const val DIAGNOSTICS_WALK_LOGGER_TAG = "diagnostics-walk-logger"
 internal fun diagnosticsShareTag(file: File): String = "diagnostics-share:${file.name}"
 
