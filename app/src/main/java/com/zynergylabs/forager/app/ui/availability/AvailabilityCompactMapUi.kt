@@ -96,6 +96,7 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -818,6 +819,7 @@ internal fun CompactMapTab(
                     uiState = uiState,
                     navigation = navigation,
                     landscape = landscape,
+                    cluster = cluster,
                     controlsPadding = controlsPadding,
                     topInset = topInset,
                     trueHeading = trueHeading,
@@ -1216,6 +1218,8 @@ private fun BoxScope.CompactMapIconCluster(
                 isNavigating = isNavigating,
             )
         },
+        // T11 fixes (RECORD -766, P4): the L slides below the navigation display while navigating on its side.
+        isNavigating = isNavigating,
     )
 }
 
@@ -1482,6 +1486,8 @@ private fun BoxScope.CompactMapNavigationDisplay(
     uiState: AvailabilityUiState,
     navigation: CompactMapNavigation,
     landscape: CompactMapLandscape,
+    /** T11 fixes (RECORD -766, P4): told the display's bottom edge while navigating, so the landscape L can slide below it. */
+    cluster: MapIconClusterState,
     controlsPadding: PaddingValues,
     topInset: Dp,
     trueHeading: State<TrueHeadingReading>,
@@ -1503,6 +1509,8 @@ private fun BoxScope.CompactMapNavigationDisplay(
     val punchHoleEdge = landscape.punchHoleEdge
     val chromeLayoutDirection = LocalLayoutDirection.current
     val (navigationChromeEnter, navigationChromeExit) = navigationChromeTransitions()
+    // T11 fixes: no display, no floor for the L.
+    LaunchedEffect(isNavigating) { if (!isNavigating) cluster.navigationDisplayBottomInRootPx = null }
     // Navigation HUD stage one. Composed after the cluster (so its own exit wins any
     // overlap with a cluster dragged up to its upward bound) and before the nav
     // below (so the nav keeps winning its own band) — see NavigationHud's own doc
@@ -1563,9 +1571,15 @@ private fun BoxScope.CompactMapNavigationDisplay(
                 .let { sundownLineText(it, sundownClock) },
             backByLine = backByLineText(quickSettings?.backBy, sundownClock),
             quickSettings = quickSettings,
+            // T11 fixes (RECORD -766, P3): beside the landscape search bar, the evening lines share one and "Try again" sits
+            // beside its message.
+            landscape = railPortEdge != null,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier),
+                .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier)
+                // T11 fixes (P4): the display's bottom edge, for the landscape L's slide below it; only while navigating, so a
+                // leaving display hands the L back at once.
+                .onGloballyPositioned { coordinates -> if (isNavigating) cluster.navigationDisplayBottomInRootPx = coordinates.boundsInRoot().bottom },
         )
     }
     }
