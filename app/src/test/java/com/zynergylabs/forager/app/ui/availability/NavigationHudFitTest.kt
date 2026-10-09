@@ -155,7 +155,7 @@ class NavigationHudFitTest {
         val large: (String) -> Int = { it.length * 2 }
         assertEquals(RouteMessageFit(ROUTE_UNAVAILABLE_TEXT, inStatusType = false), routeMessageFit(50, large, chars))
         assertEquals(RouteMessageFit(ROUTE_UNAVAILABLE_TEXT, inStatusType = true), routeMessageFit(25, large, chars))
-        assertEquals(RouteMessageFit("No route", inStatusType = false), routeMessageFit(16, large, chars))
+        assertEquals("never in the large type, which makes the display taller", RouteMessageFit("No route", inStatusType = true), routeMessageFit(16, large, chars))
         assertEquals(RouteMessageFit("No route", inStatusType = true), routeMessageFit(8, large, chars))
         assertEquals(RouteMessageFit("No route", inStatusType = true), routeMessageFit(3, large, chars))
         assertTrue(retryFitsBeside(columnPx = 30, retryPx = 20, gapPx = 2, shortMessagePx = 8))

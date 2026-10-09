@@ -321,7 +321,8 @@ internal fun NavigationHud(
             // Only while there are coordinates to keep whole: with no fix the second row is not drawn, and moving the button up
             // would only take the first row's width from the status (seen in the harness: "No location" cut to 1 of 11 at 780,
             // font 2.0).
-            val buttonMovesUp = buttonMovesUpForCoordinates(constraints.maxWidth, showDecimalDegrees) && readout.coordinatesText != null && readout.secondRowShown
+            val buttonMovesUp = buttonMovesUpForCoordinates(constraints.maxWidth, showDecimalDegrees, readout.distanceText) &&
+                readout.coordinatesText != null && readout.secondRowShown
             val buttonInFirstRow = quickSettings != null && (rowHoldsButton || buttonMovesUp)
             // T11 fixes (the owner: "Distance first, short status (Recommended)"): what the first row draws, from this window's
             // width: the kind moves to the status line, then the turn words shrink to the bearing and go, before the figure is
@@ -385,13 +386,13 @@ internal fun NavigationHud(
                         if (retryBeside) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 Box(modifier = Modifier.weight(1f)) {
-                                    HudFigureAndStatus(readout, rowFit, columnPx - retryPx - besideGapPx, routeMessageBeside = true)
+                                    HudFigureAndStatus(readout, rowFit, columnPx - retryPx - besideGapPx, routeMessageMayShorten = true)
                                 }
                                 RouteRetryRow(onRetryRoute)
                             }
                         } else {
                             Column {
-                                HudFigureAndStatus(readout, rowFit, columnPx, routeMessageBeside = false)
+                                HudFigureAndStatus(readout, rowFit, columnPx, routeMessageMayShorten = landscape)
                                 if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
                             }
                         }
@@ -628,12 +629,11 @@ internal fun firstRowHoldsTheButton(hudWidthPx: Int): Boolean {
 /**
  * T11 fixes (RECORD -766, P5; the planner's -699 extension, that the grid reference stays whole): whether the three-dot
  * button moves to the first row because the coordinates would not be whole beside it on the second. Measured against a
- * reference in the format shown, so the button does not move as the digits change, only when the window, the font or the
- * format does. It moves only if the first row then still holds the reference figure with the turn words gone, since the
- * distance comes first; where it does not, the button stays and the coordinates end in "…" (reported, not decided here).
+ * reference in the format shown. It moves only if the first row then still holds the figure on display, [figure], with the
+ * turn words gone, since the distance comes first; where it does not, the button stays and the coordinates end in "…".
  */
 @Composable
-internal fun buttonMovesUpForCoordinates(hudWidthPx: Int, showDecimalDegrees: Boolean): Boolean {
+internal fun buttonMovesUpForCoordinates(hudWidthPx: Int, showDecimalDegrees: Boolean, figure: String): Boolean {
     val measurer = rememberTextMeasurer()
     val typography = MaterialTheme.typography
     val density = LocalDensity.current
@@ -646,7 +646,10 @@ internal fun buttonMovesUpForCoordinates(hudWidthPx: Int, showDecimalDegrees: Bo
         val figureStyle = typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
         val firstRowColumnPx = rowPx - 2 * COMPASS_ICON_SIZE.roundToPx() - HUD_EXIT_TOUCH_SIZE.roundToPx() -
             QUICK_SETTINGS_TAP_TARGET.roundToPx() - 4 * Spacing.md.roundToPx()
-        return widthOf(REFERENCE_FIGURE, figureStyle) <= firstRowColumnPx
+        // The figure on the display now, not a reference: the first build measured "≈ 150 ft" cut to 5 of 8 at 780 dp and font
+        // 2.0 with the button up, where the reference "1280 ft" fitted. Distance first (RECORD -768: "distance wins"): the button
+        // goes up only while the figure shown fits beside it, so it can change rows when the figure's width does.
+        return widthOf(figure, figureStyle) <= firstRowColumnPx
     }
 }
 
@@ -688,11 +691,13 @@ private fun measuredFirstRowFit(readout: NavigationHudReadout, hudWidthPx: Int, 
 
 /**
  * The large slot and the status line under it, [widthPx] wide (T11 fixes: drawn from [rowFit] and [statusLineFit] rather
- * than cut where they overflow). [routeMessageBeside]: "Try again" is beside this in landscape, so a withheld route's message
- * takes the first of its forms that fits ([routeMessageFit]).
+ * than cut where they overflow). [routeMessageMayShorten]: in landscape a withheld route's message takes the first of its forms
+ * that fits ([routeMessageFit]), "No route" last. The owner confirmed "No route" beside "Try again" (RECORD -768); it is also
+ * used where "Try again" keeps its own line (font 2.0 in a narrow window), where the whole message was cut to 6 to 14 of its 25
+ * characters in the first build: decided beyond the dispatch's words and reported.
  */
 @Composable
-private fun HudFigureAndStatus(readout: NavigationHudReadout, rowFit: FirstRowFit, widthPx: Int, routeMessageBeside: Boolean) {
+private fun HudFigureAndStatus(readout: NavigationHudReadout, rowFit: FirstRowFit, widthPx: Int, routeMessageMayShorten: Boolean) {
     Column {
         val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
         val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
@@ -703,7 +708,7 @@ private fun HudFigureAndStatus(readout: NavigationHudReadout, rowFit: FirstRowFi
         // RECORD -713 (the owner: "Move it into the status line (Recommended)"): a word in the large slot that does not fit there
         // ("Unable to calculate route") takes the status line's size. Beside "Try again" (T11 fixes) the message may also take
         // its short form, "No route".
-        val message = if (routeMessageBeside && rowFit.distanceText == ROUTE_UNAVAILABLE_TEXT) {
+        val message = if (routeMessageMayShorten && rowFit.distanceText == ROUTE_UNAVAILABLE_TEXT) {
             routeMessageFit(widthPx, { widthOf(it, distanceStyle) }, { widthOf(it, statusStyle) })
         } else {
             null
