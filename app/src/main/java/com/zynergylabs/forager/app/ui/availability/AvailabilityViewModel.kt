@@ -151,6 +151,13 @@ class AvailabilityViewModel(
     private val getOffTrackReminderEnabled: suspend () -> Result<Boolean> = { Result.success(true) },
     private val setOffTrackReminderEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
     /**
+     * The quick menu's "Battery saver" (dispatch 2026-09-28-767), from
+     * [com.zynergylabs.forager.app.domain.BatterySaverPreferenceRepository]; the same shape as the pair
+     * above, defaulted to that repository's default, off.
+     */
+    private val getBatterySaverEnabled: suspend () -> Result<Boolean> = { Result.success(false) },
+    private val setBatterySaverEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
+    /**
      * Where an offline-region delete still pending when this ViewModel is cleared is committed
      * (journal redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
@@ -237,6 +244,7 @@ class AvailabilityViewModel(
         loadLockCameraToPortrait()
         loadSundownPreferences()
         loadOffTrackReminder()
+        loadBatterySaver()
         loadMapFullscreenPreference()
         loadThemeModePreference()
         loadMapLayerPreferences()
@@ -1412,6 +1420,32 @@ class AvailabilityViewModel(
                 onSuccess = { enabled -> _uiState.update { it.copy(offTrackReminderEnabled = enabled) } },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't read whether the off-track reminder is on; the default, on, is shown.", error) },
             )
+        }
+    }
+
+    /** Restores "Battery saver"; a failed read is logged and leaves the default, off, showing. */
+    private fun loadBatterySaver() {
+        viewModelScope.launch {
+            getBatterySaverEnabled().fold(
+                onSuccess = { enabled -> _uiState.update { it.copy(batterySaverEnabled = enabled) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether Battery saver is on; the default, off, is shown.", error) },
+            )
+        }
+    }
+
+    /**
+     * The quick menu's "Battery saver" switch (dispatch 2026-09-28-767). Shown at once and stored in the
+     * background; storing it is what moves every fix request to the new interval, mid-recording included.
+     * A failed store is logged and the switch goes back to what is stored, so it never shows a rate the
+     * phone is not being asked at.
+     */
+    fun onBatterySaverChanged(enabled: Boolean) {
+        _uiState.update { it.copy(batterySaverEnabled = enabled) }
+        viewModelScope.launch {
+            setBatterySaverEnabled(enabled).onFailure { error ->
+                errorLog.w(TAG, "Couldn't store whether Battery saver is on; the switch shows what is stored.", error)
+                _uiState.update { it.copy(batterySaverEnabled = !enabled) }
+            }
         }
     }
 
