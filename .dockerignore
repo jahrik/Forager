@@ -1,0 +1,4 @@
+# The image build needs one file from the repo. Everything else stays out of the build context,
+# so a build does not send .git, app/build or the docs to the daemon.
+*
+!scripts/setup-android-sdk.sh

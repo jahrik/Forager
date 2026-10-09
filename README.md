@@ -73,6 +73,55 @@ installs the SDK pieces CI uses. The Gradle wrapper pins Gradle 9.7.0.
 The app runs on Android 8.0 (API 26) and up and targets API 37. It has debug and release variants; the debug
 build adds the Diagnostics switch and the synthetic forecast data described above.
 
+### Building in a container
+
+The `Dockerfile` holds the whole toolchain, JDK 21 and the Android SDK from `scripts/setup-android-sdk.sh`, so
+podman or Docker is all you need. It mirrors CI's Temurin 21 on Ubuntu 24.04. The image contains no source: you
+mount your checkout, which must have its full git history, as above.
+
+```
+podman build -t local/forager-build:test .
+mkdir -p ~/.cache/forager-container-home    # Gradle and Robolectric caches, kept between runs
+podman run --rm --userns=keep-id -e HOME=/home/builder \
+  -v "$PWD":/workspace -v ~/.cache/forager-container-home:/home/builder \
+  local/forager-build:test ./gradlew assembleDebug
+```
+
+Swap in `./gradlew testDebugUnitTest` to run the tests. With Docker, use `--user "$(id -u):$(id -g)"` in place
+of `--userns=keep-id`. Run as your own uid so the build's files in your checkout stay yours. The first build
+downloads Gradle and the dependencies, so expect several minutes. The SDK sits at `/opt/android-sdk`, outside the
+checkout, so it does not mark the build `.dirty`.
+
+### Seeing the app in an emulator
+
+The same `Dockerfile` has an `emulator` target: the lean image plus the Android emulator, an API 36.1 x86_64
+system image and an AVD. It draws on your GPU, so it needs `/dev/kvm`, `/dev/dri` and an X display. It was written
+and tested only on a Steam Deck (AMD GPU, Mesa radeonsi and radv); other GPUs are untested. The image is about 8 GB
+and the first build takes around 13 minutes.
+
+```
+podman build --target emulator -t local/forager-emulator:test .
+podman run -d --name forager-emulator --memory=6g \
+  --device /dev/kvm --device /dev/dri \
+  -e DISPLAY -e XAUTHORITY -v /tmp/.X11-unix:/tmp/.X11-unix -v "$XAUTHORITY":"$XAUTHORITY":ro \
+  -v "$PWD":/workspace local/forager-emulator:test
+# once Android has booted (about a minute), install and start the debug APK you built above:
+podman exec forager-emulator adb install -r /workspace/app/build/outputs/apk/debug/app-debug.apk
+podman exec forager-emulator adb shell am start -n com.zynergylabs.forager.app/com.zynergylabs.forager.app.MainActivity
+```
+
+An emulator window opens on your display. Stop it with `podman rm -f forager-emulator`. Do not add
+`--userns=keep-id` here as in the build above: run as an unprivileged uid, the emulator crashed with a segfault
+as it probed the GPU, while as container root (your own uid under rootless podman, so nothing on disk becomes
+root-owned) it ran. The emulator has no GPS,
+no real camera and a fixed 720x1280 screen, so it is for looking at the UI and the map, not for judging location
+or camera behaviour; use a phone for those.
+
+The emulator's own defaults crash this app on a fresh AVD, so the image's start command turns on a list of graphics
+features (`Vulkan`, `GLDirectMem` and others). The reasons are in the comments at the end of the `Dockerfile`'s
+`emulator` stage. If you change that list, a symptom to know: a white screen with Android restarting every few
+seconds is SurfaceFlinger aborting on `hasReadColorBufferDma`, which means the DMA features are off.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request and on pushes to `main` and `pre-main`, on
