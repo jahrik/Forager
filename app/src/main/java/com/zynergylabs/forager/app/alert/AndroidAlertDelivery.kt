@@ -280,6 +280,21 @@ internal fun vibrateWith(vibrator: Vibrator, overridesSilence: Boolean, pattern:
  * and the sundown alerts do not, and two channels is what lets someone act on that difference in
  * Android's own settings rather than only in this app's.
  */
+/**
+ * Takes down a recording's sundown and back-by alerts (RECORD -800; the owner: "Yes, add it now
+ * (Recommended)"). A recording that ends any way leaves no "Sunset at …" or "Back by …" in the shade:
+ * on 2026-10-09 a leave-by posted at 17:45 still read "Sunset at 6:35 PM" after its recording had ended.
+ * Called when a recording stops, when the service is destroyed, and when a process starts, which covers a
+ * killed process whose `onDestroy` never ran: a new process has no recording, since one lives only in the
+ * service of the process that ran it, and a watch that is still due posts again. Answering an alert is not
+ * this path, and leaves the other alert where it is.
+ */
+internal fun cancelRecordingAlerts(context: Context) {
+    val manager = NotificationManagerCompat.from(context)
+    manager.cancel(SUNDOWN_NOTIFICATION_ID)
+    manager.cancel(BACK_BY_NOTIFICATION_ID)
+}
+
 internal const val SUNDOWN_CHANNEL_ID = "sundown_alert"
 internal const val SUNDOWN_NOTIFICATION_ID = 1003
 

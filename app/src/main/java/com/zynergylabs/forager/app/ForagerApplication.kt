@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app
 import android.app.Application
 import android.os.Build
 import android.util.Log
+import com.zynergylabs.forager.app.alert.cancelRecordingAlerts
 import com.zynergylabs.forager.app.crash.CrashUncaughtExceptionHandler
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependencies
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependenciesProvider
@@ -61,6 +62,22 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         installMapHttpClientAtStart()
         sweepOrphanedCaptures(startedAt)
         deleteStaleGpxExports()
+        clearStaleRecordingAlerts()
+    }
+
+    /**
+     * A process killed mid-recording never runs the service's `onDestroy`, so its sundown or back-by
+     * alert can stay in the shade (RECORD -800: the owner, on clearing on kill, "Yes, add it now
+     * (Recommended)"). A new process has no recording, so any such alert here is left from one that has
+     * ended. Chosen over the service's next start, which a killed recording may never get: every way back
+     * into the app (the screen, a sticky restart, an alarm, a notification action) starts the process.
+     */
+    private fun clearStaleRecordingAlerts() {
+        try {
+            cancelRecordingAlerts(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Alerts left from an ended recording could not be taken down at start.", e)
+        }
     }
 
     /**
