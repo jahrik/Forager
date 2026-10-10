@@ -125,6 +125,62 @@ the pushed head afterwards.
 
 `scripts/verify-policy-permissions.sh`: all checks passed, so the manifest gained a receiver and no permission.
 
+## Alerts cleared when a recording ends (RECORD -800, -801)
+
+The owner, verbatim: "Yes, add it now (Recommended)" (-800: sundown id 1003 and Back by id 1004 cleared when a
+recording ends any way, including onDestroy, as far as Android allows), and "Yes" to "should off-track clear the
+same way?" (-801). Built at `b25145e4` (-800) and `f7eb14b3` (-801), finished at `766c17fb`:
+
+- `cancelRecordingAlerts` (`alert/AndroidAlertDelivery.kt`) cancels 1003, 1004 and off-track 1002.
+- Called from three places: `stopRecording` (it replaces the old Back-by-only cancel), `onDestroy`
+  (`service/TrackRecordingService.kt`), and `ForagerApplication.onCreate` through `clearStaleRecordingAlerts`.
+  The last is for a killed process, whose `onDestroy` never runs. A new process holds no recording, so any of
+  these alerts in the shade at process start is left over from one that has ended. A failure there is logged
+  with a warning and does not stop the app starting.
+- Answering Back by with "I'm back" still takes down only the Back by alert.
+- Off-track 1002 is posted only by the return watch, which the recording service owns
+  (`AndroidAlertDelivery.kt:170`, `AppContainer.kt:383`). So clearing it on end cannot remove an alert that
+  belongs to anything still running.
+- Tidy at `766c17fb`: `b25145e4` had put the new function's KDoc between the sundown channel's KDoc and
+  `SUNDOWN_CHANNEL_ID`, which left the channel note sitting over the function. It is moved back. No code
+  changed.
+
+Tests: `TrackRecordingServiceAlertClearTest` (4) runs the real service and application. It covers Stop,
+`onDestroy` without a Stop, `Application.onCreate` with the alerts left in the shade, and "I'm back" leaving the
+other two alerts. The targeted run (`alertclear-2`, after the restart) had 9 classes and 45 tests, with 0
+failures. The classes were AlertClear 4, BackBy 6, BackByLoop 6, Sundown 3, SwipeAway 9,
+TrackRecordingServiceTest 3, StartBackNow 4, AlertDeliveryOutcome 5 and SundownNotificationText 5. Results were
+read from JUnit XML written by that run (the results directory was emptied first), and the build log had no
+compile errors. The run before the restart (13 tests, green) covered `b25145e4` only.
+
+Revert checks, one edit each. Each run tested `TrackRecordingServiceAlertClearTest` only. Every build log shows
+`compileDebugKotlin` and `compileDebugUnitTestKotlin` ran with no `e:` lines, and the build failed only at
+`:app:testDebugUnitTest`. The runner refuses to read results when the log has compile errors, and none did.
+Each file was restored from a copy saved before the edit, never from git, and checked byte-equal to that copy.
+Afterwards `git status` was clean against the pushed head, and the forward lines were present (counted with
+grep).
+
+| | Revert | Failed (only) | With |
+|---|---|---|---|
+| AC1 | Stop: `cancelRecordingAlerts(this)` put back to the old Back-by-only cancel | the Stop test | "the sundown alert is still in the shade after Stop" |
+| AC2 | `onDestroy`: the cancel line removed | the onDestroy test | "the sundown alert is still in the shade after onDestroy" |
+| AC3 | process start: the `clearStaleRecordingAlerts()` call removed | the new-process test | "the sundown alert is still in the shade after the process started" |
+| AC4 | off-track: `manager.cancel(OFF_TRACK_NOTIFICATION_ID)` removed | Stop, onDestroy and new-process tests | "the off-track alert is still in the shade after Stop" / "…after onDestroy" / "…after the process started" |
+
+Each failure is one that only its own revert could cause: the test named matches the path reverted, and AC4's
+three name only the off-track alert. The "I'm back" test passed under every revert. It is a negative check, so
+no revert here could be expected to fail it.
+
+`assembleDebug` built at `766c17fb` (2 min 23 s). Gradle and the Kotlin daemon were stopped afterwards. Disk
+before the build: root 28 GB free, /mnt/work 29 GB, falling to 16 GB during the build because the planner's
+own flash-drive copy was landing (the planner confirmed it).
+
+Logs (outside the repository): `~/.cache/forager-gradle-logs/alertclear-2.log`, `revert-AC1-stop-clear.log`,
+`revert-AC2-ondestroy-clear.log`, `revert-AC3-process-start-clear.log`, `revert-AC4-off-track-clear.log` and
+`bbf-assemble-2.log`.
+
+S22 for this change: PENDING (below).
+
 ## Confirmed vs inferred
 
 - **Confirmed by reading code at `6373e2fe`:**
@@ -200,6 +256,7 @@ the pushed head afterwards.
     - Caveat: I have not confirmed that a dismissal on this One UI does not count as USER_INTERACTION. If it does, the interaction could be the swipe itself.
   - **One desk step settles it.** Start a recording in the afternoon so a heads-up or leave-by fires. Swipe it the way the owner did and read `dumpsys notification p com.zynergylabs.forager.app` for id 1003 straight after. Then stop the recording, wait 15 min, and read it again. If 1003 is listed after the swipe, the swipe hid only the pop-up. If it is not listed after the swipe but appears later, something re-posted it, and the sundown record will say whether Forager did.
   - The owner's ruling, "Yes, clear on kill too (Recommended)": when a recording ends any way, including as far as Android allows on a kill, its alerts are cleared. **Not built.** It waits on the desk step above.
+    - **Superseded:** built on the owner's -800 answer, "Yes, add it now (Recommended)", and extended to off-track by -801. See "Alerts cleared when a recording ends" above.
 - **"Sunset triggered" at the 19:49 unplug (the owner): no sunset alert fired. It was the 17:45 leave-by alert, left in the shade.**
   - Record and history: `sundown-record.log` shows the leave-by `fired … notification=posted vibration=done` at 17:45:29 and its sunset alarm cancelled on arrival at 17:47:30. After that it has only timer evaluations, the last at 19:05:32, with no `fired alert=sunset`. In usagestats, Forager's only `sundown_alert` interruption all evening is 17:45:30. Nothing from Forager was posted after 19:05:35, in either record or in usagestats.
   - The recording stopped at 19:05:35 (`FOREGROUND_SERVICE_STOP`). By the coordinator's account, I stopped it on the coordinator's instruction ("Stop the 17:45 test recording, since it's yours"). I cannot see that exchange in my own context, and the phone's logs neither confirm nor contradict it: logcat's adb command lines only begin at 19:45.
@@ -212,6 +269,7 @@ the pushed head afterwards.
   - So tonight's alert still read "Sunset at 6:35 PM" two hours later, after the recording had ended. The owner read it as a new alert.
   - Related: `onDestroy` does not cancel the Back by alert, so a process killed rather than stopped can leave that alert in the shade too.
   - Not changed in this dispatch.
+  - **Superseded:** changed after all, under -800 and -801. See "Alerts cleared when a recording ends" above.
 - **Finding: the wake-up alarm receiver cannot post without a recording (read from the code, not tested on the device).**
   - `WakeUpAlarmReceiver` (`AndroidWakeUpAlarms.kt:75-105`) only calls `onAlarm()`.
   - With nothing watched, both watches return before any post: `BackByWatch.kt:147-151` and `:232-234`, `SundownWatch.kt:198-205` and `:230-232`. The watch is empty after `end()` and in a fresh process started for a leftover alarm. They write `alarm-delivered` and nothing else.
