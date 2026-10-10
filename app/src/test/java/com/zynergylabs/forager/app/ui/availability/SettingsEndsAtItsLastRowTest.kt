@@ -9,7 +9,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performSemanticsAction
 import com.zynergylabs.forager.app.ui.theme.Spacing
-import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -25,9 +25,11 @@ import org.robolectric.annotation.Config
  * is the Backup section, and the divider that separated Backup from those rows must go with them.
  *
  * A divider carries no semantics, so it is measured rather than found: scrolled to the end, the gap
- * between the lowest node inside the scrolling column and the column's own bottom edge is the bottom
- * padding alone, 12 dp. A trailing divider makes it 25 dp (the column's 12 dp spacing, the 1 dp
- * line, then the padding).
+ * between the lowest node inside the scrolling column and the column's own bottom edge. With nothing
+ * under the last row it is the 12 dp bottom padding, plus up to 4 dp where the last node is a Material
+ * button laid out in a 48 dp touch target around a 40 dp body. Anything drawn after the last row adds
+ * at least the column's own 12 dp spacing, so the bound is under 24 dp: a trailing divider measured
+ * 29 dp in the release build before the fix (12 spacing, 1 line, 12 padding, 4 touch target).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
@@ -49,11 +51,10 @@ class SettingsEndsAtItsLastRowTest {
         val lowest = descendantsOf(column).filter { it.boundsInRoot.height > 0f }.maxOf { it.boundsInRoot.bottom }
         val gapDp = (column.boundsInRoot.bottom - lowest) / composeRule.density.density
 
-        assertEquals(
-            "the gap under Settings' last row, in dp (${Spacing.md.value} is the padding alone; more means something is drawn under the last row)",
-            Spacing.md.value,
-            gapDp,
-            0.5f,
+        assertTrue(
+            "the gap under Settings' last row is $gapDp dp: ${Spacing.md.value} dp is the padding alone, and " +
+                "${2 * Spacing.md.value} dp or more means something is drawn under the last row",
+            gapDp >= Spacing.md.value - 0.5f && gapDp < 2 * Spacing.md.value,
         )
     }
 
