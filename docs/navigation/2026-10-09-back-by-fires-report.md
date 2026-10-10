@@ -179,7 +179,29 @@ Logs (outside the repository): `~/.cache/forager-gradle-logs/alertclear-2.log`, 
 `revert-AC2-ondestroy-clear.log`, `revert-AC3-process-start-clear.log`, `revert-AC4-off-track-clear.log` and
 `bbf-assemble-2.log`.
 
-S22 for this change: PENDING (below).
+S22 for this change (2026-10-10, 1.0.3149+g766c17fb, on USB, screen on, driven over adb; evidence outside the
+repository at `~/Zynergy/device-evidence/2026-10-09-back-by/launch-check-2.txt` and `desk-clear-on-stop.txt`):
+
+- **Launch check: PASS** (`scripts/s22-launch-check.sh`). `install -r` succeeded, status=verify, cold launch,
+  process alive after 8 s, crash buffer empty.
+- **Desk check, Stop clears the alert: PASS** (run 2). The steps:
+  - Record at 14:11:13Z.
+  - Quick settings > Back by > Pick a time > 7:15 AM: `set … at=14:15:00Z accepted` and `alarm-scheduled`.
+  - At 14:15:00.290Z it was evaluated due `by=fix`, and at .306 it `fired … notification=posted vibration=done`.
+  - The active notification list (read from the "Notification List" section only) then held ids 0, 1001 and 1004.
+  - Stop at 14:15:11Z gave `ended reason=stop` and `alarm-cancelled` in both records. The active list then held
+    no Forager notification, and no recording service was running.
+- Run 1 (Back by 7:10, fired by fix at 14:10:03Z, Stop at 14:10:28Z, `ended reason=stop`) is **not cited** for
+  the clearing. My notification read there counted the whole `dumpsys notification`, archive included. 1004
+  appeared both before and after Stop, and only the archive explained it after Stop. So run 1 could not tell
+  "active" from "archived", and run 2 was done with a reader limited to the active section. The positive
+  control: it showed 1001 alone once the recording had started, and 1004 once the alert fired.
+- Not checked on the phone: the onDestroy, process-start and off-track paths (JVM tests and revert checks only).
+  At a desk, off-track needs a Return and a walk away from the start, and Return at the start ends Back by on
+  arrival.
+- Disclosed: one `dumpsys notification --noredact` was run with its output sent to `/dev/null`. Nothing was
+  printed or kept, and it was not needed. The dispatch's no-`--noredact` rule is written for the usagestats
+  read, and it was kept here too in every read that was printed.
 
 ## Confirmed vs inferred
 
