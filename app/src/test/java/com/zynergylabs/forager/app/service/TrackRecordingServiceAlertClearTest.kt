@@ -11,6 +11,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.alert.BACK_BY_NOTIFICATION_ID
+import com.zynergylabs.forager.app.alert.OFF_TRACK_NOTIFICATION_ID
+import com.zynergylabs.forager.app.alert.postOffTrackNotification
 import com.zynergylabs.forager.app.alert.SUNDOWN_NOTIFICATION_ID
 import com.zynergylabs.forager.app.alert.postSundownNotification
 import com.zynergylabs.forager.app.alert.postBackByNotification
@@ -69,7 +71,7 @@ class TrackRecordingServiceAlertClearTest {
     }
 
     @Test
-    fun `Stop takes down both the sundown and the back-by alert`() {
+    fun `Stop takes down the sundown, back-by and off-track alerts`() {
         var controller: ServiceController<TrackRecordingService>? = null
         try {
             controller = recordingWithBothAlerts()
@@ -78,13 +80,14 @@ class TrackRecordingServiceAlertClearTest {
             idleAndSettle()
             assertNull("the sundown alert is still in the shade after Stop", notification(SUNDOWN_NOTIFICATION_ID))
             assertNull("the back-by alert is still in the shade after Stop", notification(BACK_BY_NOTIFICATION_ID))
+            assertNull("the off-track alert is still in the shade after Stop", notification(OFF_TRACK_NOTIFICATION_ID))
         } finally {
             controller?.let { end(it) }
         }
     }
 
     @Test
-    fun `a service destroyed without a Stop takes down both alerts`() {
+    fun `a service destroyed without a Stop takes down all three alerts`() {
         var controller: ServiceController<TrackRecordingService>? = null
         try {
             controller = recordingWithBothAlerts()
@@ -93,6 +96,7 @@ class TrackRecordingServiceAlertClearTest {
             idleAndSettle()
             assertNull("the sundown alert is still in the shade after onDestroy", notification(SUNDOWN_NOTIFICATION_ID))
             assertNull("the back-by alert is still in the shade after onDestroy", notification(BACK_BY_NOTIFICATION_ID))
+            assertNull("the off-track alert is still in the shade after onDestroy", notification(OFF_TRACK_NOTIFICATION_ID))
         } finally {
             controller?.let { end(it) }
         }
@@ -118,10 +122,11 @@ class TrackRecordingServiceAlertClearTest {
 
         assertNull("the sundown alert is still in the shade after the process started", notification(SUNDOWN_NOTIFICATION_ID))
         assertNull("the back-by alert is still in the shade after the process started", notification(BACK_BY_NOTIFICATION_ID))
+        assertNull("the off-track alert is still in the shade after the process started", notification(OFF_TRACK_NOTIFICATION_ID))
     }
 
     @Test
-    fun `answering the back-by alert with I'm back leaves the sundown alert and the recording`() {
+    fun `answering the back-by alert with I'm back leaves the sundown and off-track alerts and the recording`() {
         var controller: ServiceController<TrackRecordingService>? = null
         try {
             controller = recordingWithBothAlerts()
@@ -134,6 +139,7 @@ class TrackRecordingServiceAlertClearTest {
             idleAndSettle()
             assertNull("I'm back did not take the back-by alert down", notification(BACK_BY_NOTIFICATION_ID))
             assertNotNull("answering Back by took the sundown alert down too", notification(SUNDOWN_NOTIFICATION_ID))
+            assertNotNull("answering Back by took the off-track alert down too", notification(OFF_TRACK_NOTIFICATION_ID))
             assertTrue("answering Back by stopped the recording", !shadowOf(controller.get()).isStoppedBySelf)
         } finally {
             controller?.let { end(it) }
@@ -163,9 +169,12 @@ class TrackRecordingServiceAlertClearTest {
         return controller
     }
 
+    /** The sundown alert and the off-track alert, posted with the production post functions. */
     private fun postSundownAlert() {
         assertTrue(postSundownNotification(context, Alert(AlertKind.SUNSET, overridesSilence = true)))
+        assertTrue(postOffTrackNotification(context))
         idleAndSettle()
+        assertNotNull(notification(OFF_TRACK_NOTIFICATION_ID))
     }
 
     private fun startIntent(trackId: String) =
