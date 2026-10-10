@@ -23,6 +23,7 @@ import com.zynergylabs.forager.app.data.backup.ContentResolverBackupFiles
 import androidx.core.content.pm.PackageInfoCompat
 import android.util.Log
 import com.zynergylabs.forager.app.crash.CrashFileStore
+import com.zynergylabs.forager.app.data.diagnostics.AlertRecordFiles
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
 import com.zynergylabs.forager.app.data.repository.DataStoreAppThemePreferenceRepository
@@ -68,12 +69,6 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
-import com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME
-import com.zynergylabs.forager.app.data.diagnostics.FileBackByRecord
-import com.zynergylabs.forager.app.data.diagnostics.FileReturnRecord
-import com.zynergylabs.forager.app.data.diagnostics.FileSundownRecord
-import com.zynergylabs.forager.app.data.diagnostics.SUNDOWN_RECORD_FILE_NAME
-import com.zynergylabs.forager.app.data.diagnostics.RETURN_RECORD_FILE_NAME
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CartographyEntryRepository
@@ -375,7 +370,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // 2026-09-28-400, Amendment 2). TrackRecordingService begins, feeds and ends it;
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
     // Dispatch 2026-09-28-451: the lasting record of Returns and off-track decisions, a file in app storage.
-    val returnRecord = FileReturnRecord(java.io.File(context.filesDir, RETURN_RECORD_FILE_NAME), currentTimeProvider)
+    // Debug builds only since dispatch 2026-10-11 (RECORD -830): AlertRecordFiles' release twin writes nothing.
+    val returnRecord = AlertRecordFiles.returnRecord(context, currentTimeProvider)
     // Dispatch 2026-09-28-626 (plan T14): Settings' "Off-track reminder" and the check made when a
     // recording starts. The watch reads the checkbox at the moment it decides to alert.
     val offTrackReminderPreferences: OffTrackReminderPreferenceRepository = DataStoreOffTrackReminderPreferenceRepository(context, settingsReset = settingsResetNotice)
@@ -416,7 +412,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         errorLog = errorLog,
         lastKnownLocation = lastKnownLocation,
         // Dispatch 2026-09-28-796 (RECORD -797): each evaluation, alert and wake-up, to files/sundown-record.log.
-        record = FileSundownRecord(java.io.File(context.filesDir, SUNDOWN_RECORD_FILE_NAME), currentTimeProvider),
+        // Debug builds only (dispatch 2026-10-11, RECORD -830).
+        record = AlertRecordFiles.sundownRecord(context, currentTimeProvider),
         alarms = wakeUpAlarms,
     )
 
@@ -430,7 +427,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
         errorLog = errorLog,
         // Dispatch 2026-09-28-796: each set, evaluation, alert and end, to files/back-by-record.log; no positions.
-        record = FileBackByRecord(java.io.File(context.filesDir, BACK_BY_RECORD_FILE_NAME), currentTimeProvider),
+        // Debug builds only (dispatch 2026-10-11, RECORD -830).
+        record = AlertRecordFiles.backByRecord(context, currentTimeProvider),
         alarms = wakeUpAlarms,
     )
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
