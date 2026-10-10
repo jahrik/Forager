@@ -1,10 +1,9 @@
 package com.zynergylabs.forager.app
 
 import android.app.Application
-import android.os.Build
 import android.util.Log
 import com.zynergylabs.forager.app.alert.cancelRecordingAlerts
-import com.zynergylabs.forager.app.crash.CrashUncaughtExceptionHandler
+import com.zynergylabs.forager.app.crash.installCrashCapture
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependencies
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependenciesProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -116,15 +115,15 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
     }
 
     /**
-     * See [CrashUncaughtExceptionHandler]'s own doc comment for why this exists. Captures the
-     * platform's current default handler before replacing it, so this one can chain to it after
-     * writing a trace — process-death behavior is unchanged from before this method existed.
+     * Crash capture, debug builds only (dispatch 2026-10-11, RECORD -830): [installCrashCapture] has a
+     * debug version in `src/debug` that installs `CrashUncaughtExceptionHandler`, chained to the
+     * platform's own, and a release version in `src/release` that does nothing, because nothing in a
+     * release build can read a crash file (the Crash Logs row is debug-only too; Play Console reports
+     * crashes). A build-type source set rather than a `BuildConfig.DEBUG` branch, as `DebugDiagnostics`
+     * is, so the capturing classes are not in the release APK at all.
      */
     private fun installCrashHandler() {
-        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler(
-            CrashUncaughtExceptionHandler(container.crashFileStore, Build.VERSION.SDK_INT, previousHandler),
-        )
+        installCrashCapture(container.crashFileStore)
     }
 
     /**

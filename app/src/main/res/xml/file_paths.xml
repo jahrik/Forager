@@ -5,11 +5,8 @@
   photos, never needs a FileProvider URI — this app only ever reads and writes it directly as
   files, it never grants another app access to it.
 
-  `crashes/` is com.zynergylabs.forager.app.crash.CrashFileStore's directory, under app-external storage
-  (Context.getExternalFilesDir(null), hence external-files-path rather than files-path) rather
-  than internal filesDir — see that class's own doc comment for why. Exposed here so the Settings
-  crash-log viewer can hand a captured trace to another app (email, a text editor) via
-  Intent.ACTION_SEND.
+  `crashes/` is not here since dispatch 2026-10-11 (RECORD -830): crash capture and its viewer, the
+  only thing that shared from it, are debug-only, so the entry lives in src/debug's file_paths.xml.
 
   `tracks/` is com.zynergylabs.forager.app.export.TrackGpxExporter's directory, under Context.cacheDir rather
   than external-files-path — unlike a crash report, an exported GPX file only needs to survive
@@ -19,6 +16,5 @@
 -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="captures" path="captures/" />
-    <external-files-path name="crashes" path="crashes/" />
     <cache-path name="tracks" path="tracks/" />
 </paths>
