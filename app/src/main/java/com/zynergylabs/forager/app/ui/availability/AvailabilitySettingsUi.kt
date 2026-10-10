@@ -73,7 +73,6 @@ import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
-import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
 import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
 import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
 import com.zynergylabs.forager.app.ui.log.JournalTab
@@ -337,9 +336,9 @@ internal fun SettingsContent(
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
         BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
-        HorizontalDivider()
-        CrashLogsEntryRow(onClick = onOpenCrashLogs)
-        DiagnosticsEntryRow(onClick = onOpenDiagnostics)
+        // Debug builds: a divider, then Crash Logs and Diagnostics. Release: nothing, so Settings ends at
+        // Backup with no divider under it (dispatch 2026-10-11, RECORD -830). See SettingsDebugRows' two versions.
+        SettingsDebugRows(onOpenCrashLogs = onOpenCrashLogs, onOpenDiagnostics = onOpenDiagnostics)
     }
 }
 

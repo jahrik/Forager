@@ -5,8 +5,11 @@
   main one, untouched. Every entry in main's file must appear here too, or a debug build would
   silently lose a share path release has — DebugFileProviderPathsTest asserts that superset.
 
-  The three main entries are repeated verbatim: `captures/` (a capture's temporary destination),
-  `crashes/` (CrashFileStore's directory) and `tracks/` (TrackGpxExporter's cache directory).
+  The two main entries are repeated verbatim: `captures/` (a capture's temporary destination) and
+  `tracks/` (TrackGpxExporter's cache directory).
+
+  `crashes/` is CrashFileStore's directory, shared by the crash-log viewer. Both are debug-only since
+  dispatch 2026-10-11 (RECORD -830), so the entry is here and no longer in main's file.
 
   Added for the debug-only Diagnostics panel (ui/diagnostics/DiagnosticsPanel.kt):
 
