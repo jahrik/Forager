@@ -125,6 +125,37 @@ the pushed head afterwards.
 
 `scripts/verify-policy-permissions.sh`: all checks passed, so the manifest gained a receiver and no permission.
 
+## Confirmed vs inferred
+
+- **Confirmed by reading code at `6373e2fe`:**
+  - Back by was evaluated only by the service's 15 s coroutine timer (`TrackRecordingService.kt:259-268`), and a fix only stored a position (`BackByWatch.kt:105-108`).
+  - The screen and the service share one watch (`MainActivity.kt:63, :234`).
+  - The recording held no wake lock in release.
+  - Sundown had the same timer-only shape, apart from the first fix (`SundownWatch.kt:182-188`).
+- **Confirmed by test, with revert checks:** the fix path and the alarm path, for Back by and for sundown, and the walk logger following its switch.
+- **Confirmed on the S22:** Back by fires with the screen on (Case A rerun). Arrival after Return ends Back by and cancels its alarm, and the same holds for sundown (Case A, first run). The time picked on the dial is the afternoon's.
+- **Inferred, not proven:** that on the L3 walk the timer stalled while the S22 slept. This rests on the screen being off from 13:48:37 to 13:57:10, no `back_by_alert` post, an earlier measurement of Doze on this phone, and the code. batterystats from the walk was reset, so it cannot confirm it.
+
+## Could not determine
+
+- Whether the S22 was in light or deep Doze at 13:55 on the walk (no history survived).
+- How late the inexact alarm comes in deep Doze on this phone, until Cases B and C have run (see below).
+- Whether the full suite passes: it was not run locally, by the planner's ruling, and no PR was opened.
+
+## Premises that were wrong
+
+- The dispatch's desk step, "start a recording, set Back by…, tap Return, wait. It must fire", cannot fire at a desk. Arrival after Return ends Back by (-646), and a phone at the start has arrived. Case A's first run showed exactly that.
+- Run 1's red fix test was taken as showing the fault. It showed a harness artefact: two fixes in the same second, with the second dropped by Robolectric. Corrected in run 2 and proven by R1.
+- The dispatch said the S22's walk logger "starts when switched on mid-recording" needed a change. It did: the switch was read only at the start (`WalkLogger.kt:66`), as -795 found.
+
+## Decided beyond scope
+
+- The per-evaluation line in both records, so a device check can see whether the timer ran. Not in the dispatch's list.
+- The alarm is delivered to a broadcast receiver rather than to the service, because the platform keeps the phone awake for a receiver and the app has no wake lock.
+- Sundown re-asks for the alarm only when its due time moves by more than a minute (`ALARM_RESCHEDULE_SLACK_MILLIS`), so a walk-back estimate that changes slightly each tick does not reschedule every 15 s.
+- The Diagnostics row's second line now reads "…Takes effect at once, also during a recording." (debug only).
+- The sundown record file `sundown-record.log`, a sibling of the Back by record. The owner asked for "the same logging" without naming a file.
+
 ## PENDING
 
 - S22 launch check: **passed** (`scripts/s22-launch-check.sh`). Install -r, 1.0.3139+g54274939, status=verify, cold launch, process alive after 8 s, crash buffer empty. Output at `~/Zynergy/device-evidence/2026-10-09-back-by/launch-check.txt` (outside the repository).
