@@ -128,6 +128,15 @@ the pushed head afterwards.
 ## PENDING
 
 - S22 launch check: **passed** (`scripts/s22-launch-check.sh`). Install -r, 1.0.3139+g54274939, status=verify, cold launch, process alive after 8 s, crash buffer empty. Output at `~/Zynergy/device-evidence/2026-10-09-back-by/launch-check.txt` (outside the repository).
+- **S22 desk check, Case A, first run (with Return): Back by did not fire, as -646 rules. Recorded as a pass for the arrival path.**
+  I drove the screen over adb after the owner removed the screen lock. The steps:
+  - Record at 17:45:29 PDT.
+  - Back by > Pick a time > 5:50 PM. The menu read "Back by 5:50 PM", and the record shows the time set (accepted) and its alarm scheduled.
+  - Return at 17:47:20.
+  The next evaluation, at 17:47:29, found the phone at the start after Return, which is arrival. The record shows `ended reason=arrival` and `alarm-cancelled`. The sundown record shows the same rule at work: leave-by fired on the first evaluation, with the notification posted and the vibration done. Its alarm was set for sunset at 6:35:35 PM and cancelled on arrival at 17:47:30.
+  **The dispatch's desk step ("tap Return, wait. It must fire") cannot fire at a desk.** Arrival after Return ends Back by by ruling, so every desk case after that ran without Return. "Fires during a Return away from the start" is therefore covered **only by the JVM test** (case (b), 2 km out), not on the phone.
+- **Case A, rerun (no Return, screen on): PASS.** "Stop navigating" at 17:53:19 ended the return and kept the recording running. Back by was set for 6:00 PM at 17:54:04, accepted, with the alarm scheduled. At 18:00:00.021 the timer evaluated it as due, and at 18:00:00.031 it fired with `notification=posted vibration=done`. The shade showed "You planned to be back by 6:00 PM" with "I'm back" and "+30 min". "I'm back", tapped over adb, gave `ended reason=im-back` and `alarm-cancelled`.
+- Disclosed: my first UI dump printed the map strip's grid-reference readout once to my session transcript. Nothing was committed, and the dump file was deleted. Later dumps hide anything position-like.
 - S22: the desk check including screen off past the time, with the two record files read
   afterwards.
 - The four disclosure sections and the index row.
