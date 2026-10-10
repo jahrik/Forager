@@ -275,12 +275,6 @@ internal fun vibrateWith(vibrator: Vibrator, overridesSilence: Boolean, pattern:
 }
 
 /**
- * Its own channel, separate from off-track, so a user can silence one without losing the other.
- * That separation is the point: the owner's ruling is that off-track respects a silenced phone
- * and the sundown alerts do not, and two channels is what lets someone act on that difference in
- * Android's own settings rather than only in this app's.
- */
-/**
  * Takes down a recording's sundown, back-by and off-track alerts (RECORD -800, -801; the owner: "Yes, add it now
  * (Recommended)"). A recording that ends any way leaves no "Sunset at …" or "Back by …" in the shade:
  * on 2026-10-09 a leave-by posted at 17:45 still read "Sunset at 6:35 PM" after its recording had ended.
@@ -298,6 +292,12 @@ internal fun cancelRecordingAlerts(context: Context) {
     manager.cancel(OFF_TRACK_NOTIFICATION_ID)
 }
 
+/**
+ * Its own channel, separate from off-track, so a user can silence one without losing the other.
+ * That separation is the point: the owner's ruling is that off-track respects a silenced phone
+ * and the sundown alerts do not, and two channels is what lets someone act on that difference in
+ * Android's own settings rather than only in this app's.
+ */
 internal const val SUNDOWN_CHANNEL_ID = "sundown_alert"
 internal const val SUNDOWN_NOTIFICATION_ID = 1003
 
