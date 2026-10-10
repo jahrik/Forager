@@ -281,7 +281,7 @@ internal fun vibrateWith(vibrator: Vibrator, overridesSilence: Boolean, pattern:
  * Android's own settings rather than only in this app's.
  */
 /**
- * Takes down a recording's sundown and back-by alerts (RECORD -800; the owner: "Yes, add it now
+ * Takes down a recording's sundown, back-by and off-track alerts (RECORD -800, -801; the owner: "Yes, add it now
  * (Recommended)"). A recording that ends any way leaves no "Sunset at …" or "Back by …" in the shade:
  * on 2026-10-09 a leave-by posted at 17:45 still read "Sunset at 6:35 PM" after its recording had ended.
  * Called when a recording stops, when the service is destroyed, and when a process starts, which covers a
@@ -293,6 +293,9 @@ internal fun cancelRecordingAlerts(context: Context) {
     val manager = NotificationManagerCompat.from(context)
     manager.cancel(SUNDOWN_NOTIFICATION_ID)
     manager.cancel(BACK_BY_NOTIFICATION_ID)
+    // The off-track alert too (RECORD -801, the owner: "Yes"): it is about a recording, and one that has
+    // ended has no track to be off.
+    manager.cancel(OFF_TRACK_NOTIFICATION_ID)
 }
 
 internal const val SUNDOWN_CHANNEL_ID = "sundown_alert"
