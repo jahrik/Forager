@@ -2,8 +2,8 @@
 
 RECORD intent -796; the walk and the owner's answers -793 to -795; Back by's rulings -645 and -646. Branch
 `back-by-fires`, cut from `origin/main` at `6373e2fe` (the base the dispatch names; verified equal to
-`origin/main` at the start). Written by the coder, 2026-10-09 (UTC). **Draft, in progress**: sections marked
-PENDING are filled as the work lands.
+`origin/main` at the start). Written by the coder, 2026-10-09 (UTC). **Complete as of 72a42693** (2026-10-10). The planner, opening PR #210, renamed
+the last section from "PENDING" to "Device checks on the S22" and marked two items left open as such; no finding was changed.
 
 ## What the walk showed (from the record, not re-observed)
 
@@ -24,7 +24,7 @@ clean, 18 tests, 2 failures.
 | (b) the same with a Return in progress, 2 km from the start | `with a Return in progress and the walker far from the start, the time still fires through the loop` | passed |
 | (c) do the screen and the service share one watch | read, not tested: `MainActivity.kt:63` (`container` is the application's), `:234` (`backBy = container.backByWatch`); the service reads `(application as ForagerApplication).container.backByWatch` (`TrackRecordingService.kt:184, 275`) | same instance |
 | the suspected mechanism, modelled | `a GPS fix after the time brings the alert without waiting for the 15 s timer` | **failed**: "no back-by alert within 3 s of a GPS fix 1 ms past the time: the alert waits for the 15 s timer, not the fix" |
-| an afternoon time picked on the dial reaches the ViewModel as 13, not 1 | `Pick a time, an afternoon hour picked …` | failed on the harness (the minutes dial was not reached); PENDING |
+| an afternoon time picked on the dial reaches the ViewModel as 13, not 1 | `Pick a time, an afternoon hour picked …` | failed on the harness (the minutes dial was not reached); **not resolved in this dispatch** |
 
 **What the failing case shows, and what it does not.** Back by is evaluated only by the service's own
 coroutine loop, `delay(BACK_BY_TICK_MILLIS)` (`TrackRecordingService.kt:259-268`, `:531`); a fix is stored
@@ -35,7 +35,7 @@ advance while the CPU is suspended, and nothing wakes the CPU for it. **Inferred
 screen off, the S22 suspended, and the timer did not reach a tick past 13:55 before the walk ended. Supporting
 evidence from an earlier measurement on the same phone (`2026-10-09-battery-saver-report.md:126-139`): a
 screen-off recording spent about half its time in light and half in full Doze, and in one run the platform
-stopped the app's GPS 5 minutes in. Not yet confirmed for the walk itself; PENDING the S22 reads.
+stopped the app's GPS 5 minutes in. Not confirmed for the walk itself: the S22 desk cases did not reproduce a stall (see Cases B and C below).
 
 **A correction to run 1, found in run 2.** Run 1's failing fix test was not evidence. It sent its second
 fix in the same wall-clock second as the first, and Robolectric's location shadow drops a fix that comes
@@ -234,7 +234,7 @@ repository at `~/Zynergy/device-evidence/2026-10-09-back-by/launch-check-2.txt` 
 - The Diagnostics row's second line now reads "…Takes effect at once, also during a recording." (debug only).
 - The sundown record file `sundown-record.log`, a sibling of the Back by record. The owner asked for "the same logging" without naming a file.
 
-## PENDING
+## Device checks on the S22
 
 - S22 launch check: **passed** (`scripts/s22-launch-check.sh`). Install -r, 1.0.3139+g54274939, status=verify, cold launch, process alive after 8 s, crash buffer empty. Output at `~/Zynergy/device-evidence/2026-10-09-back-by/launch-check.txt` (outside the repository).
 - **S22 desk check, Case A, first run (with Return): Back by did not fire, as -646 rules. Recorded as a pass for the arrival path.**
