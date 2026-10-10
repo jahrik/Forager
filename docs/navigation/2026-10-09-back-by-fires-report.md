@@ -139,7 +139,7 @@ the pushed head afterwards.
 ## Could not determine
 
 - Whether the S22 was in light or deep Doze at 13:55 on the walk (no history survived).
-- How late the inexact alarm comes in deep Doze on this phone, until Cases B and C have run (see below).
+- How late the inexact alarm comes in light or deep Doze on this phone: Cases B and C did not run validly (see PENDING), so the screen-off firing is unconfirmed on the device.
 - Whether the full suite passes: it was not run locally, by the planner's ruling, and no PR was opened.
 
 ## Premises that were wrong
@@ -168,6 +168,9 @@ the pushed head afterwards.
   **The dispatch's desk step ("tap Return, wait. It must fire") cannot fire at a desk.** Arrival after Return ends Back by by ruling, so every desk case after that ran without Return. "Fires during a Return away from the start" is therefore covered **only by the JVM test** (case (b), 2 km out), not on the phone.
 - **Case A, rerun (no Return, screen on): PASS.** "Stop navigating" at 17:53:19 ended the return and kept the recording running. Back by was set for 6:00 PM at 17:54:04, accepted, with the alarm scheduled. At 18:00:00.021 the timer evaluated it as due, and at 18:00:00.031 it fired with `notification=posted vibration=done`. The shade showed "You planned to be back by 6:00 PM" with "I'm back" and "+30 min". "I'm back", tapped over adb, gave `ended reason=im-back` and `alarm-cancelled`.
 - Disclosed: my first UI dump printed the map strip's grid-reference readout once to my session transcript. Nothing was committed, and the dump file was deleted. Later dumps hide anything position-like.
-- S22: the desk check including screen off past the time, with the two record files read
-  afterwards.
-- The four disclosure sections and the index row.
+- **Cases B and C (screen off, then forced deep Doze): NOT RUN validly. No result for either.** A script drove both over Wi-Fi adb once the S22 was unplugged at 19:49:40 PDT.
+  - Case B's Record tap at 19:50:08 started no recording: the service count read 0. The app was brought to the front (`START u0 … MainActivity`, logcat 19:50:01). Why the tap did not start a recording is not determined.
+  - The Back by step that followed set nothing. The newest line in `back-by-record.log` is still Case A rerun's `ended reason=im-back` at 01:03:17Z (18:03 PDT). The script's "record:" lines at 19:50:22 and 20:10:15 re-printed Case A's 17:54 `set` line, and that is not evidence of a new one.
+  - So B (screen off 19:50:24 to 20:10) and C (forced deep idle 20:10:49 to 20:30:00, then unforced) ran with no recording and no Back by. Neither says anything about the alarm in Doze.
+  - The script fault: it logged the service count and carried on instead of stopping on 0, and its record read did not filter to lines after the set. Evidence outside the repository: `~/Zynergy/device-evidence/2026-10-09-back-by/caseBC.log` and `batterystats-history.txt`. The latter is from runs with no recording, so it is not useful here.
+  - **Still open:** how late the allow-while-idle alarm comes on this phone in light and deep Doze. Firing with the screen off is covered by the JVM alarm-path tests (R2, R3) and is not confirmed on the device.
