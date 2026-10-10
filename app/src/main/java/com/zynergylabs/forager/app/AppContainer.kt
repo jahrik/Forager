@@ -68,7 +68,11 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.data.diagnostics.BACK_BY_RECORD_FILE_NAME
+import com.zynergylabs.forager.app.data.diagnostics.FileBackByRecord
 import com.zynergylabs.forager.app.data.diagnostics.FileReturnRecord
+import com.zynergylabs.forager.app.data.diagnostics.FileSundownRecord
+import com.zynergylabs.forager.app.data.diagnostics.SUNDOWN_RECORD_FILE_NAME
 import com.zynergylabs.forager.app.data.diagnostics.RETURN_RECORD_FILE_NAME
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
@@ -394,6 +398,12 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
 
+    /**
+     * The wake-up alarms for Back by and the sundown alerts (dispatch 2026-09-28-796, RECORD -797): inexact,
+     * allow-while-idle, no permission. See [com.zynergylabs.forager.app.alert.AndroidWakeUpAlarms].
+     */
+    val wakeUpAlarms: com.zynergylabs.forager.app.domain.WakeUpAlarms = com.zynergylabs.forager.app.alert.AndroidWakeUpAlarms(context)
+
     // The three sundown alerts, held here so they outlive the Activity, as ReturnWatch is
     // (dispatch 2026-09-28-516). TrackRecordingService begins, feeds, ticks and ends it.
     val sundownWatch = SundownWatch(
@@ -405,6 +415,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
         errorLog = errorLog,
         lastKnownLocation = lastKnownLocation,
+        // Dispatch 2026-09-28-796 (RECORD -797): each evaluation, alert and wake-up, to files/sundown-record.log.
+        record = FileSundownRecord(java.io.File(context.filesDir, SUNDOWN_RECORD_FILE_NAME), currentTimeProvider),
+        alarms = wakeUpAlarms,
     )
 
     // Back by (dispatch 2026-09-28-645, plan task T15), held here for the same reason and driven by
@@ -416,6 +429,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         readWaypoint = waypointRepository::getById,
         isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
         errorLog = errorLog,
+        // Dispatch 2026-09-28-796: each set, evaluation, alert and end, to files/back-by-record.log; no positions.
+        record = FileBackByRecord(java.io.File(context.filesDir, BACK_BY_RECORD_FILE_NAME), currentTimeProvider),
+        alarms = wakeUpAlarms,
     )
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
     val getWaypointsUseCase = GetWaypointsUseCase(waypointRepository)

@@ -29,7 +29,12 @@ import kotlinx.coroutines.runBlocking
  * A process killed outright ends it where it stood, at most [WalkLogWriter.FLUSH_INTERVAL_NANOS]
  * short; nothing restarts it on a sticky restart, because the service starts nothing then either.
  *
- * **The switch is read when a recording starts.** Turning it on mid-recording logs from the next one.
+ * **The switch is followed during a recording** (dispatch 2026-09-28-796; the owner, RECORD -795: "Start
+ * straight away (Recommended)"). It is read when a recording starts, and the Diagnostics switch tells
+ * the logger when it changes ([onSwitchChanged]): switched on mid-recording, the log starts for that
+ * recording from that moment; switched off, it stops. Until -796 it was read once at the start, so a
+ * switch turned on 61 s after Record logged nothing for the whole L3 walk (RECORD -795). Each recording
+ * start also writes the switch's value to diagnostics.log, so a walk with no log file says why.
  *
  * **Wake lock** (RECORD -559, choice 3): a partial wake lock is held while the log runs, so the
  * processor stays awake to take sensor readings with the screen off; let go when the log ends, stops
@@ -45,6 +50,9 @@ class WalkLogger private constructor(private val app: Context) {
 
     @Volatile private var session: WalkLogSession? = null
     @Volatile private var file: File? = null
+
+    /** The recording running now, or null: set and cleared on the logger's thread only. */
+    private var recordingTrackId: String? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
     val isLogging: Boolean get() = session?.isActive == true
@@ -53,17 +61,54 @@ class WalkLogger private constructor(private val app: Context) {
     val currentFile: File? get() = file
 
     fun onRecordingStarted(trackId: String) {
-        handler.post { startOnThread(trackId) }
+        handler.post {
+            recordingTrackId = trackId
+            val on = switchIsOn()
+            recordSwitchAtStart(trackId, on)
+            if (on) startOnThread(trackId)
+        }
     }
 
     fun onRecordingStopped() {
-        handler.post { stopOnThread() }
+        handler.post {
+            recordingTrackId = null
+            stopOnThread(WalkLogSession.REASON_RECORDING_STOPPED)
+        }
+    }
+
+    /**
+     * The Diagnostics switch has just been stored as [enabled] (dispatch 2026-09-28-796). On, during a
+     * recording with no log running: the log starts now, for that recording. Off, with a log running:
+     * it stops, saying so. Anything else changes nothing; the next recording reads the stored value.
+     */
+    fun onSwitchChanged(enabled: Boolean) {
+        handler.post {
+            val trackId = recordingTrackId
+            when {
+                enabled && trackId != null && session?.isActive != true -> {
+                    Log.i(TAG, "The walk logger was switched on during the recording of track '$trackId'; logging from now.")
+                    startOnThread(trackId)
+                }
+                !enabled && session?.isActive == true -> {
+                    Log.i(TAG, "The walk logger was switched off during a recording; the log stops.")
+                    stopOnThread(REASON_SWITCHED_OFF)
+                }
+            }
+        }
+    }
+
+    /** One line in diagnostics.log per recording start, with the switch's value (dispatch 2026-09-28-796). Never fails the start. */
+    private fun recordSwitchAtStart(trackId: String, on: Boolean) {
+        try {
+            DiagnosticsLog.forContext(app).append("Walk logger switch at recording start: ${if (on) "on" else "off"} (track '$trackId')")
+        } catch (e: Exception) {
+            Log.w(TAG, "Couldn't write the walk logger's switch to diagnostics.log; the recording carries on.", e)
+        }
     }
 
     private fun startOnThread(trackId: String) {
         if (session?.isActive == true) return
         try {
-            if (!switchIsOn()) return
             val directory = directory(app)
             val startWall = System.currentTimeMillis()
             val logFile = File(directory, fileName(startWall))
@@ -92,9 +137,9 @@ class WalkLogger private constructor(private val app: Context) {
         }
     }
 
-    private fun stopOnThread() {
+    private fun stopOnThread(reason: String) {
         try {
-            session?.stop()
+            session?.takeIf { it.isActive }?.stop(reason)
         } catch (e: Exception) {
             Log.w(TAG, "The walk log did not end cleanly.", e)
         } finally {
@@ -134,6 +179,9 @@ class WalkLogger private constructor(private val app: Context) {
         const val WAKE_LOCK_TAG = "Forager:WalkLogger"
         private const val THREAD_NAME = "WalkLogger"
         private const val TAG = "WalkLog"
+
+        /** The END line's reason when the switch is turned off mid-recording (dispatch 2026-09-28-796). */
+        const val REASON_SWITCHED_OFF = "switched-off"
 
         /**
          * A ceiling, not the expected length: the lock is let go when the log ends. It bounds the

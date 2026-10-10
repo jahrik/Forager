@@ -226,6 +226,14 @@
             android:name=".data.backup.BackupRetryReceiver"
             android:exported="false" />
 
+        <!-- The wake-up alarm for Back by and the sundown alerts (dispatch 2026-09-28-796, RECORD -797): an inexact
+             allow-while-idle alarm, so no exact-alarm permission. A receiver, not the service, because the platform holds
+             the processor awake while a receiver handles its alarm, and the app holds no wake lock of its own. Not
+             exported: only this app's own PendingIntent reaches it. -->
+        <receiver
+            android:name=".alert.WakeUpAlarmReceiver"
+            android:exported="false" />
+
         <service
             android:name=".service.TrackRecordingService"
             android:exported="false"

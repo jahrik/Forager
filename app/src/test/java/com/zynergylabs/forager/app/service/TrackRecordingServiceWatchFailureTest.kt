@@ -130,10 +130,10 @@ class TrackRecordingServiceWatchFailureTest {
             super.returnOnKeptPoint(point)
         }
 
-        override fun backByOnFix(point: TrackPoint, provider: FixProvider) {
+        override fun backByOnFix(point: TrackPoint, provider: FixProvider): Boolean {
             if (which == Throwing.BACK_BY_ON_FIX) fail()
             passedThrough.incrementAndGet()
-            super.backByOnFix(point, provider)
+            return super.backByOnFix(point, provider)
         }
 
         private fun fail(): Nothing {
