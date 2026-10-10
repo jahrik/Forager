@@ -173,4 +173,21 @@ the pushed head afterwards.
   - The Back by step that followed set nothing. The newest line in `back-by-record.log` is still Case A rerun's `ended reason=im-back` at 01:03:17Z (18:03 PDT). The script's "record:" lines at 19:50:22 and 20:10:15 re-printed Case A's 17:54 `set` line, and that is not evidence of a new one.
   - So B (screen off 19:50:24 to 20:10) and C (forced deep idle 20:10:49 to 20:30:00, then unforced) ran with no recording and no Back by. Neither says anything about the alarm in Doze.
   - The script fault: it logged the service count and carried on instead of stopping on 0, and its record read did not filter to lines after the set. Evidence outside the repository: `~/Zynergy/device-evidence/2026-10-09-back-by/caseBC.log` and `batterystats-history.txt`. The latter is from runs with no recording, so it is not useful here.
-  - **Still open:** how late the allow-while-idle alarm comes on this phone in light and deep Doze. Firing with the screen off is covered by the JVM alarm-path tests (R2, R3) and is not confirmed on the device.
+  - **"Sunset triggered" at the 19:49 unplug (the owner): no sunset alert fired. It was the 17:45 leave-by alert, left in the shade.**
+  - Record and history: `sundown-record.log` shows the leave-by `fired … notification=posted vibration=done` at 17:45:29 and its sunset alarm cancelled on arrival at 17:47:30. After that it has only timer evaluations, the last at 19:05:32, with no `fired alert=sunset`. In usagestats, Forager's only `sundown_alert` interruption all evening is 17:45:30. Nothing from Forager was posted after 19:05:35, in either record or in usagestats.
+  - The recording stopped at 19:05:35 (`FOREGROUND_SERVICE_STOP`). By the coordinator's account, I stopped it on the coordinator's instruction ("Stop the 17:45 test recording, since it's yours"). I cannot see that exchange in my own context, and the phone's logs neither confirm nor contradict it: logcat's adb command lines only begin at 19:45.
+  - Why it read as sunset: the leave-by and heads-up alerts are titled "Sunset at %1$s" (`res/values/strings.xml:20`, used at `AndroidAlertDelivery.kt:358`). So the 17:45 alert read "Sunset at 6:35 PM".
+  - The alert was posted at 17:45 with the phone on USB and the screen on, so it is not a screen-off or Doze result.
+  - At 20:35 Forager had nothing in the shade. When the alert was removed, and by whom, is not determined.
+- **Finding: ending a recording leaves a sundown alert in the shade. Decision for the owner.**
+  - Nothing in `main` cancels `SUNDOWN_NOTIFICATION_ID` (1003, `AndroidAlertDelivery.kt:284`, `:330`). The alert has autoCancel, so it goes only when tapped.
+  - `stopRecording` (`TrackRecordingService.kt:360-372`) and `onDestroy` (`:159-163`) end the watches and cancel their alarms, but only the Back by alert is taken down (`:372`, with the owner's "Cancel automatically").
+  - So tonight's alert still read "Sunset at 6:35 PM" two hours later, after the recording had ended. The owner read it as a new alert.
+  - Related: `onDestroy` does not cancel the Back by alert, so a process killed rather than stopped can leave that alert in the shade too.
+  - Not changed in this dispatch.
+- **Finding: the wake-up alarm receiver cannot post without a recording (read from the code, not tested on the device).**
+  - `WakeUpAlarmReceiver` (`AndroidWakeUpAlarms.kt:75-105`) only calls `onAlarm()`.
+  - With nothing watched, both watches return before any post: `BackByWatch.kt:147-151` and `:232-234`, `SundownWatch.kt:198-205` and `:230-232`. The watch is empty after `end()` and in a fresh process started for a leftover alarm. They write `alarm-delivered` and nothing else.
+  - `end()` also cancels the alarm (`BackByWatch.kt:115-124`, `SundownWatch.kt:184-194`).
+  - Swiping the app away: no `onTaskRemoved` exists. So, inferred, the foreground recording carries on after a swipe. If the process is killed instead, an armed alarm finds an empty watch and posts nothing.
+- **Still open:** how late the allow-while-idle alarm comes on this phone in light and deep Doze. Firing with the screen off is covered by the JVM alarm-path tests (R2, R3) and is not confirmed on the device.
