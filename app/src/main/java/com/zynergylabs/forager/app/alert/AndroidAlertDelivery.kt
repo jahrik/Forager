@@ -275,6 +275,24 @@ internal fun vibrateWith(vibrator: Vibrator, overridesSilence: Boolean, pattern:
 }
 
 /**
+ * Takes down a recording's sundown, back-by and off-track alerts (RECORD -800, -801; the owner: "Yes, add it now
+ * (Recommended)"). A recording that ends any way leaves no "Sunset at …" or "Back by …" in the shade:
+ * on 2026-10-09 a leave-by posted at 17:45 still read "Sunset at 6:35 PM" after its recording had ended.
+ * Called when a recording stops, when the service is destroyed, and when a process starts, which covers a
+ * killed process whose `onDestroy` never ran: a new process has no recording, since one lives only in the
+ * service of the process that ran it, and a watch that is still due posts again. Answering an alert is not
+ * this path, and leaves the other alert where it is.
+ */
+internal fun cancelRecordingAlerts(context: Context) {
+    val manager = NotificationManagerCompat.from(context)
+    manager.cancel(SUNDOWN_NOTIFICATION_ID)
+    manager.cancel(BACK_BY_NOTIFICATION_ID)
+    // The off-track alert too (RECORD -801, the owner: "Yes"): it is about a recording, and one that has
+    // ended has no track to be off.
+    manager.cancel(OFF_TRACK_NOTIFICATION_ID)
+}
+
+/**
  * Its own channel, separate from off-track, so a user can silence one without losing the other.
  * That separation is the point: the owner's ruling is that off-track respects a silenced phone
  * and the sundown alerts do not, and two channels is what lets someone act on that difference in

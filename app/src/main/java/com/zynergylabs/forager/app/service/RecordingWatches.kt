@@ -25,7 +25,8 @@ internal open class RecordingWatches(private val container: AppContainer) {
 
     /**
      * Every raw fix, to the back-by watch (dispatch 2026-09-28-645; guarded as the others are,
-     * RECORD -674 and -687). See [com.zynergylabs.forager.app.domain.BackByWatch.onFix].
+     * RECORD -674 and -687); `true` asks for an evaluation now (dispatch 2026-09-28-796). See
+     * [com.zynergylabs.forager.app.domain.BackByWatch.onFix].
      */
-    open fun backByOnFix(point: TrackPoint, provider: FixProvider) = container.backByWatch.onFix(point, provider)
+    open fun backByOnFix(point: TrackPoint, provider: FixProvider): Boolean = container.backByWatch.onFix(point, provider)
 }

@@ -18,6 +18,8 @@ import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.MainActivity
 import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.alert.BACK_BY_NOTIFICATION_ID
+import com.zynergylabs.forager.app.alert.cancelRecordingAlerts
+import com.zynergylabs.forager.app.domain.EvaluationTrigger
 import com.zynergylabs.forager.app.diagnostics.WalkLogger
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationSampler
@@ -160,6 +162,8 @@ class TrackRecordingService : Service() {
         (application as ForagerApplication).container.returnWatch.end(null)
         (application as ForagerApplication).container.sundownWatch.end(null)
         (application as ForagerApplication).container.backByWatch.end(null)
+        // A recording that ends without a Stop leaves no alert behind either (RECORD -800).
+        cancelRecordingAlerts(this)
         WalkLogger.of(this).onRecordingStopped()
         recordingJob?.cancel()
         scope.cancel()
@@ -215,12 +219,16 @@ class TrackRecordingService : Service() {
                             // an evaluation at once on the first, so a recording started past the
                             // leave-by time does not wait for the timer.
                             if (guardWatch("The sundown watch", candidate) { watches.sundownOnFix(candidate, fix.provider) } == true) {
-                                launch { tickSundown(container) }
+                                launch { tickSundown(container, EvaluationTrigger.FIX) }
                             }
                             // Dispatch 2026-09-28-645 (RECORD -674, -687): every raw fix to the
                             // back-by watch, guarded as the two above are, so a back-by watch that
                             // throws loses this fix and nothing else.
-                            guardWatch("The back-by watch", candidate) { watches.backByOnFix(candidate, fix.provider) }
+                            // Dispatch 2026-09-28-796 (RECORD -797): and evaluated at once when its time has come, not
+                            // only on the timer, which stalls while the processor sleeps.
+                            if (guardWatch("The back-by watch", candidate) { watches.backByOnFix(candidate, fix.provider) } == true) {
+                                launch { tickBackBy(container, EvaluationTrigger.FIX) }
+                            }
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
                                 // Dispatch 2026-09-28-425: the kept point to the watch too, which
@@ -270,9 +278,9 @@ class TrackRecordingService : Service() {
     }
 
     /** One back-by evaluation; anything it throws is logged and dropped, as [tickSundown] does. */
-    private suspend fun tickBackBy(container: AppContainer) {
+    private suspend fun tickBackBy(container: AppContainer, trigger: EvaluationTrigger = EvaluationTrigger.TIMER) {
         try {
-            container.backByWatch.tick()
+            container.backByWatch.tick(trigger)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -342,9 +350,9 @@ class TrackRecordingService : Service() {
      * One sundown evaluation. Anything it throws is logged and dropped: it runs as a child of the
      * recording, and an exception escaping it would cancel the recording with it.
      */
-    private suspend fun tickSundown(container: AppContainer) {
+    private suspend fun tickSundown(container: AppContainer, trigger: EvaluationTrigger = EvaluationTrigger.TIMER) {
         try {
-            container.sundownWatch.tick()
+            container.sundownWatch.tick(trigger)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -363,8 +371,8 @@ class TrackRecordingService : Service() {
             container.sundownWatch.end(trackId)
             container.backByWatch.end(trackId)
             // The reminder ends with the recording (the owner: "Cancel automatically"), so an alert
-            // still in the shade has nothing left to answer.
-            NotificationManagerCompat.from(this).cancel(BACK_BY_NOTIFICATION_ID)
+            // still in the shade has nothing left to answer; the sundown alert goes with it (RECORD -800).
+            cancelRecordingAlerts(this)
             WalkLogger.of(this).onRecordingStopped()
             scope.launch {
                 flushPendingPoints(trackId, container)

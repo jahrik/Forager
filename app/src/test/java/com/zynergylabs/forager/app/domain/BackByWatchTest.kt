@@ -43,7 +43,18 @@ class BackByWatchTest {
         readWaypoint = { id -> Result.success(origin.takeIf { it.id == id }) },
         isReturning = { returning },
         errorLog = { _, message, _ -> logged += message },
+        record = { recorded += it },
+        alarms = object : WakeUpAlarms {
+            override fun schedule(alarm: WakeUpAlarm, atEpochMillis: Long): Boolean = true.also { alarmCalls += "schedule $alarm $atEpochMillis" }
+            override fun cancel(alarm: WakeUpAlarm) {
+                alarmCalls += "cancel $alarm"
+            }
+        },
     )
+
+    private val alarmCalls = mutableListOf<String>()
+
+    private val recorded = mutableListOf<BackByRecordEvent>()
 
     private fun tick() = runBlocking { watch.tick() }
 
@@ -319,5 +330,138 @@ class BackByWatchTest {
             listOf("The back-by alert was only partly delivered: notification posted, vibration skipped: Do Not Disturb."),
             logged,
         )
+    }
+
+    // ── The record (dispatch 2026-09-28-796): what happened, in order, never where ──
+
+    @Test
+    fun `the record says started, set, each evaluation, fired with its delivery, and ended by stop`() {
+        watch.begin("t1")
+        val backBy = start + minute
+        watch.set("t1", backBy)
+        tickUntil(backBy)
+        watch.end("t1")
+        val kinds = recorded.map { it::class.simpleName }
+        assertEquals(BackByRecordEvent.Started("t1", null), recorded.first())
+        assertEquals(BackByRecordEvent.Set("t1", backBy, accepted = true, watchedTrackId = null), recorded[1])
+        val evaluations = recorded.filterIsInstance<BackByRecordEvent.Evaluated>()
+        assertEquals("one evaluation per tick, 15 s apart, from start to the time: $kinds", 5, evaluations.size)
+        assertEquals(listOf(false, false, false, false, true), evaluations.map { it.due })
+        assertTrue(evaluations.all { it.trigger == EvaluationTrigger.TIMER })
+        assertEquals(BackByRecordEvent.Fired("t1", backBy, null), recorded.filterIsInstance<BackByRecordEvent.Fired>().single())
+        assertEquals(BackByRecordEvent.Ended("t1", BackByEndReason.STOP), recorded.filterIsInstance<BackByRecordEvent.Ended>().single())
+        assertEquals(BackByRecordEvent.AlarmCancelled("t1"), recorded.last())
+    }
+
+    @Test
+    fun `the record names each way it ends, and a refused set`() {
+        watch.begin("t1")
+        watch.set("t1", start + hour)
+        watch.clear("t1")
+        watch.set("t1", start + hour)
+        watch.imBack("t1")
+        watch.set("t1", start + hour)
+        watch.later("t1")
+        returning = true
+        watch.onFix(fixAt(5.0), FixProvider.GPS)
+        tick()
+        assertFalse("refused for another recording", watch.set("t2", start + hour))
+        watch.set("t1", start + hour)
+        watch.end(null)
+        val ends = recorded.filterIsInstance<BackByRecordEvent.Ended>().map { it.reason }
+        assertEquals(listOf(BackByEndReason.CLEAR, BackByEndReason.IM_BACK, BackByEndReason.ARRIVAL, BackByEndReason.SERVICE_DESTROYED), ends)
+        assertEquals(BackByRecordEvent.Later("t1", start + BACK_BY_LATER_MILLIS), recorded.filterIsInstance<BackByRecordEvent.Later>().single())
+        assertTrue(BackByRecordEvent.Set("t2", start + hour, accepted = false, watchedTrackId = "t1") in recorded)
+    }
+
+    @Test
+    fun `a stop with no time set records no end`() {
+        watch.begin("t1")
+        watch.end("t1")
+        assertEquals(listOf<BackByRecordEvent>(BackByRecordEvent.Started("t1", null)), recorded.toList())
+    }
+
+    // ── A fix, and the wake-up alarm (dispatch 2026-09-28-796; the owner, RECORD -797) ──
+
+    @Test
+    fun `a fix asks for an evaluation only once the time has come and not yet alerted`() {
+        watch.begin("t1")
+        val backBy = start + hour
+        watch.set("t1", backBy)
+        clock.now = backBy - 1_000L
+        assertFalse("before the time", watch.onFix(fixAt(2_000.0), FixProvider.GPS))
+        clock.now = backBy
+        assertTrue("at the time", watch.onFix(fixAt(2_000.0), FixProvider.GPS))
+        runBlocking { watch.tick(EvaluationTrigger.FIX) }
+        assertEquals("fired, at the fix", listOf(backBy), times())
+        assertFalse("alerted: no more asking", watch.onFix(fixAt(2_000.0), FixProvider.GPS))
+        assertTrue(BackByRecordEvent.Evaluated("t1", backBy, due = true, trigger = EvaluationTrigger.FIX) in recorded)
+    }
+
+    @Test
+    fun `nothing set, a fix asks for nothing`() {
+        watch.begin("t1")
+        clock.now += 2 * hour
+        assertFalse(watch.onFix(fixAt(0.0), FixProvider.GPS))
+    }
+
+    @Test
+    fun `the wake-up follows the time through set, +30 min, Clear, arrival, stop and the service destroyed`() {
+        watch.begin("t1")
+        watch.set("t1", start + hour)
+        watch.later("t1")
+        watch.clear("t1")
+        watch.set("t1", start + hour)
+        returning = true
+        watch.onFix(fixAt(5.0), FixProvider.GPS)
+        tick()
+        returning = false
+        watch.set("t1", start + 2 * hour)
+        watch.end("t1")
+        watch.begin("t2")
+        watch.set("t2", start + hour)
+        watch.end(null)
+        assertEquals(
+            listOf(
+                "schedule BACK_BY ${start + hour}",
+                "schedule BACK_BY ${start + BACK_BY_LATER_MILLIS}",
+                "cancel BACK_BY",
+                "schedule BACK_BY ${start + hour}",
+                "cancel BACK_BY",
+                "schedule BACK_BY ${start + 2 * hour}",
+                "cancel BACK_BY",
+                "schedule BACK_BY ${start + hour}",
+                "cancel BACK_BY",
+            ),
+            alarmCalls,
+        )
+        assertEquals(5, recorded.filterIsInstance<BackByRecordEvent.AlarmScheduled>().count { it.accepted })
+        assertEquals(4, recorded.filterIsInstance<BackByRecordEvent.AlarmCancelled>().size)
+    }
+
+    @Test
+    fun `a refused set asks for no wake-up`() {
+        watch.begin("t1")
+        assertFalse(watch.set("t2", start + hour))
+        assertTrue(alarmCalls.isEmpty())
+    }
+
+    @Test
+    fun `the wake-up arriving at the time fires the alert, recorded as woken by the alarm`() {
+        watch.begin("t1")
+        val backBy = start + hour
+        watch.set("t1", backBy)
+        clock.now = backBy + 3 * minute
+        runBlocking { watch.onAlarm() }
+        assertEquals("fired by the alarm, minutes late as an inexact alarm may be", listOf(backBy + 3 * minute), times())
+        assertTrue(BackByRecordEvent.AlarmDelivered("t1") in recorded)
+        assertTrue(BackByRecordEvent.Evaluated("t1", backBy, due = true, trigger = EvaluationTrigger.ALARM) in recorded)
+    }
+
+    @Test
+    fun `a wake-up with nothing set is recorded and does nothing`() {
+        runBlocking { watch.onAlarm() }
+        assertEquals(listOf<BackByRecordEvent>(BackByRecordEvent.AlarmDelivered(null)), recorded.toList())
+        assertTrue(delivered.isEmpty())
     }
 }
