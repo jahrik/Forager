@@ -158,12 +158,14 @@ fun heightProfileOf(tracks: List<Track>): HeightProfile {
         .sortedBy { it.points.firstOrNull()?.timestampEpochMillis ?: it.startedAtEpochMillis }
         .map { track ->
             val samples = mutableListOf<HeightSample>()
+            // RECORD -867, part 4: the chart draws the heights Climb reads ([trackHeights]), not raw GPS altitude.
+            val heights = trackHeights(track.points)
             track.points.forEachIndexed { index, point ->
                 if (index > 0) {
                     val previous = track.points[index - 1]
                     walked += GeoDistance.metersBetween(LatLng(previous.lat, previous.lng), LatLng(point.lat, point.lng))
                 }
-                point.altitude?.let { samples += HeightSample(distanceMeters = walked, altitudeMeters = it) }
+                heights[index]?.let { samples += HeightSample(distanceMeters = walked, altitudeMeters = it) }
             }
             samples.toList()
         }

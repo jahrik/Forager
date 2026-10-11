@@ -147,11 +147,17 @@ class EntryReportTest {
         val actual = profile.segments[0].map { it.distanceMeters }
         assertEquals(expected.size, actual.size)
         expected.zip(actual).forEach { (e, a) -> assertEquals(e, a, 0.01) }
-        assertEquals(listOf(100.0, 120.0, 110.0, 105.0, 101.0), profile.segments[0].map { it.altitudeMeters })
+        // RECORD -867, part 4: the chart draws smoothed heights (trackHeights). By hand, on the morning's run 120, 110,
+        // 105, 101 (10 s apart): a run's ends stay as recorded; 110 becomes the mean of the medians 120, 110, 105 =
+        // 111.67, and 105 the mean of 110, 105, 101 = 105.33. The afternoon's 130 is a lone peak among 90, 95, 125, 120,
+        // 115: its median is 120 and its smoothed height 109, so the highest drawn is the morning's 120, not 130.
+        // (Until 2026-10-11 these read the raw 110, 105 and a highest of 130.)
+        val morningHeights = listOf(100.0, 120.0, 111.0 + 2.0 / 3.0, 105.0 + 1.0 / 3.0, 101.0)
+        morningHeights.zip(profile.segments[0].map { it.altitudeMeters }).forEach { (e, a) -> assertEquals(e, a, 1e-9) }
         assertEquals("the afternoon starts where the morning ended", 5 * step, profile.segments[1].first().distanceMeters, 0.01)
         assertEquals(10 * step, profile.lengthMeters, 0.01)
-        assertEquals(90.0, profile.lowestMeters, 0.0)
-        assertEquals(130.0, profile.highestMeters, 0.0)
+        assertEquals(90.0, profile.lowestMeters, 1e-9)
+        assertEquals(120.0, profile.highestMeters, 1e-9)
     }
 
     /**
