@@ -100,10 +100,13 @@ fun entryReportOf(
     val includedLive = includedTracks.mapNotNull { liveById[it.trackId] }
     val allLive = includedLive.size == includedTracks.size
 
-    val climb = if (includedTracks.isEmpty() || !allLive) {
+    // RECORD -867 (the planner's call, option a): a track with fewer than two points has no height change to miss, so it
+    // is left out of Climb instead of blanking it for the whole entry. A longer track with no heights still blanks it.
+    val measurable = includedLive.filter { it.points.size >= MIN_POINTS_FOR_CLIMB }
+    val climb = if (includedTracks.isEmpty() || !allLive || measurable.isEmpty()) {
         null
     } else {
-        val gains = includedLive.map { computeTrackStatistics(it.points).elevationGainMeters }
+        val gains = measurable.map { computeTrackStatistics(it.points).elevationGainMeters }
         if (gains.any { it == null }) null else gains.sumOf { it ?: 0.0 }
     }
 
@@ -173,6 +176,9 @@ fun heightProfileOf(tracks: List<Track>): HeightProfile {
         lengthMeters = walked,
     )
 }
+
+/** Fewest points a track needs to count toward an entry's Climb: one point has no height change to measure (RECORD -867). */
+internal const val MIN_POINTS_FOR_CLIMB = 2
 
 /** Distance along [track]'s points up to the last one recorded at or before [atEpochMillis]; 0 before its first. */
 private fun distanceWalkedBy(track: Track, atEpochMillis: Long): Double {

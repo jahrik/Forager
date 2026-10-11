@@ -87,6 +87,29 @@ class EntryReportTest {
         assertNull("no heights", entryReportOf(entry(tracks = listOf(decision("up"), decision("unknown"))), listOf(up, flatUnknown), emptyList(), stats).climbMeters)
     }
 
+    /**
+     * RECORD -867, the planner's call (a): a track with fewer than two points has no height change to miss, so it is
+     * left out of Climb rather than blanking it. The owner's Oct 10 entry held a recording started and stopped within
+     * a minute beside the real walk, and Climb read "Not recorded" while the chart drew.
+     */
+    @Test
+    fun `a track with fewer than two points is left out of climb, not a reason to blank it`() {
+        val up = track("up", listOf(100.0, 105.0, 110.0, 115.0, 120.0))
+        val blip = track("blip", listOf(130.0), t0 = 9_000_000L)
+        val empty = track("empty", emptyList(), t0 = 9_500_000L)
+
+        val report = entryReportOf(entry(tracks = listOf(decision("up"), decision("blip"), decision("empty"))), listOf(up, blip, empty), emptyList(), stats)
+
+        assertEquals("the walk's 20 m, with a one-point and an empty track beside it", 20.0, report.climbMeters ?: -1.0, 1e-9)
+    }
+
+    /** With nothing but short tracks there is no track to measure, so Climb is still not known. */
+    @Test
+    fun `climb is not known when every included track has fewer than two points`() {
+        val blip = track("blip", listOf(130.0))
+        assertNull(entryReportOf(entry(tracks = listOf(decision("blip"))), listOf(blip), emptyList(), stats).climbMeters)
+    }
+
     @Test
     fun `no included track means no profile at all, and a missing track's points say so`() {
         assertEquals(HeightProfile.NoTrack, entryReportOf(entry(tracks = listOf(decision("a", kept = false))), emptyList(), emptyList(), stats).heightProfile)
