@@ -167,3 +167,21 @@ Run on the S22 (SM-S908U, no SIM, GPS only) with a debug build of this branch. R
 5. **Back by (gate, if set).** Set Back by for a time after the walk is expected to end. Pass: `back-by-record.log` shows `ended … reason=arrival` within about 15 s of the return's arrival line, and no back-by alert after it.
 6. **Exit during the hold (observation, not a gate).** Repeat 3 and tap X within the 10 s. The display closes at once and no new Return starts (`return-record.log` has no second `return-started`).
 7. **Sundown (observation).** If the walk is inside the sundown window, no sundown alert comes after arrival.
+
+## S22 launch check (run 2026-10-11, PR #214)
+
+**Result: PASS.**
+
+**What was tested.** The APK built at `4216702d`. The later commit `969004a6` changed only docs: `git diff --stat 4216702d 969004a6` shows `docs/audits/README.md` and this report. The APK's sha256 is `4a7fdcf8de6490183e9dff6e52687ad74f9edeee154043f263dbf1c1b2a6d3b8`, and the phone reports it installed as `versionName=1.0.3163+g4216702d`.
+
+**How it was run.** `scripts/s22-launch-check.sh` on the S22 (R5CT321008R). The script's output:
+- `Install: Success`;
+- `compile -m verify -f: Success`, `dexopt: status=verify`;
+- `LaunchState: COLD`;
+- `PASS: verified (status=verify), launched, process 2789 alive after 8 s, crash buffer empty`.
+
+**Logcat.** There is no `VerifyError` for the app. There are two info lines, both from process 2789: `Method exceeds compiler instruction limit: 21443 in void …AvailabilityScreenKt.AvailabilityScreen(…)`. That means ART will not compile that method ahead of time and runs it in the interpreter. The app kept running: process 2789 was still alive after the check, and the crash buffer is empty. Nothing in logcat names `CompactMainScaffold`. I did not compare with a build of main, so whether this line is new with this change is not known.
+
+**What was not done.** No taps beyond the launch, and the S26 was not touched.
+
+**Evidence.** Saved outside every repo, in `~/Zynergy/device-evidence/2026-10-11-return-arrival/`: `s22-launch-check.txt`, `apk.sha256`, `logcat-full.txt`, `logcat-verify-grep.txt` and `logcat-crash.txt` (0 lines).
