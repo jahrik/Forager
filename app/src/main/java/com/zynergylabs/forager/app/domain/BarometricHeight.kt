@@ -135,13 +135,13 @@ const val PRESSURE_MAX_HPA: Double = 1100.0
  * Faster than this, a step in the median height is a pressure transient, not a walker: 0.5 m/s, where steep stairs climbed
  * briskly are about 0.3 m/s. Was 2 m/s (RECORD -889). A starting value for the device check.
  */
-const val BARO_MAX_VERTICAL_SPEED_METERS_PER_SECOND: Double = 0.5
+const val BARO_MAX_VERTICAL_SPEED_METERS_PER_SECOND: Double = 2.0 // REVERT CHECK -889 (b)
 
 /**
  * Half the barometer's smoothing window: 60 s each side of a point, so a minute's readings either side at most (RECORD
  * -889). At 45 s the S22 walk still ended 6.3 m low, by a port of this code; at 60 s, 1.2 m. A starting value.
  */
-const val BARO_WINDOW_HALF_MILLIS: Long = 60_000L
+const val BARO_WINDOW_HALF_MILLIS: Long = 15_000L // REVERT CHECK -889 (a)
 
 /** The first anchor is taken over this long from the first reading. */
 const val BARO_INITIAL_ANCHOR_MILLIS: Long = 60_000L
