@@ -161,7 +161,7 @@ class CartographyViewModel(
                         findDecisions = trip.derivedTrip.finds.map { it.toDecision(kept = true) },
                         // RECORD -867 ("Leave out recordings under a minute"): a recording shorter than a minute
                         // starts left out, a decision the editor shows and the user can change; it stays in Records.
-                        trackDecisions = trip.derivedTrip.tracks.map { it.toDecision(kept = !it.isShortRecording(), computeTrackStatistics) },
+                        trackDecisions = trip.derivedTrip.tracks.map { it.toDecision(kept = true, computeTrackStatistics) /* REVERT CHECK part 3 */ },
                         waypointDecisions = trip.derivedTrip.waypoints.map { it.toDecision(kept = true) },
                         offlineRegionDecisions = trip.offlineRegions.map { it.toDecision(kept = true) },
                     )
