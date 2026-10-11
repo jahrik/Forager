@@ -872,9 +872,6 @@ fun AvailabilityScreen(
     // remember, not saveable: it is a convenience within a session, and a recreation closing them
     // loses nothing the user wrote.
     val cartographyOpenEntryGroupsState = remember { mutableStateOf(emptySet<EntryGroup>()) }
-    // RECORD -671 (the planner's call under the same rule): the entry report's waypoint rows showing
-    // their coordinates, by waypoint id, held here for the same reason.
-    val cartographyOpenWaypointRowsState = remember { mutableStateOf(emptySet<String>()) }
     // Intent 2026-09-28-44, F3 ("Keep finds open too (Recommended)"): an open find's mode, and M1's
     // find over the view, held here for the same reason. The mode saves as its enum. FindOverView is
     // plain remember: it survives the tab change the ruling is about, not a recreation.
@@ -1089,6 +1086,12 @@ fun AvailabilityScreen(
                     journalScreenState.topTab = JournalTopTab.RECORDS
                     compactTab = CompactTab.JOURNAL
                     if (origin is WaypointNavigationOrigin.RecordsDetails) recordsWaypointReopen = origin.waypointId
+                }
+                // RECORD -890: back to the journal entry whose map Navigate was tapped on. The entry is still the
+                // Journal's open one; the bubble is not reopened, as a Records row reopens nothing.
+                is WaypointNavigationOrigin.JournalEntryMap -> {
+                    journalScreenState.topTab = JournalTopTab.CARTOGRAPHY
+                    compactTab = CompactTab.JOURNAL
                 }
             }
         }
@@ -1901,7 +1904,6 @@ fun AvailabilityScreen(
             journalScreenState = journalScreenState,
             cartographyEntryModeState = cartographyEntryModeState,
             cartographyOpenEntryGroupsState = cartographyOpenEntryGroupsState,
-            cartographyOpenWaypointRowsState = cartographyOpenWaypointRowsState,
             findEntryModeState = findEntryModeState,
             findOverViewState = findOverViewState,
         )

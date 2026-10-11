@@ -158,6 +158,12 @@ data class MapRecordSources(
      * action (there is no record to open) and no date (the snapshot never held one).
      */
     val snapshotTracks: List<TrackDecision> = emptyList(),
+    /**
+     * An entry map's waypoints' distance walked from the start of their own track, in metres, by waypoint id
+     * (RECORD -867, the owner: "Add it to the icon's details"; the entry report's waypoint table, which had it,
+     * is gone). A waypoint not in it gets no such line; every other map passes none.
+     */
+    val waypointDistancesFromStart: Map<String, Double> = emptyMap(),
     val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     val tracks: List<Track> = emptyList(),
     val plannedTrips: List<PlannedTrip> = emptyList(),
@@ -213,7 +219,14 @@ sealed interface MapBubbleContent {
     data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A waypoint: its name and MGRS; Directions, and details while its record exists ([hasDetails]). */
-    data class WaypointContent(val waypoint: Waypoint, val mgrs: String?, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
+    data class WaypointContent(
+        val waypoint: Waypoint,
+        val mgrs: String?,
+        val hasDetails: Boolean = true,
+        val keptIn: List<JournalEntryOnMap> = emptyList(),
+        /** "0.3 mi walked from the start" on an entry map (RECORD -867); `null` everywhere else and when it is not known. */
+        val fromStart: String? = null,
+    ) : MapBubbleContent
 
     /** A track: its title, date, distance and duration; details. */
     data class TrackContent(val trackId: String, val title: String, val date: String?, val distance: String, val duration: String, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
@@ -270,10 +283,13 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 keptIn = keepingEntries,
             )
         }
-        MapBubbleKind.WAYPOINT -> sources.waypoints.firstOrNull { it.id == id }
-            ?.let { waypoint -> MapBubbleContent.WaypointContent(waypoint, mgrsOf(LatLng(waypoint.lat, waypoint.lng)), keptIn = keptIn(HighlightedRecordKind.WAYPOINT)) }
-            ?: sources.snapshotWaypoints.firstOrNull { it.id == id }
-                ?.let { kept -> MapBubbleContent.WaypointContent(kept, mgrsOf(LatLng(kept.lat, kept.lng)), hasDetails = false) }
+        MapBubbleKind.WAYPOINT -> {
+            val fromStart = sources.waypointDistancesFromStart[id]?.let { waypointFromStartLine(it, sources.distanceUnit) }
+            sources.waypoints.firstOrNull { it.id == id }
+                ?.let { waypoint -> MapBubbleContent.WaypointContent(waypoint, mgrsOf(LatLng(waypoint.lat, waypoint.lng)), keptIn = keptIn(HighlightedRecordKind.WAYPOINT), fromStart = fromStart) }
+                ?: sources.snapshotWaypoints.firstOrNull { it.id == id }
+                    ?.let { kept -> MapBubbleContent.WaypointContent(kept, mgrsOf(LatLng(kept.lat, kept.lng)), hasDetails = false, fromStart = fromStart) }
+        }
         MapBubbleKind.PLANNED_TRIP -> sources.plannedTrips.firstOrNull { it.id == id }?.let { trip ->
             // The Trip Planner row's lines (AvailabilityTripsWaypointsUi's PlannedTripRow): name,
             // date, MGRS when there is one, decimal degrees.
@@ -320,6 +336,10 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
         MapBubbleKind.FORECAST_CELL -> null
     }
 }
+
+/** A waypoint's distance from the start as its entry-map bubble writes it (RECORD -867): "0.3 mi walked from the start". */
+internal fun waypointFromStartLine(meters: Double, distanceUnit: DistanceUnit): String =
+    "${formatDistanceMeters(meters, distanceUnit)} walked from the start"
 
 /** A find's date as its gallery tile captions it ("Find on <date>", `FindsGalleryScreen`). */
 private fun findDateLabel(find: MushroomLogEntry): String = "Find on ${displayDate(find.foundOn)}"

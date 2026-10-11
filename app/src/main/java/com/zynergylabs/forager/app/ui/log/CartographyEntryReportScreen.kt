@@ -306,12 +306,7 @@ internal fun CartographyEntryReportScreen(
      * a live record saying so; see [entryReportOf].
      */
     candidates: DerivedTrip? = null,
-    /** Which waypoint rows show their coordinates, by waypoint id: hoisted (RECORD -671) so it survives leaving the report; see [EntryWaypointTable]. */
-    openWaypointRowsState: MutableState<Set<String>> = remember { mutableStateOf(emptySet()) },
 ) {
-    var openWaypointRows by openWaypointRowsState
-    // RECORD -671: a track's name row opens its details here, over the report, as a bubble's Details does on a map.
-    var trackDetails by remember(entry.id) { mutableStateOf<RecordDetailsTarget?>(null) }
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
     var mapData by remember(entry.id) { mutableStateOf<CartographyEntryMapData?>(null) }
@@ -385,10 +380,6 @@ internal fun CartographyEntryReportScreen(
         coveringOfflineRegion = getCoveringOfflineRegion(entry, resolved.drawablePoints)
     }
 
-    // The tracks a name row can open: the day's, as the editor loaded them, and any the caller's bubbles know.
-    val liveTracks = remember(candidates, mapBubbleSources.tracks) {
-        (candidates?.tracks.orEmpty() + mapBubbleSources.tracks).distinctBy { it.id }
-    }
     val report = remember(entry, candidates) {
         entryReportOf(entry, candidates?.tracks.orEmpty(), candidates?.waypoints.orEmpty(), ComputeTrackStatisticsUseCase())
     }
@@ -571,6 +562,13 @@ internal fun CartographyEntryReportScreen(
                         snapshotWaypoints = entryMapWaypoints(entry, resolvedMapData.waypointMarkers),
                         // F3: a kept track gone from Records still has its saved line drawn; a tap on it names it from the entry.
                         snapshotTracks = entry.trackDecisions.filter { it.kept },
+                        // RECORD -867 ("Add it to the icon's details"): the waypoint table is gone, so a waypoint's
+                        // bubble on this map carries the distance walked from the start of its own track, the one
+                        // figure only the table had. The unit is the screen's own, the setting the table used.
+                        distanceUnit = distanceUnit,
+                        waypointDistancesFromStart = report.waypoints
+                            .mapNotNull { row -> row.distanceFromStartMeters?.let { row.id to it } }
+                            .toMap(),
                     ),
                     forecast = null,
                     onViewSightingOnINaturalist = { tapped = null },
@@ -685,56 +683,19 @@ internal fun CartographyEntryReportScreen(
                         HorizontalDivider()
                     }
 
-                    // Data part A (dispatch 2026-09-28-667; the owner in RECORD -656, "Summary tiles +
-                    // height profile (Recommended)"): labelled tiles, the height profile, then the
-                    // waypoints as a short table, in place of a line of loose values per item.
+                    // RECORD -867 (the owner: "Keep notes, tags, photos and the toggle"): under the map, the four
+                    // tiles and the writing above them. The track list, the finds list and the waypoint table went
+                    // (the owner, RECORD -864: "The raw data is an eyesore and is what records are for"); tapping a
+                    // record on the map still shows its details. The kept offline maps' list went too (RECORD -873, the
+                    // owner: "Remove it, like the other lists"); the Offline map toggle above stays. The height chart was hidden until barometer height
+                    // landed (RECORD -864, "Keep it, once height is fixed"); it is back (part 5), drawing trackHeights.
                     EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
                     EntryHeightProfile(profile = report.heightProfile, distanceUnit = distanceUnit)
-                    EntryWaypointTable(
-                        waypoints = report.waypoints,
-                        distanceUnit = distanceUnit,
-                        openRows = openWaypointRows,
-                        onToggleRow = { id -> openWaypointRows = if (id in openWaypointRows) openWaypointRows - id else openWaypointRows + id },
-                    )
-                    EntryTrackRows(
-                        tracks = entry.trackDecisions.filter { it.kept },
-                        liveTrackIds = liveTracks.map { it.id }.toSet(),
-                        dayLoaded = candidates != null,
-                        onOpenTrack = { id -> trackDetails = RecordDetailsTarget.TrackDetails(id) },
-                    )
-                    ReportItemsSection(
-                        title = "Finds",
-                        items = entry.findDecisions.filter { it.kept }.map { ReportItem(title = "Find on ${displayDate(it.foundOn)}", subtitle = it.ownIdentification) },
-                    )
-                    ReportItemsSection(
-                        title = "Offline maps",
-                        items = entry.offlineRegionDecisions.filter { it.kept }.map {
-                            ReportItem(title = it.name, subtitle = "${formatDistanceKm(it.radiusKm, distanceUnit)} radius")
-                        },
-                    )
                 }
 
                 Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
             }
         }
-    }
-
-    trackDetails?.let { target ->
-        RecordDetailsSheet(
-            target = target,
-            waypoints = (candidates?.waypoints.orEmpty() + mapBubbleSources.waypoints).distinctBy { it.id },
-            tracks = liveTracks,
-            offlineRegions = mapBubbleSources.offlineRegions,
-            waypointEntryReferenceCounts = mapBubbleSources.waypointEntryReferenceCounts,
-            distanceUnit = distanceUnit,
-            nowEpochMillis = mapBubbleSources.nowEpochMillis(),
-            staleThresholdDays = mapBubbleSources.staleThresholdDays,
-            getFullRecord = mapBubbleSources.getFullRecord,
-            onDismiss = { trackDetails = null },
-            // The sheet covers the entry's map preview when it has one (map chrome at 80%).
-            overMap = entryMapShown,
-            onOpenDetails = { next -> trackDetails = next },
-        )
     }
 
     if (confirmingDelete) {

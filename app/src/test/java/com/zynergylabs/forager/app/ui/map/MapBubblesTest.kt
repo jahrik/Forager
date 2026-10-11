@@ -201,6 +201,28 @@ class MapBubblesTest {
         assertEquals(true, (mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1"), sources.copy(snapshotWaypoints = listOf(kept)), is24HourClock = false) as MapBubbleContent.WaypointContent).hasDetails)
     }
 
+    /**
+     * RECORD -867 ("Add it to the icon's details"): on an entry map a waypoint's bubble gives the distance walked from
+     * the start, in the unit setting, for a live record and for one known only from the entry's snapshot. 556 m is
+     * 0.3 mi. A waypoint with no known distance, and every other map, get no such line.
+     */
+    @Test
+    fun `on an entry map a waypoint's bubble gives the distance walked from the start`() {
+        val kept = Waypoint("wp-gone", 45.4, -122.5, null, "Old gate", "", 0L)
+        val entryMap = sources.copy(
+            distanceUnit = DistanceUnit.MILES,
+            snapshotWaypoints = listOf(kept),
+            waypointDistancesFromStart = mapOf("wp-1" to 556.0, "wp-gone" to 0.0),
+        )
+        fun fromStart(id: String, from: MapRecordSources) =
+            (mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, id), from, is24HourClock = false) as MapBubbleContent.WaypointContent).fromStart
+
+        assertEquals("0.3 mi walked from the start", fromStart("wp-1", entryMap))
+        assertEquals("0 ft walked from the start", fromStart("wp-gone", entryMap))
+        assertEquals(null, fromStart("wp-1", sources))
+        assertEquals(null, fromStart("wp-1", entryMap.copy(waypointDistancesFromStart = emptyMap())))
+    }
+
     @Test
     fun `a track shows its title, date, distance and duration`() {
         val stats = ComputeTrackStatisticsUseCase()(track.points)

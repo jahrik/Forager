@@ -87,7 +87,10 @@ class CartographyEntryReportScreenTest {
 
         // Data part A (dispatch 2026-09-28-667): the date reads "Aug 1, 2026" (the owner, RECORD -656).
         composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
-        // No section headings render at all — nothing was kept in any of them.
+        // No section headings render at all — nothing was kept in any of them. (RECORD -867: since the track list, the
+        // finds list and the waypoint table went, the "Finds", "Tracks" and "Waypoints" lines below pass whatever is
+        // kept, so they no longer tell this case from any other. The removal itself is held by
+        // `the page lists no finds, tracks, waypoints or offline maps, only the tiles` below, which keeps all four.)
         composeRule.onNodeWithText("Finds").assertDoesNotExist()
         composeRule.onNodeWithText("Tracks").assertDoesNotExist()
         composeRule.onNodeWithText("Waypoints").assertDoesNotExist()
@@ -148,8 +151,17 @@ class CartographyEntryReportScreenTest {
         composeRule.onNodeWithText("Tags: chanterelle, ridge").assertIsDisplayed()
     }
 
+    /**
+     * RECORD -867 (the owner: "Keep notes, tags, photos and the toggle") and -873 ("Remove it, like the other lists"):
+     * with a find, a track, a waypoint and an offline map kept, the page lists none of them; the tiles count them, and a
+     * withheld find is not counted. Part 2 kept the offline maps' line, which -867 did not name; part 3b removes it, and
+     * its two "displayed" assertions are inverted here. Until 2026-10-11 this was `only kept decisions render,
+     * never a withheld one`, which read the find, track and waypoint lines as displayed; those assertions are inverted
+     * here. The two tests of a kept track's name row (a deleted track still named; a track gone from a loaded day
+     * saying so) are removed with the row.
+     */
     @Test
-    fun `only kept decisions render, never a withheld one`() {
+    fun `the page lists no finds, tracks, waypoints or offline maps, only the tiles`() {
         val entry = baseEntry.copy(
             findDecisions = listOf(
                 FindDecision(findId = "f1", foundOn = LocalDate.of(2026, 8, 1), ownIdentification = "Chanterelle", hasPhotos = false, kept = true),
@@ -170,62 +182,14 @@ class CartographyEntryReportScreenTest {
             CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, getCoveringOfflineRegion = { _, _ -> null }, getCurrentLocation = { LocationResult.LocationUnavailable }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
-        // Data part A: "Finds" is now both the tile's label and the list's heading, so the tile is read by its tag.
         composeRule.onNodeWithTag(entryTileTag(TILE_FINDS)).assert(hasText("1"))
-        // The tiles, profile line and waypoint table now sit above the lists, so they are scrolled to.
-        composeRule.onNodeWithText("Find on Aug 1, 2026").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Chanterelle").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Withheld find").assertDoesNotExist()
-
-        composeRule.onNodeWithText("Tracks").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Ridge Loop").performScrollTo().assertIsDisplayed()
-
-        composeRule.onNodeWithText("Waypoints").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Trailhead").performScrollTo().assertIsDisplayed()
-
-        composeRule.onNodeWithText("Offline maps").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Ridge Region").performScrollTo().assertIsDisplayed()
-    }
-
-    /**
-     * The dispatch's own required case: a kept track whose underlying [com.zynergylabs.forager.app.domain.model.Track]
-     * has since been deleted from Records must still render its snapshotted text, structurally
-     * impossible to error on since this screen never resolves the id against anything.
-     */
-    @Test
-    fun `a kept track survives as text even though nothing backs its id`() {
-        val entry = baseEntry.copy(
-            trackDecisions = listOf(
-                TrackDecision(trackId = "deleted-track", name = "Gone Now Loop", distanceMeters = 3_200.0, durationMillis = 1_800_000L, pointCount = 100, kept = true),
-            ),
-        )
-
-        composeRule.setContent {
-            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, getCoveringOfflineRegion = { _, _ -> null }, getCurrentLocation = { LocationResult.LocationUnavailable }, onEdit ={}, onDeleteEntry = {}, onBack = {})
+        composeRule.onNodeWithText("3.0 mi").assertExists()
+        listOf("Find on Aug 1, 2026", "Chanterelle", "Withheld find", "Tracks", "Ridge Loop", "Waypoints", "Trailhead").forEach { text ->
+            composeRule.onNodeWithText(text).assertDoesNotExist()
         }
 
-        composeRule.onNodeWithText("Gone Now Loop").assertIsDisplayed()
-        // RECORD -671: with the day's records not loaded, the track is not known to be gone, so no note.
-        composeRule.onNodeWithText(TRACK_NOT_IN_RECORDS_LINE).assertDoesNotExist()
-    }
-
-    /** RECORD -671: with the day loaded and the track not in it, its name row says it is gone and has nothing to open. */
-    @Test
-    fun `a kept track gone from a loaded day says it is no longer in Records and has no tap`() {
-        val entry = baseEntry.copy(
-            trackDecisions = listOf(
-                TrackDecision(trackId = "deleted-track", name = "Gone Now Loop", distanceMeters = 3_200.0, durationMillis = 1_800_000L, pointCount = 100, kept = true),
-            ),
-        )
-        val day = DerivedTrip(date = entry.date, finds = emptyList(), tracks = emptyList(), waypoints = emptyList(), offlineRegions = emptyList())
-
-        composeRule.setContent {
-            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, getCoveringOfflineRegion = { _, _ -> null }, getCurrentLocation = { LocationResult.LocationUnavailable }, onEdit ={}, onDeleteEntry = {}, onBack = {}, candidates = day)
-        }
-
-        composeRule.onNodeWithText("Gone Now Loop").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(TRACK_NOT_IN_RECORDS_LINE).assertIsDisplayed()
-        composeRule.onNodeWithTag(entryTrackRowTag("deleted-track")).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+        composeRule.onNodeWithText("Offline maps").assertDoesNotExist()
+        composeRule.onNodeWithText("Ridge Region").assertDoesNotExist()
     }
 
     /** Stage 2c dispatch, point 5: reuses [CartographyEntryEditScreen]'s own fallback — proves it still renders when the gallery row is gone. */

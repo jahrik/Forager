@@ -85,7 +85,7 @@ import org.robolectric.annotation.Config
  * Arrival is the start's (the ring and "Arrived"). Back ends it and goes back to where Navigate was
  * tapped; the X-circle and the HUD's ✕ end it where the walker is. A return under way is paused and picks
  * back up. A waypoint deleted meanwhile, or while the app was closed, ends it with a message. An entry
- * map's bubble keeps Directions only.
+ * map's bubble offers Navigate too since RECORD -890, and Back from it returns to the entry.
  *
  * Every touch on a control is a real one at screen coordinates (CLAUDE.md, Testing); getting to a tab may
  * be a semantic click. The map is [BubbleMapSlot], which records what it is handed and reports glyph taps
@@ -588,10 +588,10 @@ class AvailabilityScreenWaypointNavigateTest {
         assertHudAimsAtCreek()
     }
 
-    // ── Entry maps keep Directions only (Amendment 1) ──
+    // ── Entry maps offer Navigate too (RECORD -890; until then Directions only, Amendment 1) ──
 
-    @Test
-    fun `a waypoint's bubble on a journal entry's map offers Directions, not Navigate`() {
+    /** Sets the screen with a saved entry holding the creek pin, open on the Journal with its map drawn, and opens the pin's bubble by a real touch. */
+    private fun openEntryBubble() {
         val entry = CartographyEntry.draft(id = "entry-1", date = java.time.LocalDate.of(2026, 9, 12), updatedAtEpochMillis = 1_000L).copy(
             isDraft = false,
             text = "Along the creek.",
@@ -604,11 +604,44 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Along the creek.").assertExists()
-
         touchCentreOf(glyphTag("wp-1"))
+    }
 
+    /**
+     * RECORD -890 (the owner: "Waypoints only, as described (Recommended)"): a waypoint's bubble on a journal entry's map
+     * offers Navigate beside Directions and Details, and a real touch on it opens the Maps tab navigating to that
+     * waypoint, as from Records. Until 2026-10-11 this test was `a waypoint's bubble on a journal entry's map offers
+     * Directions, not Navigate` (dispatch -502, Amendment 1); its "no Navigate" assertion is inverted here, as -890 rules.
+     */
+    @Test
+    fun `from a waypoint's bubble on a journal entry's map, Navigate targets that waypoint on the Maps tab`() {
+        openEntryBubble()
         composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertExists()
-        assertFalse("no Navigate on an entry map", shown(MAP_BUBBLE_NAVIGATE_TAG))
+        composeRule.onNodeWithTag(MAP_BUBBLE_DETAILS_TAG).assertExists()
+
+        touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
+
+        assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
+        assertHudAimsAtCreek()
+        assertTrue("on the Maps tab", map.content != null && shown(NAVIGATION_HUD_TAG))
+        composeRule.onNodeWithText("Along the creek.").assertDoesNotExist()
+    }
+
+    /**
+     * RECORD -890: "Back behaves as it does after starting navigation from Records": one Back ends the navigation and goes
+     * back to where Navigate was tapped, here the journal entry, not Records and not the Maps tab.
+     */
+    @Test
+    fun `Back from a navigation started on a journal entry's map ends it and returns to the entry`() {
+        openEntryBubble()
+        touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
+
+        back()
+
+        assertNull(navigatingTo())
+        assertFalse(shown(NAVIGATION_HUD_TAG))
+        composeRule.onNodeWithText("Along the creek.").assertExists()
+        assertFalse("not Records", shown(swipeToDeleteTag(RecordType.WAYPOINTS, "wp-1")))
     }
 
     // ── CLAUDE.md, the Surface pitfall ──

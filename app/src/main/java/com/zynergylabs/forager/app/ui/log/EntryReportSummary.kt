@@ -177,113 +177,6 @@ private fun ProfileLine(text: String, modifier: Modifier) {
     )
 }
 
-/**
- * The included waypoints as a short table: name, the time its record was made (the phone's 12- or
- * 24-hour clock), and the distance walked from the start of its track to it. A tap on a row shows its
- * coordinates under it, and a second tap hides them (the owner: "coordinates behind a tap"). A figure
- * the app does not have is a dash, never a guess (see [EntryReportWaypoint]).
- *
- * Which rows are open ([openRows], by waypoint id) is hoisted to `AvailabilityScreen`, as the editor
- * panel's open groups are, so it survives leaving the report and coming back within a session (the
- * planner's call in RECORD -671, under CLAUDE.md's UX defaults).
- */
-@Composable
-internal fun EntryWaypointTable(
-    waypoints: List<EntryReportWaypoint>,
-    distanceUnit: DistanceUnit,
-    openRows: Set<String>,
-    onToggleRow: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (waypoints.isEmpty()) return
-    val timeFormat = DateFormat.getTimeFormat(LocalContext.current)
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text("Waypoints", style = MaterialTheme.typography.titleSmall)
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Text(WAYPOINT_COLUMN_NAME, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text(WAYPOINT_COLUMN_TIME, style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(WAYPOINT_TIME_WIDTH_DP.dp))
-            Text(WAYPOINT_COLUMN_FROM_START, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.End, modifier = Modifier.width(WAYPOINT_DISTANCE_WIDTH_DP.dp))
-        }
-        waypoints.forEach { waypoint ->
-            val isOpen = waypoint.id in openRows
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClickLabel = if (isOpen) "Hide coordinates" else "Show coordinates") { onToggleRow(waypoint.id) }
-                    .padding(vertical = Spacing.xs)
-                    .testTag(entryWaypointRowTag(waypoint.id)),
-            ) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(waypoint.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(
-                        waypoint.timeEpochMillis?.let { timeFormat.format(Date(it)) } ?: MISSING_FIGURE,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.width(WAYPOINT_TIME_WIDTH_DP.dp),
-                    )
-                    Text(
-                        waypoint.distanceFromStartMeters?.let { formatDistanceMeters(it, distanceUnit) } ?: MISSING_FIGURE,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.width(WAYPOINT_DISTANCE_WIDTH_DP.dp),
-                    )
-                }
-                if (isOpen) {
-                    Box(modifier = Modifier.padding(top = Spacing.xs)) {
-                        Text(
-                            waypointCoordinatesLine(waypoint.lat, waypoint.lng),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.testTag(entryWaypointCoordinatesTag(waypoint.id)),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * The included tracks under the table, one name row each (the owner, RECORD -671: "Keep Finds & maps,
- * fold tracks (Recommended)"): no distance or time line, since the tiles carry those. A tap on a track
- * still in Records ([liveTrackIds]) opens its details ([onOpenTrack]). One known to be deleted from Records
- * has nothing to open, so its row says so instead of doing nothing. [dayLoaded] `false` means the day's
- * records did not load, so a track missing from [liveTrackIds] is not known to be gone and gets no note.
- * A track the read seam left empty keeps its note, as before.
- */
-@Composable
-internal fun EntryTrackRows(
-    tracks: List<TrackDecision>,
-    liveTrackIds: Set<String>,
-    dayLoaded: Boolean,
-    onOpenTrack: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (tracks.isEmpty()) return
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text("Tracks", style = MaterialTheme.typography.titleSmall)
-        tracks.forEach { track ->
-            val live = track.trackId in liveTrackIds
-            val note = trackExclusionSuffix(liveTrack = null, snapshotPointCount = track.pointCount).removePrefix(" · ").takeIf { it.isNotEmpty() }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(if (live) Modifier.clickable(onClickLabel = "Open track") { onOpenTrack(track.trackId) } else Modifier)
-                    .padding(vertical = Spacing.xs)
-                    .testTag(entryTrackRowTag(track.trackId)),
-            ) {
-                Text(track.name ?: "Recorded track", style = MaterialTheme.typography.bodyMedium)
-                listOfNotNull(note, TRACK_NOT_IN_RECORDS_LINE.takeIf { !live && dayLoaded }).forEach {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-}
-
-/** Latitude then longitude, four decimals (about 11 m), as the report showed before, now labelled. */
-internal fun waypointCoordinatesLine(lat: Double, lng: Double): String =
-    "Coordinates: ${String.format(Locale.US, "%.4f", lat)}, ${String.format(Locale.US, "%.4f", lng)}"
-
 internal const val TILE_DISTANCE = "Distance"
 internal const val TILE_TIME_OUT = "Time out"
 internal const val TILE_CLIMB = "Climb"
@@ -293,20 +186,11 @@ internal const val PROFILE_TITLE = "Height"
 internal const val PROFILE_START_LABEL = "Start"
 internal const val PROFILE_TOO_FEW_HEIGHTS_LINE = "No height profile: the phone recorded too few heights on this walk."
 internal const val PROFILE_POINTS_UNAVAILABLE_LINE = "No height profile: this walk's recorded points couldn't be read."
-internal const val WAYPOINT_COLUMN_NAME = "Name"
-internal const val WAYPOINT_COLUMN_TIME = "Time"
-internal const val WAYPOINT_COLUMN_FROM_START = "From start"
 internal const val MISSING_FIGURE = "—"
-internal const val TRACK_NOT_IN_RECORDS_LINE = "No longer in Records"
 
 private const val PROFILE_HEIGHT_DP = 96
 private const val PROFILE_AXIS_WIDTH_DP = 64
-private const val WAYPOINT_TIME_WIDTH_DP = 76
-private const val WAYPOINT_DISTANCE_WIDTH_DP = 72
 
 internal fun entryTileTag(label: String) = "entry-tile-$label"
 internal const val ENTRY_HEIGHT_PROFILE_TAG = "entry-height-profile"
 internal const val ENTRY_HEIGHT_PROFILE_LINE_TAG = "entry-height-profile-line"
-internal fun entryTrackRowTag(id: String) = "entry-track-row-$id"
-internal fun entryWaypointRowTag(id: String) = "entry-waypoint-row-$id"
-internal fun entryWaypointCoordinatesTag(id: String) = "entry-waypoint-coordinates-$id"

@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -28,6 +29,8 @@ import com.zynergylabs.forager.app.domain.RecordingHaltReason
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.toTrackPoint
+import com.zynergylabs.forager.app.domain.PressureReading
+import com.zynergylabs.forager.app.domain.pressureForPoint
 import com.zynergylabs.forager.app.location.hasLocationPermission
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -103,6 +106,9 @@ class TrackRecordingService : Service() {
     // is what stopRecording/onDestroy key off, rather than trusting the caller to pass the right id
     // back on ACTION_STOP.
     @Volatile private var currentTrackId: String? = null
+
+    /** The barometer's latest reading while a recording runs (RECORD -867); `null` with no barometer or none yet. */
+    @Volatile private var latestPressure: PressureReading? = null
 
     /**
      * Where each fix goes besides the sampler: the container's watches. A test replaces it, before
@@ -190,7 +196,16 @@ class TrackRecordingService : Service() {
         val sampler = LocationSampler(mode)
         var lastAccepted: TrackPoint? = null
 
+        latestPressure = null
         recordingJob = scope.launch {
+            // RECORD -864, -867: the barometer, only while recording. Each kept point carries the latest reading if
+            // it is fresh (pressureForPoint); with no barometer the walk's heights are read from smoothed GPS.
+            launch {
+                container.pressureProvider.readings.collect { reading ->
+                    if (reading == null) Log.i(TAG, "No barometer on this phone; track '$trackId' reads its heights from smoothed GPS.")
+                    latestPressure = reading
+                }
+            }
             // Dispatch 2026-09-28-626: read Settings' "Off-track reminder" so the off-track rule's
             // synchronous read holds the stored value, even for a recording the system restarted
             // with no screen to have read it.
@@ -210,7 +225,7 @@ class TrackRecordingService : Service() {
                 container.locationTracker.fixes.collect { fix ->
                     when (fix) {
                         is LocationFix.Update -> {
-                            val candidate = fix.toTrackPoint()
+                            val candidate = fix.toTrackPoint().copy(pressureHpa = pressureForPoint(latestPressure, SystemClock.elapsedRealtimeNanos()))
                             // Dispatch 2026-09-28-658 (R1): each watch call is guarded, as the
                             // sundown tick is. A watch that throws on this fix loses this fix; the
                             // point is still sampled and saved, and the recording goes on.

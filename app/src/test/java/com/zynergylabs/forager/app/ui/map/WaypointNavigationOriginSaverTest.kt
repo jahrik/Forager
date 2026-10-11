@@ -24,6 +24,7 @@ class WaypointNavigationOriginSaverTest {
             WaypointNavigationOrigin.MapDetails("wp-1"),
             WaypointNavigationOrigin.RecordsRow("wp-1"),
             WaypointNavigationOrigin.RecordsDetails("wp-1"),
+            WaypointNavigationOrigin.JournalEntryMap("wp-1"),
         ).forEach { assertEquals(it, roundTrip(it)) }
     }
 

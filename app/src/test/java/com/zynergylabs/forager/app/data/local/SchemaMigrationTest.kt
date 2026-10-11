@@ -28,12 +28,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 19→20, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 20→21, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→20.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→21.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -189,15 +189,29 @@ class SchemaMigrationTest {
             assertEquals("both indexes are back", 2L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'mushroom_log_entries' AND name IN ('index_mushroom_log_entries_offlineRegionId', 'index_mushroom_log_entries_foundOn')"))
         }
 
+    // The barometer (RECORD -864, -867): the track_points rebuild. Every seeded column is carried, speed included
+    // (assertEverySeededValueSurvived compares them all by name), the old point's new pressureHpa is NULL, the index is
+    // back, and the column takes a value.
+    @Test fun `20 to 21 - the track_points rebuild adds pressureHpa null, every value carried`() =
+        migrate(20, 21, MIGRATION_20_21, overrides = mapOf("track_points" to mapOf("timestampEpochMillis" to 1_791_403_440_000L, "speedMetersPerSecond" to 1.25, "altitude" to 112.5))) { db ->
+            assertEquals(1_791_403_440_000L, db.scalar("SELECT timestampEpochMillis FROM track_points"))
+            assertEquals(1.25, db.scalar("SELECT speedMetersPerSecond FROM track_points"))
+            assertEquals("GPS height is not touched", 112.5, db.scalar("SELECT altitude FROM track_points"))
+            assertNull("an old point has no pressure", db.scalar("SELECT pressureHpa FROM track_points"))
+            db.execSQL("UPDATE track_points SET pressureHpa = 1001.5")
+            assertEquals(1001.5, db.scalar("SELECT pressureHpa FROM track_points"))
+            assertEquals("the index is back", 1L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_track_points_trackId'"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // The chain now ends at 20, the current version (RECORD -703; it ended at 19 before MIGRATION_19_20).
-    @Test fun `4 to 20 - the full chain, validated against 20_json, every seeded value survives`() {
+    // The chain now ends at 21, the current version (RECORD -867; it ended at 20 before MIGRATION_20_21).
+    @Test fun `4 to 21 - the full chain, validated against 21_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 20, true, *ForagerDatabase.ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 21, true, *ForagerDatabase.ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 20)
+            assertEverySeededValueSurvived(db, seeded, 4, 21)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }

@@ -466,9 +466,11 @@ internal fun MapFeatureBubble(
             is MapBubbleContent.WaypointContent -> {
                 BubbleTitle(content.waypoint.name)
                 content.mgrs?.let { BubbleLine(it) }
+                content.fromStart?.let { BubbleLine(it) }
                 KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions {
-                    onNavigate?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.waypoint.id) } }
+                    // Only for a waypoint still in Records: one an entry knows only from its snapshot has nothing to navigate by.
+                    onNavigate?.takeIf { content.hasDetails }?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.waypoint.id) } }
                     BubbleAction("Directions", MAP_BUBBLE_DIRECTIONS_TAG) { onDirections(content.waypoint.name, LatLng(content.waypoint.lat, content.waypoint.lng)) }
                     if (content.hasDetails) {
                         BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.WaypointDetails(content.waypoint.id)) }
