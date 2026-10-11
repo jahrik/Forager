@@ -14,11 +14,20 @@ import kotlin.math.pow
  * 1. **Pressure to height** ([pressureAltitudeMeters]): the standard-atmosphere formula. Only differences are used, so
  *    the sea-level reference does not matter.
  * 2. **Operating limits** (CLAUDE.md: a reported range is not a safe range). A reading outside
- *    [PRESSURE_MIN_HPA]..[PRESSURE_MAX_HPA] is not used. A 5-point median ([HEIGHT_MEDIAN_MAX_SIDE] each side, within
- *    [HEIGHT_SMOOTHING_HALF_WINDOW_MILLIS]) takes out a squeeze in a pocket or a puff from a car's vents. A step from
- *    one reading to the next faster than [BARO_MAX_VERTICAL_SPEED_METERS_PER_SECOND] is taken out and the level carries
- *    on from where it was, rather than a jump no walker makes (a car's vents, a door); its step back is taken out too.
- *    A real change taken out this way (a lift) comes back slowly through the anchor.
+ *    [PRESSURE_MIN_HPA]..[PRESSURE_MAX_HPA] is not used. Then, over each unbroken run of readings, three passes, each
+ *    over a window of time ([BARO_WINDOW_HALF_MILLIS] each side), not a count of samples:
+ *    - a **median** of the readings in the window, which takes out a squeeze in a pocket, a puff from a car's vents and
+ *      a phone whose pressure swings while it is carried;
+ *    - a **step limit**: a step in that median faster than [BARO_MAX_VERTICAL_SPEED_METERS_PER_SECOND], a speed set for
+ *      walking, is taken out and the level carries on from where it was (a car door closed with the vents on); its step
+ *      back is taken out too. A real change taken out this way (a lift) comes back slowly through the anchor;
+ *    - a **mean** of the limited heights in the window.
+ *    **At a walk's start and end** the window keeps its width in time by using what there is on the one side, so the
+ *    last height is still a median and mean of the last minute's readings, never one reading on its own.
+ *    Why (RECORD -889): the first version used a 5-point median that shrank toward a walk's ends, so the first and last
+ *    heights were single readings, and a 2 m/s limit that let a carried phone's swings through. On the S22 test phone's
+ *    flat pocket walk, whose pressure swung by up to 1.4 hPa (about 12 m) between points 5 to 8 s apart, the chart ended
+ *    in a false drop of 9.4 m (the owner: "I dropped into the earth at the end").
  * 3. **Re-anchoring** to GPS: the first anchor is the median of (GPS height − barometric height) over the points with
  *    both in the first [BARO_INITIAL_ANCHOR_MILLIS]; after that each point with a GPS height moves the anchor a
  *    fraction dt / [BARO_ANCHOR_TIME_CONSTANT_MILLIS] toward it, so GPS's short wander averages out while weather drift
@@ -34,30 +43,23 @@ import kotlin.math.pow
 internal fun barometricHeights(points: List<TrackPoint>): List<Double?> {
     val baro: List<Double?> = points.map { point -> point.pressureHpa?.toDouble()?.takeIf { it in PRESSURE_MIN_HPA..PRESSURE_MAX_HPA }?.let(::pressureAltitudeMeters) }
 
-    // The median, over each unbroken run of points with a usable reading (as smoothedGpsHeights does for GPS).
+    val times = points.map { it.timestampEpochMillis }
+
+    // The median over the window, per unbroken run of usable readings (a missing one breaks the run, so nothing is
+    // bridged across it).
     val filtered = MutableList<Double?>(points.size) { null }
-    var start = 0
-    while (start < points.size) {
-        if (baro[start] == null) {
-            start++
-            continue
-        }
-        var end = start
-        while (end + 1 < points.size && baro[end + 1] != null) end++
-        val times = points.subList(start, end + 1).map { it.timestampEpochMillis }
-        val raw = baro.subList(start, end + 1).map { it!! }
-        raw.indices.forEach { i -> filtered[start + i] = medianAround(raw, times, i) }
-        start = end + 1
+    runsOf(baro).forEach { run ->
+        run.forEach { i -> filtered[i] = median(run.filter { j -> abs(times[j] - times[i]) <= BARO_WINDOW_HALF_MILLIS }.map { baro[it]!! }) }
     }
 
-    // The rate limit: a step between one reading and the next faster than a walker climbs is taken out, and the level
-    // carries on from where it was. A step back the other way (the car door closed again) is taken out the same way.
+    // The step limit: a step in the median faster than a walker climbs is taken out, and the level carries on from where
+    // it was. A step back the other way is taken out the same way.
     var stepsTakenOut = 0.0
     var previous: Double? = null
     var previousAt = 0L
-    val limited = filtered.mapIndexed { i, height ->
+    val stepped = filtered.mapIndexed { i, height ->
         if (height == null) return@mapIndexed null
-        val at = points[i].timestampEpochMillis
+        val at = times[i]
         previous?.let { before ->
             val seconds = (at - previousAt).coerceAtLeast(1L) / 1_000.0
             if (abs(height - before) / seconds > BARO_MAX_VERTICAL_SPEED_METERS_PER_SECOND) stepsTakenOut -= height - before
@@ -65,6 +67,12 @@ internal fun barometricHeights(points: List<TrackPoint>): List<Double?> {
         previous = height
         previousAt = at
         height + stepsTakenOut
+    }
+
+    // The mean over the window.
+    val limited = MutableList<Double?>(points.size) { null }
+    runsOf(stepped).forEach { run ->
+        run.forEach { i -> limited[i] = run.filter { j -> abs(times[j] - times[i]) <= BARO_WINDOW_HALF_MILLIS }.map { stepped[it]!! }.average() }
     }
 
     // The anchor: a slow pull toward GPS height.
@@ -94,18 +102,27 @@ internal fun barometricHeights(points: List<TrackPoint>): List<Double?> {
 /** Height in metres for a pressure in hPa, by the standard atmosphere (sea level 1013.25 hPa). */
 fun pressureAltitudeMeters(hPa: Double): Double = 44_330.0 * (1.0 - (hPa / STANDARD_SEA_LEVEL_HPA).pow(1.0 / 5.255))
 
-private fun medianAround(values: List<Double>, times: List<Long>, i: Int): Double {
-    var side = 0
-    while (
-        side < HEIGHT_MEDIAN_MAX_SIDE &&
-        i - side - 1 >= 0 &&
-        i + side + 1 < values.size &&
-        times[i] - times[i - side - 1] <= HEIGHT_SMOOTHING_HALF_WINDOW_MILLIS &&
-        times[i + side + 1] - times[i] <= HEIGHT_SMOOTHING_HALF_WINDOW_MILLIS
-    ) {
-        side++
+/** The indices of each unbroken run of non-null [values], in order. */
+private fun runsOf(values: List<Double?>): List<List<Int>> {
+    val runs = mutableListOf<List<Int>>()
+    var current = mutableListOf<Int>()
+    values.forEachIndexed { i, value ->
+        if (value == null) {
+            if (current.isNotEmpty()) runs += current
+            current = mutableListOf()
+        } else {
+            current += i
+        }
     }
-    return values.subList(i - side, i + side + 1).sorted()[side]
+    if (current.isNotEmpty()) runs += current
+    return runs
+}
+
+/** The median; for an even count, the mean of the middle two. */
+private fun median(values: List<Double>): Double {
+    val sorted = values.sorted()
+    val middle = sorted.size / 2
+    return if (sorted.size % 2 == 1) sorted[middle] else (sorted[middle - 1] + sorted[middle]) / 2.0
 }
 
 const val STANDARD_SEA_LEVEL_HPA: Double = 1013.25
@@ -114,8 +131,17 @@ const val STANDARD_SEA_LEVEL_HPA: Double = 1013.25
 const val PRESSURE_MIN_HPA: Double = 500.0
 const val PRESSURE_MAX_HPA: Double = 1100.0
 
-/** Faster than this, a change of height is a pressure transient, not a walker: stairs are well under 1 m/s. */
-const val BARO_MAX_VERTICAL_SPEED_METERS_PER_SECOND: Double = 2.0
+/**
+ * Faster than this, a step in the median height is a pressure transient, not a walker: 0.5 m/s, where steep stairs climbed
+ * briskly are about 0.3 m/s. Was 2 m/s (RECORD -889). A starting value for the device check.
+ */
+const val BARO_MAX_VERTICAL_SPEED_METERS_PER_SECOND: Double = 0.5
+
+/**
+ * Half the barometer's smoothing window: 60 s each side of a point, so a minute's readings either side at most (RECORD
+ * -889). At 45 s the S22 walk still ended 6.3 m low, by a port of this code; at 60 s, 1.2 m. A starting value.
+ */
+const val BARO_WINDOW_HALF_MILLIS: Long = 60_000L
 
 /** The first anchor is taken over this long from the first reading. */
 const val BARO_INITIAL_ANCHOR_MILLIS: Long = 60_000L

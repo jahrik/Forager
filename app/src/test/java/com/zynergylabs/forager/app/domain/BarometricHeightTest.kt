@@ -33,7 +33,7 @@ class BarometricHeightTest {
     /**
      * The owner's case (RECORD -864: "on a flat walk it showed fluctuating values ... The phone was in my pocket"): two
      * hours on the flat, GPS height wandering ±17 m over about 47 minutes with ±6 m of jitter and one 40 m drop, as the
-     * Oct 7 chart did (302 to 414 ft); pressure steady. Read: under 10 m of spread (6.4 m by hand) and no climb.
+     * Oct 7 chart did (302 to 414 ft); pressure steady. Read: under 10 m of spread (6.4 m by hand before RECORD -889's window, 6.2 m after) and no climb.
      */
     @Test
     fun `a flat walk in a pocket reads flat, however GPS height wanders`() {
@@ -55,7 +55,7 @@ class BarometricHeightTest {
 
     /**
      * Weather: pressure falling 1 hPa an hour for three hours (strong; about 8 m an hour of apparent rise) with GPS flat.
-     * The anchor follows GPS within 10 m (8.0 m by hand) and the false climb stays under 10 m (8.0 m by hand): the
+     * The anchor follows GPS within 10 m (8.0 m by hand) and the false climb stays under 10 m (8.0 m by hand before RECORD -889's window, 4.0 m after): the
      * price of an anchor slow enough to ignore GPS's own wander, stated on [BARO_ANCHOR_TIME_CONSTANT_MILLIS].
      */
     @Test
@@ -66,7 +66,7 @@ class BarometricHeightTest {
         assertTrue("climb ${stats(points).elevationGainMeters}", stats(points).elevationGainMeters!! < 10.0)
     }
 
-    /** A real climb of 50 m over half an hour, then flat; GPS is the truth ±10 m. Climb is 50 m within 6 m (45.3 by hand). */
+    /** A real climb of 50 m over half an hour, then flat; GPS is the truth ±10 m. Climb is 50 m within 6 m (45.3 by hand, before and after RECORD -889's window). */
     @Test
     fun `a real climb is read from pressure`() {
         val truth = { i: Int -> 100.0 + minOf(i, 360) / 360.0 * 50.0 }
@@ -90,6 +90,27 @@ class BarometricHeightTest {
         val points = walk(200, gps = { 100.0 }, hPa = { i -> if (i in 100 until 110) 997.0f else 1000.0f })
         val heights = trackHeights(points).map { it!! }
         assertEquals(0.0, heights.max() - heights.min(), 1e-6)
+    }
+
+    /**
+     * RECORD -889, the walking step limit: pressure 1 hPa lower (about 8 m higher) for five minutes and then back, as a
+     * phone in a car with the vents on might read; GPS flat. The window's median flips in one step of about 8 m in 5 s
+     * (1.7 m/s), which the old 2 m/s limit let through (8.9 m of spread and 8.3 m of false climb, by a port of the code)
+     * and the walking limit of 0.5 m/s takes out, with its step back.
+     */
+    @Test
+    fun `a lasting step faster than a walker climbs is taken out, with its step back`() {
+        val points = walk(300, gps = { 100.0 }, hPa = { i -> if (i in 120 until 180) 999.0f else 1000.0f })
+        val heights = trackHeights(points).map { it!! }
+        assertEquals(0.0, heights.max() - heights.min(), 1e-6)
+    }
+
+    /** Stairs climbed briskly, 36 m at 0.3 m/s, pass the walking step limit: Climb is 36 m within 2 m (35.4 by hand). */
+    @Test
+    fun `brisk stairs pass the walking step limit`() {
+        val truth = { i: Int -> 100.0 + (i - 100).coerceIn(0, 24) * 1.5 }
+        val points = walk(300, gps = truth, hPa = { i -> pressureAt(truth(i)) })
+        assertEquals(36.0, stats(points).elevationGainMeters!!, 2.0)
     }
 
     @Test
