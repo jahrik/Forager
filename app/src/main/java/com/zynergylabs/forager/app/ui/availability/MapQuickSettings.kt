@@ -87,6 +87,13 @@ internal data class MapQuickSettings(
     val offTrackReminder: OffTrackReminderSettings,
     /** The Battery saver switch (dispatch 2026-09-28-767); in this menu only (the owner: "Quick menu, logger off (Recommended)", RECORD -768). */
     val batterySaver: BatterySaverSettings = BatterySaverSettings(),
+    /**
+     * The clock the time picker's starting time reads (an hour from now): [AvailabilityScreen]'s own
+     * `currentTime`, so all three buttons (the strip's and the navigation display's two) read the clock
+     * the screen was given. It was a parameter of [MapQuickSettingsButton] that no caller passed, so the
+     * picker read the real clock even under a test that pinned the screen's (RECORD -850).
+     */
+    val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
 )
 
 /** The quick menu's "Battery saver" switch, from [com.zynergylabs.forager.app.domain.BatterySaverPreferenceRepository]. Off by default. */
@@ -161,8 +168,6 @@ internal fun backByLineText(backBy: BackByShown?, clock: SundownClock): String? 
 internal fun MapQuickSettingsButton(
     settings: MapQuickSettings,
     modifier: Modifier = Modifier,
-    /** The clock "+1 h" and the time picker's starting time read; a test may pin it. */
-    currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
@@ -200,7 +205,7 @@ internal fun MapQuickSettingsButton(
     }
     if (pickingTime) {
         BackByTimePickerDialog(
-            initialAtEpochMillis = backBy?.backByAtEpochMillis ?: (currentTime.nowEpochMillis() + 60L * 60L * 1_000L),
+            initialAtEpochMillis = backBy?.backByAtEpochMillis ?: (settings.currentTime.nowEpochMillis() + 60L * 60L * 1_000L),
             onDismiss = { pickingTime = false },
             onSet = { hour, minute ->
                 pickingTime = false
