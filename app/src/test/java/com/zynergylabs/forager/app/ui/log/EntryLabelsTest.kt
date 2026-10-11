@@ -80,8 +80,7 @@ class EntryLabelsTest {
     }
 
     @Test
-    fun `dates read Oct 7, 2026 and coordinates are labelled`() {
+    fun `dates read Oct 7, 2026`() {
         assertEquals("Oct 7, 2026", displayDate(LocalDate.of(2026, 10, 7)))
-        assertEquals("Coordinates: 45.3200, -122.6400", waypointCoordinatesLine(45.32, -122.64))
     }
 }

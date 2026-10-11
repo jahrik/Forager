@@ -466,6 +466,7 @@ internal fun MapFeatureBubble(
             is MapBubbleContent.WaypointContent -> {
                 BubbleTitle(content.waypoint.name)
                 content.mgrs?.let { BubbleLine(it) }
+                content.fromStart?.let { BubbleLine(it) }
                 KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions {
                     onNavigate?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.waypoint.id) } }

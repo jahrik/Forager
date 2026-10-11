@@ -53,6 +53,11 @@ import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
+import com.zynergylabs.forager.app.ui.map.MapFeatureTap
+import com.zynergylabs.forager.app.ui.map.MapRenderMode
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
@@ -118,7 +123,10 @@ class EntryDataScreensTest {
     private fun dayStartMillis(): Long = DAY.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     /** [mode] EDIT shows the draft in its editor; VIEW finishes it first and shows its report. [heights] `false` records the walk with no altitudes. */
-    private fun setScreen(mode: CartographyEntryMode = CartographyEntryMode.EDIT, heights: Boolean = true) {
+    /** The entry map's render mode, as the screen last handed it to the map slot; `null` while no map is drawn. */
+    private var capturedRenderMode: MapRenderMode? = null
+
+    private fun setScreen(mode: CartographyEntryMode = CartographyEntryMode.EDIT, heights: Boolean = true, mapData: CartographyEntryMapData = EMPTY_MAP_DATA) {
         val directExecutor = java.util.concurrent.Executor { it.run() }
         database = Room.inMemoryDatabaseBuilder(context, ForagerDatabase::class.java)
             .setQueryExecutor(directExecutor)
@@ -182,9 +190,9 @@ class EntryDataScreensTest {
                 onOpenCameraForEntry = {},
                 onAddGalleryPhoto = {},
                 distanceUnit = DistanceUnit.MILES,
-                mapSlot = { _, _, _, _, _, _, _, _, _ -> },
+                mapSlot = { _, _, renderMode, _, _, _, _, _, _ -> capturedRenderMode = renderMode },
                 night = false,
-                getMapData = { _, _ -> EMPTY_MAP_DATA },
+                getMapData = { _, _ -> mapData },
                 getCoveringOfflineRegion = { _, _ -> null },
                 getCurrentLocation = { LocationResult.LocationUnavailable },
                 onOpenEntry = viewModel::onOpenEntry,
@@ -368,114 +376,84 @@ class EntryDataScreensTest {
     // ── The report ──
 
     /**
-     * The saved walk's report: the date as "Aug 1, 2026", then Distance, Time out, Climb and Finds,
-     * each with its unit, then the height profile's labels. Figures by hand: 11 steps of 0.001° =
-     * 1 223 m = 0.8 mi over 110 s; heights 100 m to 155 m in 5 m steps gain 55 m = 180 ft, lowest
-     * 328 ft, highest 509 ft.
+     * The saved walk's report: the date as "Aug 1, 2026", then Distance, Time out, Climb and Finds, each with its
+     * unit. Figures by hand: 11 steps of 0.001° = 1 223 m = 0.8 mi over 110 s; heights 100 m to 155 m in 5 m steps
+     * gain 55 m = 180 ft. The height chart is hidden until barometer height lands (RECORD -864, "Keep it, once height
+     * is fixed"; RECORD -867), so neither the chart nor its one-line stand-in is drawn. Until 2026-10-11 this test
+     * also read the chart's labels (509 ft, 328 ft, 0.8 mi); those assertions are inverted here, as -867 requires.
      */
     @Test
-    fun `the report shows labelled tiles and the height profile's labels`() {
+    fun `the report shows labelled tiles, and no height chart while height is being fixed`() {
         setScreen(mode = CartographyEntryMode.VIEW)
 
         composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
         mapOf(TILE_DISTANCE to "0.8 mi", TILE_TIME_OUT to "1 min", TILE_CLIMB to "180 ft", TILE_FINDS to "1").forEach { (label, value) ->
             composeRule.onNodeWithTag(entryTileTag(label)).performScrollTo().assert(hasText(label)).assert(hasText(value))
         }
-        composeRule.onNodeWithTag(ENTRY_HEIGHT_PROFILE_TAG).performScrollTo().assertIsDisplayed()
-        listOf(PROFILE_TITLE, "509 ft", "328 ft", PROFILE_START_LABEL).forEach { label ->
-            composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(ENTRY_HEIGHT_PROFILE_TAG))).assertExists()
-        }
-        composeRule.onNode(hasText("0.8 mi") and hasAnyAncestor(hasTestTag(ENTRY_HEIGHT_PROFILE_TAG))).assertExists()
+        composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_TAG).assertCountEquals(0)
         composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_LINE_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithText(PROFILE_TITLE).assertCountEquals(0)
         // The owner's "0 ft · 0m": no minutes written as "m" anywhere on the report.
         composeRule.onAllNodesWithText("0m", substring = true).assertCountEquals(0)
     }
 
     /**
-     * The waypoint table, in the order the waypoints were made: name, time (the phone's clock format),
-     * and the distance walked along the walk to it. Big fir was dropped 50 s in, five steps along
-     * (556 m = 0.3 mi); End is the whole walk; Creek pin is on no walk, so it has no distance.
+     * RECORD -867 (the owner: "Keep notes, tags, photos and the toggle"): the page under the map is the tiles. The
+     * walk, its waypoints and the find are all included, and none of them is listed: no "Tracks" or "Waypoints"
+     * heading, no track name, no waypoint name, no find line, no table header. Until 2026-10-11 the report drew all
+     * of them; the tests that read the waypoint table's rows, its coordinate taps and the track rows' touches are
+     * removed with them (named in the part-2 report).
      */
     @Test
-    fun `the report's waypoint table gives each waypoint its time and its distance from the start`() {
+    fun `the report lists no tracks, finds or waypoints, though all are included`() {
         setScreen(mode = CartographyEntryMode.VIEW)
-        val t0 = dayStartMillis() + 9 * 3_600_000L
-        val clock = android.text.format.DateFormat.getTimeFormat(context)
-        fun time(at: Long) = clock.format(java.util.Date(at))
-        assertTrue("the fixture's walk starts at 9:00", time(t0).contains("9:00"))
+        assertTrue("the walk, its waypoints and the find are included", kept(entry()).values.all { it } && kept(entry()).size == 6)
 
-        val expected = listOf(
-            Triple(START_ID, "Start", time(t0) to "0 ft"),
-            Triple(DROPPED_ID, "Big fir", time(t0 + 50_000L) to "0.3 mi"),
-            Triple(END_ID, "End", time(t0 + 110_000L) to "0.8 mi"),
-            Triple(LOOSE_ID, "Creek pin", time(t0 + 3_600_000L) to MISSING_FIGURE),
-        )
-        val tops = expected.map { (id, name, figures) ->
-            composeRule.onNodeWithTag(entryWaypointRowTag(id)).performScrollTo()
-                .assert(hasText(name)).assert(hasText(figures.first)).assert(hasText(figures.second))
-                .getUnclippedBoundsInRoot().top
-        }
-        assertEquals("rows in the order the waypoints were made", tops.sorted(), tops)
-        listOf(WAYPOINT_COLUMN_NAME, WAYPOINT_COLUMN_TIME, WAYPOINT_COLUMN_FROM_START).forEach { composeRule.onNodeWithText(it).assertExists() }
-    }
-
-    /** Coordinates are behind a tap: touches across a row show them, then hide them, then show them. */
-    @Test
-    fun `touches on a waypoint row show and hide its coordinates`() {
-        setScreen(mode = CartographyEntryMode.VIEW)
-        val coordinates = entryWaypointCoordinatesTag(DROPPED_ID)
-        // The coordinates line is merged into its row's node, so it is found in the unmerged tree.
-        composeRule.onAllNodesWithTag(coordinates, useUnmergedTree = true).assertCountEquals(0)
-
-        listOf(0.1f, 0.5f, 0.9f).forEachIndexed { index, fx ->
-            composeRule.onNodeWithTag(entryWaypointRowTag(DROPPED_ID)).performScrollTo().performTouchInput { click(Offset(width * fx, height * 0.3f)) }
-            composeRule.waitForIdle()
-            if (index % 2 == 0) {
-                composeRule.onNodeWithTag(coordinates, useUnmergedTree = true).assert(hasText("Coordinates: 45.0050, -122.0000"))
-            } else {
-                composeRule.onAllNodesWithTag(coordinates, useUnmergedTree = true).assertCountEquals(0)
-            }
+        composeRule.onNodeWithTag(entryTileTag(TILE_FINDS)).performScrollTo().assert(hasText("1"))
+        listOf("Tracks", "Waypoints", "Ridge Loop", "Big fir", "Creek pin", "Find on Aug 1, 2026", "Chanterelle", "From start").forEach { text ->
+            composeRule.onAllNodesWithText(text).assertCountEquals(0)
         }
     }
 
     /**
-     * RECORD -671 ("Keep Finds & maps, fold tracks"): a track is one name row, with no distance or time
-     * line (the tiles carry those), and a touch on it opens the track's details over the report.
-     * A finger is not a point (CLAUDE.md, Testing), so the touch is sampled across the row's bounds,
-     * one fresh composition per sample (RECORD -673): near its left edge on the name, at its centre,
-     * and near its right edge in the empty part beside the name, each at a different height.
+     * RECORD -867 ("Add it to the icon's details"): a tap on a waypoint on the entry's map opens its bubble, which now
+     * gives the distance walked from the start of its walk, the figure the removed table had. Big fir was dropped
+     * 50 s in, five steps along: 556 m = 0.3 mi. Creek pin is on no walk, so its bubble has no such line. Driven
+     * through the map's own feature-tap hook, as the map's tap handler calls it.
      */
-    private fun assertTrackRowTouchOpensDetails(fx: Float, fy: Float) {
-        setScreen(mode = CartographyEntryMode.VIEW)
-        val row = composeRule.onNodeWithTag(entryTrackRowTag(TRACK_ID)).performScrollTo()
-        row.assert(hasText("Ridge Loop"))
-        composeRule.onAllNodesWithText("0.8 mi · 1 min").assertCountEquals(0)
-        composeRule.onAllNodesWithText(TRACK_NOT_IN_RECORDS_LINE).assertCountEquals(0)
-        composeRule.onAllNodesWithTag(RECORD_DETAILS_SHEET_TAG).assertCountEquals(0)
+    @Test
+    fun `a waypoint tapped on the entry map gives the distance walked from the start`() {
+        setScreen(
+            mode = CartographyEntryMode.VIEW,
+            mapData = EMPTY_MAP_DATA.copy(
+                waypointMarkers = listOf(RecordPoint(DROPPED_ID, LatLng(45.005, -122.0)), RecordPoint(LOOSE_ID, LatLng(45.2, -122.2))),
+            ),
+        )
+        fun tap(id: String, at: LatLng) {
+            val mode = checkNotNull(capturedRenderMode) { "the entry map was drawn" }
+            composeRule.runOnUiThread { mode.onFeatureTap(MapFeatureTap(MapLayerIds.WAYPOINTS, id, Offset(100f, 100f), 0f, at)) }
+            composeRule.waitForIdle()
+        }
 
-        row.performTouchInput { click(Offset(width * fx, height * fy)) }
+        tap(DROPPED_ID, LatLng(45.005, -122.0))
+        composeRule.onNode(hasText("Big fir") and hasAnyAncestor(hasTestTag(MAP_BUBBLE_TAG))).assertExists()
+        composeRule.onNode(hasText("0.3 mi walked from the start") and hasAnyAncestor(hasTestTag(MAP_BUBBLE_TAG))).assertExists()
+
+        composeRule.runOnUiThread { checkNotNull(capturedRenderMode).onCloseBubble() }
         composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertExists()
+        tap(LOOSE_ID, LatLng(45.2, -122.2))
+        composeRule.onNode(hasText("Creek pin") and hasAnyAncestor(hasTestTag(MAP_BUBBLE_TAG))).assertExists()
+        composeRule.onAllNodesWithText("walked from the start", substring = true).assertCountEquals(0)
     }
 
+    /** A walk recorded with no heights: Climb says it was not recorded, and, with the chart hidden, no line about the chart is drawn either. */
     @Test
-    fun `a track below the table is its name alone, and a touch near its left edge opens its details`() = assertTrackRowTouchOpensDetails(0.05f, 0.25f)
-
-    @Test
-    fun `a touch at the centre of a track's row opens its details`() = assertTrackRowTouchOpensDetails(0.5f, 0.5f)
-
-    @Test
-    fun `a touch near the right edge of a track's row, beside its name, opens its details`() = assertTrackRowTouchOpensDetails(0.95f, 0.75f)
-
-    /** A walk recorded with no heights draws no profile: one plain line says why, and Climb says it was not recorded. */
-    @Test
-    fun `a walk with no heights says so in one line instead of drawing a profile`() {
+    fun `a walk with no heights says Climb was not recorded`() {
         setScreen(mode = CartographyEntryMode.VIEW, heights = false)
 
-        composeRule.onNodeWithTag(ENTRY_HEIGHT_PROFILE_LINE_TAG).performScrollTo().assert(hasText(PROFILE_TOO_FEW_HEIGHTS_LINE))
-        composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_TAG).assertCountEquals(0)
         composeRule.onNodeWithTag(entryTileTag(TILE_CLIMB)).performScrollTo().assert(hasText(CLIMB_NOT_RECORDED))
+        composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_LINE_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_TAG).assertCountEquals(0)
     }
 
     private fun addLaterWaypointAndReopen() {
