@@ -75,11 +75,52 @@ build adds the Diagnostics switch and the synthetic forecast data described abov
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request and on pushes to `main` and `pre-main`, on
+`.github/workflows/ci.yml` runs on every pull request, on pushes to `main` and `pre-main`, and on request (below), on
 `ubuntu-24.04` with JDK 21, a full-history checkout and the SDK from `scripts/setup-android-sdk.sh`. It
 builds the debug APK, reads the version back out of the built APK with `aapt2` to prove the history was
 there, runs the unit tests, and checks the skipped ones against an exact list of allowed skips. It uploads
 two artifacts: `app-debug-apk` and `unit-test-report`.
+
+### Run this branch on CI
+
+When the laptop is busy, a coder builds and tests a pushed branch on CI instead (RECORD -865). The branch
+must carry a `ci.yml` with the `workflow_dispatch` trigger, so cut it from (or merge in) a `main` that has
+it. Any branch, open pull request or not:
+
+```bash
+gh workflow run ci.yml --ref <branch>                                    # everything, as on a pull request
+gh workflow run ci.yml --ref <branch> -f tests='*TrackRecordingViewModelTest'
+gh workflow run ci.yml --ref <branch> -f tests='com.example.FooTest;com.example.BarTest.a name with spaces'
+```
+
+`tests` is optional. Patterns are Gradle `--tests` patterns separated by `;` (not spaces or commas: test
+names here contain both). Each one becomes its own `--tests` argument, and the input never runs as shell.
+Empty runs exactly what a pull request runs. A filtered run skips one check: the "stale skip-allowlist
+entry" check, because allowlisted tests outside the filter never run. Unallowed skips, zero tests,
+failures and errors still fail it. A pattern that matches no test fails the Gradle step.
+
+Find the run, wait for it in a background loop, and download what it made:
+
+```bash
+sha=$(git rev-parse HEAD)          # the commit you pushed
+id=$(gh run list --workflow ci.yml --branch <branch> --event workflow_dispatch -L 5 \
+       --json databaseId,headSha -q "[.[] | select(.headSha == \"$sha\")][0].databaseId")
+until [ "$(gh run view "$id" --json status -q .status)" = completed ]; do sleep 60; done
+gh run view "$id" --json conclusion,headSha -q '.conclusion + " " + .headSha'
+gh run download "$id" -n app-debug-apk      -D ci-$id/apk
+gh run download "$id" -n unit-test-report   -D ci-$id/report   # JUnit XML in test-results/
+```
+
+The CLAUDE.md revert-runner rules apply to CI runs too:
+
+- **Confirm the run is for your commit.** Its `headSha` must equal the commit you pushed. The run checks out
+  the branch head at the moment of the request. If anything was pushed between your push and the request,
+  the run tested that instead.
+- **Read the build log for compile errors before citing any test result.** Use `gh run view "$id" --log`
+  (or `--log-failed`) and look for `e: ` lines and `Compilation error`. A run whose build did not compile
+  has no test results to cite.
+- For a revert check, push the reverted commit, run it, read it as above, then push the restore. Confirm
+  the forward change is back in the branch before citing the revert's result.
 
 ## Outside services
 
