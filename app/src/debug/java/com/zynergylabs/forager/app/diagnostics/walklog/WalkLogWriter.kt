@@ -78,6 +78,23 @@ class WalkLogWriter(
         }
     }
 
+    /**
+     * [write], then flushed at once whatever the flush interval: the header, so the file holds it before the session
+     * reports itself active (CI run 38115289698). False, with the log stopped, on a write error.
+     */
+    fun writeAndFlush(lines: List<String>): Boolean {
+        val writer = out ?: return false
+        return try {
+            lines.forEach { writer.write(it); writer.newLine() }
+            writer.flush()
+            lastFlushNanos = nowNanos()
+            true
+        } catch (e: IOException) {
+            stopOnWriteError(e)
+            false
+        }
+    }
+
     /** Once a minute: stop below the floor; otherwise flush and sync, so a phone switched off mid-walk loses a minute at most. */
     fun checkSpace(): Boolean {
         val writer = out ?: return false
