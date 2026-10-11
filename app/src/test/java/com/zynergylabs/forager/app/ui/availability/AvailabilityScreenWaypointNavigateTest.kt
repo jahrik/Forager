@@ -590,7 +590,7 @@ class AvailabilityScreenWaypointNavigateTest {
 
     // ── Entry maps offer Navigate too (RECORD -890; until then Directions only, Amendment 1) ──
 
-    /** A saved entry holding the creek pin, open on the Journal with its map drawn, and the pin's bubble opened by a real touch. */
+    /** Sets the screen with a saved entry holding the creek pin, open on the Journal with its map drawn, and opens the pin's bubble by a real touch. */
     private fun openEntryBubble() {
         val entry = CartographyEntry.draft(id = "entry-1", date = java.time.LocalDate.of(2026, 9, 12), updatedAtEpochMillis = 1_000L).copy(
             isDraft = false,
@@ -615,7 +615,6 @@ class AvailabilityScreenWaypointNavigateTest {
      */
     @Test
     fun `from a waypoint's bubble on a journal entry's map, Navigate targets that waypoint on the Maps tab`() {
-        setScreen()
         openEntryBubble()
         composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertExists()
         composeRule.onNodeWithTag(MAP_BUBBLE_DETAILS_TAG).assertExists()
@@ -634,7 +633,6 @@ class AvailabilityScreenWaypointNavigateTest {
      */
     @Test
     fun `Back from a navigation started on a journal entry's map ends it and returns to the entry`() {
-        setScreen()
         openEntryBubble()
         touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
 
