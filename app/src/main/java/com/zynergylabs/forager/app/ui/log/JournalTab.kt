@@ -831,10 +831,14 @@ internal fun JournalTab(
                     // so the find is composed once, in the overlay.
                     findsContent = { if (findOverView == null) findsSection() },
                     finds = uiState.entries,
-                    // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
-                    // opens the report there, exactly as the Finds gallery's own tile does.
+                    // The All logbook's find tap (RECORD -874, the owner: "Find > All > Finds > out (Recommended)"):
+                    // the find opens over Records, as the entry map's "Open find" opens it (FindOverView, below), so it
+                    // slides in over All (forward, the planner's call in -874) and Back closes it to All. All stays the
+                    // selected chip. It used to select the Finds chip and open the report in the Finds slot.
                     onOpenFind = { id ->
+                        leaveFindEditingIfNeeded()
                         mode = JournalEntryMode.REPORT
+                        findOverView = FindOverView(id)
                         onOpenEntry(id)
                     },
                     // J4b L1: the All logbook's find tiles get the same long-press menu.

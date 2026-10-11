@@ -522,12 +522,15 @@ class RecordsFilterChipsTest {
     }
 
     /**
-     * RECORD -871: Back from Finds leaves Records. Rewritten for it: this was "…, and Back goes to the Finds gallery,
-     * then All", whose second Back asserted All selected; that Back now lands on Entries, and each later sample opens
-     * Records and touches All again to start where the first did.
+     * RECORD -874 (the owner: "Find > All > Finds > out (Recommended)"). Rewritten for it a second time. Under -871
+     * this was "touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery,
+     * then out of Records": it asserted the Finds chip selected with the report open, the F2 tile gone, the Finds
+     * gallery after one Back and Entries after two. Now the report opens over Records with All still selected (the F2
+     * tile stays composed under it, so its "gone" assertion became "the find over the view is up"); the first Back
+     * shows All with the F2 tile, the second Finds, the third Entries.
      */
     @Test
-    fun `touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery, then out of Records`() {
+    fun `touching a find in All opens its report over All, and Back goes to All, then Finds, then out of Records`() {
         setLogbookScreen()
 
         for (point in TOUCH_SAMPLES) {
@@ -541,13 +544,18 @@ class RecordsFilterChipsTest {
             composeRule.onNodeWithTag(rowTag("finds", "F2")).performTouchInput { click(Offset(width * point.x, height * point.y)) }
             composeRule.waitForIdle()
 
-            chip(FINDS_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertExists()
             composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
-            composeRule.onNodeWithTag(rowTag("finds", "F2")).assertDoesNotExist()
+            chip(ALL_CHIP).assertIsSelected()
+
+            pressBack()
+            composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertDoesNotExist()
+            composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
+            chip(ALL_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(rowTag("finds", "F2")).assertIsDisplayed()
 
             pressBack()
             chip(FINDS_CHIP).assertIsSelected()
-            composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
             composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
 
             pressBack()

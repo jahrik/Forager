@@ -398,6 +398,52 @@ class JournalPageSlideTest {
         composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertExists()
     }
 
+    /**
+     * RECORD -874 (the planner's call): opening a find from All is forward navigation, so the find's page slides in over
+     * All and All stays in place; it must not slide out as if going back. Back slides the find out to the right over
+     * All, still in place, with All still the selected chip.
+     */
+    @Test
+    fun `a find tapped in All slides in over All, which stays in place, and Back slides it out over All`() {
+        setScreen()
+        composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.RECORDS)).let { node ->
+            val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
+            tapAt(x, y)
+        }
+        settle()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).let { node ->
+            val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
+            tapAt(x, y)
+        }
+        settle()
+        val allLeft = composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).getUnclippedBoundsInRoot().left
+        val tile = composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, find.id)).getUnclippedBoundsInRoot()
+
+        pause()
+        val (tx, ty) = centreOf(tile)
+        tapAt(tx, ty)
+        applyWrites()
+        stepUntil("the find part-way in over All") {
+            val over = composeRule.onAllNodes(androidx.compose.ui.test.hasTestTag(FIND_OVER_VIEW_TAG)).fetchSemanticsNodes()
+            over.isNotEmpty() && leftOf(over.single()) > 1.dp && leftOf(over.single()) < width() - 1.dp
+        }
+        assertTrue("nothing is leaving: All does not slide out as if going back", leavingPages().isEmpty())
+        assertEquals("All is in place under the arriving find", allLeft.value, composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).getUnclippedBoundsInRoot().left.value, 1f)
+        settle()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assertIsSelected()
+
+        pause()
+        back()
+        applyWrites()
+        stepUntil("the find part-way out") {
+            leavingPages().any { leftOf(it) > 1.dp && leftOf(it) < width() - 1.dp }
+        }
+        assertEquals("All is in place under the leaving find", allLeft.value, composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).getUnclippedBoundsInRoot().left.value, 1f)
+        settle()
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assertIsSelected()
+    }
+
     // Amendment 1 (RECORD -681).
 
     /**

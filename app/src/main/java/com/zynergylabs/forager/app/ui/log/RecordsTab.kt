@@ -133,9 +133,11 @@ internal fun RecordsTab(
      */
     finds: List<MushroomLogEntry>? = null,
     /**
-     * Opens a find's report — the All logbook's find tap (J1 S4). `RecordsTab` selects the Finds chip
-     * first, so the report opens in the Finds slot and Back goes report, Finds gallery (owner's
-     * answer 2). The default does nothing beyond that chip switch.
+     * Opens a find's report — the All logbook's find tap (J1 S4). Since RECORD -874 (the owner: "Find > All > Finds >
+     * out (Recommended)") the chip stays on All and [JournalTab] shows the find over Records, as a map bubble's find
+     * opens (its FindOverView): the report slides in over All, the first Back closes it to All, the second goes to
+     * Finds (this tab's chip step), the third leaves Records. Until then this tab selected the Finds chip first and the
+     * report opened in the Finds slot. The default does nothing.
      */
     onOpenFind: (String) -> Unit = {},
     /** J4b L1: the All logbook find tile's long-press Delete (pending, with Undo); `null` leaves it tap-only. */
@@ -263,9 +265,8 @@ internal fun RecordsTab(
     // that it stepped to Waypoints, the old default sub-tab: the rule is the same each time, only the
     // default moved. A fixed target keeps back deterministic regardless of navigation history (the
     // same press always does the same thing); tracking "last selected" as a second piece of state
-    // was considered and rejected for exactly that reason. One consequence, recorded with -871: a
-    // find opened from All selects Finds, so Back goes report, Finds gallery, then out of Records,
-    // not back to All. Disabled while findsEditingInProgress — see that parameter's own doc comment
+    // was considered and rejected for exactly that reason. A find opened from All does not change
+    // the chip (RECORD -874; see [onOpenFind]), so Back goes find, All, Finds, out. Disabled while findsEditingInProgress — see that parameter's own doc comment
     // for why this can't just rely on Compose's usual nested-handler-wins ordering here.
     BackHandler(enabled = backEnabled && selectedTab != DEFAULT_RECORDS_FILTER && !findsEditingInProgress) {
         selectTab(DEFAULT_RECORDS_FILTER)
@@ -300,8 +301,8 @@ internal fun RecordsTab(
         // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout R1, R2): a chip's list opens over the default
         // chip's, sliding in from the right, and Back (which steps to the default) or the default chip slides it out again.
         // Chip to chip slides in, as each opens over the last. The base page follows Back's target: All until RECORD -871,
-        // Finds since, so Back from Waypoints still slides out over the page it returns to. Since then a find tapped in All
-        // goes to the base page, so All slides out to the right over the find's report rather than the report sliding in.
+        // Finds since, so Back from Waypoints still slides out over the page it returns to. A find tapped in All does not
+        // change the chip: it slides in over All from JournalTab's find-over-the-view page (RECORD -874).
         PageSlide(
             targetState = selectedTab,
             depthOf = { if (it == DEFAULT_RECORDS_FILTER) 0 else 1 },
@@ -322,10 +323,8 @@ internal fun RecordsTab(
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
                 onDeleteTrack = onDeleteTrack,
                 onDownloadAgain = onDownloadAgain,
-                onOpenFind = { id ->
-                    selectTab(RecordsSubTab.FINDS)
-                    onOpenFind(id)
-                },
+                // RECORD -874: All stays selected; the caller shows the find over Records, so Back closes it to All.
+                onOpenFind = { id -> onOpenFind(id) },
                 modifier = Modifier.weight(1f).testTag(RECORDS_LOGBOOK_LIST_TAG),
                 onDeleteFind = onDeleteFind,
                 onEditFind = onEditFind?.let { edit ->
