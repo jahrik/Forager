@@ -139,6 +139,31 @@ class FindPagePhotosTest {
         assertTrue("centred: ${photo.centreX} against ${root.centreX}", near(photo.centreX, root.centreX))
     }
 
+    /**
+     * RECORD -874 (the planner's call): in a short landscape window the cap is 60% of the window's height, not 480 dp,
+     * so the title and the find's details stay in view. Here 384 dp tall: the 2:1 photo, 304 dp tall at the 608 dp
+     * width, is drawn 230.4 dp tall and 460.8 dp wide, centred, and "Found at" and the identification end on screen.
+     */
+    @Test
+    @Config(qualifiers = "w640dp-h384dp-land-xhdpi")
+    fun `in a short landscape window the photo is capped at 60 percent of the window height, with the title and details in view`() {
+        setScreen(listOf(photo("wide", 400, 200)))
+
+        val photo = bounds(findPagePhotoTag("wide"))
+        val root = root()
+        // 60% of the configured 384 dp window height.
+        val cap = 384.dp * 0.6f
+        assertTrue("capped at 60% of the window height, $cap: ${photo.height}", near(photo.height, cap))
+        assertTrue("narrowed to its 2:1 shape: ${photo.width}", near(photo.width, cap * 2))
+        assertTrue("centred: ${photo.centreX} against ${root.centreX}", near(photo.centreX, root.centreX))
+        val title = bounds(FIND_PAGE_TITLE_TAG)
+        val foundAt = composeRule.onNodeWithText("Found at", substring = true).getUnclippedBoundsInRoot()
+        val identification = composeRule.onNodeWithText("Your own identification", substring = true).getUnclippedBoundsInRoot()
+        assertTrue("the title is on screen: $title", title.top >= root.top && title.bottom <= root.bottom)
+        assertTrue("Found at is on screen: $foundAt, window ends at ${root.bottom}", foundAt.bottom <= root.bottom)
+        assertTrue("the identification is on screen: $identification, window ends at ${root.bottom}", identification.bottom <= root.bottom)
+    }
+
     @Test
     fun `several photos sit in a row with the first centred and the next peeking in, and a swipe brings the next to the centre`() {
         setScreen(listOf(photo("a", 400, 200), photo("b", 400, 200), photo("c", 400, 200)))

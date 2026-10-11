@@ -58,6 +58,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
@@ -339,9 +340,10 @@ private fun hostSubstrateReportLines(hostSubstrate: HostSubstrateSection): List<
  * centred, in its own shape. Several: a row that swipes sideways ([HorizontalPager], one photo per page, snapping),
  * the current photo centred and the next one peeking in from the side by [REPORT_PHOTO_PEEK], less the gap.
  *
- * Each photo is capped at [REPORT_PHOTO_MAX_HEIGHT] so a tall portrait photo leaves the find's details on screen; a
- * capped photo is shown whole inside the cap, with space at its sides, never cropped. The cap is this file's own
- * choice, not a ruling (recorded in the dispatch's report).
+ * Each photo is capped at the smaller of [REPORT_PHOTO_MAX_HEIGHT] and [REPORT_PHOTO_WINDOW_FRACTION] of the window's
+ * height (the planner's call, RECORD -874), so the title and the find's details stay in view, in a short landscape
+ * window too; a capped photo is shown whole inside the cap, narrower, never cropped. The window's height is read the
+ * way the entry page's short-window map cap reads it (`CartographyEntryReportScreen`'s `shortWindowMapCap`).
  *
  * The full-screen viewer has its own previous and next buttons and no swiping (see [PhotoViewerDialog]); that is
  * unchanged, and only this row swipes.
@@ -372,6 +374,7 @@ private fun ReportPhotos(photos: List<LogPhoto>, onOpen: (String) -> Unit) {
 /** One photo on the find page, through the shared [DecodedPhoto], whole; tapping anywhere on it opens [PhotoViewerDialog]. */
 @Composable
 private fun ReportPhoto(photo: LogPhoto, onOpen: (String) -> Unit) {
+    val heightCap = minOf(REPORT_PHOTO_MAX_HEIGHT, (LocalConfiguration.current.screenHeightDp * REPORT_PHOTO_WINDOW_FRACTION).dp)
     DecodedPhoto(
         relativePath = photo.relativePath,
         // No fillMaxWidth: the width is the row's (its Box gives a maximum and no minimum), and DecodedPhoto's own aspect
@@ -379,7 +382,7 @@ private fun ReportPhoto(photo: LogPhoto, onOpen: (String) -> Unit) {
         // it does not. A forced full width would leave a tall photo no way to narrow, and it would fall back to its pixel
         // size (a revert check on CI showed the forced width also hid a crop from the first test).
         modifier = Modifier
-            .heightIn(max = REPORT_PHOTO_MAX_HEIGHT)
+            .heightIn(max = heightCap)
             // No test tag on this node: DecodedPhotoSemanticsTest pins its semantics, and the tag sits on a Box around it.
             .clickable(onClickLabel = "Open full screen", onClick = { onOpen(photo.id) }),
         wholePhoto = true,
@@ -389,8 +392,11 @@ private fun ReportPhoto(photo: LogPhoto, onOpen: (String) -> Unit) {
 /** How far the next photo's page reaches in from each side of the row, before the gap between pages. */
 private val REPORT_PHOTO_PEEK = 32.dp
 
-/** The tallest a find page photo is drawn; see [ReportPhotos]. */
+/** The tallest a find page photo is drawn on any window; see [ReportPhotos]. */
 private val REPORT_PHOTO_MAX_HEIGHT = 480.dp
+
+/** The share of the window's height a find page photo may take, when that is less than [REPORT_PHOTO_MAX_HEIGHT]. */
+private const val REPORT_PHOTO_WINDOW_FRACTION = 0.6f
 
 /** The find page's photo row (one photo or the swiping row), for tests. */
 internal const val FIND_PAGE_PHOTOS_TAG = "find-page-photos"
