@@ -185,3 +185,20 @@ Run on the S22 (SM-S908U, no SIM, GPS only) with a debug build of this branch. R
 **What was not done.** No taps beyond the launch, and the S26 was not touched.
 
 **Evidence.** Saved outside every repo, in `~/Zynergy/device-evidence/2026-10-11-return-arrival/`: `s22-launch-check.txt`, `apk.sha256`, `logcat-full.txt`, `logcat-verify-grep.txt` and `logcat-crash.txt` (0 lines).
+
+## After merging origin/main (PR #213): tests and launch check again
+
+**The merge.** `origin/main` `65bd8ee5` was merged into this branch as `ca0ced10`, a merge and not a rebase. The only conflict was the audit index, resolved by keeping both rows. The base had 336 rows and each side added one, so the merged index has 338. `AvailabilityScreen` kept #213's clock change and this branch's hold parameter, merged automatically.
+
+**Targeted tests on the merged head: 73 tests, 0 failures.** That is 71 in one run plus 2 in a second run for `NavigationHudButtonPlacement360Test` and `NavigationHudButtonPlacement384Test`. The classes:
+- this change's six: `ReturnWatchArrivalTest`, `ReturnArrivalAlertsTest`, `TrackRecordingSwipeAwayTest`, `AvailabilityScreenArrivalHoldTest`, `TrackRecordingServiceReturnArrivalTest`, `FileReturnRecordTest`;
+- `AvailabilityScreenQuickSettingsTest` (15 tests);
+- the HUD tests that build `MapQuickSettings`: `NavigationHudKindInStatusTest`, `NavigationHudQuickSettingsWidthTest`, `NavigationHudArrivedTest` and the two button-placement classes above.
+
+assembleDebug succeeded.
+
+**The S22 launch check was run again**, because the merged code differs from the build checked above. Result: **PASS.**
+- APK sha256 `ac0bf846da4fc0efcdda1c85bbb28caa3bc12bbe6d693bcd9786b88cc78f9fec`, installed as `1.0.3169+gca0ced10`.
+- `Install: Success`; `dexopt: status=verify`; `LaunchState: COLD`; `PASS: verified (status=verify), launched, process 5692 alive after 8 s, crash buffer empty`.
+- Logcat has no VerifyError. As before, `AvailabilityScreen` exceeds the compiler instruction limit (21426, down from 21443), so ART runs it in the interpreter. The app still ran. Nothing in logcat names `CompactMainScaffold`.
+- Evidence is in `~/Zynergy/device-evidence/2026-10-11-return-arrival/merged-ca0ced10/`.
