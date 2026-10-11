@@ -1089,10 +1089,7 @@ fun AvailabilityScreen(
                 }
                 // RECORD -890: back to the journal entry whose map Navigate was tapped on. The entry is still the
                 // Journal's open one; the bubble is not reopened, as a Records row reopens nothing.
-                is WaypointNavigationOrigin.JournalEntryMap -> {
-                    journalScreenState.topTab = JournalTopTab.CARTOGRAPHY
-                    compactTab = CompactTab.JOURNAL
-                }
+                is WaypointNavigationOrigin.JournalEntryMap -> Unit // REVERT CHECK -890 (a)
             }
         }
     }
