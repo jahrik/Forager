@@ -346,9 +346,10 @@ class RecordsFilterChipsTest {
 
     // ── S4: the All logbook (journal redesign J1, continuation prompts/preserved/2026-09-27-17.md) ──
     //
-    // Owner's answers: finds first within their day (they carry a date and no time), then the timed
-    // records newest first; days newest first; each type's own row as its chip shows it, with a type
-    // badge; tapping a find selects the Finds chip and opens its report there; committed finds only.
+    // Owner's answers: each type's own row as its chip shows it, with a type badge; tapping a find
+    // selects the Finds chip and opens its report there; committed finds only. The day grouping those
+    // answers also set (finds first within a day, days newest first) became grouping by kind with
+    // RECORD -868.
     // Times are built at local hours in the JVM's default zone, the zone the screen groups by, so the
     // day a record falls on does not depend on where the suite runs.
 
@@ -390,25 +391,35 @@ class RecordsFilterChipsTest {
 
     private fun rowTag(type: String, id: String) = "records-logbook-row-$type-$id"
     private fun badgeTag(type: String, id: String) = "records-badge-$type-$id"
-    private fun dayTag(date: LocalDate) = "records-logbook-day-$date"
+    private fun sectionTag(type: String) = "records-logbook-section-$type"
 
+    /**
+     * RECORD -868 (the owner: "In All, separate by category and not by time/day entered, with Finds at the top";
+     * "Finds, Tracks, Waypoints, Offline maps (Recommended)"). Rewritten for it: this was "All shows every committed
+     * record grouped by day, days newest first, finds first in their day, then timed records newest first"; its
+     * reading order ran by day under three day headers, and it asserted each day header's record count ("5 records",
+     * "1 record", "1 record"). The reading order now runs by kind under four section headers, each asserted whole with
+     * its count; the committed-finds-only and chip-count assertions are unchanged. The fixture's finds have no time,
+     * so F1 and F2 (same day) keep their input order, and F3 is an older day.
+     */
     @Test
-    fun `All shows every committed record grouped by day, days newest first, finds first in their day, then timed records newest first`() {
+    fun `All shows every committed record grouped by kind, Finds, Tracks, Waypoints, Offline maps, each under a header with its count, newest first`() {
         setLogbookScreen()
         chip(ALL_CHIP).assertIsSelected()
 
         // Reading order: top first, then left (two finds share a row, as in the Finds gallery grid).
         val expected = listOf(
-            dayTag(d1),
+            sectionTag("finds"),
             rowTag("finds", "F1"),
             rowTag("finds", "F2"),
-            rowTag("tracks", "T1"),
-            rowTag("offline-maps", "7"),
-            rowTag("waypoints", "W1"),
-            dayTag(d2),
-            rowTag("waypoints", "W2"),
-            dayTag(d3),
             rowTag("finds", "F3"),
+            sectionTag("tracks"),
+            rowTag("tracks", "T1"),
+            sectionTag("waypoints"),
+            rowTag("waypoints", "W1"),
+            rowTag("waypoints", "W2"),
+            sectionTag("offline-maps"),
+            rowTag("offline-maps", "7"),
         )
         val positions = expected.map { tag ->
             val b = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
@@ -417,10 +428,11 @@ class RecordsFilterChipsTest {
         val sorted = positions.sortedWith(compareBy({ it.second.first }, { it.second.second })).map { it.first }
         assertEquals("the logbook's reading order", expected, sorted)
 
-        // Day headers carry the day's record count.
-        composeRule.onNodeWithTag(dayTag(d1)).assert(hasText("5 records", substring = true))
-        composeRule.onNodeWithTag(dayTag(d2)).assert(hasText("1 record", substring = true))
-        composeRule.onNodeWithTag(dayTag(d3)).assert(hasText("1 record", substring = true))
+        // Section headers name the kind as its chip does and carry the section's count.
+        composeRule.onNodeWithTag(sectionTag("finds")).assert(hasText("Finds · 3"))
+        composeRule.onNodeWithTag(sectionTag("tracks")).assert(hasText("Tracks · 1"))
+        composeRule.onNodeWithTag(sectionTag("waypoints")).assert(hasText("Waypoints · 2"))
+        composeRule.onNodeWithTag(sectionTag("offline-maps")).assert(hasText("Offline maps · 1"))
         // Committed finds only: the draft is neither listed nor counted.
         composeRule.onNodeWithTag(rowTag("finds", "D1")).assertDoesNotExist()
         chip(ALL_CHIP).assert(hasText("7"))

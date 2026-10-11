@@ -231,7 +231,7 @@ private fun findsDayHeaderKey(tab: FindsGalleryTab, day: LocalDate): String = "f
 
 /**
  * [items] grouped by [day], newest day first, each day's items in their given order: the Finds grid's headings (data part D,
- * RECORD -702), ordered as the Records logbook orders its days (`buildRecordsLogbook`).
+ * RECORD -702), ordered as the Records logbook ordered its days until RECORD -868 grouped it by kind.
  */
 internal fun <T> groupByDayNewestFirst(items: List<T>, day: (T) -> LocalDate): List<Pair<LocalDate, List<T>>> =
     items.groupBy(day).toList().sortedByDescending { it.first }

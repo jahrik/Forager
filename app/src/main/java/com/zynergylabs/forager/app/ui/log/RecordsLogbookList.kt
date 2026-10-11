@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.ListRowShape
-import com.zynergylabs.forager.app.ui.motion.WordSwap
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
@@ -49,16 +48,13 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.TrackExportRow
 import com.zynergylabs.forager.app.ui.track.canBeDeleted
 import com.zynergylabs.forager.app.ui.track.trackTitle
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * Records' **All** view — journal redesign J1, S4 (plan J4; the owner's answers in
- * `prompts/preserved/2026-09-27-17.md`): every record in one list, grouped by day, days newest first,
- * that day's finds first and then its timed records newest first ([buildRecordsLogbook] owns the
- * order).
+ * `prompts/preserved/2026-09-27-17.md`): every record in one list. Since RECORD -868 it is grouped by kind, in chip
+ * order (Finds, Tracks, Waypoints, Offline maps), each section under a header with its count and newest first inside;
+ * a kind with nothing in it is left out. It was grouped by day until then. [buildRecordsLogbook] owns the order.
  *
  * **The rows are the chips' own rows** (owner's answer 2, "Same rows as their chips"): [FindTile],
  * [TrackExportRow], [WaypointRow] and [OfflineRegionRow], each exactly as its single-type chip shows
@@ -109,17 +105,17 @@ internal fun RecordsLogbookList(
     /** Dispatch 2026-09-28-502: a waypoint row's Navigate, given its id; `null` (the default) offers none. */
     onNavigateToWaypoint: ((String) -> Unit)? = null,
 ) {
-    val days = buildRecordsLogbook(
+    val sections = buildRecordsLogbook(
         finds = finds.orEmpty(),
         tracks = tracks,
         waypoints = waypoints,
         offlineRegions = availabilityUiState.visibleOfflineRegions,
-        zone = ZoneId.systemDefault(),
     )
     // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt): a deleted track, waypoint or
-    // offline map row fades and shrinks while the rows below close up, and Undo brings it back the way it went. A day whose last
-    // record goes leaves the same way, header and all. Find tiles shrink and grow the same way (Amendment 1, scout R5).
-    val dayRows = rememberListRows(days, key = { it.date })
+    // offline map row fades and shrinks while the rows below close up, and Undo brings it back the way it went. A section
+    // whose last record goes leaves the same way, header and all (it was a day until RECORD -868). Find tiles shrink and
+    // grow the same way (Amendment 1, scout R5).
+    val sectionRows = rememberListRows(sections, key = { it.type })
     val now = currentTime.nowEpochMillis()
     // J4b L6: one open row at a time across the logbook; a touch elsewhere or a scroll closes it.
     val swipeGroup = rememberSwipeRevealGroup()
@@ -142,17 +138,17 @@ internal fun RecordsLogbookList(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        if (dayRows.isEmpty()) {
+        if (sectionRows.isEmpty()) {
             Text("No records yet.", style = MaterialTheme.typography.bodyMedium)
         }
-        dayRows.forEach { dayRow -> key(dayRow.key) { ListRowMotion(dayRow) { day ->
-          // One column per day, with the list's own spacing, so a leaving day shrinks as one block.
+        sectionRows.forEach { sectionRow -> key(sectionRow.key) { ListRowMotion(sectionRow) { section ->
+          // One column per section, with the list's own spacing, so a leaving section shrinks as one block.
           Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            LogbookDayHeader(day)
+            LogbookSectionHeader(section)
             // Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout R5): a deleted find's tile fades and shrinks in
             // place, and Undo grows it back; once it has gone the pairs re-pair. That re-pairing is still a jump: these rows are a
             // plain column, with no placement glide (reported as a stop).
-            val findRows = rememberListRows(day.finds, key = { it.id })
+            val findRows = rememberListRows(section.finds, key = { it.id })
             findRows.chunked(FIND_COLUMNS).forEach { pair ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     pair.forEach { findRow ->
@@ -172,7 +168,7 @@ internal fun RecordsLogbookList(
                     repeat(FIND_COLUMNS - pair.size) { Spacer(modifier = Modifier.weight(1f)) }
                 }
             }
-            val timedRows = rememberListRows(day.timed, key = { it.rowKey() })
+            val timedRows = rememberListRows(section.timed, key = { it.rowKey() })
             timedRows.forEach { timedRow -> key(timedRow.key) { ListRowMotion(timedRow) { record ->
                 when (record) {
                     is TimedRecord.TrackRecord -> run {
@@ -256,22 +252,20 @@ private fun TimedRecord.rowKey(): Any = when (this) {
     is TimedRecord.OfflineRegionRecord -> RecordType.OFFLINE_MAPS to region.id
 }
 
+/**
+ * A section's header, its kind and its count, "Finds · 9" (RECORD -868), with the kind named as its chip names it. The
+ * count is the section's rows, which are the lists the chips count (regions and waypoints already leave out a pending
+ * delete), so it matches the chip. Replaced the day header ("Sat, Oct 10, 2026 · 8 records") with -868. Motion Part 3,
+ * item 3 (RECORD -651, "Numbers instant, words fade"): with no word that changes, the count changes at once.
+ */
 @Composable
-private fun LogbookDayHeader(day: LogbookDay) {
-    val count = day.recordCount
-    // Motion Part 3, item 3 (RECORD -651, "Numbers instant, words fade"; scout R7): the count changes at once, and "record"
-    // becoming "records" crossfades. The header takes no touch, so the crossfade moves no touch area.
-    WordSwap(
-        text = "${DAY_HEADER_FORMAT.format(day.date)} · $count ${if (count == 1) "record" else "records"}",
-        modifier = Modifier.padding(top = Spacing.sm),
-    ) { line ->
-        Text(
-            line,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.testTag(logbookDayTag(day.date)),
-        )
-    }
+private fun LogbookSectionHeader(section: LogbookSection) {
+    Text(
+        "${section.type.filter().chipLabel()} · ${section.recordCount}",
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = Spacing.sm).testTag(logbookSectionTag(section.type)),
+    )
 }
 
 /**
@@ -341,7 +335,7 @@ internal fun RecordType.tagName(): String = when (this) {
     RecordType.OFFLINE_MAPS -> "offline-maps"
 }
 
-internal fun logbookDayTag(date: LocalDate): String = "records-logbook-day-$date"
+internal fun logbookSectionTag(type: RecordType): String = "records-logbook-section-${type.tagName()}"
 internal fun logbookRowTag(type: RecordType, recordId: String): String = "records-logbook-row-${type.tagName()}-$recordId"
 internal fun recordTypeBadgeTag(type: RecordType, recordId: String): String = "records-badge-${type.tagName()}-$recordId"
 
@@ -349,4 +343,3 @@ internal fun recordTypeBadgeTag(type: RecordType, recordId: String): String = "r
 private const val FIND_COLUMNS = 2
 private val BADGE_SIZE = 28.dp
 private val BADGE_ICON_SIZE = 16.dp
-private val DAY_HEADER_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")
