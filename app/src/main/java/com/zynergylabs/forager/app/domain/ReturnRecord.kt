@@ -52,4 +52,10 @@ enum class ReturnEndReason {
 
     /** The recording service was destroyed with a recording begun. */
     SERVICE_DESTROYED,
+
+    /**
+     * The walker reached the start (RECORD -844, -845): the return ended by itself and the recording
+     * carries on. Written to `return-record.log` as `reason=arrival`.
+     */
+    ARRIVAL,
 }

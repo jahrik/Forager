@@ -33,6 +33,8 @@ internal data class CompactMapNavigation(
      * control pill's lit return toggle and the off-track heuristic.
      */
     val isNavigating: Boolean,
+    /** See [AvailabilityScreen]'s own `isArrivalHeld` doc comment (RECORD -845): the display holds "Arrived", whatever the fix. */
+    val isArrivalHeld: Boolean = false,
     val isOffTrack: Boolean,
     val onToggleReturning: () -> Unit,
     /** See [AvailabilityScreen]'s own `navigationTarget` doc comment. */

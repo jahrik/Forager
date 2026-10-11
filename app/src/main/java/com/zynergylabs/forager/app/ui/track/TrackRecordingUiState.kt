@@ -57,6 +57,13 @@ data class TrackRecordingUiState(
     /** What [com.zynergylabs.forager.app.domain.ReturnWatch] last decided, while [isReturning]. A copy, on the same rule as [isReturning]. */
     val isOffTrack: Boolean = false,
     /**
+     * RECORD -844, -845: the return on this screen's recording has just ended because the walker reached
+     * the start, and the navigation display is holding "Arrived", with the start ringed, for
+     * [ARRIVAL_HOLD_MILLIS] before it closes by itself. Held, not live: what the display shows while this
+     * is true does not depend on where the walker is. Never true while [isReturning].
+     */
+    val isArrivalHeld: Boolean = false,
+    /**
      * Bearing/distance/elevation back to the track's start, refreshed on every live fix while
      * recording — see [TrackRecordingViewModel]'s own doc comment for why this is now pushed from
      * a continuous stream rather than pulled on demand. `null` whenever [isRecording] is false or

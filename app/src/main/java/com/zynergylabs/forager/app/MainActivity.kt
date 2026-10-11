@@ -692,13 +692,15 @@ class MainActivity : ComponentActivity() {
                     onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
                     returnToStart = trackUiState.returnToStart,
                     isReturning = trackUiState.isReturning,
+                    isArrivalHeld = trackUiState.isArrivalHeld,
                     isOffTrack = trackUiState.isOffTrack,
                     recordingSundownLine = trackUiState.sundownLine,
                     recordingBackBy = trackUiState.backBy,
                     onBackByChoice = trackRecordingViewModel::setBackBy,
                     onClearBackBy = trackRecordingViewModel::clearBackBy,
                     onToggleReturning = {
-                        if (trackUiState.isReturning) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
+                        // RECORD -845: while "Arrived" is held the control is the display's exit, and closes it.
+                        if (trackUiState.isReturning || trackUiState.isArrivalHeld) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
                     },
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,

@@ -39,6 +39,14 @@ class FileReturnRecordTest {
         )
     }
 
+    /** RECORD -844: a return that ended because the walker reached the start. */
+    @Test
+    fun `a return ended on arrival is one line with reason arrival`() {
+        val file = folder.root.resolve("return-record.log")
+        FileReturnRecord(file, clock).write(ReturnRecordEvent.ReturnEnded("track-1", ReturnEndReason.ARRIVAL))
+        assertEquals(listOf("2026-10-03T20:00:00.000Z return-ended track=track-1 reason=arrival"), file.readLines())
+    }
+
     @Test
     fun `the off-track decisions carry their reading's time, and a refusal names the watched recording`() {
         val file = folder.root.resolve("return-record.log")

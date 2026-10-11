@@ -256,6 +256,8 @@ internal fun CompactMainScaffold(
     returnToStart: ReturnToStartInfo?,
     isReturning: Boolean,
     isNavigating: Boolean,
+    /** See [AvailabilityScreen]'s own `isArrivalHeld` doc comment (RECORD -845). */
+    isArrivalHeld: Boolean,
     isOffTrack: Boolean,
     /** See [AvailabilityScreen]'s own `recordingSundownLine` doc comment. */
     recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
@@ -1153,6 +1155,7 @@ internal fun CompactMainScaffold(
                                     returnToStart = returnToStart,
                                     isReturning = isReturning,
                                     isNavigating = isNavigating,
+                                    isArrivalHeld = isArrivalHeld,
                                     isOffTrack = isOffTrack,
                                     onToggleReturning = onToggleReturning,
                                     navigationTarget = navigationTarget,

@@ -639,7 +639,8 @@ internal fun CompactMapTab(
             val navigationFacing by rememberNavigationFacing(trueHeading, isNavigating, currentTime)
             // Dispatch -497: where the start is once the walker has arrived, by the same rule the HUD's
             // "Arrived" reads (arrivedAtStart); null otherwise.
-            val arrivedAt = if (isNavigating && navigationTarget != null && arrivedAtStart(uiState.liveFix, navigationTarget, currentTime.nowEpochMillis())) {
+            // RECORD -845: held while the display holds "Arrived" after a return ended on arrival, whatever the fix says.
+            val arrivedAt = if (isNavigating && navigationTarget != null && (navigation.isArrivalHeld || arrivedAtStart(uiState.liveFix, navigationTarget, currentTime.nowEpochMillis()))) {
                 com.zynergylabs.forager.app.domain.model.LatLng(navigationTarget.lat, navigationTarget.lng)
             } else {
                 null
@@ -1565,6 +1566,8 @@ private fun BoxScope.CompactMapNavigationDisplay(
             showDecimalDegrees = showDecimalDegrees,
             onToggleCoordinateFormat = onToggleCoordinateFormat,
             onExit = onToggleReturning,
+            // RECORD -845: "Arrived", held, after a return ended on arrival.
+            arrivalHeld = navigation.isArrivalHeld,
             // The recording's line, or with no recording sunset and dark only, computed here; either
             // hidden until its window opens (Amendment 2, RECORD -595).
             sundownLine = (recordingSundownLine ?: rememberScreenSundownLine(uiState.headingFix?.let { com.zynergylabs.forager.app.domain.model.LatLng(it.lat, it.lng) }, currentTime))

@@ -408,7 +408,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         preferences = sundownPreferencesRepository,
         readTrack = trackRepository::getById,
         readWaypoint = waypointRepository::getById,
-        isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
+        // RECORD -844, -845: while returning, and once the return has ended by arrival, so arrival is judged as before.
+        isReturning = returnWatch::arrivalJudgedFor,
         errorLog = errorLog,
         lastKnownLocation = lastKnownLocation,
         // Dispatch 2026-09-28-796 (RECORD -797): each evaluation, alert and wake-up, to files/sundown-record.log.
@@ -424,7 +425,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         clock = currentTimeProvider,
         readTrack = trackRepository::getById,
         readWaypoint = waypointRepository::getById,
-        isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
+        // RECORD -844, -845: while returning, and once the return has ended by arrival, so arrival is judged as before.
+        isReturning = returnWatch::arrivalJudgedFor,
         errorLog = errorLog,
         // Dispatch 2026-09-28-796: each set, evaluation, alert and end, to files/back-by-record.log; no positions.
         // Debug builds only (dispatch 2026-10-11, RECORD -830).

@@ -697,6 +697,13 @@ fun AvailabilityScreen(
     returnToStart: ReturnToStartInfo? = null,
     /** Whether the walker has said they're heading back — see [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.startReturn]'s own doc comment. */
     isReturning: Boolean = false,
+    /**
+     * RECORD -844, -845: the return has just ended on arrival and the navigation display holds "Arrived",
+     * with the start ringed, until the ViewModel's hold ends; see
+     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.isArrivalHeld]. Counts as navigating, so
+     * the display stays up for the hold and then closes to the plain map.
+     */
+    isArrivalHeld: Boolean = false,
     /** Set once [isReturning] and the walker has gone off the path they walked out, until back on it — see `OffTrackJudge` (dispatch 2026-09-28-425). */
     isOffTrack: Boolean = false,
     /**
@@ -913,7 +920,7 @@ fun AvailabilityScreen(
     // waited for; once loaded and missing, it was deleted, and the navigation ends with a message (below).
     val waypointTarget = waypointNavigationTarget(uiState.waypointNavigation, waypoints, waypointsLoaded)
     val navigatingToWaypoint = (waypointTarget as? WaypointNavigationTarget.Found)?.waypoint
-    val isNavigating = isReturning || navigatingToWaypoint != null
+    val isNavigating = isReturning || isArrivalHeld || navigatingToWaypoint != null
     val target = navigatingToWaypoint ?: navigationTarget
     // Navigation HUD stage one's display rules, applied once here so the map and the
     // Records list agree — see mapVisibleWaypoints. Records keeps the full list.
@@ -1671,6 +1678,7 @@ fun AvailabilityScreen(
             returnToStart = returnToStart,
             isReturning = isReturning,
             isNavigating = isNavigating,
+            isArrivalHeld = isArrivalHeld,
             isOffTrack = isOffTrack,
             recordingSundownLine = recordingSundownLine,
             // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.domain
 
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
@@ -22,6 +23,13 @@ import kotlinx.coroutines.flow.asStateFlow
  * button shows a distance the ViewModel works out for itself from its own fixes (dispatch
  * 2026-09-28-400, Amendment 2, the planner's ruling on question 1), so nothing under `ui/` reads
  * this field today. It is here because the decision cannot be checked without it.
+ *
+ * [arrivedAfterReturn] (RECORD -844, -845): the last return on [trackId] ended because the walker
+ * reached the start ([ReturnEndReason.ARRIVAL]). [isReturning] is false from that moment, so this is
+ * what Back by and the sundown alerts read beside it ([ReturnWatch.arrivalJudgedFor]) to go on
+ * judging arrival exactly as they did while the return ran. Cleared by the next Return and by the end
+ * of the recording; the walker closing the HUD afterwards leaves it set, since the return had already
+ * ended by arrival, not by the walker.
  */
 data class ReturnWatchState(
     val trackId: String? = null,
@@ -30,6 +38,7 @@ data class ReturnWatchState(
     val isReturning: Boolean = false,
     val isOffTrack: Boolean = false,
     val returnToStart: ReturnToStartInfo? = null,
+    val arrivedAfterReturn: Boolean = false,
 )
 
 /**
@@ -123,6 +132,13 @@ class ReturnWatch(
     private var start: TrackPoint? = null
     private var lastInfo: ReturnToStartInfo? = null
 
+    // RECORD -845, "Must leave first": whether a GPS fix has put the walker outside the arrival circle
+    // since Return was tapped. Arrival counts only once this is true.
+    private var leftArrivalCircle = false
+
+    // RECORD -844: see [ReturnWatchState.arrivedAfterReturn].
+    private var arrivedAfterReturn = false
+
     // The kept points of the track the watch is for, oldest first: the stored track, tail included.
     private val keptPoints = mutableListOf<TrackPoint>()
 
@@ -187,6 +203,8 @@ class ReturnWatch(
             judge = null
             returning = true
             offTrack = false
+            leftArrivalCircle = false
+            arrivedAfterReturn = false
             publish()
             true
         }
@@ -203,6 +221,7 @@ class ReturnWatch(
             judge = null
             returning = false
             offTrack = false
+            leftArrivalCircle = false
             publish()
             was
         }
@@ -239,6 +258,10 @@ class ReturnWatch(
      *
      * [provider] is where the platform said [current] came from (dispatch 2026-09-28-527), passed beside
      * it and never stored.
+     *
+     * A GPS fix at the start, once the walker has been away from it since Return, ends the return
+     * instead ([hasArrivedAfterLeaving], RECORD -844, -845): that fix is not judged, and none after it
+     * is, until the next Return.
      */
     fun onFix(current: TrackPoint, provider: FixProvider) {
         var recorded: ReturnRecordEvent? = null
@@ -248,7 +271,9 @@ class ReturnWatch(
             val info = computeReturnToStart(current, start)
             lastInfo = info
             var shouldAlert = false
-            if (returning) {
+            if (returning && hasArrivedAfterLeaving(current, provider, start)) {
+                recorded = endReturnOnArrival()
+            } else if (returning) {
                 val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current, provider)
                 val wasOff = offTrack
                 offTrack = verdict.isOffTrack
@@ -280,6 +305,47 @@ class ReturnWatch(
         }
     }
 
+    /**
+     * Whether Back by and the sundown alerts should judge arrival for [trackId] (RECORD -844, -845): while
+     * a return on it is under way, as before, and also once that return has ended by arrival. Both read
+     * this one answer (`AppContainer`), so their arrival behaviour is what it was when a return never
+     * ended on its own.
+     */
+    fun arrivalJudgedFor(trackId: String): Boolean =
+        state.value.let { it.trackId == trackId && (it.isReturning || it.arrivedAfterReturn) }
+
+    /**
+     * RECORD -844 and -845: the walker is back at the start. The same test Back by and the sundown alerts
+     * use ([hasArrived]: within the larger of 15 m and twice the fix's accuracy, straight line), on a GPS
+     * fix only, as theirs is ([FixProvider.mayAct]); and only once a GPS fix has put the walker outside
+     * that circle since Return was tapped ("Must leave first"), so a Return tapped at the start does not
+     * end at once. Updates [leftArrivalCircle]. Call with [lock] held, while returning.
+     */
+    private fun hasArrivedAfterLeaving(current: TrackPoint, provider: FixProvider, start: TrackPoint): Boolean {
+        if (!provider.mayAct) return false
+        val inside = hasArrived(GeoDistance.metersBetween(LatLng(current.lat, current.lng), LatLng(start.lat, start.lng)), current.accuracyMeters)
+        if (!inside) {
+            leftArrivalCircle = true
+            return false
+        }
+        return leftArrivalCircle
+    }
+
+    /**
+     * Ends the return because the walker arrived (RECORD -844): off-track stops watching, the path and the
+     * judge go, and the recording carries on. Returns the record entry to write once [lock] is released.
+     * Call with [lock] held.
+     */
+    private fun endReturnOnArrival(): ReturnRecordEvent? {
+        pathAtReturn = emptyList()
+        judge = null
+        returning = false
+        offTrack = false
+        leftArrivalCircle = false
+        arrivedAfterReturn = true
+        return trackId?.let { ReturnRecordEvent.ReturnEnded(it, ReturnEndReason.ARRIVAL) }
+    }
+
     /** Makes the watch be for [trackId] if it may be: already is, or not begun yet. Call with [lock] held. */
     private fun holdFor(trackId: String): Boolean {
         if (this.trackId == trackId) return true
@@ -293,6 +359,8 @@ class ReturnWatch(
     private fun forget() {
         returning = false
         offTrack = false
+        leftArrivalCircle = false
+        arrivedAfterReturn = false
         start = null
         lastInfo = null
         keptPoints.clear()
@@ -309,6 +377,7 @@ class ReturnWatch(
             isReturning = returning,
             isOffTrack = offTrack,
             returnToStart = lastInfo,
+            arrivedAfterReturn = arrivedAfterReturn,
         )
     }
 }

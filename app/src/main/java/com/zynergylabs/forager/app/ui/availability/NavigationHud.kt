@@ -288,6 +288,12 @@ internal fun NavigationHud(
      * evening line would take the display past it, the line leaves the display ([eveningLineFits]); the alerts are unaffected.
      */
     eveningLineBottomLimitInRootPx: Float? = null,
+    /**
+     * RECORD -844, -845: the return has ended on arrival and the display holds "Arrived" until it closes by
+     * itself. The large slot reads "Arrived" whatever the fix says ([heldArrivalReadout]), so a drive-off
+     * inside the hold does not turn it back into a distance.
+     */
+    arrivalHeld: Boolean = false,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -300,7 +306,8 @@ internal fun NavigationHud(
         }
     }
     val isDarkTheme = LocalForagerDarkTheme.current
-    val readout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
+    val liveReadout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
+    val readout = if (arrivalHeld) heldArrivalReadout(liveReadout) else liveReadout
 
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         // A plain Box with a background, deliberately opaque to touches only where its content
@@ -1024,6 +1031,26 @@ internal fun arrivedAtStart(liveFix: LocationFix.Update?, start: Waypoint, nowEp
     if (liveFix == null || fixFreshness(liveFix.ageMillis(nowEpochMillis)) == FixFreshness.LOST) return false
     return hasArrived(GeoDistance.metersBetween(LatLng(liveFix.lat, liveFix.lng), LatLng(start.lat, start.lng)), liveFix.accuracyMeters)
 }
+
+/**
+ * The display while it holds "Arrived" after a return ended on arrival (RECORD -844, -845): [live]'s heading,
+ * elevation and coordinates, with the large slot reading [ARRIVED_TEXT] whatever the fix says, and no needle,
+ * no turn, no status and no distance label, as an arrival read live has none (see [navigationReadout]'s
+ * `arrived` branches). Held, not live, so a fix moving away inside the hold changes nothing here.
+ */
+internal fun heldArrivalReadout(live: NavigationHudReadout): NavigationHudReadout =
+    live.copy(
+        targetText = "",
+        targetArrowDegrees = null,
+        distanceText = ARRIVED_TEXT,
+        distanceDeEmphasised = false,
+        statusText = "",
+        routeRetryOffered = false,
+        distanceKindText = null,
+        statusFallbacks = emptyList(),
+        statusFallbacksFor = null,
+        statusIsStraightNote = false,
+    )
 
 /**
  * Dispatch 2026-09-28-502, step 3: the dashed line navigating to a waypoint draws, from the walker's fix to
