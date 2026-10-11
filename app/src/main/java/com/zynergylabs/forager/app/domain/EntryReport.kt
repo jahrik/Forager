@@ -102,7 +102,7 @@ fun entryReportOf(
 
     // RECORD -867 (the planner's call, option a): a track with fewer than two points has no height change to miss, so it
     // is left out of Climb instead of blanking it for the whole entry. A longer track with no heights still blanks it.
-    val measurable = includedLive.filter { it.points.size >= MIN_POINTS_FOR_CLIMB }
+    val measurable = includedLive // REVERT CHECK part 1: the filter removed
     val climb = if (includedTracks.isEmpty() || !allLive || measurable.isEmpty()) {
         null
     } else {
