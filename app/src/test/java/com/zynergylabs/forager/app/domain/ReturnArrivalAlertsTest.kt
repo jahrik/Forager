@@ -115,7 +115,7 @@ class ReturnArrivalAlertsTest {
         runBlocking { backBy.tick() } // the service's next 15 s tick, after the return has ended
 
         assertNull("arrived: the reminder is over", backBy.shown.value)
-        assertEquals(BackByRecordEvent.Ended("t1", BackByEndReason.ARRIVAL), backByRecord.last())
+        assertEquals(listOf(BackByRecordEvent.Ended("t1", BackByEndReason.ARRIVAL)), backByRecord.filterIsInstance<BackByRecordEvent.Ended>())
     }
 
     @Test

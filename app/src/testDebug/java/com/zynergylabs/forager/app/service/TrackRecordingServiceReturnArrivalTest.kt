@@ -144,7 +144,7 @@ class TrackRecordingServiceReturnArrivalTest {
     }
 
     @Test
-    fun `Return tapped at the start does not end there; straying posts off-track; coming back to the start ends it`() {
+    fun `Return tapped at the start does not end there, straying posts off-track, and coming back to the start ends it`() {
         var controller: ServiceController<TrackRecordingService>? = null
         try {
             val (c, trackId) = startedRecording()
