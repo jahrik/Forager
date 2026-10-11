@@ -57,6 +57,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.semantics.SemanticsProperties
+import com.zynergylabs.forager.app.ui.availability.offlineRegionRowLineTag
 import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
@@ -455,6 +458,42 @@ class RecordsFilterChipsTest {
         composeRule.onNodeWithText("Delete \"Noon region\"?").assertDoesNotExist()
         composeRule.onNode(isDialog()).assertDoesNotExist()
         assertEquals(listOf(7L), deletedRegionIds)
+    }
+
+    /**
+     * RECORD -870 and -871: the region row is one plain line, "name · radius · size · downloaded …", read here part by
+     * part as the row draws it (the dots between parts are hidden from the semantics tree). The centre's coordinates,
+     * the tile count and the zoom-readiness paragraph it used to print are on the region's own page
+     * ([RecordDetailsSheetTest]'s region cases), not in the row. Checked in All and in the Offline maps chip, the
+     * row's two homes. Noon region: 5 km is 3 mi; 1000 bytes is "0.0 MB"; its time is after this screen's clock (0),
+     * which reads "just now".
+     */
+    @Test
+    fun `an offline region row is one plain line of name, radius, size and when, with no centre, tiles or zoom paragraph, in All and in its chip`() {
+        setLogbookScreen()
+        assertNoonRegionLine("All")
+
+        touchChip(OFFLINE_MAPS_CHIP, Offset(0.5f, 0.5f))
+        assertNoonRegionLine("the Offline maps chip")
+    }
+
+    private fun assertNoonRegionLine(where: String) {
+        val line = composeRule.onNodeWithTag(offlineRegionRowLineTag(7L), useUnmergedTree = true)
+        line.performScrollTo()
+        val parts = line.onChildren().fetchSemanticsNodes().mapNotNull { node ->
+            node.config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }
+        }
+        assertEquals("the row's line in $where", listOf("Noon region", "3 mi radius", "0.0 MB", "downloaded just now"), parts)
+        for (gone in listOf("Ready to zoom", "tiles", "45.5000")) {
+            assertEquals(
+                "no \"$gone\" in $where's row",
+                0,
+                composeRule.onAllNodes(
+                    hasText(gone, substring = true) and hasAnyAncestor(hasTestTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7"))),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNodes().size,
+            )
+        }
     }
 
     @Test

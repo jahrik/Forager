@@ -713,9 +713,13 @@ class AvailabilityScreenSettingsPanelTest {
      * see that composable's doc comment for why: [OfflineMapStatus.Succeeded] is a bare marker with
      * no region data left to attach the text to, once a region can no longer replace whatever was
      * downloaded before it.
+     *
+     * Moved again by RECORD -870 (the owner: "Yes please. Good catch"): the row became one plain line and the
+     * paragraph lives on the region's own page, its details sheet, which a tap on the row opens. Rewritten for that:
+     * the three counts were 1 on the Offline maps chip; they are now 0 on the chip and 1 on the region's page.
      */
     @Test
-    fun `a downloaded region states it is ready to zoom 15, with the z14-archive vs z15-live distinction`() {
+    fun `a downloaded region's page states it is ready to zoom 15, with the z14-archive vs z15-live distinction, and its row does not`() {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = SEARCHED_STATE.copy(
@@ -760,10 +764,13 @@ class AvailabilityScreenSettingsPanelTest {
             )
         }
         openOfflineMapsSubTab()
+        val zoomFragments = listOf("Ready to zoom 15", "zoom 10–14 from the archive", "zoom 15 detail fetched live from Protomaps")
+        for (fragment in zoomFragments) composeRule.onAllNodesWithText(fragment, substring = true).assertCountEquals(0)
 
-        composeRule.onAllNodesWithText("Ready to zoom 15", substring = true).assertCountEquals(1)
-        composeRule.onAllNodesWithText("zoom 10–14 from the archive", substring = true).assertCountEquals(1)
-        composeRule.onAllNodesWithText("zoom 15 detail fetched live from Protomaps", substring = true).assertCountEquals(1)
+        composeRule.onNodeWithText("Chanterelle Ridge").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        for (fragment in zoomFragments) composeRule.onAllNodesWithText(fragment, substring = true).assertCountEquals(1)
     }
 
     /**

@@ -37,6 +37,8 @@ import com.zynergylabs.forager.app.ui.map.CentrePinInstruction
 import com.zynergylabs.forager.app.ui.map.CentrePinMap
 import com.zynergylabs.forager.app.ui.map.rememberCentrePinState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -583,14 +585,21 @@ private fun OfflineRegionsSection(
 }
 
 /**
- * One downloaded region's row in [OfflineRegionsSection].
+ * One region's row, in [OfflineRegionsSection] and in the All logbook: one plain line (RECORD -870, the owner: "Yes
+ * please. Good catch"; the wording RECORD -871, "Yes, that wording (Recommended)"), built by [offlineRegionRowParts]:
+ * "Region 5 · 10 mi radius · 18.8 MB · downloaded 11 hours ago". A region not yet downloaded takes the same short
+ * form, "Region 5 · 10 mi radius · Not downloaded", with its "Download again" button under it. The "Stale" label
+ * stays beside the name.
  *
- * Carries the zoom-readiness note main's old single-region `OfflineMapStatusContent` used to show
- * in its `Downloaded` branch — per Workstream B's dispatch, the information moves here rather than
- * being dropped: [OfflineMapStatus.Succeeded] (this panel's new download-attempt status) is a bare
- * marker with no region data left to attach it to, and every completed region in this list is
- * exactly the thing that text was originally describing, so it's reworded to apply per-row instead
- * of to "the one download that just finished."
+ * **What left the row.** Until -870 the row also printed the centre's coordinates, the tile count and the
+ * zoom-readiness paragraph ([offlineRegionZoomNote]). All three are on the region's own page, the details sheet
+ * (`RecordDetailsSheet`'s `OfflineRegionDetails`: Centre, Tiles and the paragraph), which a tap on the row opens, so
+ * nothing was dropped. A place name ("10 mi around <town>") is not offered: the app stores none for a region, and the
+ * ruling allows one only when it is already on the phone, never from a new network lookup.
+ *
+ * **One `Text` per part, with a hidden dot between parts**, in a [FlowRow]: a narrow window wraps between parts
+ * rather than inside one, each part stays its own text (the name, "Not downloaded"), and a screen reader reads the
+ * parts without the dots.
  *
  * No delete control of its own since journal redesign J4 (the text "Delete" button is gone): its
  * callers wrap it in a [TwoStageSwipeRow] (J4b L6).
@@ -609,6 +618,7 @@ internal fun OfflineRegionRow(
     /** What "Download again" does on a region restored from a backup ([OfflineRegionSummary.isDownloaded] `false`); unused for a downloaded one. */
     onDownloadAgain: (() -> Unit)? = null,
 ) {
+    val parts = offlineRegionRowParts(region, distanceUnit, nowEpochMillis)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -617,43 +627,61 @@ internal fun OfflineRegionRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                Text(region.name, style = MaterialTheme.typography.bodyMedium)
+            FlowRow(
+                modifier = Modifier.testTag(offlineRegionRowLineTag(region.id)),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Text(parts.first(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.alignByBaseline())
                 if (isStale && region.isDownloaded) {
-                    Text("Stale", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    Text("Stale", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.alignByBaseline())
+                }
+                parts.drop(1).forEach { part ->
+                    Text("·", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alignByBaseline().clearAndSetSemantics {})
+                    Text(
+                        part,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (part == OFFLINE_REGION_NOT_DOWNLOADED) MaterialTheme.colorScheme.error else Color.Unspecified,
+                        modifier = Modifier.alignByBaseline(),
+                    )
                 }
             }
-            if (!region.isDownloaded) {
-                // A region restored from a backup onto a phone that never downloaded it (owner, "1 B"): its stored centre
-                // and radius, no tile count or "downloaded ... ago" it cannot honestly claim, and a way to get its tiles.
-                Text("Not downloaded", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
-                Text(
-                    "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around ${decimalDegreesLabel(region.region.lat, region.region.lng)}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                if (onDownloadAgain != null) {
-                    OutlinedButton(onClick = onDownloadAgain) { Text("Download again") }
-                }
-            } else {
-                Text(
-                    "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around " +
-                        "${decimalDegreesLabel(region.region.lat, region.region.lng)} — " +
-                        "${region.tileCount} tiles, ${offlineRegionSizeLabel(region)} — " +
-                        "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Text(offlineRegionZoomNote(region), style = MaterialTheme.typography.bodySmall)
+            // A region restored from a backup onto a phone that never downloaded it (owner, "1 B"): a way to get its tiles.
+            if (!region.isDownloaded && onDownloadAgain != null) {
+                OutlinedButton(onClick = onDownloadAgain) { Text("Download again") }
             }
         }
     }
 }
 
+/**
+ * The parts of [OfflineRegionRow]'s one line, in order; joined with " · " they are the line (RECORD -870, -871). The
+ * name, the radius, then the size and when it downloaded; or [OFFLINE_REGION_NOT_DOWNLOADED] for a region whose tiles
+ * are not on this phone, which has no size or download time it can honestly claim. Pure, so the wording is tested
+ * without a screen.
+ */
+internal fun offlineRegionRowParts(region: OfflineRegionSummary, distanceUnit: DistanceUnit, nowEpochMillis: Long): List<String> {
+    val radius = "${formatDistanceKm(region.region.radiusKm, distanceUnit)} radius"
+    return if (region.isDownloaded) {
+        listOf(region.name, radius, offlineRegionSizeLabel(region), "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}")
+    } else {
+        listOf(region.name, radius, OFFLINE_REGION_NOT_DOWNLOADED)
+    }
+}
+
+/** The last part of a not-downloaded region's line (owner, "1 B"). */
+internal const val OFFLINE_REGION_NOT_DOWNLOADED = "Not downloaded"
+
+/** [OfflineRegionRow]'s one line, for tests. */
+internal fun offlineRegionRowLineTag(regionId: Long): String = "offline-region-line-$regionId"
+
 /** A region's size on disk as its row prints it, "12.3 MB" (J5c: the details sheet prints the same). */
 internal fun offlineRegionSizeLabel(region: OfflineRegionSummary): String = "${"%.1f".format(region.sizeBytes / 1_000_000.0)} MB"
 
 /**
- * The row's zoom-readiness paragraph (see [OfflineRegionRow]'s doc comment for where it came from),
- * as one function since journal redesign J5c so the details sheet shows the identical text.
+ * A region's zoom-readiness paragraph, shown on its details sheet. It came from main's old single-region
+ * `OfflineMapStatusContent` (Workstream B moved it onto each region's row) and was one function from journal redesign
+ * J5c so that the row and the sheet showed identical text; since RECORD -870 the row no longer shows it, and the sheet
+ * is its one reader.
  */
 internal fun offlineRegionZoomNote(region: OfflineRegionSummary): String =
     "Ready to zoom ${region.maxZoom.toInt()}: zoom ${region.minZoom.toInt()}–${region.maxZoom.toInt() - 1} " +
