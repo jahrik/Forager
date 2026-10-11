@@ -1087,6 +1087,12 @@ fun AvailabilityScreen(
                     compactTab = CompactTab.JOURNAL
                     if (origin is WaypointNavigationOrigin.RecordsDetails) recordsWaypointReopen = origin.waypointId
                 }
+                // RECORD -890: back to the journal entry whose map Navigate was tapped on. The entry is still the
+                // Journal's open one; the bubble is not reopened, as a Records row reopens nothing.
+                is WaypointNavigationOrigin.JournalEntryMap -> {
+                    journalScreenState.topTab = JournalTopTab.CARTOGRAPHY
+                    compactTab = CompactTab.JOURNAL
+                }
             }
         }
     }
