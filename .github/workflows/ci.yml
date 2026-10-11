@@ -16,6 +16,20 @@ on:
   # against claude/l4-close-out-beta-prep) -- restricting to main left every PR in that chain
   # with no CI at all until it eventually landed on main.
   pull_request:
+  # "Run this branch" (RECORD -865): lets a coder build and test any branch on CI when the
+  # laptop is busy, with `gh workflow run ci.yml --ref <branch> [-f tests='...']` (README.md,
+  # "Continuous integration"). GitHub only accepts the request once this trigger is on the
+  # default branch, and the run then uses the ci.yml at the requested ref. An empty filter
+  # runs exactly what push and pull_request run.
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: >-
+          Optional test filter: Gradle --tests patterns separated by ';' (test names here
+          contain spaces and commas). Empty runs every unit test.
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -160,12 +174,58 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the unit tests
-        run: ./gradlew --stacktrace testDebugUnitTest
+        # TESTS is only ever non-empty on a workflow_dispatch run (inputs.tests is empty on push
+        # and pull_request), and an empty or blank filter runs the same command as before the
+        # trigger existed. The input reaches the script through env, never through ${{ }} in
+        # the script text, and each pattern is its own argv element: no eval, no word
+        # splitting, so nothing in the input is ever run as shell.
+        env:
+          TESTS: ${{ inputs.tests }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TESTS//[[:space:]]/}" ]; then
+            ./gradlew --stacktrace testDebugUnitTest
+            exit 0
+          fi
+          if [[ "$TESTS" == *$'\n'* ]]; then
+            # read below takes one line; refuse rather than silently drop the rest.
+            echo "::error::The test filter spans more than one line; separate patterns with ';'."
+            exit 1
+          fi
+          args=()
+          IFS=';' read -r -a patterns <<<"$TESTS"
+          for pattern in "${patterns[@]}"; do
+            # Trim surrounding whitespace; inner spaces belong to the test name.
+            pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+            pattern="${pattern%"${pattern##*[![:space:]]}"}"
+            if [ -z "$pattern" ]; then
+              echo "::error::The test filter has an empty pattern (a stray ';'?): $TESTS"
+              exit 1
+            fi
+            args+=(--tests "$pattern")
+          done
+          {
+            echo "### Test filter"
+            echo
+            echo "This run was asked for a subset of the unit tests:"
+            echo
+            for ((i = 1; i < ${#args[@]}; i += 2)); do
+              echo "- \`${args[i]}\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          for ((i = 1; i < ${#args[@]}; i += 2)); do
+            printf 'Test filter pattern: %s\n' "${args[i]}"
+          done
+          ./gradlew --stacktrace testDebugUnitTest "${args[@]}"
 
       - name: Summarize the test results
         # Runs even when the test task failed, so the summary reports the failure rather than
         # disappearing with it. Reads the JUnit XML Gradle wrote, not the task's exit code.
         if: always()
+        env:
+          # Read only to relax the stale-allowlist check below on a filtered run; empty on push
+          # and pull_request.
+          TESTS: ${{ inputs.tests }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -373,8 +433,15 @@ jobs:
                       ),
                   )
               )
+          # A filtered "run this branch" run selects a subset, so allowlisted tests outside the
+          # filter do not run, do not skip, and would all read as stale. Only that one check is
+          # dropped on a filtered run; unallowed skips, zero tests, failures and errors still
+          # fail it. On push and pull_request TESTS is empty and this check runs as always.
+          filtered_run = bool(os.environ.get("TESTS", "").strip())
           stale_allowlist_entries = SKIPPED_TESTS_ALLOWLIST - skipped_tests
-          if stale_allowlist_entries:
+          if filtered_run:
+              print("Filtered run: the stale-allowlist check is not applied.")
+          elif stale_allowlist_entries:
               problems.append(
                   "{} allowlist entry(ies) no longer match an actual skip -- remove them from "
                   "SKIPPED_TESTS_ALLOWLIST: {}".format(
