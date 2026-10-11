@@ -166,7 +166,7 @@ class CartographyViewModel(
                         trackDecisions = trip.derivedTrip.tracks.map { it.toDecision(kept = !it.isShortRecording(), computeTrackStatistics) },
                         // RECORD -873: and that recording's own Start and End markers with it; a waypoint the user saved
                         // during it stays in.
-                        waypointDecisions = trip.derivedTrip.waypoints.map { it.toDecision(kept = true) /* REVERT CHECK part 3b (a) */ },
+                        waypointDecisions = trip.derivedTrip.waypoints.map { it.toDecision(kept = !it.isOwnMarkerOf(leftOutRecordings)) },
                         offlineRegionDecisions = trip.offlineRegions.map { it.toDecision(kept = true) },
                     )
                     // The stamped copy is the one to keep -- see SaveCartographyEntryUseCase's own
