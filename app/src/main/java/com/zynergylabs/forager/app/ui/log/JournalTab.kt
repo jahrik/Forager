@@ -427,6 +427,13 @@ internal fun JournalTab(
                 recordsOpenTrackId = pendingTrackId
                 onPendingDestinationConsumed()
             }
+            // RECORD -868: the Tools drawer's "Offline maps", Records on the Offline maps chip. Through the same chip latch
+            // as the import above, so leaving a find mid-edit is the incidental exit a chip tap is.
+            PendingJournalDestination.VIEW_OFFLINE_MAPS -> {
+                selectedTopTab = JournalTopTab.RECORDS
+                recordsPendingSubTab = RecordsSubTab.OFFLINE_MAPS
+                onPendingDestinationConsumed()
+            }
             null -> Unit
         }
     }
@@ -978,6 +985,13 @@ internal enum class PendingJournalDestination {
      * (its id passed beside this), or the Tracks list alone when the file was not imported.
      */
     VIEW_IMPORTED_TRACK,
+
+    /**
+     * RECORD -868: the Tools drawer's "Offline maps" button ("Records, on the Offline maps chip (Recommended)").
+     * Records on the Offline maps chip. Back from there is `AvailabilityScreen`'s, which remembers where the button
+     * was tapped (RECORD -871).
+     */
+    VIEW_OFFLINE_MAPS,
 }
 
 /**
