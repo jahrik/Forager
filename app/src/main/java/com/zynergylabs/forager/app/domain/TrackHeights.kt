@@ -17,7 +17,7 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
  */
 fun trackHeights(points: List<TrackPoint>): List<Double?> {
     val withPressure = points.count { it.pressureHpa != null }
-    return if (withPressure > 0 && withPressure * 2 >= points.size) smoothedGpsHeights(points) /* REVERT CHECK part 5 */ else smoothedGpsHeights(points)
+    return if (withPressure > 0 && withPressure * 2 >= points.size) barometricHeights(points) else smoothedGpsHeights(points)
 }
 
 /**
