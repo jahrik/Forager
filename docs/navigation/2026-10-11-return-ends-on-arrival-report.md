@@ -202,3 +202,38 @@ assembleDebug succeeded.
 - `Install: Success`; `dexopt: status=verify`; `LaunchState: COLD`; `PASS: verified (status=verify), launched, process 5692 alive after 8 s, crash buffer empty`.
 - Logcat has no VerifyError. As before, `AvailabilityScreen` exceeds the compiler instruction limit (21426, down from 21443), so ART runs it in the interpreter. The app still ran. Nothing in logcat names `CompactMainScaffold`.
 - Evidence is in `~/Zynergy/device-evidence/2026-10-11-return-arrival/merged-ca0ced10/`.
+
+## CI on d2a86f4b: WalkLoggerServiceTest red at line 148. Diagnosed, not fixed (stop)
+
+**The failure.** CI run 38115289698 failed one test: `WalkLoggerServiceTest` > "switched on, the log starts with the recording, holds a wake lock, and ends with it", with `NoSuchElementException` at `WalkLoggerServiceTest.kt:148`. Main at 65bd8ee5 passed it.
+
+**What line 148 is.** It is `file.readLines().first()`: the walk-log file exists and is empty. The test reaches it after `await { WalkLogger.of(context).isLogging }`. The failure is not at `walkLogFiles().single()` on line 147, so the file had been created.
+
+**The code path** (debug source set):
+- `WalkLogSession.start()` sets `active = true` (`WalkLogSession.kt:41`) right after `writer.open()` has created the file.
+- It then writes the header through a `BufferedWriter`, which flushes only once `FLUSH_INTERVAL_NANOS` has passed (`WalkLogWriter.write`, `:65-78`).
+- The header reaches the disk at the end of `start()`, when `onMinute()` flushes.
+- So `isLogging` (`WalkLogger.kt:58`) is true for a short window in which the file exists but is empty. The test reads it from another thread and can land in that window.
+
+**Neither of the two hypotheses fits.**
+- (a), the stop race fixed in #213: this test sends no fixes and fails before Stop.
+- (b), this branch: it changes nothing in the walk logger, in `TrackRecordingService`, or in `ReturnWatch.begin` and `end`. `git diff 65bd8ee5 HEAD -- app/src/debug app/src/main/java/com/zynergylabs/forager/app/service` is empty, and the only new testDebug files are this change's own tests.
+
+**Evidence: runs of the whole class** (6 tests, `--rerun`, under the 5 GB memory cap with -Xmx1536m, and no forecast fit running):
+
+| Side | Variant | Runs | Failed |
+|---|---|---|---|
+| branch d2a86f4b | unchanged | 20 | 0 |
+| origin/main 65bd8ee5 | unchanged | 20 | 0 |
+| branch | #213's `delay(200L)` in the service's fix collector | 5 | 0 |
+| main | #213's `delay(200L)` in the service's fix collector | 5 | 0 |
+| branch | `Thread.sleep(200L)` after `active = true` in `WalkLogSession.start` | 5 | 5, all at `WalkLoggerServiceTest.kt:148`, `NoSuchElementException` |
+| main | same | 5 | 5, same line and exception |
+
+Each delay was put in for these runs only. The file was restored from a saved copy, and `git diff` confirmed it matched HEAD afterwards.
+
+**Conclusion.** The flake already exists on main: a start-up race between the logger's thread and the test, which neither delay variant links to this branch. It is rare unchanged (0 of 40) and certain once that window is widened, on either side.
+
+**Fix not applied, because neither (a) nor (b) holds.** Two options for the owner or the planner:
+1. In the test, wait for the header line before reading it, for example `await { walkLogFiles().singleOrNull()?.readLines()?.firstOrNull() != null }`, with a revert check using the delay above. No assertion is loosened.
+2. In the logger, flush the header before reporting active. This changes what `isLogging` means, and on a phone it adds a flush at start.
