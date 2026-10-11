@@ -57,7 +57,7 @@ import com.zynergylabs.forager.app.ui.track.TrackExportList
  *
  * **Filter chips, not sub-tabs, as of journal redesign J1 (S3; plan J4).** The four sub-tabs
  * became a [RecordsFilterChipRow] of five chips, All · Finds · Tracks · Waypoints · Offline maps,
- * All the default. This codebase has no navigation library (no `NavHost`, no `NavController`), so
+ * All the default until RECORD -868 made Finds the default ([DEFAULT_RECORDS_FILTER]). This codebase has no navigation library (no `NavHost`, no `NavController`), so
  * [RecordsSubTab] is still an enum plus state, not a real navigation destination; that state is
  * now [selectedTabState], hoisted by [JournalTab] into [JournalScreenState] (S1).
  *
@@ -134,7 +134,7 @@ internal fun RecordsTab(
     finds: List<MushroomLogEntry>? = null,
     /**
      * Opens a find's report — the All logbook's find tap (J1 S4). `RecordsTab` selects the Finds chip
-     * first, so the report opens in the Finds slot and Back goes report, Finds gallery, All (owner's
+     * first, so the report opens in the Finds slot and Back goes report, Finds gallery (owner's
      * answer 2). The default does nothing beyond that chip switch.
      */
     onOpenFind: (String) -> Unit = {},
@@ -256,18 +256,19 @@ internal fun RecordsTab(
     }
     val navigateFromRow: ((String) -> Unit)? = onNavigateToWaypoint?.let { navigate -> { id -> navigate(WaypointNavigationOrigin.RecordsRow(id)) } }
 
-    // Back-nav-and-save-flow dispatch, Item 1, retargeted by journal redesign J1 (S3, the planner's
-    // call in prompts/preserved/2026-09-27-16.md; the owner may overrule): step back to All — the
-    // fixed default, not whichever chip was last selected. It used to step back to Waypoints, the
-    // old default sub-tab; the rule is the same, only the default moved. A fixed target keeps back
-    // deterministic regardless of navigation history (the same press always does the same thing);
-    // tracking "last selected" as a second piece of state to reason about was considered and
-    // rejected for exactly that reason. Disabled while findsEditingInProgress — see that parameter's
-    // own doc comment for why this can't just rely on Compose's usual nested-handler-wins ordering
-    // here. From All this handler is off, so Back falls to JournalTab's Records -> Cartography step,
-    // exactly what Back did from Waypoints before.
-    BackHandler(enabled = backEnabled && selectedTab != RecordsSubTab.ALL && !findsEditingInProgress) {
-        selectTab(RecordsSubTab.ALL)
+    // Back-nav-and-save-flow dispatch, Item 1, retargeted twice. Back from any other chip steps to
+    // Finds, the default (RECORD -871, the owner: "Back to Finds, then out (Recommended)"); from Finds
+    // this handler is off, so Back falls to JournalTab's Records -> Cartography step, which is what
+    // Back did from All before. Journal redesign J1 had it step to All, its default then, and before
+    // that it stepped to Waypoints, the old default sub-tab: the rule is the same each time, only the
+    // default moved. A fixed target keeps back deterministic regardless of navigation history (the
+    // same press always does the same thing); tracking "last selected" as a second piece of state
+    // was considered and rejected for exactly that reason. One consequence, recorded with -871: a
+    // find opened from All selects Finds, so Back goes report, Finds gallery, then out of Records,
+    // not back to All. Disabled while findsEditingInProgress — see that parameter's own doc comment
+    // for why this can't just rely on Compose's usual nested-handler-wins ordering here.
+    BackHandler(enabled = backEnabled && selectedTab != DEFAULT_RECORDS_FILTER && !findsEditingInProgress) {
+        selectTab(DEFAULT_RECORDS_FILTER)
     }
 
     // J5, L3: a nested-scroll parent over the whole tab, so whichever list is showing (the All
@@ -296,12 +297,14 @@ internal fun RecordsTab(
         }
         if (shortWindow) ShortWindowSecondRow(chipRowScroll) { chipRow() } else chipRow()
 
-        // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout R1, R2): a chip's list opens over All, sliding
-        // in from the right, and Back (which steps to All) or the All chip slides it out again. Chip to chip slides in, as each
-        // opens over the last. A find tapped in All selects Finds and opens its report together, so the report slides in with it.
+        // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout R1, R2): a chip's list opens over the default
+        // chip's, sliding in from the right, and Back (which steps to the default) or the default chip slides it out again.
+        // Chip to chip slides in, as each opens over the last. The base page follows Back's target: All until RECORD -871,
+        // Finds since, so Back from Waypoints still slides out over the page it returns to. Since then a find tapped in All
+        // goes to the base page, so All slides out to the right over the find's report rather than the report sliding in.
         PageSlide(
             targetState = selectedTab,
-            depthOf = { if (it == RecordsSubTab.ALL) 0 else 1 },
+            depthOf = { if (it == DEFAULT_RECORDS_FILTER) 0 else 1 },
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) { shownTab ->
         Column(modifier = Modifier.fillMaxSize()) {
@@ -422,7 +425,7 @@ internal fun RecordsTab(
 
 /**
  * Which of [RecordsTab]'s filter chips is selected — declared in chip display order (journal
- * redesign J1, S3: [ALL] added and made the default, the rest reordered to the plan's All · Finds ·
+ * redesign J1, S3: [ALL] added and made the default, until RECORD -868 made [FINDS] the default; the rest reordered to the plan's All · Finds ·
  * Tracks · Waypoints · Offline maps). Nothing reads the ordinal: [JournalScreenState]'s saver stores
  * names. `internal`, not `private`, as of Stage 2d: [JournalTab] holds a pending value of
  * this type to request [FINDS] externally — see [RecordsTab]'s own `pendingSubTab` doc comment.

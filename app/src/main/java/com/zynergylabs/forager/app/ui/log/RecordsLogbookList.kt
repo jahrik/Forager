@@ -70,7 +70,7 @@ import com.zynergylabs.forager.app.ui.format.is24HourClock
  * pending delete with Undo. The regions listed are [AvailabilityUiState.visibleOfflineRegions].
  *
  * **Tapping a find** calls [onOpenFind], which `RecordsTab` turns into "select the Finds chip and open
- * that find's report there", so Back goes report, then the Finds gallery, then All. Waypoint, track
+ * that find's report there", so Back goes report, then the Finds gallery, then out of Records (RECORD -871: Back from Finds leaves Records). Waypoint, track
  * and region rows had no row tap until journal redesign J5c: a tap on one now opens its details
  * sheet ([onOpenDetails], [RecordDetailsSheet]).
  *

@@ -604,9 +604,13 @@ class AvailabilityScreenBackNavigationTest {
      * `AvailabilityViewModel`, which reaches a real `LocationProvider` this fixture deliberately
      * stubs to error (see [BackNavUnusedLocationProvider]) — unrelated to what this test is proving,
      * so it picks the chip that doesn't touch it.
+     *
+     * Retargeted by RECORD -871 (the owner: "Back to Finds, then out (Recommended)"): the fixed target is Finds, the
+     * default since RECORD -868. Rewritten for it: the test was "… steps to All before leaving Records" and asserted
+     * the All chip selected after Back; it now asserts the Finds chip.
      */
     @Test
-    fun `back on a single-type Records chip steps to All before leaving Records`() {
+    fun `back on another Records chip steps to Finds before leaving Records`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
@@ -615,19 +619,23 @@ class AvailabilityScreenBackNavigationTest {
 
         pressBack()
 
-        // Still on Records, now on All — not bounced out to Cartography or Maps.
+        // Still on Records, now on Finds — not bounced out to Cartography or Maps.
         composeRule.onNodeWithText("No recorded tracks yet.").assertDoesNotExist()
-        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).assertIsSelected()
         composeRule.onNodeWithText("Records").assertIsSelected()
     }
 
-    /** The top-tab layer: back from Records' own default chip, All (nothing left within Records to unwind), steps to Cartography — still inside the Journal, not out to Maps. */
+    /**
+     * The top-tab layer: back from Records' own default chip (nothing left within Records to unwind) steps to
+     * Cartography — still inside the Journal, not out to Maps. The default is Finds since RECORD -868; rewritten for
+     * it: the precondition asserted the All chip selected on opening Records, and now asserts Finds.
+     */
     @Test
     fun `back on Records' default chip steps to Cartography before leaving the Journal`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).assertIsSelected()
 
         pressBack()
 

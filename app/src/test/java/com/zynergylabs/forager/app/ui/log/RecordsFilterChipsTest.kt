@@ -205,8 +205,9 @@ class RecordsFilterChipsTest {
 
     // ── The row ──
 
+    /** RECORD -868: Records opens on Finds. Rewritten for it: this said "All selected", and asserted All selected and the other four not. */
     @Test
-    fun `the chip row shows All, Finds, Tracks, Waypoints and Offline maps in that order, with counts matching the data, All selected`() {
+    fun `the chip row shows All, Finds, Tracks, Waypoints and Offline maps in that order, with counts matching the data, Finds selected`() {
         setScreen()
 
         val expected = listOf(
@@ -219,8 +220,8 @@ class RecordsFilterChipsTest {
         for ((tag, label, count) in expected) {
             chip(tag).assert(hasText(label)).assert(hasText(count))
         }
-        chip(ALL_CHIP).assertIsSelected()
-        for ((tag, _, _) in expected.drop(1)) chip(tag).assertIsNotSelected()
+        chip(FINDS_CHIP).assertIsSelected()
+        for ((tag, _, _) in expected.filter { it.first != FINDS_CHIP }) chip(tag).assertIsNotSelected()
 
         val lefts = expected.map { (tag, _, _) -> chip(tag).getUnclippedBoundsInRoot().left.value }
         assertEquals("chips are laid out left to right in display order", lefts.sorted(), lefts)
@@ -275,16 +276,23 @@ class RecordsFilterChipsTest {
 
     // ── Back ──
 
+    /**
+     * RECORD -871 (the owner: "Back to Finds, then out (Recommended)"). Rewritten for it: this was "Back from a
+     * single-type chip returns to All, and Back from All steps to Cartography", looping over Finds, Tracks, Waypoints
+     * and Offline maps and asserting All selected after each Back. Now it loops over All, Tracks, Waypoints and
+     * Offline maps and asserts Finds selected after each Back; the last Back, from Finds, steps to Entries as the one
+     * from All did.
+     */
     @Test
-    fun `Back from a single-type chip returns to All, and Back from All steps to Cartography`() {
+    fun `Back from any other chip returns to Finds, and Back from Finds steps to Cartography`() {
         setScreen()
-        for (tag in listOf(FINDS_CHIP, TRACKS_CHIP, WAYPOINTS_CHIP, OFFLINE_MAPS_CHIP)) {
+        for (tag in listOf(ALL_CHIP, TRACKS_CHIP, WAYPOINTS_CHIP, OFFLINE_MAPS_CHIP)) {
             touchChip(tag, Offset(0.5f, 0.5f))
             chip(tag).assertIsSelected()
 
             pressBack()
 
-            chip(ALL_CHIP).assertIsSelected()
+            chip(FINDS_CHIP).assertIsSelected()
             chip(tag).assertIsNotSelected()
             composeRule.onNodeWithText("Records").assertIsSelected()
         }
@@ -368,12 +376,16 @@ class RecordsFilterChipsTest {
         OfflineRegionSummary(id = 7L, name = "Noon region", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = localMillis(d1, 12)),
     )
 
-    private fun setLogbookScreen() = setScreen(
-        initial = MushroomLogUiState(entries = listOf(logFind1, logFind2, logFind3), draftEntries = listOf(logDraft)),
-        waypoints = logWaypoints(),
-        tracks = logTracks(),
-        regions = logRegions(),
-    )
+    /** The logbook data, on All: Records opens on Finds since RECORD -868, so All is touched first. */
+    private fun setLogbookScreen() {
+        setScreen(
+            initial = MushroomLogUiState(entries = listOf(logFind1, logFind2, logFind3), draftEntries = listOf(logDraft)),
+            waypoints = logWaypoints(),
+            tracks = logTracks(),
+            regions = logRegions(),
+        )
+        touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
+    }
 
     private fun rowTag(type: String, id: String) = "records-logbook-row-$type-$id"
     private fun badgeTag(type: String, id: String) = "records-badge-$type-$id"
@@ -496,11 +508,21 @@ class RecordsFilterChipsTest {
         }
     }
 
+    /**
+     * RECORD -871: Back from Finds leaves Records. Rewritten for it: this was "…, and Back goes to the Finds gallery,
+     * then All", whose second Back asserted All selected; that Back now lands on Entries, and each later sample opens
+     * Records and touches All again to start where the first did.
+     */
     @Test
-    fun `touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery, then All`() {
+    fun `touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery, then out of Records`() {
         setLogbookScreen()
 
         for (point in TOUCH_SAMPLES) {
+            if (point != TOUCH_SAMPLES.first()) {
+                composeRule.onNodeWithText("Records").performClick()
+                composeRule.waitForIdle()
+                touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
+            }
             chip(ALL_CHIP).assertIsSelected()
             composeRule.onNodeWithTag(rowTag("finds", "F2")).performScrollTo()
             composeRule.onNodeWithTag(rowTag("finds", "F2")).performTouchInput { click(Offset(width * point.x, height * point.y)) }
@@ -516,7 +538,7 @@ class RecordsFilterChipsTest {
             composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
 
             pressBack()
-            chip(ALL_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.CARTOGRAPHY)).assertIsSelected()
         }
     }
 }
