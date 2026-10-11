@@ -238,6 +238,9 @@ class TrackRecordingViewModel(
     /** The route tick, running only while returning. See [beginRouteTicks]. */
     private var routeJob: Job? = null
 
+    /** The arrival hold's timer (RECORD -845), running only while [TrackRecordingUiState.isArrivalHeld]. See [holdArrival]. */
+    private var arrivalHoldJob: Job? = null
+
     /** The track the 15 s poll last read for the active recording: what the route tick routes along. */
     private var lastPolledTrack: Track? = null
 
@@ -378,6 +381,7 @@ class TrackRecordingViewModel(
      * must not show half of one.
      */
     private fun copyFromWatch(watch: ReturnWatchState = returnWatch.state.value) {
+        holdArrivalIfJustArrived(watch)
         _uiState.update { state ->
             val mine = state.activeTrack != null && watch.trackId == state.activeTrack.trackId
             state.copy(isReturning = mine && watch.isReturning, isOffTrack = mine && watch.isOffTrack)
@@ -523,6 +527,7 @@ class TrackRecordingViewModel(
      * backgrounding.
      */
     private fun clearRecordingState() {
+        endArrivalHold()
         pollingJob?.cancel()
         pollingJob = null
         routeJob?.cancel()
@@ -825,6 +830,7 @@ class TrackRecordingViewModel(
      */
     fun startReturn() {
         val active = uiState.value.activeTrack ?: return
+        endArrivalHold()
         if (!returnWatch.startReturn(active.trackId)) {
             // The watch is begun for another track: the service is recording something this
             // screen did not start (today, a reopened screen that pressed Record again). Nothing
@@ -845,8 +851,45 @@ class TrackRecordingViewModel(
         copyFromWatch()
     }
 
-    /** Clears returning/off-track state without touching the recording itself — see [startReturn]. */
+    /**
+     * RECORD -844, -845: the return this screen was showing has just ended because the walker reached
+     * the start ([ReturnWatchState.arrivedAfterReturn] with the return gone). The navigation display
+     * holds "Arrived" for [ARRIVAL_HOLD_MILLIS], then closes by itself. Only a return this screen was
+     * showing starts a hold: a screen opened after the arrival goes straight to the plain map. Called
+     * from [copyFromWatch] before it copies the watch, so "was showing" is still this screen's last
+     * state.
+     */
+    private fun holdArrivalIfJustArrived(watch: ReturnWatchState) {
+        val state = uiState.value
+        val active = state.activeTrack ?: return
+        if (!state.isReturning || watch.trackId != active.trackId || watch.isReturning || !watch.arrivedAfterReturn) return
+        holdArrival()
+    }
+
+    /** Starts the arrival hold, ending by itself after [ARRIVAL_HOLD_MILLIS]. */
+    private fun holdArrival() {
+        arrivalHoldJob?.cancel()
+        _uiState.update { it.copy(isArrivalHeld = true) }
+        arrivalHoldJob = viewModelScope.launch {
+            delay(ARRIVAL_HOLD_MILLIS)
+            _uiState.update { it.copy(isArrivalHeld = false) }
+            arrivalHoldJob = null
+        }
+    }
+
+    /** Ends the arrival hold now, if one is running: the walker closed it, tapped Return again, or stopped the recording. */
+    private fun endArrivalHold() {
+        arrivalHoldJob?.cancel()
+        arrivalHoldJob = null
+        if (uiState.value.isArrivalHeld) _uiState.update { it.copy(isArrivalHeld = false) }
+    }
+
+    /**
+     * Clears returning/off-track state without touching the recording itself — see [startReturn]. Also
+     * the way to close the arrival hold early (RECORD -845): the display's exit while it holds "Arrived".
+     */
     fun stopReturn() {
+        endArrivalHold()
         uiState.value.activeTrack?.let { returnWatch.stopReturn(it.trackId) }
         _uiState.update { it.copy(isReturning = false, isOffTrack = false) }
         endRouteTicks()
@@ -1305,3 +1348,13 @@ internal const val RECORDING_COULD_NOT_START_MESSAGE = "Recording couldn't start
  */
 internal const val RECORDING_NEEDS_LOCATION_PERMISSION_MESSAGE =
     "Recording stopped because Forager can't use your location. Allow location for Forager in your phone's Settings, then tap Record again."
+
+/**
+ * How long the navigation display holds "Arrived" after a return ends on arrival, before it closes by
+ * itself (RECORD -845). The owner chose "Arrived for a few seconds, then closes (Recommended)" over
+ * "Arrived stays until closed" and "closes at once with a short notice"; the ruling records it as
+ * "about 10 seconds": long enough to glance down at a phone and read it, short enough that the plain
+ * map is back before the walker is driving. A held reading, not a live one, so a drive-off inside the
+ * hold does not turn it back into a distance.
+ */
+const val ARRIVAL_HOLD_MILLIS = 10_000L

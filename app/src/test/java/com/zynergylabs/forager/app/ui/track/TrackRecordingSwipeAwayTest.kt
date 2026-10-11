@@ -873,6 +873,100 @@ class TrackRecordingSwipeAwayTest {
         assertTrue(vm.uiState.value.waypointsLoaded)
     }
 
+    // ---- Return ends on arrival (RECORD -844, -845) -------------------------------------------------
+    //
+    // The ViewModel half: the screen's state while and after the watch ends a return at the start. The
+    // watch's own decision is ReturnWatchArrivalTest's; the real service feeding it,
+    // TrackRecordingServiceReturnArrivalTest's. The hold runs on this class's virtual clock.
+
+    /** [recordAndStartReturning] (left the start at 45.001), then the walker back at the start: the watch ends the return. */
+    private suspend fun TestScope.recordReturnAndArrive(vm: TrackRecordingViewModel) {
+        recordAndStartReturning(vm)
+        fixArrives(lat = 45.000, t = 12_000L)
+        runCurrent()
+    }
+
+    @Test
+    fun `a return that ends on arrival holds Arrived for 10 s, held through a drive-off, then the display closes and the recording goes on`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordReturnAndArrive(vm)
+
+        assertFalse("the return ended at the start", vm.uiState.value.isReturning)
+        assertTrue("the display holds Arrived", vm.uiState.value.isArrivalHeld)
+
+        // Driving away inside the hold, a fix a second, 333 m apart.
+        (1..8).forEach { s -> fixArrives(lat = 45.000 + s * 0.003, t = 12_000L + s * 1_000L) }
+        assertTrue("held, not live: the drive-off does not end it", vm.uiState.value.isArrivalHeld)
+        assertFalse("no off-track on the drive-off", vm.uiState.value.isOffTrack)
+        assertEquals("nothing delivered", emptyList<Alert>(), delivered)
+
+        advanceTimeBy(ARRIVAL_HOLD_MILLIS - 1)
+        runCurrent()
+        assertTrue("still held just before 10 s", vm.uiState.value.isArrivalHeld)
+
+        advanceTimeBy(2)
+        runCurrent()
+        assertFalse("the display closed by itself after 10 s", vm.uiState.value.isArrivalHeld)
+        assertFalse(vm.uiState.value.isReturning)
+        assertEquals("the recording goes on", "track-1", vm.uiState.value.activeTrack?.trackId)
+        assertTrue("and the service's watch is still begun", returnWatch.state.value.isBegun)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `the display's exit during the hold closes it at once and starts no new return`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordReturnAndArrive(vm)
+        assertTrue("precondition: held", vm.uiState.value.isArrivalHeld)
+
+        vm.stopReturn()
+        runCurrent()
+
+        assertFalse(vm.uiState.value.isArrivalHeld)
+        assertFalse(vm.uiState.value.isReturning)
+        assertFalse(returnWatch.state.value.isReturning)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `stopping the recording during the hold ends it`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordReturnAndArrive(vm)
+        assertTrue("precondition: held", vm.uiState.value.isArrivalHeld)
+
+        vm.stopRecording()
+        runCurrent()
+
+        assertFalse(vm.uiState.value.isArrivalHeld)
+    }
+
+    @Test
+    fun `a return the walker ends before arriving is not held`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordAndStartReturning(vm)
+
+        vm.stopReturn()
+        runCurrent()
+
+        assertFalse(vm.uiState.value.isArrivalHeld)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `a screen opened after the arrival shows the plain map, not the hold`() = runRecordingTest {
+        val first = viewModelIn(ViewModelStore())
+        recordReturnAndArrive(first)
+        assertTrue("precondition: the first screen holds it", first.uiState.value.isArrivalHeld)
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+
+        assertEquals("precondition: the reopened screen took the recording up", "track-1", reopened.uiState.value.activeTrack?.trackId)
+        assertFalse(reopened.uiState.value.isArrivalHeld)
+        assertFalse(reopened.uiState.value.isReturning)
+        first.stopRecording()
+    }
+
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
 

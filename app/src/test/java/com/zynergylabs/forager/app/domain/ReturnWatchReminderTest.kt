@@ -69,8 +69,10 @@ class ReturnWatchReminderTest {
         watch.walkAway(fromMillis = 2_000L)
         assertEquals(0, delivered.size)
 
-        // Back on the path (the start) for over 10 s re-arms the judge; then a second stray.
-        repeat(3) { i -> watch.onFix(point(lat = 45.0, t = 40_000L + i * 6_000L), FixProvider.GPS) }
+        // Back on the path for over 10 s re-arms the judge; then a second stray. 25 m north of the start
+        // (0.000225 deg): on the path (within 40 m of it) and outside the arrival circle (15 m). Was the start
+        // itself until RECORD -844 made reaching the start end the return, which would end this test's return.
+        repeat(3) { i -> watch.onFix(point(lat = 45.000225, t = 40_000L + i * 6_000L), FixProvider.GPS) }
         reminderOn = true
         watch.walkAway(fromMillis = 70_000L)
         assertEquals(1, delivered.size)

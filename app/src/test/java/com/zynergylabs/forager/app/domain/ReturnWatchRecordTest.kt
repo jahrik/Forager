@@ -80,8 +80,10 @@ class ReturnWatchRecordTest {
         begun().startReturn("track-1")
         // 111 m north a reading every 5 s: off from the first, gone off at the fourth (15 s).
         repeat(4) { i -> watch.onFix(point(45.001 + i * 0.001, t = 2_000L + i * 5_000L), FixProvider.GPS) }
-        // Back at the start for 10 s.
-        repeat(3) { i -> watch.onFix(point(45.0, t = 20_000L + i * 5_000L), FixProvider.GPS) }
+        // Back on the path for 10 s, 25 m north of the start (0.000225 deg): on the path (within 40 m plus
+        // 4 m accuracy) and outside the arrival circle (15 m). Was the start itself until RECORD -844 made
+        // reaching the start end the return; arrival's own entry is ReturnWatchArrivalTest's.
+        repeat(3) { i -> watch.onFix(point(45.000225, t = 20_000L + i * 5_000L), FixProvider.GPS) }
         assertEquals(
             listOf(
                 ReturnStarted("track-1"),
