@@ -110,3 +110,16 @@ CI, each run checked for compile errors (none) and for its head SHA:
 Device check changes:
 - Step 5 adds: Records > All, tap a find. Pass: it slides in over All. Back. Pass: All. Back. Pass: Finds. Back. Pass: Entries.
 - Step 9 becomes: in landscape, the find page shows the title and "Found at" with the photo.
+
+## Addendum: RECORD -876 (2026-10-11)
+
+- **Edit from All** (owner: "Yes, Edit opens over All too (Recommended)"), `a3239bfd`. From All, long-press a find and choose Edit: the edit form now opens over All, and Back from the form returns to All. This supersedes the -874 addendum's note that Edit from All was unchanged.
+  - The long-press Edit uses the same find-over-the-view page as the tap.
+  - `nextFindOverView` now also shows for the draft row of the find that was asked for. A find opened straight into its form opens as its draft, whose own id is never the asked-for find's.
+- **Changed assertion.** `JournalPendingDeleteTest`'s Edit-from-All test is now "… whose Edit opens its form over All, Back returning to All". It asserted the Finds chip selected after Edit; it now asserts:
+  - the find over the view is up, with All selected;
+  - after a Back through the Activity's real dispatcher: the form closed, All selected, and find-b's tile shown.
+
+  The test's Delete half and the form's own assertions are unchanged. `FindOverViewTest` gains a draft case; no existing assertion there changed.
+- **Revert check.** On `records-tidy-revert-h` (`1fabc38b`), Edit selects Finds again. Run `38171398253` compiled with no errors. 1 of 55 failed: the All chip `Selected = 'false'` in that test.
+- **Full CI run.** It was run after this addendum was committed, so that it covers the final head. Its run number and result are in the hand-back to the planner, and the planner records them at merge.
