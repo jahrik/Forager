@@ -59,6 +59,7 @@ import org.robolectric.annotation.Config
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import com.zynergylabs.forager.app.ui.availability.offlineRegionRowLineTag
 import com.zynergylabs.forager.app.ui.format.displayDate
 
