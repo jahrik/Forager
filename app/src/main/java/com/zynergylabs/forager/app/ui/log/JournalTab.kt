@@ -688,7 +688,9 @@ internal fun JournalTab(
         openFindLabel = OPEN_FIND_LABEL,
         // RECORD -890 (the owner: "Waypoints only, as described"): a waypoint's bubble, and the sheet opened from it, offer
         // Navigate, through today's waypoint navigation, with Back returning to this entry.
-        onNavigateToWaypoint = null, // REVERT CHECK part 6 (b)
+        onNavigateToWaypoint = onNavigateToWaypoint?.let { navigate ->
+            { origin: WaypointNavigationOrigin -> navigate(WaypointNavigationOrigin.JournalEntryMap(origin.waypointId)) }
+        },
     )
 
     Box(modifier = modifier.fillMaxSize()) {
