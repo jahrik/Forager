@@ -143,8 +143,9 @@ internal fun RecordsTab(
     /** J4b L1: the All logbook find tile's long-press Delete (pending, with Undo); `null` leaves it tap-only. */
     onDeleteFind: ((String) -> Unit)? = null,
     /**
-     * J4b L1: the All logbook find tile's long-press Edit. `RecordsTab` selects the Finds chip first,
-     * as for [onOpenFind], so the edit form opens in the Finds slot.
+     * J4b L1: the All logbook find tile's long-press Edit. Since RECORD -876 (the owner: "Yes, Edit opens over All too
+     * (Recommended)") the chip stays on All and [JournalTab] opens the edit form over Records, as for [onOpenFind], so
+     * Back from the form returns to All. Until then this tab selected the Finds chip first and the form opened there.
      */
     onEditFind: ((String) -> Unit)? = null,
     onFindsTabLeft: () -> Unit = {},
@@ -327,12 +328,8 @@ internal fun RecordsTab(
                 onOpenFind = { id -> onOpenFind(id) },
                 modifier = Modifier.weight(1f).testTag(RECORDS_LOGBOOK_LIST_TAG),
                 onDeleteFind = onDeleteFind,
-                onEditFind = onEditFind?.let { edit ->
-                    { id ->
-                        selectTab(RecordsSubTab.FINDS)
-                        edit(id)
-                    }
-                },
+                // RECORD -876: All stays selected; the caller opens the form over Records, so Back returns to All.
+                onEditFind = onEditFind,
                 onOpenDetails = openDetails,
                 onNavigateToWaypoint = navigateFromRow,
             )

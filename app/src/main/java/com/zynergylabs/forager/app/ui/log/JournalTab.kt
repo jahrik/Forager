@@ -392,9 +392,10 @@ internal fun JournalTab(
     // M1: a find opened from a map bubble, shown over whatever the Journal was showing (FindOverView).
     var findOverView by findOverViewState
     LaunchedEffect(findOverView, editing?.id) {
-        findOverView = nextFindOverView(findOverView, editing?.id)
+        findOverView = nextFindOverView(findOverView, editing?.id, editing?.draftOfEntryId)
     }
-    val findOverViewVisible = editing != null && findOverView.let { it != null && (it.shown || editing.id == it.findId) }
+    val findOverViewVisible = editing != null &&
+        findOverView.let { it != null && (it.shown || editing.id == it.findId || editing.draftOfEntryId == it.findId) }
 
     LaunchedEffect(pendingDestination) {
         when (pendingDestination) {
@@ -841,9 +842,18 @@ internal fun JournalTab(
                         findOverView = FindOverView(id)
                         onOpenEntry(id)
                     },
-                    // J4b L1: the All logbook's find tiles get the same long-press menu.
+                    // J4b L1: the All logbook's find tiles get the same long-press menu. Its Edit opens the form over All,
+                    // as the tap opens the report (RECORD -876, the owner: "Yes, Edit opens over All too (Recommended)"),
+                    // so Back from the form returns to All. It used to select the Finds chip and open the form there.
                     onDeleteFind = onDeleteEntry,
-                    onEditFind = editFind,
+                    onEditFind = onOpenEntryForEditing?.let { open ->
+                        { id: String ->
+                            leaveFindEditingIfNeeded()
+                            mode = JournalEntryMode.EDIT
+                            findOverView = FindOverView(id)
+                            open(id)
+                        }
+                    },
                     onFindsTabLeft = ::leaveFindEditingIfNeeded,
                     findsEditingInProgress = findsSectionHasBackStack,
                     pendingSubTab = recordsPendingSubTab,
@@ -1057,10 +1067,13 @@ internal data class FindOverView(val findId: String, val shown: Boolean = false)
  * [state] after the open find becomes [openFindId] (`MushroomLogUiState.editingEntry?.id`): shown
  * once the asked-for find is open, kept while any find stays open (starting an edit swaps the open
  * id to its draft row), and gone once none is. A request whose find never opened stays waiting.
+ *
+ * [openFindDraftOf] (`editingEntry?.draftOfEntryId`) also shows it: a find opened straight into its edit form (the All
+ * logbook's long-press Edit, RECORD -876) opens as its draft row, whose own id is never the asked-for find's.
  */
-internal fun nextFindOverView(state: FindOverView?, openFindId: String?): FindOverView? = when {
+internal fun nextFindOverView(state: FindOverView?, openFindId: String?, openFindDraftOf: String? = null): FindOverView? = when {
     state == null -> null
-    !state.shown -> if (openFindId == state.findId) state.copy(shown = true) else state
+    !state.shown -> if (openFindId == state.findId || openFindDraftOf == state.findId) state.copy(shown = true) else state
     openFindId == null -> null
     else -> state
 }
