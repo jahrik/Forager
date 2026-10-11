@@ -566,7 +566,7 @@ internal fun CartographyEntryReportScreen(
                         // bubble on this map carries the distance walked from the start of its own track, the one
                         // figure only the table had. The unit is the screen's own, the setting the table used.
                         distanceUnit = distanceUnit,
-                        waypointDistancesFromStart = emptyList<com.zynergylabs.forager.app.domain.EntryReportWaypoint>() // REVERT CHECK part 2 (a)
+                        waypointDistancesFromStart = report.waypoints
                             .mapNotNull { row -> row.distanceFromStartMeters?.let { row.id to it } }
                             .toMap(),
                     ),
@@ -689,7 +689,6 @@ internal fun CartographyEntryReportScreen(
                     // record on the map still shows its details. The height chart is hidden until barometer height
                     // lands (RECORD -864, "Keep it, once height is fixed"), and comes back then.
                     EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
-                    ReportItemsSection(title = "Finds", items = entry.findDecisions.filter { it.kept }.map { ReportItem(title = "Find on ${displayDate(it.foundOn)}", subtitle = it.ownIdentification) }) // REVERT CHECK part 2 (b)
                     ReportItemsSection(
                         title = "Offline maps",
                         items = entry.offlineRegionDecisions.filter { it.kept }.map {
