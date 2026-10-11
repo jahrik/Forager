@@ -690,7 +690,6 @@ internal fun CartographyEntryReportScreen(
                     // owner: "Remove it, like the other lists"); the Offline map toggle above stays. The height chart is hidden until barometer height
                     // lands (RECORD -864, "Keep it, once height is fixed"), and comes back then.
                     EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
-                    ReportItemsSection(title = "Offline maps", items = entry.offlineRegionDecisions.filter { it.kept }.map { ReportItem(title = it.name, subtitle = "${formatDistanceKm(it.radiusKm, distanceUnit)} radius") }) // REVERT CHECK part 3b (b)
                 }
 
                 Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
