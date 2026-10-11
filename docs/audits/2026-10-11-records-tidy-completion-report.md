@@ -83,3 +83,30 @@ Each change is named in a comment at the test. Setup-only changes, with assertio
 7. **Tools > Offline maps from Maps.** Pass: the drawer closes on Records, Offline maps chip. Back. Pass: Tools open over Maps. Back. Pass: Maps. Repeat from Seasonal and from Records > Waypoints. Use the system Back gesture, and the 3-button bar if the phone has one.
 8. **Moving on.** Tools > Offline maps, then tap Tracks, then Back. Pass: Finds, with no drawer.
 9. Observation, not a gate: scrolling the find page with three large photos, and whether the 480 dp cap feels right in landscape.
+
+## Addendum: RECORD -874 (2026-10-11)
+
+The owner's ruling and the planner's calls on the decisions above. The "Decided beyond the rulings" list above is left as it was written. Items 1 and 5 there stand. Items 2, 4 and 6 are superseded as follows:
+
+- **Back from a find opened in All** (owner: "Find > All > Finds > out (Recommended)"), `bf4973fb`. The All logbook's find tap no longer selects the Finds chip. The find opens over Records through `JournalTab`'s find-over-the-view page, the same way the entry map's "Open find" opens one.
+  - The first Back closes it to All, the second goes to Finds, and the third leaves Records.
+  - Long-press Edit from All is unchanged: it still opens the form under the Finds chip, because the ruling covers opening a find, not editing one.
+- **Motion** (planner): opening a find from All slides the find in over All, and All stays in place. Back slides the find out over All. This comes with the same commit, and a headless test covers it (`JournalPageSlideTest`).
+- **Photo height** (planner): the cap is the smaller of 480 dp and 60% of the window's height, `9884d970`. The 32 dp peek stays.
+
+Changed assertion: `RecordsFilterChipsTest`'s find-in-All test is now "touching a find in All opens its report over All, and Back goes to All, then Finds, then out of Records". It used to assert three things, each named at the test:
+- the Finds chip selected with the report open, which became All selected and the find over the view showing;
+- the F2 tile gone, which became the find over the view up, since the tile stays composed under it;
+- the Finds gallery after one Back, which became All with the F2 tile, then Finds, then Entries.
+
+CI, each run checked for compile errors (none) and for its head SHA:
+
+- Full run `38169963103` at `9884d970`: 608 suites, 4,666 tests, 0 failures, 24 skipped. `DecodedPhotoSemanticsTest` 4/4.
+- Revert for the find in All (`records-tidy-revert-g1`, `243e3fff`, the tap selecting Finds again), run `38169965476`. 2 of 24 failed:
+  - `nothing is leaving: All does not slide out as if going back`
+  - the All chip `Selected = 'false'`
+- Revert for the cap (`records-tidy-revert-g2`, `7c3818d2`, the cap back to 480 dp), run `38169967395`. 1 of 5 failed: `capped at 60% of the window height, 230.40001.dp: 304.0.dp`.
+
+Device check changes:
+- Step 5 adds: Records > All, tap a find. Pass: it slides in over All. Back. Pass: All. Back. Pass: Finds. Back. Pass: Entries.
+- Step 9 becomes: in landscape, the find page shows the title and "Found at" with the photo.
