@@ -152,7 +152,11 @@ class AvailabilityScreenMapLayersSheetTest {
         composeRule.onNodeWithText("Layers").assertIsDisplayed()
         composeRule.onNodeWithText("Map type").assertIsDisplayed()
         composeRule.onNodeWithText("Overlays").assertIsDisplayed()
-        MAPS_TAB_OVERLAY_LABELS.forEach { composeRule.onNodeWithText(it).performScrollTo().assertIsDisplayed() }
+        // Looked up inside the sheet: since RECORD -868 the Tools drawer, composed while closed, has an "Offline maps" row too.
+        MAPS_TAB_OVERLAY_LABELS.forEach {
+            composeRule.onNode(androidx.compose.ui.test.hasText(it) and androidx.compose.ui.test.hasAnyAncestor(hasTestTag(MAP_LAYERS_SHEET_TAG)))
+                .performScrollTo().assertIsDisplayed()
+        }
     }
 
     @Test

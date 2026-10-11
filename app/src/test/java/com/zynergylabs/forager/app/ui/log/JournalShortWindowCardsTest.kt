@@ -409,7 +409,11 @@ class JournalShortWindowCardsTest {
         setScreen(entries = emptyList(), finds = listOf(keptFindEntry("f1")))
         node("journal-switch-records").performClick()
         composeRule.waitForIdle()
-        assertFalse("not on Records' default chip", exists(SHORT_NEW_FIND_TAG))
+        // RECORD -868 made Finds the default chip; this asserted "not on Records' default chip", which was All. Now All
+        // is touched first and the same absence is asserted there.
+        node("records-chip-all").performClick()
+        composeRule.waitForIdle()
+        assertFalse("not on the All chip", exists(SHORT_NEW_FIND_TAG))
         node("records-chip-finds").performClick()
         composeRule.waitForIdle()
         assertTrue("positive control: on Finds' Log", exists(SHORT_NEW_FIND_TAG))

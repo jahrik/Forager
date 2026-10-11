@@ -152,7 +152,12 @@ class FindPagePhotosTest {
         val aspect = first.width / first.height
         assertTrue("each photo is whole, in its own 2:1 shape: $aspect", abs(aspect - 2f) < 0.03f)
 
-        composeRule.onNodeWithTag(FIND_PAGE_PHOTOS_TAG).performTouchInput { swipeLeft() }
+        // A deliberate, unhurried swipe of a bit more than half a page, so the pager settles on the next page by distance
+        // rather than flinging. The default swipeLeft runs the row's whole width in 200 ms, more than a page plus a fling,
+        // and on CI landed on the third photo (run 38167052604, "-92.0.dp against 180.0.dp").
+        composeRule.onNodeWithTag(FIND_PAGE_PHOTOS_TAG).performTouchInput {
+            swipeLeft(startX = width * 0.8f, endX = width * 0.2f, durationMillis = 600)
+        }
         composeRule.waitForIdle()
 
         val secondAfter = bounds(findPagePhotoTag("b"))
