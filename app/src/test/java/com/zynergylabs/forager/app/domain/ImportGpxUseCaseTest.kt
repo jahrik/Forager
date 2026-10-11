@@ -135,7 +135,7 @@ class ImportGpxUseCaseTest {
     // ---- other apps' files ---------------------------------------------------------------------
 
     @Test
-    fun `a a fitness tracking app-shaped file imports with its name, elevations and times`() = runTest {
+    fun `a shape A file imports with its name, elevations and times`() = runTest {
         val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.SHAPE_A, "Morning_Hike.gpx"))).single()
 
         assertEquals("Morning Hike", track.name)
@@ -146,7 +146,7 @@ class ImportGpxUseCaseTest {
     }
 
     @Test
-    fun `a a widely used backcountry map app-shaped file joins its segments, rounds its times to the second, and names its waypoints`() = runTest {
+    fun `a shape B file joins its segments, rounds its times to the second, and names its waypoints`() = runTest {
         val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.SHAPE_B))).single()
 
         assertEquals("the file's own <metadata> name, the track having none", "Chanterelle ridge", track.name)
@@ -166,7 +166,7 @@ class ImportGpxUseCaseTest {
     }
 
     @Test
-    fun `an an offline maps app-shaped file with offset times and no names is named from the file`() = runTest {
+    fun `a shape C file with offset times and no names is named from the file`() = runTest {
         val track = imported(useCase()(GpxImportFixtures.source(GpxImportFixtures.SHAPE_C, "2026-09-22_09-00_Tue.gpx"))).single()
 
         assertEquals("2026-09-22_09-00_Tue", track.name)
