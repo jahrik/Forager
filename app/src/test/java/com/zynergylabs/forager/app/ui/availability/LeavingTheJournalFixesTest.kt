@@ -985,7 +985,8 @@ class LeavingTheJournalFixesTest {
 
         assertEquals("the find is still open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
         assertTrue("the find's report shows", findReportShowing())
-        composeRule.onNodeWithText("Your own identification: Chanterelle").assertIsDisplayed()
+        // Scrolled to: since RECORD -871 the find's photo comes first, large, and the identification line is under it.
+        composeRule.onNodeWithText("Your own identification: Chanterelle").performScrollTo().assertIsDisplayed()
         assertNothingDeletedAndNoDraft("the round trip")
     }
 

@@ -203,6 +203,11 @@ internal fun CompactMainScaffold(
     logPhotoAcquisitionInFlight: () -> Boolean,
     cartographyUiState: CartographyUiState,
     isDrawerOpen: () -> Boolean,
+    /**
+     * RECORD -871: whether Back is to retrace the Tools drawer's "Offline maps" row (`AvailabilityScreen`'s Tools return
+     * step). While it is, the Journal's own Back handlers are off, as they are while the drawer is open.
+     */
+    toolsReturnPending: () -> Boolean,
     isLandscapeWindow: Boolean,
     portEdge: ScreenEdge,
     /** Landscape B2 (S1): the punch-hole edge from `punchHoleEdgeFor`; read only while the rail shows. */
@@ -1444,7 +1449,8 @@ internal fun CompactMainScaffold(
                                 // Intent 2026-09-28-28: while the Tools drawer is open over the
                                 // Journal, Back closes the drawer, so the Journal's own handlers are
                                 // off. See JournalTab's backEnabled for why off rather than outranked.
-                                backEnabled = !isDrawerOpen(),
+                                // RECORD -871: off too while Back retraces the Tools drawer's "Offline maps" row.
+                                backEnabled = !isDrawerOpen() && !toolsReturnPending(),
                                 cartographyEntryModeState = cartographyEntryModeState,
                                 cartographyOpenEntryGroupsState = cartographyOpenEntryGroupsState,
                                 onSetCartographyEntryGroupIncluded = onSetEntryGroupIncluded,

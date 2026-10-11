@@ -398,22 +398,75 @@ class JournalPageSlideTest {
         composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertExists()
     }
 
-    // Amendment 1 (RECORD -681).
-
+    /**
+     * RECORD -874 (the planner's call): opening a find from All is forward navigation, so the find's page slides in over
+     * All and All stays in place; it must not slide out as if going back. Back slides the find out to the right over
+     * All, still in place, with All still the selected chip.
+     */
     @Test
-    fun `a Records chip's list slides in over All, and Back slides it out with All in place`() {
+    fun `a find tapped in All slides in over All, which stays in place, and Back slides it out over All`() {
         setScreen()
         composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.RECORDS)).let { node ->
             val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
             tapAt(x, y)
         }
         settle()
-        // Records opens on All when nothing else was chosen; select All to be sure of the start.
         composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).let { node ->
             val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
             tapAt(x, y)
         }
         settle()
+        val allLeft = composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).getUnclippedBoundsInRoot().left
+        val tile = composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, find.id)).getUnclippedBoundsInRoot()
+
+        pause()
+        val (tx, ty) = centreOf(tile)
+        tapAt(tx, ty)
+        applyWrites()
+        stepUntil("the find part-way in over All") {
+            val over = composeRule.onAllNodes(androidx.compose.ui.test.hasTestTag(FIND_OVER_VIEW_TAG)).fetchSemanticsNodes()
+            over.isNotEmpty() && leftOf(over.single()) > 1.dp && leftOf(over.single()) < width() - 1.dp
+        }
+        assertTrue("nothing is leaving: All does not slide out as if going back", leavingPages().isEmpty())
+        assertEquals("All is in place under the arriving find", allLeft.value, composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).getUnclippedBoundsInRoot().left.value, 1f)
+        settle()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assertIsSelected()
+
+        pause()
+        back()
+        applyWrites()
+        stepUntil("the find part-way out") {
+            leavingPages().any { leftOf(it) > 1.dp && leftOf(it) < width() - 1.dp }
+        }
+        assertEquals("All is in place under the leaving find", allLeft.value, composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).getUnclippedBoundsInRoot().left.value, 1f)
+        settle()
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assertIsSelected()
+    }
+
+    // Amendment 1 (RECORD -681).
+
+    /**
+     * Rewritten for RECORD -868 and -871: Records opens on Finds, and Back from another chip returns to Finds, so the
+     * base page the chip lists slide over is Finds. This was "… slides in over All, and Back slides it out with All in
+     * place": it started on All, asserted All leaving as Waypoints arrived, and asserted the All logbook at the left
+     * edge while Waypoints slid out and present after. It now starts on Finds and asserts the same of the Finds grid.
+     */
+    @Test
+    fun `a Records chip's list slides in over Finds, and Back slides it out with Finds in place`() {
+        setScreen()
+        composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.RECORDS)).let { node ->
+            val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
+            tapAt(x, y)
+        }
+        settle()
+        // Records opens on Finds when nothing else was chosen; select Finds to be sure of the start.
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).let { node ->
+            val (x, y) = centreOf(node.getUnclippedBoundsInRoot())
+            tapAt(x, y)
+        }
+        settle()
+        val findsGridLeft = composeRule.onNodeWithTag(FINDS_GRID_TAG).getUnclippedBoundsInRoot().left
         val chipRowTop = composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).getUnclippedBoundsInRoot().top
 
         pause()
@@ -426,7 +479,7 @@ class JournalPageSlideTest {
             val arriving = pageSlidingIn()
             arriving != null && leftOf(arriving) < width() - 1.dp
         }
-        assertTrue("All is still there, leaving", leavingPages().isNotEmpty())
+        assertTrue("Finds is still there, leaving", leavingPages().isNotEmpty())
         assertEquals("the chip row stays still", chipRowTop.value, composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).getUnclippedBoundsInRoot().top.value, 0.5f)
         settle()
 
@@ -436,9 +489,9 @@ class JournalPageSlideTest {
         stepUntil("the Waypoints list part-way out") {
             leavingPages().any { leftOf(it) > 1.dp && leftOf(it) < width() - 1.dp }
         }
-        assertEquals(0f, composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).getUnclippedBoundsInRoot().left.value, 1f)
+        assertEquals("the Finds grid is in place under the leaving list", findsGridLeft.value, composeRule.onNodeWithTag(FINDS_GRID_TAG).getUnclippedBoundsInRoot().left.value, 1f)
         settle()
-        composeRule.onNodeWithTag(RECORDS_LOGBOOK_LIST_TAG).assertExists()
+        composeRule.onNodeWithTag(FINDS_GRID_TAG).assertExists()
     }
 
     @Test

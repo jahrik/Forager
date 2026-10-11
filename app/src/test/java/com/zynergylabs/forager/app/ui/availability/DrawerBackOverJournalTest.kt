@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -540,6 +541,127 @@ class DrawerBackOverJournalTest {
         pressBack()
 
         assertDrawerClosedAnd(albumViewShowing(), "the Entries album view")
+    }
+
+    // ── RECORD -868 and -871: the Tools drawer's "Offline maps" row, and Back from where it leads ──
+
+    /** A real touch at [fraction] of the Tools drawer's "Offline maps" row's own bounds. */
+    private fun touchOfflineMapsRow(fraction: Offset = Offset(0.5f, 0.5f)) {
+        val row = composeRule.onNodeWithTag(TOOLS_OFFLINE_MAPS_ROW_TAG).getUnclippedBoundsInRoot()
+        val x = row.left.value + (row.right.value - row.left.value) * fraction.x
+        val y = row.top.value + (row.bottom.value - row.top.value) * fraction.y
+        composeRule.onRoot().performTouchInput { click(Offset(x * density, y * density)) }
+        composeRule.waitForIdle()
+    }
+
+    private fun chipSelected(filter: RecordsSubTab): Boolean =
+        runCatching { composeRule.onNodeWithTag(recordsFilterChipTestTag(filter)).assertIsSelected() }.isSuccess
+
+    private fun navSelected(label: String): Boolean =
+        runCatching { composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG))).assertIsSelected() }.isSuccess
+
+    /** Journal > Records on the Offline maps chip, with the drawer closed: where the row leads. */
+    private fun assertOnOfflineMapsWithDrawerClosed(after: String) {
+        val drawerOpen = drawerIsOpen()
+        val journal = navSelected("Journal")
+        val records = runCatching { composeRule.onNodeWithText("Records").assertIsSelected() }.isSuccess
+        val offlineMaps = chipSelected(RecordsSubTab.OFFLINE_MAPS)
+        assertTrue(
+            "after $after: expected the drawer closed on Journal > Records > Offline maps; " +
+                "drawer open = $drawerOpen, Journal = $journal, Records = $records, Offline maps chip = $offlineMaps",
+            !drawerOpen && journal && records && offlineMaps,
+        )
+    }
+
+    /** Samples real touches across the row (CLAUDE.md: a finger is not a point), from the Maps tab each time. */
+    @Test
+    fun `portrait, real touches across the Tools drawer's Offline maps row open Records on the Offline maps chip, drawer closed`() {
+        setScreen()
+        for (fraction in listOf(Offset(0.1f, 0.25f), Offset(0.5f, 0.5f), Offset(0.9f, 0.75f))) {
+            assertTrue("precondition: on the Maps tab", navSelected("Maps"))
+            touchTools()
+            touchOfflineMapsRow(fraction)
+            assertOnOfflineMapsWithDrawerClosed("a touch at $fraction of the row")
+            // Back twice retraces the way in (the next test's claim), which puts this loop back on the Maps tab.
+            pressBack()
+            pressBack()
+        }
+    }
+
+    @Test
+    fun `portrait, from Maps, Back from Offline maps reopens Tools over Maps, and the next Back closes it on Maps`() {
+        setScreen()
+        touchTools()
+        touchOfflineMapsRow()
+        assertOnOfflineMapsWithDrawerClosed("the row")
+
+        pressBack()
+        assertTrue("the first Back reopens Tools", drawerIsOpen())
+        assertTrue("over the Maps tab", navSelected("Maps"))
+
+        pressBack()
+        assertTrue("the second Back closes Tools", !drawerIsOpen())
+        assertTrue("on the Maps tab", navSelected("Maps"))
+        composeRule.onNodeWithTag("map-slot").assertExists()
+    }
+
+    @Test
+    fun `portrait, from Seasonal, Back from Offline maps reopens Tools over Seasonal, and the next Back closes it on Seasonal`() {
+        setScreen()
+        touchNavItem("Seasonal")
+        touchTools()
+        touchOfflineMapsRow()
+        assertOnOfflineMapsWithDrawerClosed("the row, from Seasonal")
+
+        pressBack()
+        assertTrue("the first Back reopens Tools", drawerIsOpen())
+        assertTrue("over Seasonal, the page the row was tapped from", navSelected("Seasonal"))
+
+        pressBack()
+        assertTrue("the second Back closes Tools", !drawerIsOpen())
+        assertTrue("on Seasonal", navSelected("Seasonal"))
+    }
+
+    @Test
+    fun `portrait, from Records on the Waypoints chip, Back from Offline maps reopens Tools there, and the next Back closes it on Waypoints`() {
+        setScreen()
+        touchNavItem("Journal")
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertTrue("precondition: Records on the Waypoints chip", chipSelected(RecordsSubTab.WAYPOINTS))
+        touchTools()
+        touchOfflineMapsRow()
+        assertOnOfflineMapsWithDrawerClosed("the row, from the Waypoints chip")
+
+        pressBack()
+        assertTrue("the first Back reopens Tools", drawerIsOpen())
+        assertTrue("over Records on the Waypoints chip", navSelected("Journal") && chipSelected(RecordsSubTab.WAYPOINTS))
+
+        pressBack()
+        assertTrue("the second Back closes Tools", !drawerIsOpen())
+        assertTrue("on Records' Waypoints chip", chipSelected(RecordsSubTab.WAYPOINTS))
+    }
+
+    @Test
+    fun `portrait, once the user moves to another chip after Offline maps, Back works normally from there`() {
+        setScreen()
+        touchNavItem("Seasonal")
+        touchTools()
+        touchOfflineMapsRow()
+        assertOnOfflineMapsWithDrawerClosed("the row")
+
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.RECORDED_TRACKS)).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertTrue("precondition: moved on to the Tracks chip", chipSelected(RecordsSubTab.RECORDED_TRACKS))
+
+        pressBack()
+        assertTrue("Back does not reopen Tools any more", !drawerIsOpen())
+        assertTrue("it steps to Finds, as from any other chip", chipSelected(RecordsSubTab.FINDS) && navSelected("Journal"))
+
+        pressBack()
+        assertTrue("then out of Records to Entries, still no drawer", !drawerIsOpen())
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed()
     }
 
     private companion object {
