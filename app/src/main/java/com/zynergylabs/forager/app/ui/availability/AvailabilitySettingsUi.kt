@@ -40,6 +40,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -166,6 +167,34 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
         Text("Settings", style = MaterialTheme.typography.titleSmall)
     }
 }
+
+/**
+ * The Tools drawer's "Offline maps" row (RECORD -868, the owner: "Add a quick button to the Tools drawer for Offline
+ * Maps. Tapping it brings you to the Offline Maps page"; "Records, on the Offline maps chip (Recommended)"). Fixed
+ * above [SettingsEntryRow], in the same shape (the planner's call, RECORD -871): a divider, then a labelled row with
+ * the Offline maps chip's map icon. Unlike Settings it leaves the drawer: the drawer closes and Journal > Records
+ * opens on the Offline maps chip, and Back reopens Tools and then returns to where the user was
+ * (`AvailabilityScreen`'s Tools return step, RECORD -871).
+ */
+@Composable
+internal fun OfflineMapsEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(TOOLS_OFFLINE_MAPS_ROW_TAG)
+            .clickableWithShapedPress(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Map, contentDescription = null)
+        Text("Offline maps", style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/** The Tools drawer's "Offline maps" row, for tests. */
+internal const val TOOLS_OFFLINE_MAPS_ROW_TAG = "tools-offline-maps-row"
 
 /**
  * Settings' body, reached by tapping the Settings entry at the bottom of [CompactToolsDrawerContent]
@@ -577,6 +606,8 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
  *    out (Journal restructure Stage 1) into the Journal's own Records tab. Since dispatch
  *    2026-09-28-707 the **Sundown** section ([ToolsSundownSection]) sits under it, in the same
  *    scroll, moved here from Settings so it is one tap away instead of two.
+ * 1a. **Offline maps** ([OfflineMapsEntryRow], RECORD -868), a fixed row above Settings: the one
+ *    entry here that leaves the drawer, a shortcut to Journal > Records on the Offline maps chip.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
  *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
@@ -607,6 +638,11 @@ internal fun CompactToolsDrawerContent(
     sundown: SundownSettings = SundownSettings(),
     /** The "Off-track reminder", the last row of that section. */
     offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
+    /**
+     * RECORD -868: the "Offline maps" row's tap, which opens Journal > Records on the Offline maps chip. `null` (the
+     * default) draws no row, for a caller with nowhere to send it.
+     */
+    onOpenOfflineMaps: (() -> Unit)? = null,
 ) {
     // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
     // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
@@ -660,6 +696,7 @@ internal fun CompactToolsDrawerContent(
                 ToolsSundownSection(sundown = sundown, offTrackReminder = offTrackReminder)
             },
         )
+        onOpenOfflineMaps?.let { open -> OfflineMapsEntryRow(onClick = open) }
         SettingsEntryRow(onClick = { showSettings = true })
     }
     }

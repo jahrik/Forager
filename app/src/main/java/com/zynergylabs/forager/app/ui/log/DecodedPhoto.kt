@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +74,14 @@ internal fun DecodedPhoto(
     relativePath: String,
     modifier: Modifier = Modifier,
     contentDescription: String? = "Log photo",
+    /**
+     * The whole photo in its own shape, uncropped, instead of a crop filling the caller's cell: the find page's photo
+     * (RECORD -871, the owner: "Under the title, whole photo, next one peeking (Recommended)"). The caller gives a
+     * width; this takes the photo's own height for it once decoded, and a 4:3 placeholder until then. A caller that
+     * also caps the height gets the whole photo inside the cap, letterboxed (nothing cropped). `false`, the default,
+     * is every other caller's crop, unchanged.
+     */
+    wholePhoto: Boolean = false,
 ) {
     val context = LocalContext.current
     var bitmap by remember(relativePath) { mutableStateOf<ImageBitmap?>(null) }
@@ -107,12 +116,19 @@ internal fun DecodedPhoto(
     val painter = remember(loaded, placeholderColor) {
         if (loaded != null) BitmapPainter(loaded, filterQuality = FilterQuality.Low) else ColorPainter(placeholderColor)
     }
+    // wholePhoto: the decoded bitmap is already upright (decodeThumbnail turns it), so its own width over height is the
+    // photo's shape. aspectRatio adds no semantics either.
+    val shape = if (wholePhoto) {
+        Modifier.aspectRatio(loaded?.let { it.width.toFloat() / it.height.toFloat() } ?: WHOLE_PHOTO_PLACEHOLDER_ASPECT)
+    } else {
+        Modifier
+    }
     Image(
         painter = painter,
         contentDescription = if (loaded != null) contentDescription else null,
         // onSizeChanged adds no semantics, so the node DecodedPhotoSemanticsTest pins is unchanged.
-        modifier = modifier.onSizeChanged { size -> cellEdgePx = max(size.width, size.height) },
-        contentScale = ContentScale.Crop,
+        modifier = modifier.then(shape).onSizeChanged { size -> cellEdgePx = max(size.width, size.height) },
+        contentScale = if (wholePhoto) ContentScale.Fit else ContentScale.Crop,
     )
 }
 
@@ -157,3 +173,6 @@ internal fun thumbnailSampleSize(width: Int, height: Int, cellEdgePx: Int): Int 
 }
 
 private const val TAG = "LogPhotoDecode"
+
+/** [DecodedPhoto] with `wholePhoto`, before its photo has decoded: a 4:3 frame, the shape of most phone camera photos held sideways. */
+private const val WHOLE_PHOTO_PLACEHOLDER_ASPECT = 4f / 3f

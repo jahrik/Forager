@@ -392,9 +392,10 @@ internal fun JournalTab(
     // M1: a find opened from a map bubble, shown over whatever the Journal was showing (FindOverView).
     var findOverView by findOverViewState
     LaunchedEffect(findOverView, editing?.id) {
-        findOverView = nextFindOverView(findOverView, editing?.id)
+        findOverView = nextFindOverView(findOverView, editing?.id, editing?.draftOfEntryId)
     }
-    val findOverViewVisible = editing != null && findOverView.let { it != null && (it.shown || editing.id == it.findId) }
+    val findOverViewVisible = editing != null &&
+        findOverView.let { it != null && (it.shown || editing.id == it.findId || editing.draftOfEntryId == it.findId) }
 
     LaunchedEffect(pendingDestination) {
         when (pendingDestination) {
@@ -425,6 +426,13 @@ internal fun JournalTab(
                 selectedTopTab = JournalTopTab.RECORDS
                 recordsPendingSubTab = RecordsSubTab.RECORDED_TRACKS
                 recordsOpenTrackId = pendingTrackId
+                onPendingDestinationConsumed()
+            }
+            // RECORD -868: the Tools drawer's "Offline maps", Records on the Offline maps chip. Through the same chip latch
+            // as the import above, so leaving a find mid-edit is the incidental exit a chip tap is.
+            PendingJournalDestination.VIEW_OFFLINE_MAPS -> {
+                selectedTopTab = JournalTopTab.RECORDS
+                recordsPendingSubTab = RecordsSubTab.OFFLINE_MAPS
                 onPendingDestinationConsumed()
             }
             null -> Unit
@@ -824,15 +832,28 @@ internal fun JournalTab(
                     // so the find is composed once, in the overlay.
                     findsContent = { if (findOverView == null) findsSection() },
                     finds = uiState.entries,
-                    // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
-                    // opens the report there, exactly as the Finds gallery's own tile does.
+                    // The All logbook's find tap (RECORD -874, the owner: "Find > All > Finds > out (Recommended)"):
+                    // the find opens over Records, as the entry map's "Open find" opens it (FindOverView, below), so it
+                    // slides in over All (forward, the planner's call in -874) and Back closes it to All. All stays the
+                    // selected chip. It used to select the Finds chip and open the report in the Finds slot.
                     onOpenFind = { id ->
+                        leaveFindEditingIfNeeded()
                         mode = JournalEntryMode.REPORT
+                        findOverView = FindOverView(id)
                         onOpenEntry(id)
                     },
-                    // J4b L1: the All logbook's find tiles get the same long-press menu.
+                    // J4b L1: the All logbook's find tiles get the same long-press menu. Its Edit opens the form over All,
+                    // as the tap opens the report (RECORD -876, the owner: "Yes, Edit opens over All too (Recommended)"),
+                    // so Back from the form returns to All. It used to select the Finds chip and open the form there.
                     onDeleteFind = onDeleteEntry,
-                    onEditFind = editFind,
+                    onEditFind = onOpenEntryForEditing?.let { open ->
+                        { id: String ->
+                            leaveFindEditingIfNeeded()
+                            mode = JournalEntryMode.EDIT
+                            findOverView = FindOverView(id)
+                            open(id)
+                        }
+                    },
                     onFindsTabLeft = ::leaveFindEditingIfNeeded,
                     findsEditingInProgress = findsSectionHasBackStack,
                     pendingSubTab = recordsPendingSubTab,
@@ -978,6 +999,13 @@ internal enum class PendingJournalDestination {
      * (its id passed beside this), or the Tracks list alone when the file was not imported.
      */
     VIEW_IMPORTED_TRACK,
+
+    /**
+     * RECORD -868: the Tools drawer's "Offline maps" button ("Records, on the Offline maps chip (Recommended)").
+     * Records on the Offline maps chip. Back from there is `AvailabilityScreen`'s, which remembers where the button
+     * was tapped (RECORD -871).
+     */
+    VIEW_OFFLINE_MAPS,
 }
 
 /**
@@ -1039,10 +1067,13 @@ internal data class FindOverView(val findId: String, val shown: Boolean = false)
  * [state] after the open find becomes [openFindId] (`MushroomLogUiState.editingEntry?.id`): shown
  * once the asked-for find is open, kept while any find stays open (starting an edit swaps the open
  * id to its draft row), and gone once none is. A request whose find never opened stays waiting.
+ *
+ * [openFindDraftOf] (`editingEntry?.draftOfEntryId`) also shows it: a find opened straight into its edit form (the All
+ * logbook's long-press Edit, RECORD -876) opens as its draft row, whose own id is never the asked-for find's.
  */
-internal fun nextFindOverView(state: FindOverView?, openFindId: String?): FindOverView? = when {
+internal fun nextFindOverView(state: FindOverView?, openFindId: String?, openFindDraftOf: String? = null): FindOverView? = when {
     state == null -> null
-    !state.shown -> if (openFindId == state.findId) state.copy(shown = true) else state
+    !state.shown -> if (openFindId == state.findId || openFindDraftOf == state.findId) state.copy(shown = true) else state
     openFindId == null -> null
     else -> state
 }

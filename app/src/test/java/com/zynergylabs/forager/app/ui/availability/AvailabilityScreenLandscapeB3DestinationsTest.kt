@@ -166,7 +166,8 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
         openTab("Journal")
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        // Records opens on Finds since RECORD -868; this asserted All selected before.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).assertIsSelected()
         assertCappedAndCentred("the Records filter chip row", recordsSubTabs())
     }
 

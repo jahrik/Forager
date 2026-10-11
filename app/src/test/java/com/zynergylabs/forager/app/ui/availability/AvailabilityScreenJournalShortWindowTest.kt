@@ -250,6 +250,9 @@ class AvailabilityScreenJournalShortWindowTest {
         openJournal()
         node(SWITCH_RECORDS).performClick()
         composeRule.waitForIdle()
+        // On All: Records opens on Finds since RECORD -868, whose gallery puts "New find" in this row (RECORD -753).
+        node(CHIP_ALL).performClick()
+        composeRule.waitForIdle()
         node(SHORT_HEADER).assertIsDisplayed()
         node(SEARCH_ICON).assertIsDisplayed()
         assertTrue("Records has no New (portrait's Records has no floating button to move)", !exists(NEW_ICON))
@@ -372,6 +375,9 @@ class AvailabilityScreenJournalShortWindowTest {
         openJournal()
         node(SWITCH_RECORDS).performClick()
         composeRule.waitForIdle()
+        // Records opens on Finds since RECORD -868; this case scrolls the All logbook.
+        node(CHIP_ALL).performClick()
+        composeRule.waitForIdle()
         node(CHIP_ROW).assertIsDisplayed()
         // The All logbook, with more rows than fit: sixteen waypoints on sixteen days.
         val list = composeRule.onNode(hasScrollAction() and hasAnyDescendant(hasText("Pin 1")))
@@ -401,6 +407,9 @@ class AvailabilityScreenJournalShortWindowTest {
         assertTrue("two card rows fit in the content area: the second row ($third) ends by ${grid.bottom}", third.bottom <= grid.bottom + 0.5.dp)
         assertTrue("the first card row starts in the content area", first.top >= grid.top - 0.5.dp)
         node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        // Records opens on Finds since RECORD -868; the budget is measured on the All logbook, as before.
+        node(CHIP_ALL).performClick()
         composeRule.waitForIdle()
         val rl1 = bounds(SHORT_HEADER)
         val chips = bounds(CHIP_ROW)

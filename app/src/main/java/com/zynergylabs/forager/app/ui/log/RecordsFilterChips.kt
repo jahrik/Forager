@@ -150,7 +150,7 @@ internal fun RecordsSubTab.recordType(): RecordType? = when (this) {
     RecordsSubTab.OFFLINE_MAPS -> RecordType.OFFLINE_MAPS
 }
 
-private fun RecordsSubTab.chipLabel(): String = when (this) {
+internal fun RecordsSubTab.chipLabel(): String = when (this) {
     RecordsSubTab.ALL -> "All"
     RecordsSubTab.FINDS -> "Finds"
     RecordsSubTab.RECORDED_TRACKS -> "Tracks"

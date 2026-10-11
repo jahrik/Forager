@@ -57,6 +57,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import com.zynergylabs.forager.app.ui.availability.offlineRegionRowLineTag
 import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
@@ -202,8 +206,9 @@ class RecordsFilterChipsTest {
 
     // ── The row ──
 
+    /** RECORD -868: Records opens on Finds. Rewritten for it: this said "All selected", and asserted All selected and the other four not. */
     @Test
-    fun `the chip row shows All, Finds, Tracks, Waypoints and Offline maps in that order, with counts matching the data, All selected`() {
+    fun `the chip row shows All, Finds, Tracks, Waypoints and Offline maps in that order, with counts matching the data, Finds selected`() {
         setScreen()
 
         val expected = listOf(
@@ -216,8 +221,8 @@ class RecordsFilterChipsTest {
         for ((tag, label, count) in expected) {
             chip(tag).assert(hasText(label)).assert(hasText(count))
         }
-        chip(ALL_CHIP).assertIsSelected()
-        for ((tag, _, _) in expected.drop(1)) chip(tag).assertIsNotSelected()
+        chip(FINDS_CHIP).assertIsSelected()
+        for ((tag, _, _) in expected.filter { it.first != FINDS_CHIP }) chip(tag).assertIsNotSelected()
 
         val lefts = expected.map { (tag, _, _) -> chip(tag).getUnclippedBoundsInRoot().left.value }
         assertEquals("chips are laid out left to right in display order", lefts.sorted(), lefts)
@@ -272,16 +277,23 @@ class RecordsFilterChipsTest {
 
     // ── Back ──
 
+    /**
+     * RECORD -871 (the owner: "Back to Finds, then out (Recommended)"). Rewritten for it: this was "Back from a
+     * single-type chip returns to All, and Back from All steps to Cartography", looping over Finds, Tracks, Waypoints
+     * and Offline maps and asserting All selected after each Back. Now it loops over All, Tracks, Waypoints and
+     * Offline maps and asserts Finds selected after each Back; the last Back, from Finds, steps to Entries as the one
+     * from All did.
+     */
     @Test
-    fun `Back from a single-type chip returns to All, and Back from All steps to Cartography`() {
+    fun `Back from any other chip returns to Finds, and Back from Finds steps to Cartography`() {
         setScreen()
-        for (tag in listOf(FINDS_CHIP, TRACKS_CHIP, WAYPOINTS_CHIP, OFFLINE_MAPS_CHIP)) {
+        for (tag in listOf(ALL_CHIP, TRACKS_CHIP, WAYPOINTS_CHIP, OFFLINE_MAPS_CHIP)) {
             touchChip(tag, Offset(0.5f, 0.5f))
             chip(tag).assertIsSelected()
 
             pressBack()
 
-            chip(ALL_CHIP).assertIsSelected()
+            chip(FINDS_CHIP).assertIsSelected()
             chip(tag).assertIsNotSelected()
             composeRule.onNodeWithText("Records").assertIsSelected()
         }
@@ -334,9 +346,10 @@ class RecordsFilterChipsTest {
 
     // ── S4: the All logbook (journal redesign J1, continuation prompts/preserved/2026-09-27-17.md) ──
     //
-    // Owner's answers: finds first within their day (they carry a date and no time), then the timed
-    // records newest first; days newest first; each type's own row as its chip shows it, with a type
-    // badge; tapping a find selects the Finds chip and opens its report there; committed finds only.
+    // Owner's answers: each type's own row as its chip shows it, with a type badge; tapping a find
+    // selects the Finds chip and opens its report there; committed finds only. The day grouping those
+    // answers also set (finds first within a day, days newest first) became grouping by kind with
+    // RECORD -868.
     // Times are built at local hours in the JVM's default zone, the zone the screen groups by, so the
     // day a record falls on does not depend on where the suite runs.
 
@@ -365,34 +378,48 @@ class RecordsFilterChipsTest {
         OfflineRegionSummary(id = 7L, name = "Noon region", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = localMillis(d1, 12)),
     )
 
-    private fun setLogbookScreen() = setScreen(
-        initial = MushroomLogUiState(entries = listOf(logFind1, logFind2, logFind3), draftEntries = listOf(logDraft)),
-        waypoints = logWaypoints(),
-        tracks = logTracks(),
-        regions = logRegions(),
-    )
+    /** The logbook data, on All: Records opens on Finds since RECORD -868, so All is touched first. */
+    private fun setLogbookScreen() {
+        setScreen(
+            initial = MushroomLogUiState(entries = listOf(logFind1, logFind2, logFind3), draftEntries = listOf(logDraft)),
+            waypoints = logWaypoints(),
+            tracks = logTracks(),
+            regions = logRegions(),
+        )
+        touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
+    }
 
     private fun rowTag(type: String, id: String) = "records-logbook-row-$type-$id"
     private fun badgeTag(type: String, id: String) = "records-badge-$type-$id"
-    private fun dayTag(date: LocalDate) = "records-logbook-day-$date"
+    private fun sectionTag(type: String) = "records-logbook-section-$type"
 
+    /**
+     * RECORD -868 (the owner: "In All, separate by category and not by time/day entered, with Finds at the top";
+     * "Finds, Tracks, Waypoints, Offline maps (Recommended)"). Rewritten for it: this was "All shows every committed
+     * record grouped by day, days newest first, finds first in their day, then timed records newest first"; its
+     * reading order ran by day under three day headers, and it asserted each day header's record count ("5 records",
+     * "1 record", "1 record"). The reading order now runs by kind under four section headers, each asserted whole with
+     * its count; the committed-finds-only and chip-count assertions are unchanged. The fixture's finds have no time,
+     * so F1 and F2 (same day) keep their input order, and F3 is an older day.
+     */
     @Test
-    fun `All shows every committed record grouped by day, days newest first, finds first in their day, then timed records newest first`() {
+    fun `All shows every committed record grouped by kind, Finds, Tracks, Waypoints, Offline maps, each under a header with its count, newest first`() {
         setLogbookScreen()
         chip(ALL_CHIP).assertIsSelected()
 
         // Reading order: top first, then left (two finds share a row, as in the Finds gallery grid).
         val expected = listOf(
-            dayTag(d1),
+            sectionTag("finds"),
             rowTag("finds", "F1"),
             rowTag("finds", "F2"),
-            rowTag("tracks", "T1"),
-            rowTag("offline-maps", "7"),
-            rowTag("waypoints", "W1"),
-            dayTag(d2),
-            rowTag("waypoints", "W2"),
-            dayTag(d3),
             rowTag("finds", "F3"),
+            sectionTag("tracks"),
+            rowTag("tracks", "T1"),
+            sectionTag("waypoints"),
+            rowTag("waypoints", "W1"),
+            rowTag("waypoints", "W2"),
+            sectionTag("offline-maps"),
+            rowTag("offline-maps", "7"),
         )
         val positions = expected.map { tag ->
             val b = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
@@ -401,10 +428,11 @@ class RecordsFilterChipsTest {
         val sorted = positions.sortedWith(compareBy({ it.second.first }, { it.second.second })).map { it.first }
         assertEquals("the logbook's reading order", expected, sorted)
 
-        // Day headers carry the day's record count.
-        composeRule.onNodeWithTag(dayTag(d1)).assert(hasText("5 records", substring = true))
-        composeRule.onNodeWithTag(dayTag(d2)).assert(hasText("1 record", substring = true))
-        composeRule.onNodeWithTag(dayTag(d3)).assert(hasText("1 record", substring = true))
+        // Section headers name the kind as its chip does and carry the section's count.
+        composeRule.onNodeWithTag(sectionTag("finds")).assert(hasText("Finds · 3"))
+        composeRule.onNodeWithTag(sectionTag("tracks")).assert(hasText("Tracks · 1"))
+        composeRule.onNodeWithTag(sectionTag("waypoints")).assert(hasText("Waypoints · 2"))
+        composeRule.onNodeWithTag(sectionTag("offline-maps")).assert(hasText("Offline maps · 1"))
         // Committed finds only: the draft is neither listed nor counted.
         composeRule.onNodeWithTag(rowTag("finds", "D1")).assertDoesNotExist()
         chip(ALL_CHIP).assert(hasText("7"))
@@ -457,27 +485,81 @@ class RecordsFilterChipsTest {
         assertEquals(listOf(7L), deletedRegionIds)
     }
 
+    /**
+     * RECORD -870 and -871: the region row is one plain line, "name · radius · size · downloaded …", read here part by
+     * part as the row draws it (the dots between parts are hidden from the semantics tree). The centre's coordinates,
+     * the tile count and the zoom-readiness paragraph it used to print are on the region's own page
+     * ([RecordDetailsSheetTest]'s region cases), not in the row. Checked in All and in the Offline maps chip, the
+     * row's two homes. Noon region: 5 km is 3 mi; 1000 bytes is "0.0 MB"; its time is after this screen's clock (0),
+     * which reads "just now".
+     */
     @Test
-    fun `touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery, then All`() {
+    fun `an offline region row is one plain line of name, radius, size and when, with no centre, tiles or zoom paragraph, in All and in its chip`() {
+        setLogbookScreen()
+        assertNoonRegionLine("All")
+
+        touchChip(OFFLINE_MAPS_CHIP, Offset(0.5f, 0.5f))
+        assertNoonRegionLine("the Offline maps chip")
+    }
+
+    private fun assertNoonRegionLine(where: String) {
+        val line = composeRule.onNodeWithTag(offlineRegionRowLineTag(7L), useUnmergedTree = true)
+        line.performScrollTo()
+        val parts = line.onChildren().fetchSemanticsNodes().mapNotNull { node ->
+            node.config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }
+        }
+        assertEquals("the row's line in $where", listOf("Noon region", "3 mi radius", "0.0 MB", "downloaded just now"), parts)
+        for (gone in listOf("Ready to zoom", "tiles", "45.5000")) {
+            assertEquals(
+                "no \"$gone\" in $where's row",
+                0,
+                composeRule.onAllNodes(
+                    hasText(gone, substring = true) and hasAnyAncestor(hasTestTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7"))),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNodes().size,
+            )
+        }
+    }
+
+    /**
+     * RECORD -874 (the owner: "Find > All > Finds > out (Recommended)"). Rewritten for it a second time. Under -871
+     * this was "touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery,
+     * then out of Records": it asserted the Finds chip selected with the report open, the F2 tile gone, the Finds
+     * gallery after one Back and Entries after two. Now the report opens over Records with All still selected (the F2
+     * tile stays composed under it, so its "gone" assertion became "the find over the view is up"); the first Back
+     * shows All with the F2 tile, the second Finds, the third Entries.
+     */
+    @Test
+    fun `touching a find in All opens its report over All, and Back goes to All, then Finds, then out of Records`() {
         setLogbookScreen()
 
         for (point in TOUCH_SAMPLES) {
+            if (point != TOUCH_SAMPLES.first()) {
+                composeRule.onNodeWithText("Records").performClick()
+                composeRule.waitForIdle()
+                touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
+            }
             chip(ALL_CHIP).assertIsSelected()
             composeRule.onNodeWithTag(rowTag("finds", "F2")).performScrollTo()
             composeRule.onNodeWithTag(rowTag("finds", "F2")).performTouchInput { click(Offset(width * point.x, height * point.y)) }
             composeRule.waitForIdle()
 
-            chip(FINDS_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertExists()
             composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
-            composeRule.onNodeWithTag(rowTag("finds", "F2")).assertDoesNotExist()
+            chip(ALL_CHIP).assertIsSelected()
+
+            pressBack()
+            composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertDoesNotExist()
+            composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
+            chip(ALL_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(rowTag("finds", "F2")).assertIsDisplayed()
 
             pressBack()
             chip(FINDS_CHIP).assertIsSelected()
-            composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
             composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
 
             pressBack()
-            chip(ALL_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.CARTOGRAPHY)).assertIsSelected()
         }
     }
 }

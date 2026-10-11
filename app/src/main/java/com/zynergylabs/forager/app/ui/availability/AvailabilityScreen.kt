@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
 import com.zynergylabs.forager.app.domain.waypointNavigationTarget
 import com.zynergylabs.forager.app.ui.log.JournalTopTab
+import com.zynergylabs.forager.app.ui.log.RecordsSubTab
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOriginSaver
 import com.zynergylabs.forager.app.ui.map.MapCompass
@@ -1272,6 +1273,50 @@ fun AvailabilityScreen(
         onGpxImportNoticeShown(notice.seq)
     }
 
+    // RECORD -868 and -871: the Tools drawer's "Offline maps" row. It closes Tools and opens Journal > Records on the
+    // Offline maps chip ("Records, on the Offline maps chip (Recommended)"), through the same one-shot request the GPX
+    // import above uses, and ends fullscreen for the same reason. It remembers where it was tapped, [toolsReturn], so Back
+    // can retrace the way in (the owner: "Reopen Tools, then Seasonal (Recommended)"): the first Back puts the page the
+    // user came from back under the drawer and reopens the drawer; the second is the drawer's own Back, which closes it on
+    // that page. Once the user moves on inside the Journal, by another chip or tab, the memory is forgotten and Back works
+    // as it always has from wherever they are. A second tap on the row while the memory stands keeps the first origin, so
+    // Back never returns to Records itself.
+    var toolsReturn by remember { mutableStateOf<ToolsOfflineMapsReturn?>(null) }
+    // Whether Records has reached the Offline maps chip since the row was tapped: until it has, the request is still on its
+    // way (JournalTab consumes it, then RecordsTab selects the chip, a frame or two later), and not being there yet is not
+    // the user moving on.
+    var toolsReturnArrived by remember { mutableStateOf(false) }
+    val openOfflineMapsFromTools: () -> Unit = {
+        if (toolsReturn == null) {
+            toolsReturn = ToolsOfflineMapsReturn(
+                compactTab = compactTab,
+                selectedTab = selectedTab,
+                journalTopTab = journalScreenState.topTab,
+                recordsFilter = journalScreenState.recordsFilter,
+                mapFullscreen = isMapFullscreen,
+            )
+            toolsReturnArrived = false
+        }
+        isDrawerOpen = false
+        if (isMapFullscreen) {
+            isMapFullscreen = false
+            onMapFullscreenChanged(false)
+        }
+        pendingJournalDestination = PendingJournalDestination.VIEW_OFFLINE_MAPS
+        compactTab = CompactTab.JOURNAL
+    }
+    LaunchedEffect(toolsReturn != null) {
+        if (toolsReturn == null) return@LaunchedEffect
+        snapshotFlow { Triple(compactTab, journalScreenState.topTab, journalScreenState.recordsFilter) }.collect { (tab, top, filter) ->
+            val onOfflineMaps = tab == CompactTab.JOURNAL && top == JournalTopTab.RECORDS && filter == RecordsSubTab.OFFLINE_MAPS
+            if (onOfflineMaps) {
+                toolsReturnArrived = true
+            } else if (toolsReturnArrived) {
+                toolsReturn = null
+            }
+        }
+    }
+
     LaunchedEffect(returnToMapRequest) {
         if (returnToMapRequest > 0) {
             isDrawerOpen = false
@@ -1316,7 +1361,26 @@ fun AvailabilityScreen(
         isMapFullscreen = false
         onMapFullscreenChanged(false)
     }
-    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP) {
+    // RECORD -871: Back from Records reached by the Tools drawer's "Offline maps" row (see toolsReturn above). The page the
+    // user came from goes back under the drawer, its tab and, when it was the Journal, its top tab and chip, and fullscreen if
+    // the map was fullscreen, and the drawer reopens; the next Back is the drawer's own handler, above, which closes it on
+    // that page. The Journal's own handlers are off while this is pending (JournalTab's backEnabled, through
+    // compactMainScaffold), the same "off rather than outranked" the open drawer uses, so Records' chip step does not take
+    // this press. The tab handler below excludes it, so at most one of the two is enabled.
+    BackHandler(enabled = !isDrawerOpen && toolsReturn != null) {
+        val back = toolsReturn ?: return@BackHandler
+        toolsReturn = null
+        journalScreenState.topTab = back.journalTopTab
+        journalScreenState.recordsFilter = back.recordsFilter
+        compactTab = back.compactTab
+        selectedTab = back.selectedTab
+        if (back.mapFullscreen) {
+            isMapFullscreen = true
+            onMapFullscreenChanged(true)
+        }
+        isDrawerOpen = true
+    }
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab != CompactTab.MAP && toolsReturn == null) {
         compactTab = CompactTab.MAP
         // Keeps the shared ResultsTab-driven state in sync, same as ForagerBottomNav's own tap
         // handler does — see compactTab's own doc comment for why the two exist side by side.
@@ -1649,6 +1713,7 @@ fun AvailabilityScreen(
             logPhotoAcquisitionInFlight = { logPhotoAcquisitionInFlight },
             cartographyUiState = cartographyUiState,
             isDrawerOpen = { isDrawerOpen },
+            toolsReturnPending = { toolsReturn != null },
             isLandscapeWindow = isLandscapeWindow,
             portEdge = portEdge,
             punchHoleEdge = punchHoleEdge,
@@ -1944,6 +2009,7 @@ fun AvailabilityScreen(
                         enabled = uiState.offTrackReminderEnabled,
                         onEnabledChanged = onOffTrackReminderChanged,
                     ),
+                    onOpenOfflineMaps = openOfflineMapsFromTools,
                 )
                 }
                 }
@@ -1987,6 +2053,19 @@ fun AvailabilityScreen(
 
 /** The compact Tools drawer's sheet, for tests (map chrome at 80%, dispatch 2026-09-28-56 as amended by -58). */
 internal const val TOOLS_DRAWER_SHEET_TAG = "tools-drawer-sheet"
+
+/**
+ * Where the Tools drawer's "Offline maps" row was tapped (RECORD -871): the bottom-nav tab and its results tab, the
+ * Journal's top tab and Records chip as they were, and whether the map was fullscreen. Back from Records puts these
+ * back under the reopened drawer; see `toolsReturn` in [AvailabilityScreen].
+ */
+private data class ToolsOfflineMapsReturn(
+    val compactTab: CompactTab,
+    val selectedTab: ResultsTab,
+    val journalTopTab: JournalTopTab,
+    val recordsFilter: RecordsSubTab,
+    val mapFullscreen: Boolean,
+)
 
 /**
  * Dispatch 2026-09-28-502, Amendment 1: what the walker is told when the waypoint they are navigating to

@@ -1261,8 +1261,15 @@ class JournalPendingDeleteTest {
         menuItems().assertCountEquals(0)
     }
 
+    /**
+     * RECORD -876 (the owner: "Yes, Edit opens over All too (Recommended)"). Rewritten for it: this was "… whose Edit
+     * opens its form under the Finds chip" and asserted the Finds chip selected after Edit. Now Edit opens the form over
+     * All: the find over the view is up and All is still selected; then Back through the Activity's real dispatcher
+     * closes the unchanged form and shows All again, with find-b's tile and no find open. The Delete half and the
+     * form's own assertions (its delete control, the open draft of find-b) are unchanged.
+     */
     @Test
-    fun `a find tile in All has the same menu, whose Delete pends it and whose Edit opens its form under the Finds chip`() {
+    fun `a find tile in All has the same menu, whose Delete pends it and whose Edit opens its form over All, Back returning to All`() {
         setScreen(chip = RecordsSubTab.ALL, finds = listOf(PD_FIND_A, PD_FIND_B))
         val rowA = composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-a")).performScrollTo()
         rowA.performTouchInput { longClick(Offset(width * 0.4f, height * 0.6f)) }
@@ -1277,9 +1284,18 @@ class JournalPendingDeleteTest {
             .performTouchInput { longClick(Offset(width * 0.6f, height * 0.4f)) }
         composeRule.waitForIdle()
         touchMenuItem(TILE_OPTIONS_EDIT_TAG)
-        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).assert(androidx.compose.ui.test.isSelected())
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertExists()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assert(androidx.compose.ui.test.isSelected())
         composeRule.onNodeWithContentDescription("Delete this entry").assertIsDisplayed()
         assertEquals(PD_FIND_B.id, logViewModel.uiState.value.editingEntry?.draftOfEntryId)
+
+        composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertDoesNotExist()
+        assertEquals("Back closed the form", null, logViewModel.uiState.value.editingEntry)
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assert(androidx.compose.ui.test.isSelected())
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-b")).assertIsDisplayed()
     }
 
     // ── J4b L3: album photos open a long-press menu ──

@@ -157,12 +157,13 @@ class RecordDetailsSheetTest {
         composeRule.waitForIdle()
     }
 
-    /** Opens Records in the Journal tab. */
+    /** Opens Records in the Journal tab, on All: Records opens on Finds since RECORD -868, and the "in All" cases start from All. */
     private fun openRecords() {
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
+        selectChip(RecordsSubTab.ALL)
     }
 
     private fun selectChip(filter: RecordsSubTab) {

@@ -81,6 +81,15 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
  * [SearchDropdown], reached from [ActiveSearchSummary] up top rather than from this drawer, exactly
  * so it would not read as one more Tools entry. That inclusion rule is what the next addition here
  * has to argue against becoming a junk drawer.
+ *
+ * **One owner-ruled exception: "Offline maps"** (RECORD -868, the owner: "Add a quick button to the
+ * Tools drawer for Offline Maps. Tapping it brings you to the Offline Maps page"; recorded here at
+ * the planner's direction, RECORD -871). Downloading maps is per-trip, which fits the rule, but the
+ * Offline maps page is a destination in its own right (Journal > Records, on its chip), which the
+ * rule says Tools items are not. The row is a shortcut to that destination, the only entry here that
+ * leaves the drawer; it does not move Offline maps into Tools. "Waypoints" in the list above is stale:
+ * waypoints left Tools for Records in Journal restructure Stage 1 (`CompactToolsDrawerContent`'s doc
+ * comment).
  */
 internal enum class CompactTab(val label: String) {
     LIST("List"),
