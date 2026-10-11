@@ -55,6 +55,27 @@ class WalkLogSessionTest {
         session.stop()
     }
 
+    /**
+     * The walk logger reports itself logging as soon as its session is active, and `WalkLoggerServiceTest` read the file
+     * at that moment: on CI (run 38115289698) it found the file empty, its header still in the writer's buffer
+     * (`NoSuchElementException` at `WalkLoggerServiceTest.kt:148`). The header is now written and flushed before the
+     * session marks itself active. Read here at the first call the session makes once active, with the fake clock
+     * standing still, so no time-based flush can have written it.
+     */
+    @Test
+    fun `once the session is active its header is already on disk`() {
+        val (session, file) = newSession()
+        var seen: Pair<Boolean, List<String>>? = null
+        platform.onRegisterFixes = { seen = session.isActive to file.readLines() }
+
+        session.start()
+
+        val (active, lines) = seen!!
+        assertTrue("precondition: active when it asks for fixes", active)
+        assertEquals("the header is on disk the moment the session is active: $lines", "# walklog version=1", lines.firstOrNull())
+        session.stop()
+    }
+
     @Test
     fun `each delivered event is one line, keyed on the since-boot clock`() {
         val (session, file) = newSession()
@@ -239,7 +260,9 @@ class WalkLogSessionTest {
             permission != android.Manifest.permission.ACTIVITY_RECOGNITION || activityRecognitionGranted
         override fun freeBytes() = free
         override fun battery() = BatteryRecord(80, false, "none")
-        override fun registerFixes(sink: WalkLogEvents): Boolean { fixesRegistered = true; return true }
+        /** Called as the session asks for fixes: the first thing it does once it is active. */
+        var onRegisterFixes: (() -> Unit)? = null
+        override fun registerFixes(sink: WalkLogEvents): Boolean { onRegisterFixes?.invoke(); fixesRegistered = true; return true }
         override fun registerGnssStatus(sink: WalkLogEvents): Boolean { statusRegistered = statusAccepted; return statusAccepted }
         override fun registerGnssMeasurements(sink: WalkLogEvents): Boolean { measurementsRegistered = measurementsAccepted; return measurementsAccepted }
         override fun registerSensor(kind: WalkLogSensorKind, sink: WalkLogEvents): Boolean {

@@ -38,9 +38,12 @@ class WalkLogSession(
     fun start() {
         if (active) return
         if (!writer.open()) return
-        active = true
         val now = platform.elapsedRealtimeNanos()
-        if (!write(WalkLogFormat.header(platform.wallClockMillis(), now, platform.headerFacts(), platform.gnssCapabilities()))) return
+        // The header is on disk before the session is active (CI run 38115289698): the logger reports itself logging
+        // from [isActive], and a reader at that moment found the file empty, the header still in the writer's buffer.
+        // A header that cannot be written leaves the session inactive; the writer has written its STOPPED line.
+        if (!writer.writeAndFlush(WalkLogFormat.header(platform.wallClockMillis(), now, platform.headerFacts(), platform.gnssCapabilities()))) return
+        active = true
 
         if (!platform.registerFixes(this)) unsupported("fixes", "register-refused")
         if (!platform.registerGnssStatus(this)) unsupported("gnss-status", "register-refused")
