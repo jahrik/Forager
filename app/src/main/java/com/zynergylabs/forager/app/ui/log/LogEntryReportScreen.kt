@@ -6,8 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -174,6 +176,13 @@ internal fun LogEntryReportScreen(
                 Text(EMPTY_FIND_MESSAGE, style = MaterialTheme.typography.bodyMedium)
             } else {
               Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                // RECORD -868 and -871 (the owner: "Under the title, whole photo, next one peeking (Recommended)"): the
+                // photos come first, under the title, large and uncropped; "Found at" and the identification follow.
+                // Until then they were 88 dp crops after those two lines.
+                if (entry.photos.isNotEmpty()) {
+                    ReportPhotos(photos = entry.photos, onOpen = { id -> viewingPhotoId = id })
+                }
+
                 Text(
                     entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
                         ?: stringResource(R.string.log_entry_no_location),
@@ -182,14 +191,6 @@ internal fun LogEntryReportScreen(
 
                 entry.ownIdentification?.takeIf { it.isNotBlank() }?.let { identification ->
                     Text("Your own identification: $identification", style = MaterialTheme.typography.bodyMedium)
-                }
-
-                if (entry.photos.isNotEmpty()) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        entry.photos.forEach { photo ->
-                            ReportPhotoThumbnail(photo = photo, onOpen = { viewingPhotoId = photo.id })
-                        }
-                    }
                 }
 
                 HorizontalDivider()
@@ -332,13 +333,64 @@ private fun hostSubstrateReportLines(hostSubstrate: HostSubstrateSection): List<
     if (hostSubstrate.notes.isNotBlank()) add("Notes: ${hostSubstrate.notes}")
 }
 
-private const val REPORT_PHOTO_SIZE_DP = 88
-
-/** Read-only counterpart to [LogEntryDetailScreen]'s removable [LogPhotoThumbnail] — same shared [DecodedPhoto], no remove action; tapping anywhere on it opens [PhotoViewerDialog]. */
+/**
+ * The find page's photos (RECORD -868: "have the picture be centered inside the find entry itself"; RECORD -871:
+ * "Under the title, whole photo, next one peeking (Recommended)"). One photo: the page's width less its margins,
+ * centred, in its own shape. Several: a row that swipes sideways ([HorizontalPager], one photo per page, snapping),
+ * the current photo centred and the next one peeking in from the side by [REPORT_PHOTO_PEEK], less the gap.
+ *
+ * Each photo is capped at [REPORT_PHOTO_MAX_HEIGHT] so a tall portrait photo leaves the find's details on screen; a
+ * capped photo is shown whole inside the cap, with space at its sides, never cropped. The cap is this file's own
+ * choice, not a ruling (recorded in the dispatch's report).
+ *
+ * The full-screen viewer has its own previous and next buttons and no swiping (see [PhotoViewerDialog]); that is
+ * unchanged, and only this row swipes.
+ */
 @Composable
-private fun ReportPhotoThumbnail(photo: LogPhoto, onOpen: () -> Unit) {
+private fun ReportPhotos(photos: List<LogPhoto>, onOpen: (String) -> Unit) {
+    if (photos.size == 1) {
+        Box(modifier = Modifier.fillMaxWidth().testTag(FIND_PAGE_PHOTOS_TAG), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.testTag(findPagePhotoTag(photos.single().id))) { ReportPhoto(photo = photos.single(), onOpen = onOpen) }
+        }
+    } else {
+        val pagerState = rememberPagerState { photos.size }
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = REPORT_PHOTO_PEEK),
+            pageSpacing = Spacing.sm,
+            verticalAlignment = Alignment.CenterVertically,
+            key = { page -> photos[page].id },
+            modifier = Modifier.fillMaxWidth().testTag(FIND_PAGE_PHOTOS_TAG),
+        ) { page ->
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.testTag(findPagePhotoTag(photos[page].id))) { ReportPhoto(photo = photos[page], onOpen = onOpen) }
+            }
+        }
+    }
+}
+
+/** One photo on the find page, through the shared [DecodedPhoto], whole; tapping anywhere on it opens [PhotoViewerDialog]. */
+@Composable
+private fun ReportPhoto(photo: LogPhoto, onOpen: (String) -> Unit) {
     DecodedPhoto(
         relativePath = photo.relativePath,
-        modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp).clickable(onClickLabel = "Open full screen", onClick = onOpen),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = REPORT_PHOTO_MAX_HEIGHT)
+            // No test tag on this node: DecodedPhotoSemanticsTest pins its semantics, and the tag sits on a Box around it.
+            .clickable(onClickLabel = "Open full screen", onClick = { onOpen(photo.id) }),
+        wholePhoto = true,
     )
 }
+
+/** How far the next photo's page reaches in from each side of the row, before the gap between pages. */
+private val REPORT_PHOTO_PEEK = 32.dp
+
+/** The tallest a find page photo is drawn; see [ReportPhotos]. */
+private val REPORT_PHOTO_MAX_HEIGHT = 480.dp
+
+/** The find page's photo row (one photo or the swiping row), for tests. */
+internal const val FIND_PAGE_PHOTOS_TAG = "find-page-photos"
+
+/** One photo on the find page, for tests. */
+internal fun findPagePhotoTag(photoId: String): String = "find-page-photo-$photoId"
