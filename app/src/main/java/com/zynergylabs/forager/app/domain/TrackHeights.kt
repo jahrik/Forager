@@ -15,7 +15,7 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
  * barometer, where a phone has one, is the real fix (RECORD -864, "Use the barometer"); this is what a walk without
  * pressure readings falls back to.
  */
-fun trackHeights(points: List<TrackPoint>): List<Double?> = points.map { it.altitude } // REVERT CHECK part 4
+fun trackHeights(points: List<TrackPoint>): List<Double?> = smoothedGpsHeights(points)
 
 /**
  * GPS heights with their spikes and short jitter taken out, in two passes over each unbroken run of points that carry a
