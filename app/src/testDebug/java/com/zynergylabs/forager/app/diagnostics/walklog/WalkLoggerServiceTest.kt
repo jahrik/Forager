@@ -224,14 +224,17 @@ class WalkLoggerServiceTest {
             assertFalse("no wake lock for a log that is not written", ShadowPowerManager.getLatestWakeLock()?.isHeld == true)
             assertEquals("the recording's own listener is still there", 1, awaitListenerCount(1))
 
-            simulateFix(index = 1)
-            simulateFix(index = 2)
+            // The recording keeps collecting with the log stopped: twenty fixes, the service's write batch, stored as
+            // twenty points before the stop. Waited for, not assumed: the service's collector runs on its own thread,
+            // and a stop sent straight after the fixes cancels it before it has taken them. That race failed this test
+            // on CI with a track ended and no points (RECORD -850; docs/audits/2026-10-11-main-red-tests.md).
+            repeat(FLUSH_BATCH_SIZE) { index -> simulateFix(index = index + 1) }
+            assertEquals("the recording kept collecting with the log stopped", FLUSH_BATCH_SIZE, awaitPointCount(trackId, FLUSH_BATCH_SIZE))
             controller.withIntent(stopIntent()).startCommand(0, 2)
 
-            assertTrue(
-                "the recording kept its points",
-                await { runBlocking { container.trackRepository.getById(trackId) }.getOrNull()?.let { it.endedAtEpochMillis != null && it.points.isNotEmpty() } == true },
-            )
+            val endedWithItsPoints = await { runBlocking { container.trackRepository.getById(trackId) }.getOrNull()?.let { it.endedAtEpochMillis != null && it.points.size == FLUSH_BATCH_SIZE } == true }
+            val track = runBlocking { container.trackRepository.getById(trackId) }.getOrNull()
+            assertTrue("the recording ended with its points: ended=${track?.endedAtEpochMillis} points=${track?.points?.size}", endedWithItsPoints)
         } finally {
             end(controller)
         }
@@ -248,6 +251,19 @@ class WalkLoggerServiceTest {
             },
         )
         shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun pointCount(trackId: String): Int = runBlocking { container.trackRepository.getFullRecord(trackId) }.getOrThrow().size
+
+    /** As `TrackRecordingServiceSwipeAwayTest.awaitPointCount`: polls, and returns the count last read, so a shortfall fails with the number. */
+    private fun awaitPointCount(trackId: String, atLeast: Int, timeoutMillis: Long = 10_000L): Int {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        var count = pointCount(trackId)
+        while (count < atLeast && System.currentTimeMillis() < deadline) {
+            idleAndSettle()
+            count = pointCount(trackId)
+        }
+        return count
     }
 
     private fun await(timeoutMillis: Long = 10_000L, condition: () -> Boolean): Boolean {
@@ -291,5 +307,10 @@ class WalkLoggerServiceTest {
         shadowOf(Looper.getMainLooper()).idle()
         Thread.sleep(250L)
         shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private companion object {
+        /** `TrackRecordingService`'s private write batch, as `TrackRecordingServiceSwipeAwayTest` restates it. */
+        const val FLUSH_BATCH_SIZE = 20
     }
 }

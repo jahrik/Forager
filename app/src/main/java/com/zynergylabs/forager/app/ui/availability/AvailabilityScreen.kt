@@ -1702,6 +1702,7 @@ fun AvailabilityScreen(
                     enabled = uiState.batterySaverEnabled,
                     onEnabledChanged = onBatterySaverChanged,
                 ),
+                currentTime = currentTime,
             ),
             compassProvider = compassProvider,
             computeTrueHeading = computeTrueHeading,
