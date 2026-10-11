@@ -55,6 +55,8 @@ class S22WalkHeightTest {
         val heights = profile.segments.single().map { it.altitudeMeters }
         val endMinusStart = heights.last() - heights.first()
         val spread = profile.highestMeters - profile.lowestMeters
+        // Recorded in the JUnit XML's system-out, so the run states what the walk drew, pass or fail.
+        println("S22 walk 596f5e3d: end minus start ${"%.2f".format(endMinusStart)} m, spread ${"%.2f".format(spread)} m")
 
         assertTrue("end minus start ${"%.2f".format(endMinusStart)} m, bound ±3 m", abs(endMinusStart) <= 3.0)
         assertTrue("spread ${"%.2f".format(spread)} m, bound 6 m", spread <= 6.0)
