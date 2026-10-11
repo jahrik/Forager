@@ -90,7 +90,7 @@ class CartographyEntryReportScreenTest {
         // No section headings render at all — nothing was kept in any of them. (RECORD -867: since the track list, the
         // finds list and the waypoint table went, the "Finds", "Tracks" and "Waypoints" lines below pass whatever is
         // kept, so they no longer tell this case from any other. The removal itself is held by
-        // `the page lists no finds, tracks or waypoints, only the tiles and offline maps` below, which keeps all three.)
+        // `the page lists no finds, tracks, waypoints or offline maps, only the tiles` below, which keeps all four.)
         composeRule.onNodeWithText("Finds").assertDoesNotExist()
         composeRule.onNodeWithText("Tracks").assertDoesNotExist()
         composeRule.onNodeWithText("Waypoints").assertDoesNotExist()
@@ -152,15 +152,16 @@ class CartographyEntryReportScreenTest {
     }
 
     /**
-     * RECORD -867 (the owner: "Keep notes, tags, photos and the toggle"): with a find, a track, a waypoint and an offline
-     * map kept, the page lists none of the first three; the tiles count them, and a withheld find is not counted. The
-     * kept offline map's line stays: -867 does not name it. Until 2026-10-11 this was `only kept decisions render,
+     * RECORD -867 (the owner: "Keep notes, tags, photos and the toggle") and -873 ("Remove it, like the other lists"):
+     * with a find, a track, a waypoint and an offline map kept, the page lists none of them; the tiles count them, and a
+     * withheld find is not counted. Part 2 kept the offline maps' line, which -867 did not name; part 3b removes it, and
+     * its two "displayed" assertions are inverted here. Until 2026-10-11 this was `only kept decisions render,
      * never a withheld one`, which read the find, track and waypoint lines as displayed; those assertions are inverted
      * here. The two tests of a kept track's name row (a deleted track still named; a track gone from a loaded day
      * saying so) are removed with the row.
      */
     @Test
-    fun `the page lists no finds, tracks or waypoints, only the tiles and offline maps`() {
+    fun `the page lists no finds, tracks, waypoints or offline maps, only the tiles`() {
         val entry = baseEntry.copy(
             findDecisions = listOf(
                 FindDecision(findId = "f1", foundOn = LocalDate.of(2026, 8, 1), ownIdentification = "Chanterelle", hasPhotos = false, kept = true),
@@ -187,8 +188,8 @@ class CartographyEntryReportScreenTest {
             composeRule.onNodeWithText(text).assertDoesNotExist()
         }
 
-        composeRule.onNodeWithText("Offline maps").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Ridge Region").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Offline maps").assertDoesNotExist()
+        composeRule.onNodeWithText("Ridge Region").assertDoesNotExist()
     }
 
     /** Stage 2c dispatch, point 5: reuses [CartographyEntryEditScreen]'s own fallback — proves it still renders when the gallery row is gone. */

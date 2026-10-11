@@ -686,15 +686,10 @@ internal fun CartographyEntryReportScreen(
                     // RECORD -867 (the owner: "Keep notes, tags, photos and the toggle"): under the map, the four
                     // tiles and the writing above them. The track list, the finds list and the waypoint table went
                     // (the owner, RECORD -864: "The raw data is an eyesore and is what records are for"); tapping a
-                    // record on the map still shows its details. The height chart is hidden until barometer height
+                    // record on the map still shows its details. The kept offline maps' list went too (RECORD -873, the
+                    // owner: "Remove it, like the other lists"); the Offline map toggle above stays. The height chart is hidden until barometer height
                     // lands (RECORD -864, "Keep it, once height is fixed"), and comes back then.
                     EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
-                    ReportItemsSection(
-                        title = "Offline maps",
-                        items = entry.offlineRegionDecisions.filter { it.kept }.map {
-                            ReportItem(title = it.name, subtitle = "${formatDistanceKm(it.radiusKm, distanceUnit)} radius")
-                        },
-                    )
                 }
 
                 Spacer(modifier = Modifier.heightIn(min = Spacing.lg))

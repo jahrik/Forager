@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.zynergylabs.forager.app.domain.CommitCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CreateCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.isOwnMarkerOf
 import com.zynergylabs.forager.app.domain.isShortRecording
 import com.zynergylabs.forager.app.domain.DeleteCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.EntryContents
@@ -157,12 +158,15 @@ class CartographyViewModel(
 
             createEntry(date).fold(
                 onSuccess = { draft ->
+                    val leftOutRecordings = trip.derivedTrip.tracks.filter { it.isShortRecording() }.map { it.id }.toSet()
                     val decided = draft.copy(
                         findDecisions = trip.derivedTrip.finds.map { it.toDecision(kept = true) },
                         // RECORD -867 ("Leave out recordings under a minute"): a recording shorter than a minute
                         // starts left out, a decision the editor shows and the user can change; it stays in Records.
                         trackDecisions = trip.derivedTrip.tracks.map { it.toDecision(kept = !it.isShortRecording(), computeTrackStatistics) },
-                        waypointDecisions = trip.derivedTrip.waypoints.map { it.toDecision(kept = true) },
+                        // RECORD -873: and that recording's own Start and End markers with it; a waypoint the user saved
+                        // during it stays in.
+                        waypointDecisions = trip.derivedTrip.waypoints.map { it.toDecision(kept = !it.isOwnMarkerOf(leftOutRecordings)) },
                         offlineRegionDecisions = trip.offlineRegions.map { it.toDecision(kept = true) },
                     )
                     // The stamped copy is the one to keep -- see SaveCartographyEntryUseCase's own

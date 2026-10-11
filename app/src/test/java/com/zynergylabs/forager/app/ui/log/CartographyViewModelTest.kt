@@ -29,6 +29,7 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -199,6 +200,37 @@ class CartographyViewModelTest {
         val decisions = viewModel.uiState.value.editingEntry?.trackDecisions?.associate { it.trackId to it.kept }
         assertEquals(mapOf("track-blip" to false, "track-walk" to true), decisions)
         assertEquals("the short recording is still in Records", true, trackRepository.getAll().getOrThrow().any { it.id == "track-blip" })
+    }
+
+    /**
+     * RECORD -873 ("Leave out its Start and End pins too"): the left-out short recording's own Start and End markers are
+     * left out with it; a waypoint the user saved during it stays in, and so does the long walk's own Start marker. All
+     * of them stay in Records.
+     */
+    @Test
+    fun `starting a new entry leaves out a short recording's own Start and End markers, and keeps a waypoint saved during it`() = runTest(dispatcher) {
+        val trackRepository = RoomTrackRepository(database.trackDao())
+        val waypointRepository = RoomWaypointRepository(database.waypointDao())
+        val t0 = dayStartMillis() + 60_000L
+        trackRepository.create(Track(id = "track-blip", name = null, startedAtEpochMillis = t0, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+        trackRepository.end("track-blip", t0 + 20_000L).getOrThrow()
+        trackRepository.create(Track(id = "track-walk", name = "Ridge Loop", startedAtEpochMillis = t0 + 600_000L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+        trackRepository.end("track-walk", t0 + 600_000L + 3_600_000L).getOrThrow()
+        fun marker(id: String, trackId: String, at: Long, designation: WaypointDesignation?) =
+            Waypoint(id = id, lat = 45.5, lng = -122.6, altitude = null, name = id, note = "", createdAtEpochMillis = at, trackId = trackId, designation = designation)
+        listOf(
+            marker("blip-start", "track-blip", t0 + 5_000L, WaypointDesignation.ORIGIN),
+            marker("blip-saved", "track-blip", t0 + 10_000L, null),
+            marker("blip-end", "track-blip", t0 + 20_000L, WaypointDesignation.END),
+            marker("walk-start", "track-walk", t0 + 605_000L, WaypointDesignation.ORIGIN),
+        ).forEach { waypointRepository.save(it).getOrThrow() }
+
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+
+        val decisions = viewModel.uiState.value.editingEntry?.waypointDecisions?.associate { it.waypointId to it.kept }
+        assertEquals(mapOf("blip-start" to false, "blip-saved" to true, "blip-end" to false, "walk-start" to true), decisions)
+        assertEquals("all four are still in Records", 4, waypointRepository.getAll().getOrThrow().size)
     }
 
     @Test
