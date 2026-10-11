@@ -124,6 +124,21 @@ class FindPagePhotosTest {
         assertTrue("whole, in its own 2:1 shape, not cropped to another: ${photo.width} x ${photo.height} is $aspect", abs(aspect - 2f) < 0.03f)
     }
 
+    /**
+     * A photo taller than the page can show at full width (here 1:2, which at 328 dp wide would be 656 dp tall) is drawn
+     * at the 480 dp cap and narrowed to keep its shape, centred: whole, not cropped to fill the width.
+     */
+    @Test
+    fun `a tall photo is drawn whole at the height cap, narrowed to its own shape and centred, not cropped to the width`() {
+        setScreen(listOf(photo("tall", 200, 400)))
+
+        val photo = bounds(findPagePhotoTag("tall"))
+        val root = root()
+        assertTrue("at the cap: ${photo.height}", near(photo.height, 480.dp))
+        assertTrue("narrowed to its 1:2 shape: ${photo.width}", near(photo.width, 240.dp))
+        assertTrue("centred: ${photo.centreX} against ${root.centreX}", near(photo.centreX, root.centreX))
+    }
+
     @Test
     fun `several photos sit in a row with the first centred and the next peeking in, and a swipe brings the next to the centre`() {
         setScreen(listOf(photo("a", 400, 200), photo("b", 400, 200), photo("c", 400, 200)))

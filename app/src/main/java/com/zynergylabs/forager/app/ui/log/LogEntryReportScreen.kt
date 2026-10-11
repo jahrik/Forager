@@ -374,8 +374,11 @@ private fun ReportPhotos(photos: List<LogPhoto>, onOpen: (String) -> Unit) {
 private fun ReportPhoto(photo: LogPhoto, onOpen: (String) -> Unit) {
     DecodedPhoto(
         relativePath = photo.relativePath,
+        // No fillMaxWidth: the width is the row's (its Box gives a maximum and no minimum), and DecodedPhoto's own aspect
+        // ratio then picks the full width when the photo fits under the cap, or the cap's height and a narrower width when
+        // it does not. A forced full width would leave a tall photo no way to narrow, and it would fall back to its pixel
+        // size (a revert check on CI showed the forced width also hid a crop from the first test).
         modifier = Modifier
-            .fillMaxWidth()
             .heightIn(max = REPORT_PHOTO_MAX_HEIGHT)
             // No test tag on this node: DecodedPhotoSemanticsTest pins its semantics, and the tag sits on a Box around it.
             .clickable(onClickLabel = "Open full screen", onClick = { onOpen(photo.id) }),
