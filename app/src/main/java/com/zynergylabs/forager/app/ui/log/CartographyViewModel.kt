@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.zynergylabs.forager.app.domain.CommitCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CreateCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.isShortRecording
 import com.zynergylabs.forager.app.domain.DeleteCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.EntryContents
 import com.zynergylabs.forager.app.domain.EntryFindItem
@@ -158,7 +159,9 @@ class CartographyViewModel(
                 onSuccess = { draft ->
                     val decided = draft.copy(
                         findDecisions = trip.derivedTrip.finds.map { it.toDecision(kept = true) },
-                        trackDecisions = trip.derivedTrip.tracks.map { it.toDecision(kept = true, computeTrackStatistics) },
+                        // RECORD -867 ("Leave out recordings under a minute"): a recording shorter than a minute
+                        // starts left out, a decision the editor shows and the user can change; it stays in Records.
+                        trackDecisions = trip.derivedTrip.tracks.map { it.toDecision(kept = !it.isShortRecording(), computeTrackStatistics) },
                         waypointDecisions = trip.derivedTrip.waypoints.map { it.toDecision(kept = true) },
                         offlineRegionDecisions = trip.offlineRegions.map { it.toDecision(kept = true) },
                     )

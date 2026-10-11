@@ -178,6 +178,29 @@ class CartographyViewModelTest {
         assertEquals(listOf("track-1"), entry?.trackDecisions?.map { it.trackId })
     }
 
+    /**
+     * RECORD -867 ("Leave out recordings under a minute"): a recording started and stopped inside a minute, beside a
+     * real walk, starts left out of the day's new entry, with a decision the editor shows, while the walk is kept.
+     * The short one stays in Records.
+     */
+    @Test
+    fun `starting a new entry leaves out a recording shorter than a minute, which stays in Records`() = runTest(dispatcher) {
+        val trackRepository = RoomTrackRepository(database.trackDao())
+        val blip = Track(id = "track-blip", name = null, startedAtEpochMillis = dayStartMillis() + 60_000L, endedAtEpochMillis = null, points = emptyList())
+        trackRepository.create(blip).getOrThrow()
+        trackRepository.end(blip.id, dayStartMillis() + 60_000L + 20_000L).getOrThrow()
+        val walk = Track(id = "track-walk", name = "Ridge Loop", startedAtEpochMillis = dayStartMillis() + 600_000L, endedAtEpochMillis = null, points = emptyList())
+        trackRepository.create(walk).getOrThrow()
+        trackRepository.end(walk.id, dayStartMillis() + 600_000L + 3_600_000L).getOrThrow()
+
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+
+        val decisions = viewModel.uiState.value.editingEntry?.trackDecisions?.associate { it.trackId to it.kept }
+        assertEquals(mapOf("track-blip" to false, "track-walk" to true), decisions)
+        assertEquals("the short recording is still in Records", true, trackRepository.getAll().getOrThrow().any { it.id == "track-blip" })
+    }
+
     @Test
     fun `withholding a kept track keeps its decision row but flips it, and deciding again restores it`() = runTest(dispatcher) {
         val trackRepository = RoomTrackRepository(database.trackDao())
