@@ -127,6 +127,7 @@ private fun TrackPointEntity.toDomain() = TrackPoint(
     timestampEpochMillis = timestampEpochMillis,
     speedMetersPerSecond = speedMetersPerSecond,
     speedAccuracyMetersPerSecond = speedAccuracyMetersPerSecond,
+    pressureHpa = pressureHpa,
 )
 
 private fun TrackPoint.toEntity(trackId: String) = TrackPointEntity(
@@ -138,4 +139,5 @@ private fun TrackPoint.toEntity(trackId: String) = TrackPointEntity(
     timestampEpochMillis = timestampEpochMillis,
     speedMetersPerSecond = speedMetersPerSecond,
     speedAccuracyMetersPerSecond = speedAccuracyMetersPerSecond,
+    pressureHpa = pressureHpa,
 )

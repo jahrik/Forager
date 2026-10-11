@@ -377,22 +377,26 @@ class EntryDataScreensTest {
 
     /**
      * The saved walk's report: the date as "Aug 1, 2026", then Distance, Time out, Climb and Finds, each with its
-     * unit. Figures by hand: 11 steps of 0.001° = 1 223 m = 0.8 mi over 110 s; heights 100 m to 155 m in 5 m steps
-     * gain 55 m = 180 ft. The height chart is hidden until barometer height lands (RECORD -864, "Keep it, once height
-     * is fixed"; RECORD -867), so neither the chart nor its one-line stand-in is drawn. Until 2026-10-11 this test
-     * also read the chart's labels (509 ft, 328 ft, 0.8 mi); those assertions are inverted here, as -867 requires.
+     * unit, then the height chart's labels. Figures by hand: 11 steps of 0.001° = 1 223 m = 0.8 mi over 110 s;
+     * heights 100 m to 155 m in 5 m steps gain 55 m = 180 ft, lowest 328 ft, highest 509 ft. The walk carries no
+     * pressure, so its heights are smoothed GPS (trackHeights), and a steady climb comes through smoothing unchanged.
+     * The chart was hidden from part 2 until barometer height landed in part 5 (RECORD -864, "Keep it, once height is
+     * fixed"); these chart assertions are the ones part 2 inverted, restored.
      */
     @Test
-    fun `the report shows labelled tiles, and no height chart while height is being fixed`() {
+    fun `the report shows labelled tiles and the height chart's labels`() {
         setScreen(mode = CartographyEntryMode.VIEW)
 
         composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
         mapOf(TILE_DISTANCE to "0.8 mi", TILE_TIME_OUT to "1 min", TILE_CLIMB to "180 ft", TILE_FINDS to "1").forEach { (label, value) ->
             composeRule.onNodeWithTag(entryTileTag(label)).performScrollTo().assert(hasText(label)).assert(hasText(value))
         }
-        composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag(ENTRY_HEIGHT_PROFILE_TAG).performScrollTo().assertIsDisplayed()
+        listOf(PROFILE_TITLE, "509 ft", "328 ft", PROFILE_START_LABEL).forEach { label ->
+            composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(ENTRY_HEIGHT_PROFILE_TAG))).assertExists()
+        }
+        composeRule.onNode(hasText("0.8 mi") and hasAnyAncestor(hasTestTag(ENTRY_HEIGHT_PROFILE_TAG))).assertExists()
         composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_LINE_TAG).assertCountEquals(0)
-        composeRule.onAllNodesWithText(PROFILE_TITLE).assertCountEquals(0)
         // The owner's "0 ft · 0m": no minutes written as "m" anywhere on the report.
         composeRule.onAllNodesWithText("0m", substring = true).assertCountEquals(0)
     }
@@ -446,14 +450,14 @@ class EntryDataScreensTest {
         composeRule.onAllNodesWithText("walked from the start", substring = true).assertCountEquals(0)
     }
 
-    /** A walk recorded with no heights: Climb says it was not recorded, and, with the chart hidden, no line about the chart is drawn either. */
+    /** A walk recorded with no heights draws no chart: one plain line says why, and Climb says it was not recorded (restored in part 5, with the chart). */
     @Test
-    fun `a walk with no heights says Climb was not recorded`() {
+    fun `a walk with no heights says so in one line instead of drawing a chart`() {
         setScreen(mode = CartographyEntryMode.VIEW, heights = false)
 
-        composeRule.onNodeWithTag(entryTileTag(TILE_CLIMB)).performScrollTo().assert(hasText(CLIMB_NOT_RECORDED))
-        composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_LINE_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag(ENTRY_HEIGHT_PROFILE_LINE_TAG).performScrollTo().assert(hasText(PROFILE_TOO_FEW_HEIGHTS_LINE))
         composeRule.onAllNodesWithTag(ENTRY_HEIGHT_PROFILE_TAG).assertCountEquals(0)
+        composeRule.onNodeWithTag(entryTileTag(TILE_CLIMB)).performScrollTo().assert(hasText(CLIMB_NOT_RECORDED))
     }
 
     private fun addLaterWaypointAndReopen() {

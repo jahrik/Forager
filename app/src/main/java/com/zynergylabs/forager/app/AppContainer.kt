@@ -53,6 +53,7 @@ import com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCase
 import com.zynergylabs.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.CompassProvider
+import com.zynergylabs.forager.app.domain.PressureProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.DeclinationProvider
 import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
@@ -160,6 +161,7 @@ import com.zynergylabs.forager.app.map.MapLibreOfflineMapRepository
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.FilePhotoStore
 import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
+import com.zynergylabs.forager.app.sensor.AndroidPressureProvider
 import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
@@ -201,6 +203,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     /** Dispatch 2026-09-28-510: the platform's last known position, shown greyed until anything live arrives. */
     val lastKnownLocation: LastKnownLocationSource = AndroidLastKnownLocationSource(context.applicationContext)
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
+
+    /** The barometer, read by the recording service while a recording runs (RECORD -864, -867); see [PressureProvider]. */
+    val pressureProvider: PressureProvider = AndroidPressureProvider(context.applicationContext)
 
     // HUD-foundations dispatch, Item 2: declination, and the one place magnetic heading becomes
     // true heading. Consumed by MainActivity, which hands it to the map screen (dispatch

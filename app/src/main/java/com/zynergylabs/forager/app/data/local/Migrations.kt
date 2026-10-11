@@ -1183,3 +1183,47 @@ val MIGRATION_19_20: Migration = object : Migration(19, 20) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_foundOn` ON `mushroom_log_entries` (`foundOn`)")
     }
 }
+
+/**
+ * Adds nullable `pressureHpa` to `track_points` — the barometer (RECORD -864, the owner: "Use the barometer
+ * (Recommended)"; RECORD -867, the planner's call: "a raw pressureHpa column on track_points via MIGRATION_20_21").
+ * The pressure the phone's barometer read when each point was made, in hPa, raw, so the height rule
+ * (`com.zynergylabs.forager.app.domain.trackHeights`, its one reader) can change later without touching stored data.
+ * Every existing row gets `NULL`: nothing before this version read a barometer, and a walk with no pressure reads
+ * smoothed GPS height. GPS `altitude` is not touched, so a GPX export is unchanged.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_14_15] records: [TrackPointEntity]
+ * is declared directly by every `LegacyForagerDatabaseVn` fixture from version 5 on, so their generated tables already
+ * carry the column and an `ADD COLUMN` would fail against them; the explicit source column list below ignores it.
+ * `id` is copied so rowids survive, and the one index is recreated because `DROP TABLE` takes it. Version 21 was
+ * checked unclaimed on every remote branch at step 0 (2026-10-11, `git log --remotes -S "version = 21,"`) and again
+ * when this was built; re-check before merge (RECORD -867).
+ */
+val MIGRATION_20_21: Migration = object : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `track_points_new` (
+            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            `trackId` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `altitude` REAL,
+            `accuracyMeters` REAL,
+            `timestampEpochMillis` INTEGER NOT NULL,
+            `speedMetersPerSecond` REAL,
+            `speedAccuracyMetersPerSecond` REAL,
+            `pressureHpa` REAL)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `track_points_new` (`id`, `trackId`, `lat`, `lng`, `altitude`, `accuracyMeters`, `timestampEpochMillis`, `speedMetersPerSecond`, `speedAccuracyMetersPerSecond`, `pressureHpa`)
+            SELECT `id`, `trackId`, `lat`, `lng`, `altitude`, `accuracyMeters`, `timestampEpochMillis`, `speedMetersPerSecond`, `speedAccuracyMetersPerSecond`, NULL FROM `track_points`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `track_points`")
+        db.execSQL("ALTER TABLE `track_points_new` RENAME TO `track_points`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_track_points_trackId` ON `track_points` (`trackId`)")
+    }
+}

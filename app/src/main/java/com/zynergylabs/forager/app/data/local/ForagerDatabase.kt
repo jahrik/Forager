@@ -147,6 +147,15 @@ import com.zynergylabs.forager.app.BuildConfig
  * (none above 19, no `MIGRATION_19_*`) on 2026-10-08 before being claimed; re-check at build time. `20.json`'s identity hash was
  * computed by hand with Room 2.8.5's own rule (reproducing 18's and 19's exactly); the build's own export must match it.
  *
+ * [version] 21 adds nullable `pressureHpa` to `track_points` via a real [MIGRATION_20_21] — the barometer (RECORD -864,
+ * -867): the raw hPa each point was made at, read by `domain.trackHeights` for Climb and the height chart. Old rows stay
+ * null and read smoothed GPS height. A rebuild, like 14 to 15, because the legacy fixtures declare [TrackPointEntity]
+ * directly. Version 21 was checked unclaimed on every remote branch on 2026-10-11 (`git log --remotes -S "version = 21,"`
+ * finds nothing); re-check before merge. `21.json`'s identity hash was computed by hand with Room 2.8.4's rule, read from
+ * the compiler jar with `javap` (`SchemaIdentityKey`, and the id keys of `Entity`, `Property`, `PrimaryKey` and `Index`),
+ * after the same script reproduced the hashes of 15.json, 18.json, 19.json and 20.json exactly. (The note above says
+ * 2.8.5; the version catalog pins Room at 2.8.4, and the rule is the jar's.)
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -185,7 +194,7 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryPhotoRefEntity::class,
         CartographyEntryTrackPathEntity::class,
     ],
-    version = 20,
+    version = 21,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -246,10 +255,10 @@ abstract class ForagerDatabase : RoomDatabase() {
         internal val ALL_MIGRATIONS = arrayOf(
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
-            MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
+            MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 20
+        const val SCHEMA_VERSION = 21
     }
 }

@@ -10,12 +10,15 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
  * Read-time only: nothing stored changes. A point's stored `altitude` stays the GPS height the phone reported, so a GPX
  * export is unchanged (RECORD -867).
  *
- * **Smoothed GPS height** ([smoothedGpsHeights]), in place of the raw GPS height the chart drew before. The owner, RECORD
- * -864: "Measuring height is wonky, on a flat walk it showed fluctuating values ... The phone was in my pocket." The
- * barometer, where a phone has one, is the real fix (RECORD -864, "Use the barometer"); this is what a walk without
- * pressure readings falls back to.
+ * **Barometer height** ([barometricHeights]) for a walk recorded with the barometer: at least half its points carry a
+ * pressure (RECORD -864, the owner: "Use the barometer (Recommended)"; part 5). Otherwise **smoothed GPS height**
+ * ([smoothedGpsHeights]): a phone with no barometer, and every walk recorded before version 21. The owner, RECORD -864:
+ * "Measuring height is wonky, on a flat walk it showed fluctuating values ... The phone was in my pocket."
  */
-fun trackHeights(points: List<TrackPoint>): List<Double?> = smoothedGpsHeights(points)
+fun trackHeights(points: List<TrackPoint>): List<Double?> {
+    val withPressure = points.count { it.pressureHpa != null }
+    return if (withPressure > 0 && withPressure * 2 >= points.size) barometricHeights(points) else smoothedGpsHeights(points)
+}
 
 /**
  * GPS heights with their spikes and short jitter taken out, in two passes over each unbroken run of points that carry a

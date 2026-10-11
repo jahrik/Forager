@@ -687,9 +687,10 @@ internal fun CartographyEntryReportScreen(
                     // tiles and the writing above them. The track list, the finds list and the waypoint table went
                     // (the owner, RECORD -864: "The raw data is an eyesore and is what records are for"); tapping a
                     // record on the map still shows its details. The kept offline maps' list went too (RECORD -873, the
-                    // owner: "Remove it, like the other lists"); the Offline map toggle above stays. The height chart is hidden until barometer height
-                    // lands (RECORD -864, "Keep it, once height is fixed"), and comes back then.
+                    // owner: "Remove it, like the other lists"); the Offline map toggle above stays. The height chart was hidden until barometer height
+                    // landed (RECORD -864, "Keep it, once height is fixed"); it is back (part 5), drawing trackHeights.
                     EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
+                    EntryHeightProfile(profile = report.heightProfile, distanceUnit = distanceUnit)
                 }
 
                 Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
