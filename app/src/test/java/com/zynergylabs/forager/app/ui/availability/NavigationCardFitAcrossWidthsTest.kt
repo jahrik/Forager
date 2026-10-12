@@ -117,23 +117,34 @@ class NavigationCardFitAcrossWidthsTest {
         with(composeRule.density) { DpRect(n.boundsInRoot.left.toDp(), n.boundsInRoot.top.toDp(), n.boundsInRoot.right.toDp(), n.boundsInRoot.bottom.toDp()) }
     }
 
-    private fun layoutsUnder(tag: String): List<Pair<String, TextLayoutResult>> {
+    private class Laid(val tag: String, val layout: TextLayoutResult, val bounds: DpRect)
+
+    private fun layoutsUnder(tag: String): List<Laid> {
         val matcher = hasAnyAncestor(hasTestTag(NAVIGATION_HUD_TAG)).and(hasTestTag(tag))
         return composeRule.onAllNodes(matcher, useUnmergedTree = true).fetchSemanticsNodes().mapNotNull { node ->
             val results = mutableListOf<TextLayoutResult>()
             node.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(results)
-            results.firstOrNull()?.let { tag to it }
+            val b = with(composeRule.density) { DpRect(node.boundsInRoot.left.toDp(), node.boundsInRoot.top.toDp(), node.boundsInRoot.right.toDp(), node.boundsInRoot.bottom.toDp()) }
+            results.firstOrNull()?.let { Laid(tag, it, b) }
         }
     }
 
-    /** `null` when [layout] shows its whole text; else what is wrong with it. */
-    private fun cut(layout: TextLayoutResult): String? {
-        val text = layout.layoutInput.text.text
+    /**
+     * `null` when [laid] shows its whole text; else what is wrong with it. Whole: no line ends in "…", the last line's visible
+     * end is the text's end, every line's drawn right edge is inside the text's own box, and that box lies inside the card's
+     * text area, left of the X and three-dot column ([limitRight]), so a parent cannot be clipping it.
+     */
+    private fun cut(laid: TextLayoutResult, box: DpRect, limitRight: androidx.compose.ui.unit.Dp): String? {
+        val text = laid.layoutInput.text.text
         if (text.isEmpty()) return null
-        val lastLine = layout.lineCount - 1
-        val whole = !layout.hasVisualOverflow && (0..lastLine).none { layout.isLineEllipsized(it) } &&
-            layout.getLineEnd(lastLine, visibleEnd = true) >= text.trimEnd().length
-        return if (whole) null else "'$text' shows '${text.take(layout.getLineEnd(lastLine, visibleEnd = true))}' (overflow ${layout.hasVisualOverflow})"
+        val lastLine = laid.lineCount - 1
+        val lineRightPx = (0..lastLine).maxOf { laid.getLineRight(it) }
+        val ellipsised = (0..lastLine).any { laid.isLineEllipsized(it) }
+        val visibleEnd = laid.getLineEnd(lastLine, visibleEnd = true)
+        val inBox = lineRightPx <= laid.size.width + 1f
+        val inCard = box.right <= limitRight + 0.5.dp
+        val whole = !ellipsised && visibleEnd >= text.trimEnd().length && inBox && inCard
+        return if (whole) null else "'$text' (ellipsis $ellipsised, visible ${text.take(visibleEnd)}, line ${lineRightPx}px in ${laid.size.width}px, box $box, limit $limitRight)"
     }
 
     private val wholeTags = listOf(
@@ -169,13 +180,14 @@ class NavigationCardFitAcrossWidthsTest {
             composeRule.mainClock.advanceTimeBy(2_000)
             composeRule.waitForIdle()
             val texts = wholeTags.flatMap { layoutsUnder(it) }
-            val cuts = texts.mapNotNull { (tag, layout) -> cut(layout)?.let { "$tag $it" } }
+            val buttons = bounds(NAVIGATION_HUD_EXIT_TAG).single()
+            val cuts = texts.mapNotNull { laid -> cut(laid.layout, laid.bounds, buttons.left)?.let { "${laid.tag} $it" } }
             val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG).single()
             val arrow = bounds(NAVIGATION_HUD_NORTH_ARROW_TAG).single()
             val grid = layoutsUnder(NAVIGATION_HUD_COORDINATES_TAG)
             val gridOwnLine = grid.isNotEmpty() && bounds(NAVIGATION_HUD_COORDINATES_TAG).single().top >= needle.bottom - 0.5.dp
-            val turn = layoutsUnder(NAVIGATION_HUD_TARGET_TAG).firstOrNull()?.second?.layoutInput?.text?.text ?: "<none>"
-            val figure = layoutsUnder(NAVIGATION_HUD_DISTANCE_TAG).firstOrNull()?.second?.layoutInput?.text?.text ?: "<none>"
+            val turn = layoutsUnder(NAVIGATION_HUD_TARGET_TAG).firstOrNull()?.layout?.layoutInput?.text?.text ?: "<none>"
+            val figure = layoutsUnder(NAVIGATION_HUD_DISTANCE_TAG).firstOrNull()?.layout?.layoutInput?.text?.text ?: "<none>"
             println("FIT|$where|${c.name}|figure=$figure|turn=$turn|kind=${layoutsUnder(NAVIGATION_HUD_DISTANCE_KIND_TAG).size}|alt-label=${layoutsUnder(NAVIGATION_LABEL_TAG).size}|grid-own-line=$gridOwnLine|cuts=$cuts")
             if (cuts.isNotEmpty()) problems += "${c.name}: $cuts"
             val needleMid = (needle.top + needle.bottom) / 2

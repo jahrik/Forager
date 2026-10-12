@@ -352,21 +352,24 @@ internal fun NavigationHud(
                 // RECORD -770: where the rows above the evening line end, which the line does not change, so the decision to leave
                 // it out cannot feed back into what it is decided on.
                 var rowsBottomInRootPx by remember { mutableFloatStateOf(Float.NaN) }
-                Column(
+                // The X and the three-dot button stand in their own column at the card's right edge, beside the columns and the
+                // lines under them, so the card is as tall as the taller of the two, not the sum (the landscape display's height
+                // against the window's central third: Landscape B2, S10).
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         // RECORD -936 (the owner: "Yes, slightly tighter (Recommended)"): 4 dp at the card's sides.
                         .padding(horizontal = CARD_SIDE_PADDING, vertical = Spacing.xs),
                 ) {
-                    val reduceMotion = LocalReduceMotion.current
-                    val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
-                    val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
-                    val lineEnter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top)
-                    val lineExit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top)
-                    val sundownInColumn = fit.eveningInColumn == EveningInColumn.SUNDOWN || fit.eveningInColumn == EveningInColumn.BOTH
-                    val backByInColumn = fit.eveningInColumn == EveningInColumn.BACK_BY || fit.eveningInColumn == EveningInColumn.BOTH
-                    Column(modifier = Modifier.onGloballyPositioned { rowsBottomInRootPx = it.positionInRoot().y + it.size.height }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        val reduceMotion = LocalReduceMotion.current
+                        val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
+                        val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
+                        val lineEnter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top)
+                        val lineExit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top)
+                        val sundownInColumn = fit.eveningInColumn == EveningInColumn.SUNDOWN || fit.eveningInColumn == EveningInColumn.BOTH
+                        val backByInColumn = fit.eveningInColumn == EveningInColumn.BACK_BY || fit.eveningInColumn == EveningInColumn.BOTH
+                        Column(modifier = Modifier.onGloballyPositioned { rowsBottomInRootPx = it.positionInRoot().y + it.size.height }) {
                             CardColumns(
                                 readout = readout,
                                 fit = fit,
@@ -374,47 +377,47 @@ internal fun NavigationHud(
                                 sundownLine = sundownLine.takeIf { sundownInColumn },
                                 backByLine = backByLine.takeIf { backByInColumn },
                                 onToggleCoordinateFormat = onToggleCoordinateFormat,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxWidth(),
                             )
-                            Spacer(Modifier.width(Spacing.xs))
-                            // The owner (RECORD -932): "Have the X button go above the three dot menu in the top corner. The three dot
-                            // menu can go in the bottom corner". Each keeps its own touch square: the X Material's 48 dp, the three
-                            // dots RECORD -648's 36 dp.
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                BouncingIconButton(
-                                    onClick = onExit,
-                                    modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),
-                                ) {
-                                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Stop navigating")
-                                }
-                                if (quickSettings != null) MapQuickSettingsButton(quickSettings)
+                            // The lines under the columns, each only while it has something to say (RECORD -935, the owner: "Yes, keep
+                            // everything"): the grid reference's own line when it has left the right column (RECORD -936); in portrait
+                            // the evening lines; then the route and the status. In landscape the evening line is last, because RECORD
+                            // -770 lets it leave when the display would reach past its limit, and only the last line can leave
+                            // without moving the others.
+                            if (fit.gridOwnLine) readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
+                            if (!landscape) {
+                                PortraitEveningLines(sundownLine.takeIf { !sundownInColumn }, backByLine.takeIf { !backByInColumn }, lineEnter, lineExit)
                             }
+                            CardRouteAndStatusLines(readout, fit, columnsPx, onRetryRoute)
                         }
-                        // The lines under the columns, each only while it has something to say (RECORD -935, the owner: "Yes, keep
-                        // everything"). In portrait the evening lines come first, then the route and the status, the planner's order
-                        // (2026-10-12); in landscape the evening line is last, because RECORD -770 lets it leave when the display
-                        // would reach past its limit, and only the last line can leave without moving the others.
-                        // RECORD -936: the grid reference's own line, when it has left the right column.
-                        if (fit.gridOwnLine) readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
-                        if (!landscape) {
-                            PortraitEveningLines(sundownLine.takeIf { !sundownInColumn }, backByLine.takeIf { !backByInColumn }, lineEnter, lineExit)
+                        if (landscape) {
+                            // T11 fixes (RECORD -766, P3): in landscape the sundown line and Back by share one line. RECORD -770: the
+                            // line stays only while the display, with it, still ends within the limit.
+                            val eveningMeasurer = rememberTextMeasurer()
+                            val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+                            val lineHeightPx = eveningMeasurer.measure("Sunset", eveningStyle, maxLines = 1).size.height
+                            val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
+                            val fits = eveningLineFits(rowsBottomInRootPx, lineHeightPx.toFloat(), bottomPaddingPx, eveningLineBottomLimitInRootPx)
+                            HudEveningLine(
+                                sundownLine.takeIf { fits && !sundownInColumn },
+                                backByLine.takeIf { fits && !backByInColumn },
+                                lineEnter,
+                                lineExit,
+                            )
                         }
-                        CardRouteAndStatusLines(readout, fit, cardPx - metrics.paddingPx, onRetryRoute)
                     }
-                    if (landscape) {
-                        // T11 fixes (RECORD -766, P3): in landscape the sundown line and Back by share one line. RECORD -770: the line
-                        // stays only while the display, with it, still ends within the limit.
-                        val eveningMeasurer = rememberTextMeasurer()
-                        val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-                        val lineHeightPx = eveningMeasurer.measure("Sunset", eveningStyle, maxLines = 1).size.height
-                        val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
-                        val fits = eveningLineFits(rowsBottomInRootPx, lineHeightPx.toFloat(), bottomPaddingPx, eveningLineBottomLimitInRootPx)
-                        HudEveningLine(
-                            sundownLine.takeIf { fits && !sundownInColumn },
-                            backByLine.takeIf { fits && !backByInColumn },
-                            lineEnter,
-                            lineExit,
-                        )
+                    Spacer(Modifier.width(Spacing.xs))
+                    // The owner (RECORD -932): "Have the X button go above the three dot menu in the top corner. The three dot menu can
+                    // go in the bottom corner". Each keeps its own touch square: the X Material's icon button, the three dots RECORD
+                    // -648's 36 dp.
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        BouncingIconButton(
+                            onClick = onExit,
+                            modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),
+                        ) {
+                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Stop navigating")
+                        }
+                        if (quickSettings != null) MapQuickSettingsButton(quickSettings)
                     }
                 }
             }
@@ -556,28 +559,32 @@ private fun CardColumns(
                 }
                 if (fit.kindInColumn) readout.distanceKindText?.let { kind -> DistanceKindText(kind, distanceColor, Modifier.alignByBaseline()) }
             }
-            Row(modifier = Modifier.height(bottomRow), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                if (fit.turnText.isNotEmpty()) {
-                    WordSwap(text = fit.turnText, contentAlignment = Alignment.CenterEnd) { shown ->
-                        Text(
-                            text = shown,
-                            style = small,
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG),
-                        )
-                    }
+            Row(modifier = Modifier.height(bottomRow), verticalAlignment = Alignment.CenterVertically) {
+                // Always composed, empty when there is no turn to word (the approach, no compass, no aim), as before: the gap
+                // before the needle only when there are words.
+                WordSwap(text = fit.turnText, contentAlignment = Alignment.CenterEnd) { shown ->
+                    Text(
+                        text = shown,
+                        style = small,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier
+                            .padding(end = if (shown.isEmpty()) 0.dp else Spacing.xs)
+                            .testTag(NAVIGATION_HUD_TARGET_TAG),
+                    )
                 }
-                // The needle stays whatever the words beside it do (T11 fixes), dimmed when there is nothing to point at.
-                Icon(
-                    imageVector = Icons.Filled.Navigation,
-                    contentDescription = null,
-                    tint = if (readout.targetArrowDegrees != null) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.3f),
-                    modifier = Modifier
-                        .size(COMPASS_ICON_SIZE)
-                        .rotate(readout.targetArrowDegrees ?: 0f)
-                        .testTag(NAVIGATION_HUD_NEEDLE_TAG),
-                )
+                // The needle stays whatever the words beside it do (T11 fixes), dimmed when there is nothing to point at. Its tag
+                // is on the unrotated square it is laid out in, so its bounds are where it sits, not its rotated drawing's box.
+                Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
+                    Icon(
+                        imageVector = Icons.Filled.Navigation,
+                        contentDescription = null,
+                        tint = if (readout.targetArrowDegrees != null) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.3f),
+                        modifier = Modifier
+                            .size(COMPASS_ICON_SIZE)
+                            .rotate(readout.targetArrowDegrees ?: 0f),
+                    )
+                }
             }
         }
         CardDivider(height = topRow + bottomRow, color = dividerColor)
@@ -608,17 +615,21 @@ private fun CardColumns(
                         modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG),
                     )
                 } else {
-                    // The north compass, inline before the heading (RECORD -932): rotated by minus the heading, as before.
-                    Icon(
-                        imageVector = Icons.Filled.Navigation,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(COMPASS_ICON_SIZE)
-                            .rotate(readout.northArrowDegrees ?: 0f)
-                            .testTag(NAVIGATION_HUD_NORTH_ARROW_TAG),
-                    )
-                    // Motion Part 2, item 6 (RECORD -651: "Numbers instant, words fade").
-                    WordSwap(text = readout.headingText) { shown ->
+                    // The north compass, inline before the heading (RECORD -932): rotated by minus the heading, as before. Tagged
+                    // on its unrotated square, as the needle is.
+                    Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG)) {
+                        Icon(
+                            imageVector = Icons.Filled.Navigation,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(COMPASS_ICON_SIZE)
+                                .rotate(readout.northArrowDegrees ?: 0f),
+                        )
+                    }
+                    // Motion Part 2, item 6 (RECORD -651: "Numbers instant, words fade"). With no fix and only the dash to say,
+                    // the heading is not drawn, as the second row was not (NavigationHudReadout.secondRowShown): the status line
+                    // carries NO_FIX_MESSAGE once.
+                    if (readout.secondRowShown) WordSwap(text = readout.headingText) { shown ->
                         Text(
                             text = shown,
                             style = small.copy(fontFeatureSettings = "tnum"),
@@ -780,7 +791,11 @@ private fun CardRouteAndStatusLines(
     val separatorPx = widthOf("·", statusStyle) + 2 * with(density) { Spacing.xs.roundToPx() }
     val statusFit = statusLineFit(readout, kindInStatus, widthPx, separatorPx) { widthOf(it, statusStyle) }
     val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
-    if (statusFit.kindLead != null || statusFit.status.isNotEmpty()) {
+    if (statusFit.kindLead == null && statusFit.status.isEmpty()) {
+        // Nothing to say: no line (RECORD -935, "only when it has something to say"). An empty, zero-height node keeps the
+        // status's tag, reading "", so "the status line is empty" stays a statement a test can check.
+        Text(text = "", style = statusStyle, modifier = Modifier.height(0.dp).testTag(NAVIGATION_HUD_STATUS_TAG))
+    } else {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             statusFit.kindLead?.let { lead ->
                 DistanceKindText(lead, distanceColor)

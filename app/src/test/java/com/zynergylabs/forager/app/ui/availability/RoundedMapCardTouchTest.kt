@@ -170,16 +170,16 @@ class RoundedMapCardTouchTest {
         composeRule.waitForIdle()
     }
 
-    /** The centre and four points 3 dp inside each corner of [r]. */
+    /**
+     * The centre and four points along its axes, a third of the way to each edge: inside a round button's circle as well as a
+     * square one's, since the X is Material's round icon button and a touch in its bounding box's corner is outside it.
+     */
     private fun across(r: DpRect): List<Pair<Dp, Dp>> {
-        val i = 3.dp
-        return listOf(
-            (r.left + r.right) / 2 to (r.top + r.bottom) / 2,
-            r.left + i to r.top + i,
-            r.right - i to r.top + i,
-            r.left + i to r.bottom - i,
-            r.right - i to r.bottom - i,
-        )
+        val cx = (r.left + r.right) / 2
+        val cy = (r.top + r.bottom) / 2
+        val dx = (r.right - r.left) / 3
+        val dy = (r.bottom - r.top) / 3
+        return listOf(cx to cy, cx - dx to cy, cx + dx to cy, cx to cy - dy, cx to cy + dy)
     }
 
     private fun controls(): List<DpRect> = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
