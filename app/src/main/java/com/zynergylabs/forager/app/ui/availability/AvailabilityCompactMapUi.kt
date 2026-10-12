@@ -1014,6 +1014,8 @@ private fun CompactMapMapSlot(
             } else {
                 null
             },
+            // RECORD -954: in a short landscape window the "i" sits beside the map credit strip (SightingsMap).
+            attributionBesideCredit = landscapeCluster,
         ),
         focusOverride,
         {},

@@ -298,6 +298,8 @@ fun SightingsMap(
     attributionBottomInset: Dp? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionKeepClear]'s own doc comment. */
     attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionBesideCredit]'s own doc comment. */
+    attributionBesideCredit: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.returnMemory]'s own doc comment. */
     returnMemory: MapReturnMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.backEnabled]'s own doc comment. */
@@ -1281,11 +1283,26 @@ fun SightingsMap(
             )
         }
     }
-    LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection) {
+    // RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): in a short landscape window
+    // the button moves to the bottom start, just past the credit strip's measured end, its bottom on the strip's bottom. It is
+    // MapLibre's own attribution control, so it moves through the same two UiSettings calls as before (gravity and margins), not
+    // as a composable; it opens what it always opened. Portrait and every other map keep the bottom-end corner.
+    var creditWidthPx by remember { mutableIntStateOf(0) }
+    val besideCreditGapPx = with(LocalDensity.current) { ATTRIBUTION_BESIDE_CREDIT_GAP_DP.dp.roundToPx() }
+    val creditBottomPx = with(LocalDensity.current) { bottomInset.roundToPx() }
+    LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection, attributionBesideCredit, creditWidthPx, creditBottomPx) {
         val map = mapLibreMap ?: return@LaunchedEffect
         val defaults = attributionDefaultMargins ?: return@LaunchedEffect
-        val (left, top, right, bottom) = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = layoutDirection == LayoutDirection.Rtl)
-        map.uiSettings.setAttributionMargins(left, top, right, bottom)
+        val isRtl = layoutDirection == LayoutDirection.Rtl
+        if (attributionBesideCredit && creditWidthPx > 0) {
+            map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.START)
+            val (left, top, right, bottom) = attributionBesideCreditMarginsPx(defaults, creditWidthPx, besideCreditGapPx, creditBottomPx, isRtl)
+            map.uiSettings.setAttributionMargins(left, top, right, bottom)
+        } else {
+            map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
+            val (left, top, right, bottom) = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = isRtl)
+            map.uiSettings.setAttributionMargins(left, top, right, bottom)
+        }
     }
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
@@ -1450,7 +1467,9 @@ fun SightingsMap(
             text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState), nightMode)),
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(bottom = bottomInset),
+                .padding(bottom = bottomInset)
+                // RECORD -954: its laid-out width, for the "i" beside it in landscape.
+                .onSizeChanged { creditWidthPx = it.width },
         )
     }
 }
@@ -1857,6 +1876,21 @@ private fun applyCameraRestore(map: MapLibreMap, restore: MapCameraRestore) {
  * which is the right in a left-to-right layout and the left in a right-to-left one (the button's
  * gravity is `BOTTOM or END`).
  */
+/**
+ * RECORD -954: MapLibre's attribution margins for its button at the bottom START, beside the map credit strip: the start margin is
+ * the strip's width plus [gapPx] (MapLibre's own start default replaced, since the strip itself starts at the map's edge), and the
+ * bottom margin is the strip's own bottom inset, so the two share a bottom edge. Top and end keep MapLibre's defaults. The pure
+ * half, so the arithmetic is a unit test (`AttributionBesideCreditTest`); what MapLibre draws there is device-only.
+ */
+internal fun attributionBesideCreditMarginsPx(defaults: IntArray, creditWidthPx: Int, gapPx: Int, creditBottomPx: Int, isRtl: Boolean): IntArray {
+    val (left, top, right, _) = defaults
+    val start = creditWidthPx + gapPx
+    return if (isRtl) intArrayOf(left, top, start, creditBottomPx) else intArrayOf(start, top, right, creditBottomPx)
+}
+
+/** RECORD -954: the gap between the map credit strip's end and the attribution button beside it. */
+internal const val ATTRIBUTION_BESIDE_CREDIT_GAP_DP = 4f
+
 internal fun attributionMarginsPx(defaults: IntArray, bottomInsetPx: Int, endInsetPx: Int, isRtl: Boolean): IntArray {
     val (left, top, right, bottom) = defaults
     return if (isRtl) {

@@ -253,6 +253,12 @@ data class MapRenderMode(
      */
     val attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
     /**
+     * RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): MapLibre's attribution
+     * button sits beside the map credit strip at the bottom start, rather than in the bottom end corner. Only the compact Maps tab
+     * in a short landscape window sets it; portrait and every other map keep the bottom-end corner.
+     */
+    val attributionBesideCredit: Boolean = false,
+    /**
      * Where a fan's member keys are written while it is open, and where the fan to reopen after Back from a
      * find opened on the map is waiting (dispatch 2026-09-29-57, item 8). `null` for every caller but the compact
      * Maps tab. Here rather than on [MapSlot] for the parameter-count reason [layers] gives.
@@ -591,6 +597,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         attributionEndInset = renderMode.attributionEndInset,
         attributionBottomInset = renderMode.attributionBottomInset,
         attributionKeepClear = renderMode.attributionKeepClear,
+        attributionBesideCredit = renderMode.attributionBesideCredit,
         returnMemory = renderMode.returnMemory,
         backEnabled = renderMode.backEnabled,
         navigationView = renderMode.navigationView,
