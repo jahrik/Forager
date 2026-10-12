@@ -107,24 +107,35 @@ class HudSundownLineGrowTest {
         repeat(3) { composeRule.mainClock.advanceTimeByFrame() }
     }
 
+    /**
+     * Each frame's height for [frames] frames after [changeLine]. Dispatch 2026-10-12-06: the card's X and three-dot column now
+     * stand beside the lines, so the card is as tall as the taller of the two, and the first frames of the line's growth can be
+     * hidden under the X column's height. The claim is unchanged (the display grows and shrinks over frames, not at once); it is
+     * read across the frames rather than at the third alone, which was the only frame sampled before.
+     */
+    private fun heightsOverFrames(frames: Int): List<Dp> = (1..frames).map {
+        composeRule.mainClock.advanceTimeByFrame()
+        hudHeight()
+    }
+
     @Test
     fun `the display grows to hold the line when it opens, and shrinks when it closes`() {
         show()
         val short = hudHeight()
-        changeLine(SUNDOWN)
-        val growing = hudHeight()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnUiThread { line = SUNDOWN; Snapshot.sendApplyNotifications() }
+        val growingFrames = heightsOverFrames(20)
         assertTrue("the line is drawn", composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG).fetchSemanticsNodes().isNotEmpty())
         settle()
         val tall = hudHeight()
-        val lineBounds = composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).fetchSemanticsNodes().map { it.boundsInRoot }
-        val hudBounds = composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot()
-        println("MEASURED sundown grow: hud $hudBounds, line(s) $lineBounds, short $short, tall $tall")
-        assertTrue("taller with the line: $short to $tall (hud $hudBounds, line px $lineBounds)", tall > short + 4.dp)
-        assertTrue("caught growing: $growing between $short and $tall", growing > short + 0.5.dp && growing < tall - 0.5.dp)
+        println("MEASURED sundown grow: short $short, tall $tall, frames $growingFrames")
+        assertTrue("taller with the line: $short to $tall", tall > short + 4.dp)
+        assertTrue("caught growing: some frame between $short and $tall in $growingFrames", growingFrames.any { it > short + 0.5.dp && it < tall - 0.5.dp })
 
-        changeLine(null)
-        val shrinking = hudHeight()
-        assertTrue("caught shrinking: $shrinking between $short and $tall", shrinking > short + 0.5.dp && shrinking < tall - 0.5.dp)
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnUiThread { line = null; Snapshot.sendApplyNotifications() }
+        val shrinkingFrames = heightsOverFrames(20)
+        assertTrue("caught shrinking: some frame between $short and $tall in $shrinkingFrames", shrinkingFrames.any { it > short + 0.5.dp && it < tall - 0.5.dp })
         settle()
         assertEquals("back to its height without the line", short.value, hudHeight().value, 0.5f)
     }
