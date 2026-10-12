@@ -221,14 +221,16 @@ class AvailabilityScreenShortLandscapeTest {
         assertTrue("the rail lies over the map: $rail in ${mapBounds()}", rail.isInside(mapBounds()))
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"). Was: the rail on the left at 270, the port edge,
+    // `assertEquals("the rail is on the window's left edge", root.left, rail.left)`.
     @Test
-    fun `at ROTATION_270 the Map tab's rail overlays the map on the left, the port edge, and the map is full-bleed`() {
+    fun `at ROTATION_270 the Map tab's rail overlays the map on the right, as at ROTATION_90, and the map is full-bleed`() {
         setScreen(Surface.ROTATION_270)
 
         assertRailColumn()
         val rail = railBounds()
         val root = rootBounds()
-        assertEquals("the rail is on the window's left edge", root.left.value, rail.left.value, 0.5f)
+        assertEquals("the rail is on the window's right edge", root.right.value, rail.right.value, 0.5f)
         assertTrue("the rail is a narrow column, not a bar: $rail", rail.width < root.width / 4)
         assertMapFullBleed()
         assertTrue("the rail lies over the map: $rail in ${mapBounds()}", rail.isInside(mapBounds()))
@@ -258,9 +260,12 @@ class AvailabilityScreenShortLandscapeTest {
     fun `at ROTATION_270 no control on the map sits under the rail`() {
         setScreen(Surface.ROTATION_270)
         composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).assertIsDisplayed()
-        dragClusterBy(-PORT_SIDE_DRAG)
+        // RECORD -956 (the owner: "One should look exactly line the other"): the rail is on the right at 270 too, so the cluster is dragged right, to
+        // the rail's side, the only place it can meet the rail. Was `dragClusterBy(-PORT_SIDE_DRAG)` and "dragged to the port side, the
+        // left", which under -956 would leave the cluster away from the rail and pass without testing anything.
+        dragClusterBy(PORT_SIDE_DRAG)
         val cluster = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).getUnclippedBoundsInRoot()
-        assertTrue("the cluster $cluster was dragged to the port side, the left", cluster.centreX() < rootBounds().centreX())
+        assertTrue("the cluster $cluster was dragged to the rail's side, the right", cluster.centreX() > rootBounds().centreX())
 
         assertNoControlUnderRail()
     }
@@ -327,12 +332,13 @@ class AvailabilityScreenShortLandscapeTest {
         assertLongPressesReachMap(x = rail.left - EDGE_SAMPLE_INSET, mapArea = mapBounds())
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"). Was `x = rail.right + EDGE_SAMPLE_INSET`, the rail on the left.
     @Test
     fun `at ROTATION_270 long-presses beside the rail, along its inner edge, reach the map`() {
         setScreen(Surface.ROTATION_270)
         val rail = railBounds()
 
-        assertLongPressesReachMap(x = rail.right + EDGE_SAMPLE_INSET, mapArea = mapBounds())
+        assertLongPressesReachMap(x = rail.left - EDGE_SAMPLE_INSET, mapArea = mapBounds())
     }
 
     /** Planner's added check: the rail is translucent over the map, but a touch on it is the rail's. */

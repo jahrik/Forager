@@ -139,7 +139,12 @@ abstract class LandscapeBarStripJoinTests {
     private fun centreOf(r: DpRect): Dp = (r.left + r.right) / 2
     private fun DpRect.d() = "[%.2f, %.2f][%.2f, %.2f]".format(left.value, top.value, right.value, bottom.value)
 
-    private fun barOnLeft(rotation: Int) = rotation == Surface.ROTATION_90
+    // RECORD -956 (the owner: "One should look exactly line the other"): the bar is on the left and the rail on the right at both rotations, so every
+    // case below takes ROTATION_90's branch. Was `rotation == Surface.ROTATION_90`, which sent ROTATION_270 to the mirrored branch
+    // (the bar ending at the right edge, its left edge the strip's right). The mirrored branches stay as the record of what was
+    // asserted.
+    @Suppress("UNUSED_PARAMETER")
+    private fun barOnLeft(rotation: Int) = true
 
     // ── The join: centre, height and the line ──
 

@@ -155,7 +155,9 @@ abstract class LandscapeCardMeetsBarTests {
 
     private fun assertStripStaysAndCardHangs(rotation: Int) {
         setScreen(rotation)
-        val barOnLeft = rotation == Surface.ROTATION_90
+        // RECORD -956 (the owner: "One should look exactly line the other"): the bar on the left at both rotations. Was `rotation == Surface.ROTATION_90`,
+        // so ROTATION_270 asserted "the bar's left edge is the strip's right edge".
+        val barOnLeft = true
         val stripBefore = bounds(STRIP)
         val barBefore = bounds(SEARCH_ENTRY_BAR_TAG)
         assertEquals("positive control: not navigating, no card", 0, composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).fetchSemanticsNodes().size)

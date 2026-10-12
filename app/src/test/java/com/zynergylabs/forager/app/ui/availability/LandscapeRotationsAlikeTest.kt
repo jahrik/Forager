@@ -72,6 +72,9 @@ class LandscapeRotationsAlikeTest {
     private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private var returning by mutableStateOf(false)
+    private var placementNow by mutableStateOf(MapIconClusterPlacement.DEFAULT)
+    private var opening by mutableStateOf(0)
+    private var contentSet = false
     private var rotationSeen: Int? = null
     private var lastRenderMode: MapRenderMode? = null
 
@@ -80,13 +83,24 @@ class LandscapeRotationsAlikeTest {
         Box(modifier.testTag("rotations-alike-map"))
     }
 
+    /**
+     * The screen at [rotation]. A compose rule takes `setContent` once, so the first call sets the content and each later call opens
+     * the screen afresh in it (a new key, so everything remembered, the rotation included, is read again as on a real opening).
+     */
     private fun setScreen(rotation: Int, navigating: Boolean, placement: MapIconClusterPlacement = MapIconClusterPlacement.DEFAULT) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         returning = navigating
-        composeRule.setContent {
+        placementNow = placement
+        if (contentSet) {
+            opening++
+            settle(rotation)
+            return
+        }
+        contentSet = true
+        composeRule.setContent { androidx.compose.runtime.key(opening) {
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix, mapIconClusterPlacement = placement),
+                uiState = AvailabilityUiState(liveFix = fix, mapIconClusterPlacement = placementNow),
                 isRecording = true,
                 isReturning = returning,
                 navigationTarget = start,
@@ -107,7 +121,11 @@ class LandscapeRotationsAlikeTest {
                 onOfflineMapsOpened = {}, onDownloadOfflineMaps = {}, onDeleteOfflineRegion = {}, onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
             )
-        }
+        } }
+        settle(rotation)
+    }
+
+    private fun settle(rotation: Int) {
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(3_000L)
         composeRule.waitForIdle()

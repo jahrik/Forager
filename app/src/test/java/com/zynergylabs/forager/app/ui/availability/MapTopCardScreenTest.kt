@@ -288,8 +288,9 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
         setScreen()
         val card = bounds(NAVIGATION_HUD_TAG)
         val taken = controls()
-        // Beside the card on the search bar's side, under the bar: the bar is on the left at ROTATION_90, on the right at 270.
-        val besideX = if (rotation == Surface.ROTATION_90) card.left - 12.dp else card.right + 12.dp
+        // Beside the card on the search bar's side, under the bar: the bar is on the left at both rotations (RECORD -956 (the owner: "One should look exactly line the other")).
+        // Was `if (rotation == Surface.ROTATION_90) card.left - 12.dp else card.right + 12.dp`, the bar on the right at 270.
+        val besideX = card.left - 12.dp
         val points = if (rotation == null) {
             listOf(
                 card.left + 2.dp to card.bottom - 2.dp,
@@ -330,8 +331,10 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
         returning = false
         setScreen()
         val rail = bounds(COMPACT_NAVIGATION_RAIL_TAG)
-        val innerX = if (rotation == Surface.ROTATION_90) rail.left else rail.right
-        val inward = if (rotation == Surface.ROTATION_90) 1 else -1
+        // RECORD -956 (the owner: "One should look exactly line the other"): the rail is on the right at both rotations, its inner edge its left. Was
+        // `if (rotation == Surface.ROTATION_90) rail.left else rail.right` and inward -1 at 270, the rail on the left there.
+        val innerX = rail.left
+        val inward = 1
         val reach = controls().map { DpRect(it.left - 6.dp, it.top - 6.dp, it.right + 6.dp, it.bottom + 6.dp) }
         val top = listOf(innerX + 2.dp * inward to rail.top + 2.dp, innerX + 4.dp * inward to rail.top + 1.dp)
         val bottom = listOf(innerX + 2.dp * inward to rail.bottom - 2.dp, innerX + 4.dp * inward to rail.bottom - 1.dp)
