@@ -1457,8 +1457,9 @@ fun SightingsMap(
 
 /**
  * The map's credit line, bottom left over the map. Dispatch 2026-10-12-06, RECORD -937 (the owner: "The open street maps tint
- * strip can also have a rounded corner on the right side only, since the left runs to the edge"): its right-hand corners are
- * rounded, its left side square against the screen edge. Its tint is unchanged. A background and text, no pointer input, so a
+ * strip can also have a rounded corner on the right side only, since the left runs to the edge"; then, correcting it, "curve
+ * only the upper right side since it's the only side exposed"): only its top-right corner is rounded; the other three stay
+ * square, since it sits on the bottom bar and against the left edge. Its tint is unchanged. A background and text, no pointer input, so a
  * touch anywhere on it, its new corner gaps included, reaches the map, as it always did (`MapCreditCaptionTouchTest`).
  */
 @Composable
@@ -1472,13 +1473,13 @@ internal fun MapCreditCaption(text: String, modifier: Modifier = Modifier) {
             .testTag(MAP_CREDIT_CAPTION_TAG)
             .background(
                 ComposeColor.Black.copy(alpha = 0.55f),
-                androidx.compose.foundation.shape.AbsoluteRoundedCornerShape(topRight = MAP_CREDIT_CORNER_RADIUS, bottomRight = MAP_CREDIT_CORNER_RADIUS),
+                androidx.compose.foundation.shape.AbsoluteRoundedCornerShape(topRight = MAP_CREDIT_CORNER_RADIUS),
             )
             .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
 
-/** RECORD -937: the credit line's right-hand corner radius, half its one line's height so its right end reads round. */
+/** RECORD -937: the credit line's top-right corner radius, half its one line's height. */
 internal val MAP_CREDIT_CORNER_RADIUS = 8.dp
 
 internal const val MAP_CREDIT_CAPTION_TAG = "map-credit-caption"

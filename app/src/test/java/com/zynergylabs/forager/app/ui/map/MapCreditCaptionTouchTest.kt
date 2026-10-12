@@ -40,10 +40,11 @@ import org.robolectric.annotation.GraphicsMode
 import kotlin.math.abs
 
 /**
- * RECORD -937: the map's credit line rounds its right-hand corners and stays square on the left. [MapCreditCaption] is
+ * RECORD -937, as the owner corrected it ("curve only the upper right side since it's the only side exposed"): the map's credit
+ * line rounds its top-right corner only; the other three stay square. [MapCreditCaption] is
  * composed as `SightingsMap` composes it, bottom left over a stand-in map that counts long-presses: the real map is MapLibre's
  * native view, which Robolectric cannot draw, so the caption is tested on its own here and its place over the real map is a
- * device item. Read from pixels: the right corners show the map, the left corners the caption's tint. Read from real touches:
+ * device item. Read from pixels: the top-right corner shows the map, the other three the caption's tint. Read from real touches:
  * long-presses on the caption and in its corner gaps reach the map (it takes no touch of its own, before or after).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -90,7 +91,7 @@ class MapCreditCaptionTouchTest {
     private fun near(a: Color, b: Color) = abs(a.red - b.red) < 0.04f && abs(a.green - b.green) < 0.04f && abs(a.blue - b.blue) < 0.04f
 
     @Test
-    fun `the right-hand corners are rounded and show the map, the left-hand ones are square`() {
+    fun `only the top-right corner is rounded and shows the map, the other three are square`() {
         setScreen()
         val caption = composeRule.onNodeWithTag(MAP_CREDIT_CAPTION_TAG).getUnclippedBoundsInRoot()
         val shot = composeRule.onRoot().captureToImage()
@@ -101,19 +102,18 @@ class MapCreditCaptionTouchTest {
         val image = shot.toPixelMap()
         fun at(x: Dp, y: Dp) = with(composeRule.density) { image[x.toPx().toInt(), y.toPx().toInt()] }
         assertTrue("top-right corner gap shows the map", near(mapColour, at(caption.right - 1.dp, caption.top + 1.dp)))
-        assertTrue("bottom-right corner gap shows the map", near(mapColour, at(caption.right - 1.dp, caption.bottom - 1.dp)))
+        assertTrue("bottom-right corner is the caption's tint, square", !near(mapColour, at(caption.right - 1.dp, caption.bottom - 1.dp)))
         assertTrue("top-left corner is the caption's tint, square", !near(mapColour, at(caption.left + 1.dp, caption.top + 1.dp)))
         assertTrue("bottom-left corner is the caption's tint, square", !near(mapColour, at(caption.left + 1.dp, caption.bottom - 1.dp)))
         assertTrue("positive control: the caption's middle is its tint", !near(mapColour, at((caption.left + caption.right) / 2, caption.top + 1.dp)))
     }
 
     @Test
-    fun `long-presses on the caption and in its rounded corner gaps reach the map`() {
+    fun `long-presses on the caption and in its rounded corner's gap reach the map`() {
         setScreen()
         val c = composeRule.onNodeWithTag(MAP_CREDIT_CAPTION_TAG).getUnclippedBoundsInRoot()
         val points = listOf(
             c.right - 1.dp to c.top + 1.dp,
-            c.right - 1.dp to c.bottom - 1.dp,
             (c.left + c.right) / 2 to (c.top + c.bottom) / 2,
             c.left + 2.dp to (c.top + c.bottom) / 2,
         )
