@@ -408,16 +408,16 @@ internal fun NavigationInfo(
     }
     val liveReadout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
     val readout = if (arrivalHeld) heldArrivalReadout(liveReadout) else liveReadout
-    // RECORD -955: the info's own bottom and height in the root, for a card anchored to the bottom edge (RECORD -953), whose top is
-    // its bottom less its height. Whether the stack is shown changes the height, not the bottom, so the decision reads the height
-    // with the stack's share taken back out ([lastEveningShown]), and cannot feed back into itself.
+    // RECORD -955: the info's own bottom in the root, for a card anchored to the bottom edge (RECORD -953), whose top is its bottom
+    // less its height. The height the decision uses is built from parts the evening stack does not change (the top padding, the left
+    // part, the lines below, the bottom padding), never read back from the card: a first build read the card's measured height,
+    // which mid-animation fed the decision back into itself and never settled (CI 38304300338, the T11 harness at font 2.0).
     var infoBottomInRootPx by remember { mutableFloatStateOf(Float.NaN) }
-    var infoHeightPx by remember { mutableFloatStateOf(0f) }
     var lastEveningShown by remember { mutableStateOf(false) }
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .onGloballyPositioned { infoBottomInRootPx = it.positionInRoot().y + it.size.height; infoHeightPx = it.size.height.toFloat() },
+            .onGloballyPositioned { infoBottomInRootPx = it.positionInRoot().y + it.size.height },
     ) {
         val metrics = rememberInfoMetrics()
         val partsPx = constraints.maxWidth - metrics.fixedPx
@@ -430,14 +430,16 @@ internal fun NavigationInfo(
         val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
         val pieceHeightPx = rememberTextMeasurer().measure("Sunset", eveningStyle, maxLines = 1).size.height
         val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
-        val stackExtraPx = maxOf(0f, pieces.size * pieceHeightPx - leftHeightPx)
-        val heightWithoutStackPx = infoHeightPx - if (lastEveningShown) stackExtraPx else 0f
+        val topPaddingPx = with(LocalDensity.current) { CARD_TOP_PADDING.toPx() }
+        val heightWithStackPx = topPaddingPx + maxOf(leftHeightPx, (pieces.size * pieceHeightPx).toFloat()) + linesBelowHeightPx + bottomPaddingPx
+        // A margin once shown, so a top a pixel either side of the limit cannot flip the decision back and forth.
+        val marginPx = if (lastEveningShown) with(LocalDensity.current) { EVENING_LIMIT_MARGIN.toPx() } else 0f
         val eveningShown = pieces.isNotEmpty() && eveningLineFits(
             partsTopInRootPx + linesBelowHeightPx,
             maxOf(leftHeightPx, (pieces.size * pieceHeightPx).toFloat()),
             bottomPaddingPx,
             eveningLineBottomLimitInRootPx,
-        ) && eveningStackFitsBelow(infoBottomInRootPx, heightWithoutStackPx + stackExtraPx, eveningLineTopLimitInRootPx)
+        ) && eveningStackFitsBelow(infoBottomInRootPx, heightWithStackPx, eveningLineTopLimitInRootPx?.let { it - marginPx })
         SideEffect { lastEveningShown = eveningShown }
         val shownSundown = sundownLine.takeIf { eveningShown }
         val shownBackBy = backByLine.takeIf { eveningShown }
@@ -1343,6 +1345,9 @@ internal fun formatFixAge(ageMillis: Long): String {
 }
 
 private val COMPASS_ICON_SIZE = 22.dp
+
+/** RECORD -955: the evening lines, once shown, stay while the card's top is within this of its limit (no flip-flop). */
+private val EVENING_LIMIT_MARGIN = 4.dp
 
 /** Dispatch 2026-10-12-08: the gap between the turn needle and the north arrow, neighbours on one line (RECORD -950). */
 private val NAVIGATION_ARROWS_GAP = Spacing.xs
