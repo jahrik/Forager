@@ -19,6 +19,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -116,6 +117,8 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
+import com.zynergylabs.forager.app.ui.map.MapPillColorDark
+import com.zynergylabs.forager.app.ui.map.MapPillColorLight
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
@@ -242,13 +245,20 @@ internal fun SearchEntryBar(
     // pointerInput consumer. tonalElevation/shadowElevation pinned to 0.dp: this bar's own color
     // is exact (contentColor and MapIconStackButtonColorDark/Light are both already the intended
     // finished tone), not something Material's elevation-tint system should be allowed to touch.
+    // Dispatch 2026-10-12-08 (RECORD -945, -951): over the map the pill is a shade lighter than the strip and card tucked under
+    // it (MapPillColorLight / MapPillColorDark, still at 0.8); the square bar on the other tabs keeps the chrome token.
+    val barFill = when {
+        pillCorners == null -> if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
+        isDarkTheme -> MapPillColorDark
+        else -> MapPillColorLight
+    }
     Surface(
-        color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+        color = barFill,
         contentColor = contentColor,
         tonalElevation = 0.dp,
         shadowElevation = if (pillCorners != null) MAP_CARD_SHADOW_ELEVATION else 0.dp,
         shape = pillCorners?.shape() ?: RectangleShape,
-        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
+        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(barFill),
     ) {
         // RECORD -728 (the owner: "There is a slightly hang down of chrome from the search menu that extends into the strip
         // zone, making it look taller than it is"): the bottom padding sat below the divider, so 4 dp of this bar's fill hung
@@ -260,11 +270,15 @@ internal fun SearchEntryBar(
             } else if (pillCorners != null) {
                 // RECORD -943 (the owner: "The search panel has a very thick margin and it can afford to thin out"): the pill's
                 // padding above and below its field is thinner, MAP_PILL_TOP_PADDING and MAP_PILL_BOTTOM_PADDING in place of 4 dp
-                // and 8 dp, so the pill is 41 dp tall at font 1.0 where the bar was 45 (the planner's floor: 40).
-                Modifier.fillMaxWidth().padding(top = MAP_PILL_TOP_PADDING)
+                // and 8 dp, so the pill is 40 dp tall at font 1.0 where the bar was 45. RECORD -951: never under the planner's
+                // 40 dp floor (MAP_PILL_MIN_HEIGHT), which at a font scale under 1.0 the field's twice-a-line height would cross;
+                // the field then centres in it. The scaffold's mapPillHeight takes the same floor.
+                Modifier.fillMaxWidth().heightIn(min = MAP_PILL_MIN_HEIGHT).padding(top = MAP_PILL_TOP_PADDING)
             } else {
                 Modifier.fillMaxWidth().padding(top = Spacing.xs)
             },
+            // RECORD -951: where the pill's floor is taller than its content (a font scale under 1.0), the field centres in it.
+            verticalArrangement = if (landscapeHeight == null && pillCorners != null) Arrangement.Center else Arrangement.Top,
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1153,3 +1167,6 @@ internal val MAP_PILL_TOP_PADDING = 3.dp
 
 /** RECORD -943: the pill's padding below its field, before its 1 dp spacer (the bar elsewhere keeps twice Spacing.xs). */
 internal val MAP_PILL_BOTTOM_PADDING = 4.dp
+
+/** RECORD -943's floor, enforced by RECORD -951: the Maps tab's pill is never under 40 dp tall, so it stays easy to tap. */
+internal val MAP_PILL_MIN_HEIGHT = 40.dp

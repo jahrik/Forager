@@ -101,7 +101,17 @@ internal data class MapCardCorners(val topLeft: Dp, val topRight: Dp, val bottom
  * top down, less the pill's rounded shape above it (see this file's comment). [tuck] 0 draws exactly the card's own shape.
  * No pointer input: the card stays transparent to touches everywhere but its own controls.
  */
-internal fun Modifier.mapCardSurface(fill: Color, corners: MapCardCorners, tuck: Dp = 0.dp): Modifier = this
+internal fun Modifier.mapCardSurface(
+    fill: Color,
+    corners: MapCardCorners,
+    tuck: Dp = 0.dp,
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -950): the corners of the piece this card is tucked under, whose lower two decide what the
+     * tuck cuts away. The pill in portrait rounds all four; the landscape compass strip, which the navigation card hangs under,
+     * is square on the side where it meets the pill (RECORD -934), so its inner lower corner cuts nothing round.
+     */
+    upperCorners: MapCardCorners = MapCardCorners.ALL,
+): Modifier = this
     .graphicsLayer {
         shadowElevation = MAP_CARD_SHADOW_ELEVATION.toPx()
         shape = corners.shape()
@@ -125,14 +135,14 @@ internal fun Modifier.mapCardSurface(fill: Color, corners: MapCardCorners, tuck:
                 ),
             )
         }
-        // The pill: as wide as the card (both span the window in portrait), its lower edge on the card's top, its lower
-        // corners rounded by the same radius. Its top is far above, so only its lower corners decide what is cut away.
+        // The piece above (the pill in portrait, the compass strip in landscape): as wide as the card, its lower edge on the
+        // card's top, its lower corners [upperCorners]'. Its top is far above, so only its lower corners decide what is cut away.
         val pill = Path().apply {
             addRoundRect(
                 RoundRect(
                     left = 0f, top = -tuckPx - 4 * r, right = size.width, bottom = 0f,
-                    bottomLeftCornerRadius = CornerRadius(r),
-                    bottomRightCornerRadius = CornerRadius(r),
+                    bottomLeftCornerRadius = CornerRadius(upperCorners.bottomLeft.toPx()),
+                    bottomRightCornerRadius = CornerRadius(upperCorners.bottomRight.toPx()),
                 ),
             )
         }

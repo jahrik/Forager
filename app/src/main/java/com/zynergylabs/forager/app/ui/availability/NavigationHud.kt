@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.Layout
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import com.zynergylabs.forager.app.ui.motion.WordSwap
@@ -114,15 +116,13 @@ internal const val NAVIGATION_HUD_RETRY_TAG = "navigation-hud-retry"
 internal const val NAVIGATION_HUD_DISTANCE_KIND_TAG = "navigation-hud-distance-kind"
 /** The needle: the target compass's arrow (T11 fixes, so a test can say nothing covers it). */
 internal const val NAVIGATION_HUD_NEEDLE_TAG = "navigation-hud-needle"
-/** The landscape display's one evening line (T11 fixes). Not drawn since RECORD -940, which lays landscape out as portrait; kept so a test can say so. */
-internal const val NAVIGATION_HUD_EVENING_LINE_TAG = "navigation-hud-evening-line"
 /** Every [LabelledReadout]'s label, on the display and the strip alike: a test finds them by text within a parent. */
 internal const val NAVIGATION_LABEL_TAG = "navigation-label"
 /** Dispatch 2026-10-12-06: the compass arrow inline before the heading (or the crossed-out compass in its place), so a test can say it sits beside the needle. */
 internal const val NAVIGATION_HUD_NORTH_ARROW_TAG = "navigation-hud-north-arrow"
 /** RECORD -941: each piece of the evening stack in the card's right column. */
 internal const val NAVIGATION_HUD_EVENING_PIECE_TAG = "navigation-hud-evening-piece"
-/** Dispatch 2026-10-12-06: each of the card's two column dividers. */
+/** Dispatch 2026-10-12-08: the navigation info's one divider, between its left and right parts, their full height (RECORD -945). */
 internal const val NAVIGATION_HUD_DIVIDER_TAG = "navigation-hud-divider"
 
 /**
@@ -142,16 +142,15 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  * second row, the coordinates still tappable to toggle MGRS and decimal degrees. The target is
  * the active track's origin waypoint; there is no picker in this stage.
  *
- * ## The card (dispatch 2026-10-12-06)
+ * ## The card (dispatch 2026-10-12-06, rearranged by dispatch 2026-10-12-08)
  *
- * Since dispatch 2026-10-12-06 (RECORD -932, -934, -935) the display is a rounded card tucked under the search pill
- * (RoundedMapCard.kt), in three columns with thin dividers ([CardColumns]): the figure and its kind over the turn words and the
- * needle; "Alt" over the compass arrow and the heading; the grid reference over a short evening line. The X sits above the
- * three-dot button at the right edge. Under the columns, each only when it has something to say: the evening lines that do
- * not fit the right column, the route message with "Try again", and the status line, which keeps everything it carried
- * before (RECORD -935). What gives way when the columns do not fit is [cardColumnsFit]'s, in the owner's order. Parts of the
- * description below that speak of a first and second row describe the layout before that dispatch; the readout itself
- * ([navigationReadout]) is unchanged.
+ * Since dispatch 2026-10-12-08 (RECORD -945, -948, -950, -951) the compass strip stays while navigating and its line drops the
+ * north arrow and the heading; the navigation info ([NavigationInfo]) shows the distance, the turn line with both arrows and the
+ * heading, the kind word, the evening stack and the X. In portrait it is inside the strip's own card, under a thin line; in
+ * landscape it is this composable's card, hanging under the strip at the strip's width. Height, the grid reference and the
+ * three-dot button are the strip's. Parts of the description below that speak of rows, of elevation and coordinates on this
+ * display, or of the strip being hidden while navigating describe the layout before those dispatches; the readout itself
+ * ([navigationReadout]) is unchanged apart from [NavigationHudReadout.statusIsPositionStatus].
  *
  * ## Where it mounts, and why
  *
@@ -269,7 +268,6 @@ internal fun NavigationHud(
     distanceUnit: DistanceUnit,
     currentTime: CurrentTimeProvider,
     showDecimalDegrees: Boolean,
-    onToggleCoordinateFormat: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
     /** The route home while returning; see this composable's "The route home" and [ReturnRoute]. */
@@ -291,27 +289,15 @@ internal fun NavigationHud(
     /**
      * The sundown line (dispatch 2026-09-28-592, plan task T3): the recording's, moved here from the
      * strip once Return or Navigate is tapped, or, navigating with no recording, sunset and dark only.
-     * Its own last row; `null` draws nothing.
+     * `null` draws nothing.
      */
     sundownLine: String? = null,
-    /** Back by's line (dispatch 2026-09-28-645), under the sundown line, as on the strip it replaces; `null` draws nothing. */
+    /** Back by's line (dispatch 2026-09-28-645), under the sundown line; `null` draws nothing. */
     backByLine: String? = null,
-    /**
-     * The map's quick settings (dispatch 2026-09-28-645, Amendment 2, the owner: "Gear in nav display
-     * too (Recommended)"; Amendment 3, RECORD -648, made it the three-dot button at 36 dp): the strip's
-     * button, here just left of the exit, since the strip is hidden while navigating and the way back is
-     * when "+30 min" matters. `null` draws none.
-     */
-    quickSettings: MapQuickSettings? = null,
-    /**
-     * T11 fixes (RECORD -766, P3): the display is in a landscape window, beside the search bar. Since RECORD -940 the card lays
-     * out exactly as in portrait, so nothing reads this for layout any more; kept for the call site's record of where it is.
-     */
-    landscape: Boolean = false,
     /**
      * RECORD -770 (the owner: "Drop the evening line then (Recommended)"): the lowest the display may end, in the root, while the
      * landscape L is below it, so that the bar is covered by no more than its Fullscreen row; `null` puts no limit. Where the
-     * evening line would take the display past it, the line leaves the display ([eveningLineFits]); the alerts are unaffected.
+     * evening lines would take the display past it, they leave the display ([eveningLineFits]); the alerts are unaffected.
      */
     eveningLineBottomLimitInRootPx: Float? = null,
     /**
@@ -320,9 +306,86 @@ internal fun NavigationHud(
      * inside the hold does not turn it back into a distance.
      */
     arrivalHeld: Boolean = false,
-    /** Dispatch 2026-10-12-06: the rounded card's corners, and how far its fill reaches up behind the pill (RoundedMapCard.kt). */
+    /** Dispatch 2026-10-12-06: the rounded card's corners, and how far its fill reaches up behind the piece above (RoundedMapCard.kt). */
     cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
     tuck: Dp = 0.dp,
+    /** Dispatch 2026-10-12-08: the corners of the piece the card is tucked under (the landscape compass strip). */
+    upperCorners: MapCardCorners = MapCardCorners.ALL,
+) {
+    val isDarkTheme = LocalForagerDarkTheme.current
+    CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
+        val fill = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
+        // The rounded card on its own: in landscape, hanging under the compass strip at its width (RECORD -946, -950, -951), and
+        // wherever a test composes the display alone. Still a plain background with no pointer input (RoundedMapCard.kt): what
+        // covers the map is what it shows, and only its controls (the X and Try again) take touches.
+        Box(
+            modifier = modifier
+                .mapCardSurface(fill = fill, corners = cardCorners, tuck = tuck, upperCorners = upperCorners)
+                .testTag(NAVIGATION_HUD_TAG)
+                .mapChromeContainerColor(fill),
+        ) {
+            NavigationInfo(
+                heading = heading,
+                liveFix = liveFix,
+                target = target,
+                distanceUnit = distanceUnit,
+                currentTime = currentTime,
+                showDecimalDegrees = showDecimalDegrees,
+                onExit = onExit,
+                route = route,
+                onRetryRoute = onRetryRoute,
+                facing = facing,
+                approximateFix = approximateFix,
+                lastKnownFix = lastKnownFix,
+                sundownLine = sundownLine,
+                backByLine = backByLine,
+                eveningLineBottomLimitInRootPx = eveningLineBottomLimitInRootPx,
+                arrivalHeld = arrivalHeld,
+            )
+        }
+    }
+}
+
+/**
+ * Dispatch 2026-10-12-08 (RECORD -945, -948, -950): the navigation info, without a surface of its own: inside the compass strip's
+ * card under a thin line in portrait ("have the card just extend down rather than a dual tuck"), and inside [NavigationHud]'s card
+ * in landscape. As the owner's approved drawing has it:
+ *
+ * ```
+ * |        804 ft         | Sunset 12:41 AM X|
+ * | ahead 1° ▲ ▲ 134° SE  | in 2 h 28 min    |
+ * |       by trail        | dark 1:13        |
+ * ```
+ * - **Left part**, each line centred (RECORD -945, "Both (Recommended)"): the distance, about twice the other text; the turn words
+ *   with the needle after them and the north arrow and heading right after that, the two arrows neighbours ("The arrows being
+ *   side by side is a compass visual"); the kind word, "by trail" or "straight", a small line of its own (RECORD -945, "Full
+ *   dividers + by trail under figure").
+ * - **A divider** the parts' full height (RECORD -945), kept when there is no evening stack (RECORD -951).
+ * - **Right part**: the evening stack (RECORD -941), centred; then the X at the right edge.
+ * - Under them, each only while it has something to say: the route message with Try again, and the status line. The status line
+ *   leaves out what the strip already says about the position (no fix, approximate, last seen: RECORD -951, shown once, on the
+ *   strip).
+ * Height, the grid reference and the three-dot button are the strip's, so nothing shows twice (RECORD -950).
+ */
+@Composable
+internal fun NavigationInfo(
+    heading: State<TrueHeadingReading>,
+    liveFix: LocationFix.Update?,
+    target: Waypoint?,
+    distanceUnit: DistanceUnit,
+    currentTime: CurrentTimeProvider,
+    showDecimalDegrees: Boolean,
+    onExit: () -> Unit,
+    modifier: Modifier = Modifier,
+    route: ReturnRoute? = null,
+    onRetryRoute: () -> Unit = {},
+    facing: NavigationFacing = NavigationFacing.FACING_UP,
+    approximateFix: LocationFix.Update? = null,
+    lastKnownFix: LocationFix.Update? = null,
+    sundownLine: String? = null,
+    backByLine: String? = null,
+    eveningLineBottomLimitInRootPx: Float? = null,
+    arrivalHeld: Boolean = false,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -334,146 +397,91 @@ internal fun NavigationHud(
             value = currentTime.nowEpochMillis()
         }
     }
-    val isDarkTheme = LocalForagerDarkTheme.current
     val liveReadout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
     val readout = if (arrivalHeld) heldArrivalReadout(liveReadout) else liveReadout
-
-    CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
-        val fill = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
-        // Dispatch 2026-10-12-06 (RECORD -932, -934, -935): the rounded card, tucked under the pill in portrait. Still a plain
-        // background with no pointer input (RoundedMapCard.kt): what covers the map is what it shows, and only its controls (the
-        // X, the three-dot button, the grid reference and Try again) take touches; its margins and corner gaps reach the map.
-        Box(
-            modifier = modifier
-                .mapCardSurface(fill = fill, corners = cardCorners, tuck = tuck)
-                .testTag(NAVIGATION_HUD_TAG)
-                .mapChromeContainerColor(fill),
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val metrics = rememberInfoMetrics()
+        val partsPx = constraints.maxWidth - metrics.fixedPx
+        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, sundownLine, backByLine)
+        // RECORD -770: where the parts and the lines under them end without the evening stack, which the stack does not change, so
+        // the decision to leave it out cannot feed back into what it is decided on.
+        var partsTopInRootPx by remember { mutableFloatStateOf(Float.NaN) }
+        var leftHeightPx by remember { mutableFloatStateOf(0f) }
+        var linesBelowHeightPx by remember { mutableFloatStateOf(0f) }
+        val pieces = eveningPieces(sundownLine, backByLine)
+        val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+        val pieceHeightPx = rememberTextMeasurer().measure("Sunset", eveningStyle, maxLines = 1).size.height
+        val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
+        val eveningShown = pieces.isNotEmpty() && eveningLineFits(
+            partsTopInRootPx + linesBelowHeightPx,
+            maxOf(leftHeightPx, (pieces.size * pieceHeightPx).toFloat()),
+            bottomPaddingPx,
+            eveningLineBottomLimitInRootPx,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                // RECORD -936 (the owner: "Yes, slightly tighter (Recommended)"): 4 dp at the sides; RECORD -943: 2 dp at the top.
+                .padding(start = CARD_SIDE_PADDING, end = CARD_SIDE_PADDING, top = CARD_TOP_PADDING, bottom = Spacing.xs),
         ) {
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val metrics = rememberCardMetrics()
-                val cardPx = constraints.maxWidth
-                val columnsPx = cardPx - metrics.fixedPx
-                val fit = measuredCardColumnsFit(readout, columnsPx, metrics, sundownLine, backByLine)
-                // RECORD -770: where the rows above the evening line end, which the line does not change, so the decision to leave
-                // it out cannot feed back into what it is decided on.
-                var rowsBottomInRootPx by remember { mutableFloatStateOf(Float.NaN) }
-                var columnsTopInRootPx by remember { mutableFloatStateOf(Float.NaN) }
-                var linesBelowHeightPx by remember { mutableFloatStateOf(0f) }
-                // The X and the three-dot button stand in their own column at the card's right edge, beside the columns and the
-                // lines under them, so the card is as tall as the taller of the two, not the sum (the landscape display's height
-                // against the window's central third: Landscape B2, S10).
-                Row(
+            Column(modifier = Modifier.weight(1f)) {
+                InfoParts(
+                    readout = readout,
+                    fit = fit,
+                    metrics = metrics,
+                    sundownLine = sundownLine.takeIf { eveningShown },
+                    backByLine = backByLine.takeIf { eveningShown },
+                    onLeftHeight = { leftHeightPx = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        // RECORD -936 (the owner: "Yes, slightly tighter (Recommended)"): 4 dp at the card's sides.
-                        // RECORD -943: the card's top padding under the tuck is trimmed to 2 dp to match the thinner pill.
-                        .padding(start = CARD_SIDE_PADDING, end = CARD_SIDE_PADDING, top = CARD_TOP_PADDING, bottom = Spacing.xs),
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        // RECORD -941 (the owner: "Then stack it and don't fit the full length silly"): the evening lines sit in the
-                        // right column under the grid reference, in short pieces, and the card grows for them. RECORD -770 still holds
-                        // where a limit is given: the pieces stay only while the display, with them, ends within it. Worked out from
-                        // parts that do not depend on the pieces (the columns' top, the lines under them), so leaving cannot feed
-                        // back into the decision.
-                        val pieces = eveningPieces(sundownLine, backByLine)
-                        val eveningMeasurer = rememberTextMeasurer()
-                        val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-                        val pieceHeightPx = eveningMeasurer.measure("Sunset", eveningStyle, maxLines = 1).size.height
-                        val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
-                        val columnsHeightPx = metrics.topRowPx + metrics.bottomRowPx
-                        val stackTopPx = if (fit.gridOwnLine) 0 else metrics.topRowPx
-                        val withStackPx = maxOf(columnsHeightPx, stackTopPx + pieces.size * pieceHeightPx)
-                        val eveningShown = pieces.isNotEmpty() && eveningLineFits(
-                            columnsTopInRootPx + linesBelowHeightPx,
-                            withStackPx.toFloat(),
-                            bottomPaddingPx,
-                            eveningLineBottomLimitInRootPx,
-                        )
-                        Column(modifier = Modifier.onGloballyPositioned { rowsBottomInRootPx = it.positionInRoot().y + it.size.height }) {
-                            CardColumns(
-                                readout = readout,
-                                fit = fit,
-                                metrics = metrics,
-                                sundownLine = sundownLine.takeIf { eveningShown },
-                                backByLine = backByLine.takeIf { eveningShown },
-                                onToggleCoordinateFormat = onToggleCoordinateFormat,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .onGloballyPositioned { columnsTopInRootPx = it.positionInRoot().y },
-                            )
-                            // The lines under the columns, each only while it has something to say (RECORD -935, the owner: "Yes, keep
-                            // everything"): the grid reference's own line when it has left the right column (RECORD -936), then the
-                            // route and the status.
-                            Column(modifier = Modifier.onGloballyPositioned { linesBelowHeightPx = it.size.height.toFloat() }) {
-                                if (fit.gridOwnLine) readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
-                                CardRouteAndStatusLines(readout, fit, columnsPx, onRetryRoute)
-                            }
-                        }
-                    }
-                    // The owner (RECORD -932): "Have the X button go above the three dot menu in the top corner. The three dot menu can
-                    // go in the bottom corner". Each keeps its own touch square: the X Material's icon button, the three dots RECORD
-                    // -648's 36 dp.
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        BouncingIconButton(
-                            onClick = onExit,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),
-                        ) {
-                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Stop navigating")
-                        }
-                        if (quickSettings != null) MapQuickSettingsButton(quickSettings)
-                    }
+                        .onGloballyPositioned { partsTopInRootPx = it.positionInRoot().y },
+                )
+                Column(modifier = Modifier.onGloballyPositioned { linesBelowHeightPx = it.size.height.toFloat() }) {
+                    CardRouteAndStatusLines(readout, partsPx, onRetryRoute)
                 }
+            }
+            // The X at the card's right edge, top-aligned beside the parts and the lines under them, its own 48 dp touch box.
+            BouncingIconButton(
+                onClick = onExit,
+                modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),
+            ) {
+                Icon(imageVector = Icons.Filled.Close, contentDescription = "Stop navigating")
             }
         }
     }
 }
 
 /**
- * Dispatch 2026-10-12-06: the card's fixed parts, in pixels at this density and font. [fixedPx] is what the card takes from
- * its width before the three columns: its padding and the X and three-dot column (the dividers are the fit's).
+ * Dispatch 2026-10-12-08: the navigation info's fixed parts, in pixels at this density and font. [fixedPx] is what the info takes
+ * from its width before the two parts: its side padding and the X.
  */
-internal class CardMetrics(
-    val paddingPx: Int,
+internal class InfoMetrics(
     val fixedPx: Int,
     val dividerPx: Int,
     val gapPx: Int,
     val arrowPx: Int,
-    val iconPx: Int,
-    val topRowPx: Int,
-    val bottomRowPx: Int,
 )
 
 @Composable
-private fun rememberCardMetrics(): CardMetrics {
-    val measurer = rememberTextMeasurer()
-    val typography = MaterialTheme.typography
-    val density = LocalDensity.current
-    return with(density) {
-        val small = measurer.measure("Mg", typography.labelMedium, maxLines = 1).size.height
-        val figure = measurer.measure("Mg", cardFigureStyle(), maxLines = 1).size.height
-        val padding = 2 * CARD_SIDE_PADDING.roundToPx()
-        val divider = CARD_DIVIDER_WIDTH.roundToPx() + 2 * CARD_DIVIDER_GAP.roundToPx()
-        CardMetrics(
-            paddingPx = padding,
-            // No gap before the X: its icon button carries its own padding around the icon (the landscape display at font 2.0
-            // needed those 4 dp for the grid reference's own line, 239.5 dp, to stay whole at 780 dp).
-            fixedPx = padding + HUD_EXIT_TOUCH_SIZE.roundToPx(),
-            dividerPx = divider,
-            gapPx = Spacing.xs.roundToPx(),
-            arrowPx = COMPASS_ICON_SIZE.roundToPx(),
-            iconPx = COMPASS_ICON_SIZE.roundToPx(),
-            // The grid reference's tap band (its line and Spacing.xs above and below) is the tallest top part with a fix.
-            topRowPx = maxOf(figure, small + 2 * Spacing.xs.roundToPx()),
-            bottomRowPx = maxOf(COMPASS_ICON_SIZE.roundToPx(), small),
-        )
-    }
+private fun rememberInfoMetrics(): InfoMetrics = with(LocalDensity.current) {
+    val padding = 2 * CARD_SIDE_PADDING.roundToPx()
+    InfoMetrics(
+        fixedPx = padding + HUD_EXIT_TOUCH_SIZE.roundToPx(),
+        dividerPx = CARD_DIVIDER_WIDTH.roundToPx() + 2 * CARD_DIVIDER_GAP.roundToPx(),
+        gapPx = Spacing.xs.roundToPx(),
+        arrowPx = COMPASS_ICON_SIZE.roundToPx(),
+    )
 }
 
+/**
+ * RECORD -945 (the owner: "Both (Recommended)", a bigger distance): about twice the size of the other text, as in the mockup:
+ * headlineSmall's 24 sp against labelMedium's 12, bold, tabular figures. Was titleMedium bold, one step up.
+ */
 @Composable
-private fun cardFigureStyle(): TextStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
+private fun cardFigureStyle(): TextStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
 
 /**
- * The figure the left column draws: the route message moves to its own line under the columns (see [CardRouteAndStatusLines]);
+ * The figure the left part draws: the route message moves to its own line under the parts (see [CardRouteAndStatusLines]);
  * with [short], "within 16 ft" reads "≤ 16 ft" (RECORD -936).
  */
 private fun columnFigure(readout: NavigationHudReadout, short: Boolean = false): String = when {
@@ -483,23 +491,22 @@ private fun columnFigure(readout: NavigationHudReadout, short: Boolean = false):
 }
 
 @Composable
-private fun measuredCardColumnsFit(
+private fun measuredNavigationInfoFit(
     readout: NavigationHudReadout,
-    columnsPx: Int,
-    metrics: CardMetrics,
+    partsPx: Int,
+    metrics: InfoMetrics,
     sundownLine: String?,
     backByLine: String?,
-): CardColumnsFit {
+): NavigationInfoFit {
     val measurer = rememberTextMeasurer()
     val small = MaterialTheme.typography.labelMedium
     val evening = small.copy(fontFeatureSettings = "tnum")
     val figureStyle = cardFigureStyle()
     fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
     val turn = readout.targetText
-    val elevation = readout.elevationText
-    return cardColumnsFit(
-        CardColumnsWidths(
-            availablePx = columnsPx,
+    return navigationInfoFit(
+        NavigationInfoWidths(
+            availablePx = partsPx,
             dividerPx = metrics.dividerPx,
             gapPx = metrics.gapPx,
             arrowPx = metrics.arrowPx,
@@ -508,161 +515,140 @@ private fun measuredCardColumnsFit(
             kindPx = readout.distanceKindText?.let { widthOf(it, small) },
             turnWholePx = turn.takeIf { it.isNotEmpty() }?.let { widthOf(it, small) },
             turnShortPx = turnShortForm(turn)?.let { widthOf(it, small) },
-            altitudeLabelPx = elevation?.takeIf { it != ELEVATION_UNAVAILABLE_TEXT }?.let { widthOf(ALTITUDE_LABEL, small) },
-            altitudePx = elevation?.let { widthOf(it, small) },
-            headingPx = widthOf(readout.headingText, small),
+            headingPx = if (readout.secondRowShown) widthOf(readout.headingText, small.copy(fontFeatureSettings = "tnum")) else 0,
             headingIsStatus = !readout.headingIsReading,
-            headingIconPx = metrics.iconPx,
-            coordinatesPx = readout.coordinatesText?.let { widthOf(it, small) },
+            headingIconPx = metrics.arrowPx,
             eveningPiecePx = eveningPieces(sundownLine, backByLine).maxOfOrNull { widthOf(it, evening) },
         ),
         turnWhole = turn,
         turnShort = turnShortForm(turn),
-    ).let { fit -> if (fit.overflows) fit.also { android.util.Log.w(CARD_LOG_TAG, "navigation card columns overflow at $columnsPx px: $fit") } else fit }
+    ).let { fit -> if (fit.overflows) fit.also { android.util.Log.w(CARD_LOG_TAG, "navigation info overflows at $partsPx px: $fit") } else fit }
 }
 
 /**
- * The three columns (dispatch 2026-10-12-06; the owner's mockup and step path, RECORD -932): left, the figure and its kind over
- * the turn words and the needle; middle, "Alt" over the compass arrow and the heading; right, the grid reference over a short
- * evening line. The owner, RECORD -932 and again on 2026-10-12: "Have the altitude and the north compass switch sides so both
- * arrows can be side by side"; "The big part is to arrange it so both arrows are side by side". So the left column's lower row
- * ends at the divider with the needle, and the middle column's lower row starts at it with the compass arrow, and both lower
- * rows are one fixed height under one fixed-height upper row, so the two arrows share a line in every state the fit produces.
+ * The left part, the full-height divider and the right part (dispatch 2026-10-12-08). The right part is as wide as the widest
+ * evening piece ([NavigationInfoFit.rightPx]); the left takes the rest, and the divider is measured last, at the taller part's
+ * height, so it always runs the parts' full height (RECORD -945).
  */
 @Composable
-private fun CardColumns(
+private fun InfoParts(
     readout: NavigationHudReadout,
-    fit: CardColumnsFit,
-    metrics: CardMetrics,
+    fit: NavigationInfoFit,
+    metrics: InfoMetrics,
     sundownLine: String?,
     backByLine: String?,
-    onToggleCoordinateFormat: () -> Unit,
+    onLeftHeight: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val density = LocalDensity.current
-    val small = MaterialTheme.typography.labelMedium
-    val topRow = with(density) { metrics.topRowPx.toDp() }
-    val bottomRow = with(density) { metrics.bottomRowPx.toDp() }
-    val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
     val dividerColor = if (LocalForagerDarkTheme.current) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT
-    // Top-aligned: the right column grows with the evening stack (RECORD -941) while the left and middle keep their two fixed
-    // rows, so the two arrows stay on one line whatever the stack's height.
-    Row(modifier = modifier, verticalAlignment = Alignment.Top) {
-        // Left: the figure (and its kind while it fits), then the turn words and the needle, flush against the divider.
-        Column(horizontalAlignment = Alignment.End) {
-            Row(modifier = Modifier.height(topRow), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                WordSwap(text = columnFigure(readout, fit.figureShort), modifier = Modifier.alignByBaseline()) { shown ->
-                    Text(
-                        text = shown,
-                        style = cardFigureStyle(),
-                        color = distanceColor,
-                        maxLines = 1,
-                        softWrap = false,
-                        // The route message's own tag is on its line when it moves there; the dash here is the column's.
-                        modifier = if (readout.distanceText == ROUTE_UNAVAILABLE_TEXT) Modifier else Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
-                    )
-                }
-                if (fit.kindInColumn) readout.distanceKindText?.let { kind -> DistanceKindText(kind, distanceColor, Modifier.alignByBaseline()) }
+    val shownPieces = eveningPieces(sundownLine, backByLine)
+    Layout(
+        modifier = modifier,
+        contents = listOf(
+            { LeftPart(readout, fit, Modifier.onGloballyPositioned { onLeftHeight(it.size.height.toFloat()) }) },
+            {
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = CARD_DIVIDER_GAP)
+                        .width(CARD_DIVIDER_WIDTH)
+                        .background(dividerColor)
+                        .testTag(NAVIGATION_HUD_DIVIDER_TAG),
+                )
+            },
+            { EveningStack(sundownLine, backByLine) },
+        ),
+    ) { (left, divider, right), constraints ->
+        val total = constraints.maxWidth
+        // The right part keeps the widest piece's width; where even that leaves the left part short (an overflow the fit
+        // reports), the left part stays whole and the pieces wrap in what is left, never cut (RECORD -941).
+        val wantRight = if (shownPieces.isEmpty()) 0 else fit.rightPx
+        val rightWidth = if (fit.overflows) minOf(wantRight, maxOf(0, total - metrics.dividerPx - fit.leftPx)) else wantRight
+        val leftWidth = maxOf(0, total - metrics.dividerPx - rightWidth)
+        val leftPlaceable = left.single().measure(constraints.copy(minWidth = leftWidth, maxWidth = leftWidth, minHeight = 0))
+        val rightPlaceable = right.single().measure(constraints.copy(minWidth = rightWidth, maxWidth = rightWidth, minHeight = 0))
+        val height = maxOf(leftPlaceable.height, rightPlaceable.height)
+        val dividerPlaceable = divider.single().measure(
+            constraints.copy(minWidth = metrics.dividerPx, maxWidth = metrics.dividerPx, minHeight = height, maxHeight = height),
+        )
+        layout(total, height) {
+            leftPlaceable.place(0, 0)
+            dividerPlaceable.place(leftWidth, 0)
+            rightPlaceable.place(leftWidth + metrics.dividerPx, 0)
+        }
+    }
+}
+
+/**
+ * The left part, each line centred (RECORD -945): the distance; the turn words, the needle, the north arrow and the heading on one
+ * line, the two arrows neighbours (RECORD -950); the kind word, only when there is one.
+ */
+@Composable
+private fun LeftPart(readout: NavigationHudReadout, fit: NavigationInfoFit, modifier: Modifier = Modifier) {
+    val small = MaterialTheme.typography.labelMedium
+    val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        WordSwap(text = columnFigure(readout, fit.figureShort)) { shown ->
+            Text(
+                text = shown,
+                style = cardFigureStyle(),
+                color = distanceColor,
+                maxLines = 1,
+                softWrap = false,
+                // The route message's own tag is on its line when it moves there; the dash here is the left part's.
+                modifier = if (readout.distanceText == ROUTE_UNAVAILABLE_TEXT) Modifier else Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+            )
+        }
+        Row(
+            modifier = Modifier.heightIn(min = COMPASS_ICON_SIZE),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            // Always composed, empty when there is no turn to word (the approach, no compass, no aim), as before.
+            WordSwap(text = fit.turnText, contentAlignment = Alignment.CenterEnd) { shown ->
+                Text(text = shown, style = small, maxLines = 1, softWrap = false, modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG))
             }
-            Row(modifier = Modifier.height(bottomRow), verticalAlignment = Alignment.CenterVertically) {
-                // Always composed, empty when there is no turn to word (the approach, no compass, no aim), as before: the gap
-                // before the needle only when there are words.
-                WordSwap(text = fit.turnText, contentAlignment = Alignment.CenterEnd) { shown ->
-                    Text(
-                        text = shown,
-                        style = small,
-                        maxLines = 1,
-                        softWrap = false,
-                        modifier = Modifier
-                            .padding(end = if (shown.isEmpty()) 0.dp else Spacing.xs)
-                            .testTag(NAVIGATION_HUD_TARGET_TAG),
-                    )
-                }
-                // The needle stays whatever the words beside it do (T11 fixes), dimmed when there is nothing to point at. Its tag
-                // is on the unrotated square it is laid out in, so its bounds are where it sits, not its rotated drawing's box.
-                Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
+            // The needle stays whatever the words beside it do (T11 fixes), dimmed when there is nothing to point at. Its tag is
+            // on the unrotated square it is laid out in, so its bounds are where it sits, not its rotated drawing's box.
+            Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
+                Icon(
+                    imageVector = Icons.Filled.Navigation,
+                    contentDescription = null,
+                    tint = if (readout.targetArrowDegrees != null) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.3f),
+                    modifier = Modifier.size(COMPASS_ICON_SIZE).rotate(readout.targetArrowDegrees ?: 0f),
+                )
+            }
+            if (fit.headingAsIcon) {
+                // RECORD -934: a compass status whose words do not fit takes RECORD -735's crossed-out compass, its words kept as
+                // the icon's description for a screen reader.
+                Icon(
+                    imageVector = Icons.Filled.ExploreOff,
+                    contentDescription = readout.headingText,
+                    modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG),
+                )
+            } else {
+                // The north compass, right after the needle (RECORD -950): rotated by minus the heading, as before.
+                Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG)) {
                     Icon(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
-                        tint = if (readout.targetArrowDegrees != null) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.3f),
-                        modifier = Modifier
-                            .size(COMPASS_ICON_SIZE)
-                            .rotate(readout.targetArrowDegrees ?: 0f),
+                        modifier = Modifier.size(COMPASS_ICON_SIZE).rotate(readout.northArrowDegrees ?: 0f),
+                    )
+                }
+                // Motion Part 2, item 6 (RECORD -651: "Numbers instant, words fade"). With no fix and only the dash to say, the
+                // heading is not drawn (NavigationHudReadout.secondRowShown).
+                if (readout.secondRowShown) WordSwap(text = readout.headingText) { shown ->
+                    Text(
+                        text = shown,
+                        style = small.copy(fontFeatureSettings = "tnum"),
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
                     )
                 }
             }
         }
-        CardDivider(height = topRow + bottomRow, color = dividerColor)
-        // Middle: the altitude, then the compass arrow and the heading, the arrow flush against the divider.
-        Column(horizontalAlignment = Alignment.Start) {
-            Row(modifier = Modifier.height(topRow), verticalAlignment = Alignment.CenterVertically) {
-                if (fit.altitudeShown && readout.elevationText != null) {
-                    val label = ALTITUDE_LABEL.takeIf { fit.altitudeLabel && readout.elevationText != ELEVATION_UNAVAILABLE_TEXT }
-                    LabelledReadout(label = label) {
-                        Text(
-                            text = readout.elevationText,
-                            style = small,
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_ELEVATION_TAG),
-                        )
-                    }
-                }
-            }
-            Row(modifier = Modifier.height(bottomRow), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                if (fit.headingAsIcon) {
-                    // RECORD -934: a compass status whose words do not fit the middle column takes RECORD -735's crossed-out
-                    // compass, its words kept as the icon's description for a screen reader.
-                    // The status's own words as its description, so a facing notice ("Compass calibrating…") is read as itself.
-                    Icon(
-                        imageVector = Icons.Filled.ExploreOff,
-                        contentDescription = readout.headingText,
-                        modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG),
-                    )
-                } else {
-                    // The north compass, inline before the heading (RECORD -932): rotated by minus the heading, as before. Tagged
-                    // on its unrotated square, as the needle is.
-                    Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG)) {
-                        Icon(
-                            imageVector = Icons.Filled.Navigation,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(COMPASS_ICON_SIZE)
-                                .rotate(readout.northArrowDegrees ?: 0f),
-                        )
-                    }
-                    // Motion Part 2, item 6 (RECORD -651: "Numbers instant, words fade"). With no fix and only the dash to say,
-                    // the heading is not drawn, as the second row was not (NavigationHudReadout.secondRowShown): the status line
-                    // carries NO_FIX_MESSAGE once.
-                    if (readout.secondRowShown) WordSwap(text = readout.headingText) { shown ->
-                        Text(
-                            text = shown,
-                            style = small.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
-                        )
-                    }
-                }
-            }
-        }
-        val pieces = eveningPieces(sundownLine, backByLine)
-        val hasRightColumn = !fit.gridOwnLine || pieces.isNotEmpty()
-        if (hasRightColumn) CardDivider(height = topRow + bottomRow, color = dividerColor)
-        // Right: the grid reference, its tap band the column's whole width (a real target, not the bare text), then the evening
-        // stack under it (RECORD -941), which stays in this column when the grid reference has gone to its own line (RECORD -936).
-        if (!hasRightColumn) {
-            Spacer(Modifier.weight(1f))
-        } else {
-            Column(modifier = Modifier.weight(1f)) {
-                if (!fit.gridOwnLine) {
-                    Box(modifier = Modifier.height(topRow).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                        readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
-                    }
-                }
-                EveningStack(sundownLine, backByLine)
-            }
-        }
+        // RECORD -945 ("by trail under figure"): the kind word, a small line of its own under the turn line, only when there is one.
+        readout.distanceKindText?.let { kind -> DistanceKindText(kind, distanceColor) }
     }
 }
 
@@ -674,10 +660,10 @@ internal fun eveningPieces(sundownLine: String?, backByLine: String?): List<Stri
     listOfNotNull(sundownLine, backByLine).flatMap { line -> line.split(" · ").map(String::trim).filter(String::isNotEmpty) }
 
 /**
- * RECORD -941: the evening lines stacked in the right column, one piece per line, never ending in "…" (a piece wider than the
- * column wraps; the fit reserves the widest piece's width, so it only wraps where the fit reports an overflow). Each line keeps
- * its own tag on a column whose text is the whole line, so it reads as it did; each piece carries [NAVIGATION_HUD_EVENING_PIECE_TAG].
- * Each line fades and grows as before (RECORD -672), or only fades under reduced motion.
+ * RECORD -941: the evening lines stacked in the right part, one piece per line, centred (RECORD -945), never ending in "…" (a piece
+ * wider than the part wraps; the fit reserves the widest piece's width, so it only wraps where the fit reports an overflow). Each
+ * line keeps its own tag on a column whose text is the whole line, so it reads as it did; each piece carries
+ * [NAVIGATION_HUD_EVENING_PIECE_TAG]. Each line fades and grows as before (RECORD -672), or only fades under reduced motion.
  */
 @Composable
 private fun EveningStack(sundownLine: String?, backByLine: String?) {
@@ -687,14 +673,19 @@ private fun EveningStack(sundownLine: String?, backByLine: String?) {
     val enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top)
     val exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top)
     val style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-    for ((line, tag) in listOf(sundownLine to NAVIGATION_HUD_SUNDOWN_LINE_TAG, backByLine to NAVIGATION_HUD_BACK_BY_LINE_TAG)) {
-        val shownLine = rememberLastShown(line)
-        AnimatedVisibility(visible = line != null, enter = enter, exit = exit, label = "hudEveningStack") {
-            shownLine?.let { whole ->
-                Column(modifier = Modifier.semantics { text = AnnotatedString(whole) }.testTag(tag)) {
-                    eveningPieces(whole, null).forEach { piece ->
-                        WordSwap(text = piece) { shown ->
-                            Text(text = shown, style = style, modifier = Modifier.testTag(NAVIGATION_HUD_EVENING_PIECE_TAG))
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        for ((line, tag) in listOf(sundownLine to NAVIGATION_HUD_SUNDOWN_LINE_TAG, backByLine to NAVIGATION_HUD_BACK_BY_LINE_TAG)) {
+            val shownLine = rememberLastShown(line)
+            AnimatedVisibility(visible = line != null, enter = enter, exit = exit, label = "hudEveningStack") {
+                shownLine?.let { whole ->
+                    Column(
+                        modifier = Modifier.fillMaxWidth().semantics { text = AnnotatedString(whole) }.testTag(tag),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        eveningPieces(whole, null).forEach { piece ->
+                            WordSwap(text = piece) { shown ->
+                                Text(text = shown, style = style, textAlign = TextAlign.Center, modifier = Modifier.testTag(NAVIGATION_HUD_EVENING_PIECE_TAG))
+                            }
                         }
                     }
                 }
@@ -704,52 +695,19 @@ private fun EveningStack(sundownLine: String?, backByLine: String?) {
 }
 
 /**
- * The grid reference, its tap band the whole width it is given (a real target, not the bare text), padded to about 24 dp tall,
- * toggling MGRS and decimal degrees. Whole: measured into the fit before it is placed (RECORD -699, -936); "…" only as the last
- * resort the fit reports as an overflow.
- */
-@Composable
-private fun GridReferenceText(coordinates: String, onToggleCoordinateFormat: () -> Unit) {
-    Text(
-        text = coordinates,
-        style = MaterialTheme.typography.labelMedium,
-        maxLines = 1,
-        softWrap = false,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
-            .padding(vertical = Spacing.xs)
-            .testTag(NAVIGATION_HUD_COORDINATES_TAG),
-    )
-}
-
-/** A thin vertical line between two columns, with [CARD_DIVIDER_GAP] either side. Draws only; takes no touch. */
-@Composable
-private fun CardDivider(height: Dp, color: Color) {
-    Box(
-        modifier = Modifier
-            .padding(horizontal = CARD_DIVIDER_GAP)
-            .width(CARD_DIVIDER_WIDTH)
-            .height(height)
-            .background(color)
-            .testTag(NAVIGATION_HUD_DIVIDER_TAG),
-    )
-}
-
-/**
- * The lines under the columns that say what is wrong or what else is true (RECORD -935: everything today's status line said,
- * shown only when it has something to say), in [widthPx]:
+ * The lines under the parts that say what is wrong or what else is true (RECORD -935: everything today's status line said, shown
+ * only when it has something to say), in [widthPx]:
  * - the route message, when the route home cannot be calculated, with "Try again" beside it when recomputing could change that
  *   (RECORD -932, step 3; in landscape too, RECORD -934). It carries [NAVIGATION_HUD_DISTANCE_TAG], the large slot's tag, since
- *   it is the large slot's words moved here; the left column shows a dash meanwhile. Where even "No route" cannot sit beside
+ *   it is the large slot's words moved here; the left part shows a dash meanwhile. Where even "No route" cannot sit beside
  *   "Try again" (font 2.0 in a narrow window), "Try again" takes its own line under it, as before;
- * - the status line, led by the distance's kind when the kind gave way in the left column (RECORD -713, -934: nothing lost).
+ * - the status line. Since dispatch 2026-10-12-08 the kind word is a line of its own in the left part (RECORD -945), so it no
+ *   longer leads this line; and what the compass strip already says about the position (no fix, approximate, last seen) is left
+ *   out here, so it shows once, on the strip (RECORD -951).
  */
 @Composable
 private fun CardRouteAndStatusLines(
     readout: NavigationHudReadout,
-    fit: CardColumnsFit,
     widthPx: Int,
     onRetryRoute: () -> Unit,
 ) {
@@ -785,30 +743,23 @@ private fun CardRouteAndStatusLines(
             RouteRetryRow(onRetryRoute)
         }
     }
-    val kindInStatus = !fit.kindInColumn && readout.distanceKindText != null
     val separatorPx = widthOf("·", statusStyle) + 2 * with(density) { Spacing.xs.roundToPx() }
-    val statusFit = statusLineFit(readout, kindInStatus, widthPx, separatorPx) { widthOf(it, statusStyle) }
-    val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
-    if (statusFit.kindLead == null && statusFit.status.isEmpty()) {
+    val statusFit = statusLineFit(readout, kindInStatus = false, maxPx = widthPx, leadSeparatorPx = separatorPx) { widthOf(it, statusStyle) }
+    val status = if (readout.statusIsPositionStatus) "" else statusFit.status
+    if (status.isEmpty()) {
         // Nothing to say: no line (RECORD -935, "only when it has something to say"). An empty, zero-height node keeps the
         // status's tag, reading "", so "the status line is empty" stays a statement a test can check.
         Text(text = "", style = statusStyle, modifier = Modifier.height(0.dp).testTag(NAVIGATION_HUD_STATUS_TAG))
     } else {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            statusFit.kindLead?.let { lead ->
-                DistanceKindText(lead, distanceColor)
-                if (statusFit.status.isNotEmpty()) Text("·", style = statusStyle)
-            }
-            WordSwap(text = statusFit.status) { shown ->
-                Text(
-                    text = shown,
-                    style = statusStyle,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
-                )
-            }
+        WordSwap(text = status) { shown ->
+            Text(
+                text = shown,
+                style = statusStyle,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
+            )
         }
     }
 }
@@ -942,6 +893,12 @@ internal data class NavigationHudReadout(
     val statusFallbacksFor: String? = null,
     /** T11 fixes: [statusText] is the straight-line note on the way home, whose "≈ 1250 ft" form is not used while "By trail ·" leads the line. */
     val statusIsStraightNote: Boolean = false,
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -951, option (a): GPS status messages show on the strip only): [statusText] says what the
+     * position is, no fix ([NO_FIX_MESSAGE]), approximate or last seen, which the compass strip, on screen while navigating since
+     * RECORD -950, already says. The navigation info's status line leaves it out. The readout still carries it, as data.
+     */
+    val statusIsPositionStatus: Boolean = false,
 ) {
     /**
      * The status's forms, longest first (T11 fixes). With "By trail ·" leading the line ([kindInStatus]) the straight-line
@@ -1156,7 +1113,7 @@ internal fun navigationReadout(
     if (liveFix == null) {
         return NavigationHudReadout(
             headingText, northArrowDegrees, "Target", null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading,
-            statusFallbacks = listOf(NO_FIX_SHORT_TEXT), statusFallbacksFor = NO_FIX_MESSAGE,
+            statusFallbacks = listOf(NO_FIX_SHORT_TEXT), statusFallbacksFor = NO_FIX_MESSAGE, statusIsPositionStatus = true,
         )
     }
     if (target == null) {
