@@ -99,12 +99,24 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
         val navPixel = at(nav.left + 4.dp, (nav.top + nav.bottom) / 2)
         assertSame("the navigation bar over the map is the token at 0.8", expected, navPixel)
 
+        // Dispatch 2026-10-12-06: the search bar is the rounded pill and the strip the card tucked under it, each with the 2 dp
+        // shadow the icon bar has, which shows through the 0.8 fill (see assertSameColourShadowed): held to the token darkened by a
+        // neutral factor, as the icon bar is. Was assertSame, against the square, shadowless bar and strip.
         val search = bounds(SEARCH_ENTRY_BAR_TAG)
-        assertSame("the search bar is drawn as the navigation bar is", navPixel, at(search.left + 4.dp, (search.top + search.bottom) / 2))
-        assertSame("the search bar is the token at 0.8", expected, at(search.left + 4.dp, (search.top + search.bottom) / 2))
+        val searchMid = (search.top + search.bottom) / 2
+        assertSameColourShadowed("the search pill is the token at 0.8", expected, at((search.left + search.right) / 2, searchMid))
 
         val strip = bounds("compass-elevation-strip")
-        assertSame("the compass strip is the token at 0.8", expected, at(strip.left + 4.dp, (strip.top + strip.bottom) / 2))
+        assertSameColourShadowed("the compass strip is the token at 0.8", expected, at((strip.left + strip.right) / 2, (strip.top + strip.bottom) / 2))
+
+        // The tuck (RoundedMapCard.kt): the card's fill reaches up behind the pill's rounded lower corners, less the pill's own
+        // shape, so nowhere is the 0.8 laid twice. The pill's lower band, where the card's tuck lies beneath it, reads as the
+        // pill does a line higher; a fill laid under it as well would read 0.96 there.
+        val band = at((search.left + search.right) / 2, search.bottom - 3.dp)
+        assertSameColourShadowed("the pill's lower band, over the card's tuck, is the token at 0.8, not laid twice", expected, band)
+        // The wedge under the pill's lower-left corner is the card's fill alone: the token at 0.8 as well.
+        val wedge = at(search.left + 2.dp, search.bottom - 2.dp)
+        assertSameColourShadowed("the wedge under the pill's corner is the card's fill, the token at 0.8", expected, wedge)
 
         // The icon bar is a 0.5 layer on the cluster's 0.6 container: 0.8 together, on a point clear of an icon (as the L test).
         val bar = bounds(MAP_ICON_BAR_TAG)
