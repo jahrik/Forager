@@ -1468,12 +1468,13 @@ internal fun MapCreditCaption(text: String, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.labelSmall,
         color = ComposeColor.White,
         modifier = modifier
+            // The tag first, so its bounds are the tinted strip's, padding included.
+            .testTag(MAP_CREDIT_CAPTION_TAG)
             .background(
                 ComposeColor.Black.copy(alpha = 0.55f),
                 androidx.compose.foundation.shape.AbsoluteRoundedCornerShape(topRight = MAP_CREDIT_CORNER_RADIUS, bottomRight = MAP_CREDIT_CORNER_RADIUS),
             )
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .testTag(MAP_CREDIT_CAPTION_TAG),
+            .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
 

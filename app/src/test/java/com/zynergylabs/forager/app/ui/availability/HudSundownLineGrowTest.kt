@@ -112,6 +112,9 @@ class HudSundownLineGrowTest {
         val lineBounds = composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).fetchSemanticsNodes().map { it.boundsInRoot }
         val hudBounds = composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot()
         println("MEASURED sundown grow: hud $hudBounds, line(s) $lineBounds, short $short, tall $tall")
+        composeRule.onAllNodes(androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag(NAVIGATION_HUD_TAG)), useUnmergedTree = true).fetchSemanticsNodes().forEach { n ->
+            println("MEASURED sundown grow node: ${n.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag)} ${n.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)} ${n.boundsInRoot}")
+        }
         assertTrue("taller with the line: $short to $tall (hud $hudBounds, line px $lineBounds)", tall > short + 4.dp)
         assertTrue("caught growing: $growing between $short and $tall", growing > short + 0.5.dp && growing < tall - 0.5.dp)
 

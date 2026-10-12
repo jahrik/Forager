@@ -406,7 +406,6 @@ internal fun NavigationHud(
                             )
                         }
                     }
-                    Spacer(Modifier.width(Spacing.xs))
                     // The owner (RECORD -932): "Have the X button go above the three dot menu in the top corner. The three dot menu can
                     // go in the bottom corner". Each keeps its own touch square: the X Material's icon button, the three dots RECORD
                     // -648's 36 dp.
@@ -427,7 +426,7 @@ internal fun NavigationHud(
 
 /**
  * Dispatch 2026-10-12-06: the card's fixed parts, in pixels at this density and font. [fixedPx] is what the card takes from
- * its width before the three columns: its padding, the X and three-dot column and the gap before it, and the two dividers.
+ * its width before the three columns: its padding and the X and three-dot column (the dividers are the fit's).
  */
 internal class CardMetrics(
     val paddingPx: Int,
@@ -452,7 +451,9 @@ private fun rememberCardMetrics(): CardMetrics {
         val divider = CARD_DIVIDER_WIDTH.roundToPx() + 2 * CARD_DIVIDER_GAP.roundToPx()
         CardMetrics(
             paddingPx = padding,
-            fixedPx = padding + HUD_EXIT_TOUCH_SIZE.roundToPx() + Spacing.xs.roundToPx(),
+            // No gap before the X: its icon button carries its own padding around the icon (the landscape display at font 2.0
+            // needed those 4 dp for the grid reference's own line, 239.5 dp, to stay whole at 780 dp).
+            fixedPx = padding + HUD_EXIT_TOUCH_SIZE.roundToPx(),
             dividerPx = divider,
             gapPx = Spacing.xs.roundToPx(),
             arrowPx = COMPASS_ICON_SIZE.roundToPx(),
