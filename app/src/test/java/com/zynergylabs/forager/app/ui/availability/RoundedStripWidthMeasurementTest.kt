@@ -25,6 +25,7 @@ import org.robolectric.annotation.GraphicsMode
  * control: every string measured a width above zero, so an empty measurement cannot be read as "fits".
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class RoundedStripWidthMeasurementTest {
 
