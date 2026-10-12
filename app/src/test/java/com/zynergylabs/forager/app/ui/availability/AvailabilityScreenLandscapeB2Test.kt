@@ -284,9 +284,7 @@ class AvailabilityScreenLandscapeB2Test {
     // ── S4: strip and HUD in the top corner on the rail side ──
 
     @Test
-    // RECORD -940 (the owner: "It can be the same size as portrait"): the strip is the window's short side wide, as in portrait.
-    // Was: content-width, well short of half the space beside the rail (RECORD -732's fit).
-    fun `S4 at ROTATION_90 the compass strip is as wide as in portrait in the top corner on the rail side, not below the search bar`() {
+    fun `S4 at ROTATION_90 the compass strip is content-width in the top corner on the rail side, not below the search bar`() {
         setScreen(Surface.ROTATION_90, B2_FIX_STATE)
         val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
@@ -295,15 +293,12 @@ class AvailabilityScreenLandscapeB2Test {
 
         assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
         assertEquals("the strip is at the top of the map, not below the search bar", m.top.value, strip.top.value, 0.5f)
-        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
-        assertEquals("the strip $strip is the window's short side wide", minOf(root.width, root.height).value, strip.width.value, 0.5f)
+        assertTrue("the strip $strip is content-width, well short of the space beside the rail", strip.width < (rail.left - m.left) / 2)
         assertTrue("the strip $strip does not reach the search bar $bar", strip.left >= bar.right)
     }
 
     @Test
-    // RECORD -940 (the owner: "It can be the same size as portrait"): the strip is the window's short side wide, as in portrait.
-    // Was: content-width, well short of half the space beside the rail (RECORD -732's fit).
-    fun `S4 at ROTATION_270 the compass strip is as wide as in portrait in the top corner on the rail side, not below the search bar`() {
+    fun `S4 at ROTATION_270 the compass strip is content-width in the top corner on the rail side, not below the search bar`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE)
         val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
@@ -312,40 +307,42 @@ class AvailabilityScreenLandscapeB2Test {
 
         assertEquals("the strip starts at the rail's inner edge", rail.right.value, strip.left.value, 0.5f)
         assertEquals("the strip is at the top of the map, not below the search bar", m.top.value, strip.top.value, 0.5f)
-        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
-        assertEquals("the strip $strip is the window's short side wide", minOf(root.width, root.height).value, strip.width.value, 0.5f)
+        assertTrue("the strip $strip is content-width, well short of the space beside the rail", strip.width < (m.right - rail.right) / 2)
         assertTrue("the strip $strip does not reach the search bar $bar", strip.right <= bar.left)
     }
 
+    // Dispatch 2026-10-12-08 (RECORD -946, -950, -951; the owner: "The compass strip stays exactly where it is in both modes, but
+    // the navigation HUD with the design slides down"): navigating, the strip stays in the rail-side top corner and the card hangs
+    // under it at its width. Was (Landscape B2 S4, RECORD -694): the strip hidden, the HUD at the top of the map in its place, at
+    // most 360 dp wide: `assertTrue(... strip ... isEmpty())`, `assertEquals(m.top, hud.top)`, `hud.width <= 360.dp`.
     @Test
-    // RECORD -940: the HUD is the window's short side wide, as in portrait; this replaces RECORD -694's room and the 360 dp cap.
-    // Was: "at most 360dp wide".
-    fun `S4 at ROTATION_90 the navigation HUD is in the top corner on the rail side, as wide as in portrait`() {
+    fun `S4 at ROTATION_90 navigating, the strip stays in the top corner on the rail side and the card hangs under it at its width`() {
         setScreen(Surface.ROTATION_90, B2_FIX_STATE, isReturning = true)
         val hud = tagBounds(NAVIGATION_HUD_TAG)
+        val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
         val m = mapBounds()
 
-        assertTrue("the strip stays hidden while navigating", composeRule.onAllNodesWithTag(B2_STRIP_TAG).fetchSemanticsNodes().isEmpty())
-        assertEquals("the HUD ends at the rail's inner edge", rail.left.value, hud.right.value, 0.5f)
-        assertEquals("the HUD is at the top of the map", m.top.value, hud.top.value, 0.5f)
-        val window = composeRule.onRoot().getUnclippedBoundsInRoot()
-        assertEquals("the HUD $hud is the window's short side wide", minOf(window.width, window.height).value, hud.width.value, 0.5f)
+        assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
+        assertEquals("the strip is at the top of the map", m.top.value, strip.top.value, 0.5f)
+        assertEquals("the card's top is the strip's bottom: card $hud, strip $strip", strip.bottom.value, hud.top.value, 0.5f)
+        assertEquals("the card's left edge is the strip's", strip.left.value, hud.left.value, 0.5f)
+        assertEquals("the card's right edge is the strip's", strip.right.value, hud.right.value, 0.5f)
     }
 
     @Test
-    // RECORD -940: the HUD is the window's short side wide, as in portrait; this replaces RECORD -694's room and the 360 dp cap.
-    // Was: "at most 360dp wide".
-    fun `S4 at ROTATION_270 the navigation HUD is in the top corner on the rail side, as wide as in portrait`() {
+    fun `S4 at ROTATION_270 navigating, the strip stays in the top corner on the rail side and the card hangs under it at its width`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE, isReturning = true)
         val hud = tagBounds(NAVIGATION_HUD_TAG)
+        val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
         val m = mapBounds()
 
-        assertEquals("the HUD starts at the rail's inner edge", rail.right.value, hud.left.value, 0.5f)
-        assertEquals("the HUD is at the top of the map", m.top.value, hud.top.value, 0.5f)
-        val window = composeRule.onRoot().getUnclippedBoundsInRoot()
-        assertEquals("the HUD $hud is the window's short side wide", minOf(window.width, window.height).value, hud.width.value, 0.5f)
+        assertEquals("the strip starts at the rail's inner edge", rail.right.value, strip.left.value, 0.5f)
+        assertEquals("the strip is at the top of the map", m.top.value, strip.top.value, 0.5f)
+        assertEquals("the card's top is the strip's bottom: card $hud, strip $strip", strip.bottom.value, hud.top.value, 0.5f)
+        assertEquals("the card's left edge is the strip's", strip.left.value, hud.left.value, 0.5f)
+        assertEquals("the card's right edge is the strip's", strip.right.value, hud.right.value, 0.5f)
     }
 
     // ── S5: tabular figures (landscape half; the portrait half is AvailabilityScreenPortraitStripTnumTest) ──

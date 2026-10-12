@@ -110,8 +110,6 @@ internal const val NAVIGATION_HUD_HEADING_TAG = "navigation-hud-heading"
 internal const val NAVIGATION_HUD_DISTANCE_TAG = "navigation-hud-distance"
 internal const val NAVIGATION_HUD_STATUS_TAG = "navigation-hud-status"
 internal const val NAVIGATION_HUD_TARGET_TAG = "navigation-hud-target"
-internal const val NAVIGATION_HUD_ELEVATION_TAG = "navigation-hud-elevation"
-internal const val NAVIGATION_HUD_COORDINATES_TAG = "navigation-hud-coordinates"
 internal const val NAVIGATION_HUD_RETRY_TAG = "navigation-hud-retry"
 internal const val NAVIGATION_HUD_DISTANCE_KIND_TAG = "navigation-hud-distance-kind"
 /** The needle: the target compass's arrow (T11 fixes, so a test can say nothing covers it). */

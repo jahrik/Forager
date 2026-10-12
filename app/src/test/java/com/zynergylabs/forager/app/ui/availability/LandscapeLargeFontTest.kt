@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.platform.testTag
 import android.app.Application
 import android.content.ComponentName
 import android.view.Surface
@@ -108,7 +109,7 @@ class LandscapeLargeFontTest {
                     override fun declinationDegrees(latitude: Double, longitude: Double, altitudeMeters: Double?, epochMillis: Long): Float = 0f
                 }),
                 currentTime = { now },
-                mapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) },
+                mapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag(LARGE_FONT_MAP_TAG)) },
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},
@@ -177,12 +178,27 @@ class LandscapeLargeFontTest {
         assertFalse("$label: $tag $chrome must not overlap the search bar $bar", chrome.intersects(bar))
     }
 
-    private fun assertAboveCentralThird(label: String) {
+    /**
+     * Dispatch 2026-10-12-08, RECORD -951: RECORD -766 (dispatch 2026-10-09-02, item 2; the owner: "Combine lines, allow the rest
+     * (Recommended)") governs the navigating display's height: it may reach into the central third, never over the walker's dot
+     * or the needle. The walker's dot is where the navigation view puts it (the map's height times
+     * NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding; its radius 12 dp, as HudLandscapeT11FixesTest has it). Was
+     * "assertAboveCentralThird": `assertTrue("$label: the display $hud ends above the central third ($thirdTop)", hud.bottom <=
+     * thirdTop)`. The central-third clearance is still printed, for the report.
+     */
+    private fun assertClearOfWalkerAndNeedle(label: String) {
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         val hud = bounds(NAVIGATION_HUD_TAG)
         val thirdTop = root.top + (root.bottom - root.top) / 3
-        println("MEASURED $label: display height ${hud.bottom - hud.top}, clearance ${(thirdTop - hud.bottom).value} dp")
-        assertTrue("$label: the display $hud ends above the central third ($thirdTop)", hud.bottom <= thirdTop)
+        val mapArea = bounds(LARGE_FONT_MAP_TAG)
+        val height = mapArea.bottom - mapArea.top
+        val walkerY = mapArea.top + (height + height * com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2
+        println("MEASURED $label: display $hud, height ${hud.bottom - hud.top}, clearance above the central third ${(thirdTop - hud.bottom).value} dp, above the walker's dot ${(walkerY - 12.dp - hud.bottom).value} dp")
+        assertTrue("$label: the display $hud ends above the walker's dot at y ${walkerY.value} by its radius", hud.bottom <= walkerY - 12.dp)
+        val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG)
+        assertTrue("$label: the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertFalse("$label: the search bar $bar does not cover the needle $needle", bar.intersects(needle))
     }
 
     // ── Font 2.0: beside the search bar, one line each ──
@@ -216,9 +232,10 @@ class LandscapeLargeFontTest {
             "the status line is cut with an ellipsis or shown whole, never cut at a word; visible ${layout.getLineEnd(0, visibleEnd = true)}",
             layout.isLineEllipsized(0) || layout.getLineEnd(0, visibleEnd = true) == textOf(status).length,
         )
-        assertAboveCentralThird("font 2.0, rotation $rotation")
-        // The planner's extension of -699 to the display: the grid reference shows whole.
-        val coordinates = composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        assertClearOfWalkerAndNeedle("font 2.0, rotation $rotation")
+        // The planner's extension of -699 to the display: the grid reference shows whole. Since dispatch 2026-10-12-08 (RECORD
+        // -950) it is the strip's while navigating. Was NAVIGATION_HUD_COORDINATES_TAG in the card.
+        val coordinates = composeRule.onNodeWithTag(COMPASS_STRIP_COORDINATES_TAG, useUnmergedTree = true).fetchSemanticsNode()
         val coordinatesLayout = layoutOf(coordinates)
         println("MEASURED font 2.0, rotation $rotation display coordinates <${textOf(coordinates)}>: visible ${coordinatesLayout.getLineEnd(0, visibleEnd = true)} of ${textOf(coordinates).length}")
         assertFalse("font 2.0, rotation $rotation: the display's coordinates are not ellipsised", coordinatesLayout.isLineEllipsized(0))
@@ -258,7 +275,7 @@ class LandscapeLargeFontTest {
         // since withdrawn: at this width the display was already 1 dp over the bar at font 1.0 before the cap.
         assertClearOfSearchBar("font 1.0", NAVIGATION_HUD_TAG)
         assertOneLineEach("font 1.0", NAVIGATION_HUD_TAG, whole = false)
-        assertAboveCentralThird("font 1.0")
+        assertClearOfWalkerAndNeedle("font 1.0")
     }
 
     // ── "Approaching · last fix 45 s ago" ──
@@ -299,3 +316,6 @@ class LandscapeLargeFontTest {
 /** Overlap with area, as `AvailabilityScreenLandscapeB2Test`'s: touching edges do not count. */
 private fun DpRect.intersects(other: DpRect): Boolean =
     left < other.right && other.left < right && top < other.bottom && other.top < bottom
+
+/** The large-font test's map stand-in, for where the walker's dot sits (RECORD -766, -951). */
+private const val LARGE_FONT_MAP_TAG = "large-font-map"

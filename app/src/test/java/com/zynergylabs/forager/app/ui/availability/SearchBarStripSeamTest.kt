@@ -61,7 +61,7 @@ class SearchBarStripSeamTest {
      * visible bottom, with no fill below the divider" (strip.top == divider.bottom; the divider the bar's last line). Now the
      * strip's own bounds, where its readouts and touches are, start at the pill's bottom, no gap and no overlap; only its fill
      * reaches up behind the pill's rounded lower corners, which `MapChromeColourPixelsTests` reads as one 0.8 layer. No divider
-     * is drawn over the map, and the pill is 41 dp (RECORD -943; was "keeps its 45 dp").
+     * is drawn over the map, and the pill is 40 dp (RECORD -943; was "keeps its 45 dp").
      */
     @Test
     fun `the strip's bounds start at the pill's bottom, no divider is drawn over the map, and the pill is 40 dp`() {
@@ -76,6 +76,23 @@ class SearchBarStripSeamTest {
         // is 40 dp here, at 384 dp and font 1.0 (3 dp above its field, 4 dp and a 1 dp spacer below), the planner's floor. Was 45.
         assertEquals("the pill is 40 dp", 40f, (bar.bottom - bar.top).value, 0.5f)
         assertTrue("and no less than the planner's 40 dp floor", (bar.bottom - bar.top).value >= 40f - 0.5f)
+    }
+
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -951, item 8: "Enforce the 40 dp pill floor, with a test at font 0.85"): RECORD -943's floor
+     * held in code. At font 0.85 the field, twice a line, is shorter, and the pill would be about 37 dp without the floor; with it,
+     * 40, and the strip still starts at the pill's bottom.
+     */
+    @Test
+    @Config(fontScale = 0.85f)
+    fun `at font 0,85 the pill keeps its 40 dp floor and the strip still starts at its bottom`() {
+        setScreen()
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        val strip = bounds(STRIP_TAG)
+        println("MEASURED font 0.85: bar ${bar.top}..${bar.bottom} (${(bar.bottom - bar.top).value} dp), strip ${strip.top}..${strip.bottom}")
+        assertEquals("positive control: font 0.85", 0.85f, composeRule.density.fontScale, 0.001f)
+        assertTrue("the pill is at least 40 dp: ${(bar.bottom - bar.top).value}", (bar.bottom - bar.top).value >= 40f - 0.5f)
+        assertEquals("the strip's bounds start at the pill's bottom: no gap, no overlap", bar.bottom.value, strip.top.value, 0.5f)
     }
 
     private fun fontSizeOf(node: SemanticsNodeInteraction): Float {

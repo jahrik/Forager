@@ -6,149 +6,112 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Dispatch 2026-10-12-06 (RECORD -934, the owner: "Trim extras when tight (Recommended)"): the card's columns give way in the
- * owner's order, the kind word, then the turn words to degrees, then "Alt", and never the figure, the compass or the grid
- * reference; the evening line moves out of the right column rather than being cut ("Moves to a full-width line").
+ * Dispatch 2026-10-12-08 (RECORD -945, -950): the navigation info's two parts give way in what is left of the owner's order
+ * (RECORD -934, -936; -950: "the remaining fit steps keep their order"): the turn words shrink to the degrees and the needle, then
+ * "within 16 ft" takes "≤ 16 ft". Nothing further ("Invent no new trims"): past that the fit reports an overflow. A compass status
+ * may take the crossed-out compass at each step before the next. The evening stack's widest piece is room the right part keeps.
  *
- * Pinned on round numbers so each step's threshold is exact: divider 10 each, gap 2, arrow 10. The full form needs
- * left max(40 + 2 + 30, 60 + 2 + 10) = 72, middle max(20 + 2 + 30, 10 + 2 + 40) = 52, right 100, plus 20 of dividers: 244.
+ * Rewritten from dispatch 2026-10-12-06's three-column fit (`cardColumnsFit`), whose steps for the kind word, "Alt" and the grid
+ * reference's own line are moot since -945 and -950 (the kind is its own line; height and the grid reference are the strip's).
+ * Those tests asserted, for example, `assertFalse("the kind goes first", f.kindInColumn)` and `assertTrue(f.gridOwnLine)`.
+ *
+ * Pinned on round numbers so each step's threshold is exact: divider 10, gap 2, arrow 10. The arrow line, whole: the turn (60 +
+ * 2 + 10), a gap, the north arrow and the heading (10 + 2 + 40): 126; with the turn short (20 + 2 + 10): 86. The left part is
+ * the widest of the figure (40), the arrow line and the kind (30); the total adds the divider and the evening piece.
  */
 class RoundedMapCardFitTest {
 
-    private fun widths(available: Int, headingIsStatus: Boolean = false, headingPx: Int = 40, evening: Int? = null) = CardColumnsWidths(
+    private fun widths(
+        available: Int,
+        headingIsStatus: Boolean = false,
+        headingPx: Int = 40,
+        evening: Int? = null,
+        figurePx: Int = 40,
+        figureShortPx: Int? = null,
+    ) = NavigationInfoWidths(
         availablePx = available,
         dividerPx = 10,
         gapPx = 2,
         arrowPx = 10,
-        figurePx = 40,
+        figurePx = figurePx,
+        figureShortPx = figureShortPx,
         kindPx = 30,
         turnWholePx = 60,
         turnShortPx = 20,
-        altitudeLabelPx = 20,
-        altitudePx = 30,
         headingPx = headingPx,
         headingIsStatus = headingIsStatus,
         headingIconPx = 12,
-        coordinatesPx = 100,
         eveningPiecePx = evening,
     )
 
-    private fun fit(w: CardColumnsWidths) = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
+    private fun fit(w: NavigationInfoWidths) = navigationInfoFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
 
     @Test
-    fun `with room everything is drawn`() {
-        val f = fit(widths(244))
+    fun `with room everything is drawn whole`() {
+        val f = fit(widths(136))
         assertEquals("sharp right 169°", f.turnText)
-        assertTrue(f.kindInColumn)
-        assertTrue(f.altitudeLabel)
-        assertTrue(f.altitudeShown)
+        assertFalse(f.figureShort)
         assertFalse(f.headingAsIcon)
         assertFalse(f.overflows)
+        assertEquals("the left part needs the whole arrow line", 126, f.leftPx)
+        assertEquals("no evening piece, no right part", 0, f.rightPx)
     }
 
     @Test
-    fun `first the kind word leaves the left column, and only it`() {
-        // Without the kind the left column is max(40, 72) = 72: no saving here, so the turn shrinks too at 243.
-        val f = fit(widths(243))
-        assertFalse("the kind goes first", f.kindInColumn)
-        assertEquals("then the turn shrinks to degrees", "169°", f.turnText)
-        assertTrue("Alt stays", f.altitudeLabel)
-    }
-
-    @Test
-    fun `the kind alone gives way where that is enough`() {
-        // A short turn ("ahead 5°", 20 wide) leaves the kind as the widest part of the left column.
-        val w = widths(243).copy(turnWholePx = 20)
-        val f = cardColumnsFit(w, turnWhole = "ahead 5°", turnShort = "5°")
-        assertFalse(f.kindInColumn)
-        assertEquals("the turn words stay whole", "ahead 5°", f.turnText)
-        assertTrue(f.altitudeLabel)
-    }
-
-    @Test
-    fun `then the turn words shrink to degrees and the needle`() {
-        // Short turn: left = max(40, 20 + 2 + 10) = 40; total 40 + 52 + 100 + 20 = 212.
-        val f = fit(widths(212))
-        assertFalse(f.kindInColumn)
+    fun `first the turn words shrink to the degrees and the needle`() {
+        val f = fit(widths(135))
         assertEquals("169°", f.turnText)
-        assertTrue("Alt still drawn", f.altitudeLabel)
-    }
-
-    @Test
-    fun `then the Alt label goes, and the altitude stays`() {
-        // Middle without the label: max(30, 52) = 52, no saving; a shorter heading makes the label the widest part.
-        val w = widths(211).copy(headingPx = 20)
-        val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
-        // Middle with label: max(52, 32) = 52; without: max(30, 32) = 32. Total without = 40 + 32 + 100 + 20 = 192.
-        assertFalse(f.altitudeLabel)
-        assertTrue(f.altitudeShown)
-        assertEquals("169°", f.turnText)
-    }
-
-    @Test
-    fun `then within 16 ft takes its short form`() {
-        // Figure 40, short 25. After step 3 at headingPx 20: left max(40, 32) = 40, middle 32, right 100, dividers 20 = 192.
-        val w = widths(191).copy(headingPx = 20, figureShortPx = 25)
-        val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
-        // Short figure: left max(25, 32) = 32; total 184.
-        assertTrue("the short figure", f.figureShort)
-        assertFalse("the grid reference keeps its column", f.gridOwnLine)
-        assertFalse(f.altitudeLabel)
-    }
-
-    @Test
-    fun `last, the grid reference takes its own line, and the distance, altitude and compass keep their columns`() {
-        // Step 5: left 32 + middle 32 + one divider 10 = 74.
-        val w = widths(150).copy(headingPx = 20, figureShortPx = 25)
-        val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
-        assertTrue(f.gridOwnLine)
-        assertTrue("the altitude stays", f.altitudeShown)
-        assertEquals("the turn stays at degrees: nothing past the owner's order", "169°", f.turnText)
+        assertFalse("the figure keeps its whole form", f.figureShort)
         assertFalse(f.overflows)
+        assertEquals(86, f.leftPx)
     }
 
     @Test
-    fun `where even the grid reference's own line is not enough, it overflows and says so, trimming nothing further`() {
-        val w = widths(70).copy(headingPx = 20, figureShortPx = 25)
-        val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
-        assertTrue("reported", f.overflows)
-        assertTrue("at the last step the owner set", f.gridOwnLine && f.figureShort)
-        assertEquals("the degrees stay", "169°", f.turnText)
-        assertTrue("the altitude stays", f.altitudeShown)
+    fun `then within 16 ft takes its short form, only where the figure is what is too wide`() {
+        val roomForShortTurn = fit(widths(110, figurePx = 100, figureShortPx = 30))
+        assertEquals("169°", roomForShortTurn.turnText)
+        assertFalse("the short turn was enough", roomForShortTurn.figureShort)
+        val f = fit(widths(109, figurePx = 100, figureShortPx = 30))
+        assertTrue("then the figure's short form", f.figureShort)
+        assertFalse(f.overflows)
+        assertEquals(86, f.leftPx)
     }
 
     @Test
-    fun `a compass status in words takes the crossed-out compass where its words do not fit`() {
-        // A status 120 wide: middle with words = max(52, 132) = 132; with the icon = max(52, 12) = 52.
-        val words = fit(widths(244 + 80, headingIsStatus = true, headingPx = 120))
-        assertFalse("its words fit at 324", words.headingAsIcon)
-        val icon = fit(widths(244, headingIsStatus = true, headingPx = 120))
-        assertTrue("the icon at 244", icon.headingAsIcon)
-        assertTrue("the kind stays: the icon came before trimming more", icon.kindInColumn)
+    fun `where even the last step is not enough the fit says so and trims nothing more`() {
+        val f = fit(widths(50, figurePx = 100, figureShortPx = 30))
+        assertTrue(f.overflows)
+        assertEquals("the last step: the turn short", "169°", f.turnText)
+        assertTrue("and the figure short", f.figureShort)
+        assertEquals("what the left part needs is reported", 86, f.leftPx)
+    }
+
+    @Test
+    fun `a compass status in words takes the crossed-out compass before the turn words shrink`() {
+        val f = fit(widths(100, headingIsStatus = true))
+        assertTrue("the icon", f.headingAsIcon)
+        assertEquals("the turn stays whole: the icon was enough (72 + 2 + 12 = 86, + 10)", "sharp right 169°", f.turnText)
     }
 
     @Test
     fun `a reading never becomes the icon`() {
-        val f = fit(widths(150, headingIsStatus = false, headingPx = 120))
+        val f = fit(widths(100, headingIsStatus = false))
         assertFalse(f.headingAsIcon)
+        assertEquals("169°", f.turnText)
     }
 
-    /**
-     * RECORD -941: the evening pieces stack in the right column, so the column is at least as wide as the widest piece, which
-     * trims in the owner's order like anything else that needs room; with the grid reference on its own line the column holds
-     * the stack alone. Replaces "a short evening line sits in the right column, a long one leaves it" (RECORD -934).
-     */
     @Test
-    fun `the widest evening piece is room the right column needs, even with the grid reference on its own line`() {
-        // Pieces no wider than the grid reference change nothing.
-        assertTrue(fit(widths(244, evening = 90)).kindInColumn)
-        // A piece wider than the grid reference (120 against 100) needs 20 more: the kind gives way at 244.
-        assertFalse(fit(widths(244, evening = 120)).kindInColumn)
-        // Step 5 with a stack: left 32 + middle 32 + divider 10 + piece 60 + divider 10 = 144.
-        val w = widths(150, evening = 60).copy(headingPx = 20, figureShortPx = 25)
-        val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
-        assertTrue("the grid reference on its own line", f.gridOwnLine)
-        assertFalse("and the stack still fits its column", f.overflows)
-        assertTrue("one dp less and it is reported", cardColumnsFit(w.copy(availablePx = 143), "sharp right 169°", "169°").overflows)
+    fun `the widest evening piece is room the right part keeps`() {
+        val f = fit(widths(146, evening = 50))
+        assertEquals("86 + 10 + 50 fits with the turn short", "169°", f.turnText)
+        assertEquals(50, f.rightPx)
+        assertFalse(f.overflows)
+        assertTrue("one less and it overflows", fit(widths(145, evening = 50)).overflows)
+    }
+
+    @Test
+    fun `with no heading drawn the arrow line is the turn and the two arrows`() {
+        val f = fit(widths(200, headingPx = 0))
+        assertEquals("72 + 2 + 10", 84, f.leftPx)
     }
 }

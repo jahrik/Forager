@@ -46,7 +46,8 @@ import kotlin.math.abs
  * - no text in the columns, the grid reference's line or the evening lines is clipped or ends in "…" (each text's own layout:
  *   no visual overflow, no ellipsis, and its one line holds the whole string where it is one line);
  * - the turn needle and the compass arrow share a line (centres within 2 dp), the needle left of the arrow;
- * - the grid reference is drawn, whole, in its column or on its own line.
+ * - (until dispatch 2026-10-12-08) the grid reference is drawn, whole, in its column or on its own line. Since RECORD -950 it
+ *   is the compass strip's while navigating, and this test no longer looks for it in the card.
  * The status line under the columns keeps its own earlier rule (RECORD -694: its shortest form, then "…" as the last resort)
  * and is not held to "never cut" here. Each state prints a `FIT|` line naming the fit it reached, so the sample can be read
  * against the steps it claims to cover; the count of states measured is asserted.
@@ -111,17 +112,6 @@ class NavigationCardFitAcrossWidthsTest {
 
     private var case by mutableStateOf<Case?>(null)
 
-    /** RECORD -940: the card in a landscape window lays out exactly as in portrait; every state is run both ways. */
-    private var landscapeMode by mutableStateOf(false)
-
-    private val quickSettings = MapQuickSettings(
-        isRecording = true,
-        backBy = null,
-        onBackByChoice = {},
-        onClearBackBy = {},
-        sundown = SundownSettings(),
-        offTrackReminder = OffTrackReminderSettings(),
-    )
 
     private fun bounds(tag: String): List<DpRect> = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().map { n ->
         with(composeRule.density) { DpRect(n.boundsInRoot.left.toDp(), n.boundsInRoot.top.toDp(), n.boundsInRoot.right.toDp(), n.boundsInRoot.bottom.toDp()) }
@@ -142,7 +132,7 @@ class NavigationCardFitAcrossWidthsTest {
     /**
      * `null` when [laid] shows its whole text; else what is wrong with it. Whole: no line ends in "…", the last line's visible
      * end is the text's end, every line's drawn right edge is inside the text's own box, and that box lies inside the card's
-     * text area, left of the X and three-dot column ([limitRight]), so a parent cannot be clipping it.
+     * text area, left of the X ([limitRight]), so a parent cannot be clipping it.
      */
     private fun cut(laid: TextLayoutResult, box: DpRect, limitRight: androidx.compose.ui.unit.Dp): String? {
         val text = laid.layoutInput.text.text
@@ -157,10 +147,12 @@ class NavigationCardFitAcrossWidthsTest {
         return if (whole) null else "'$text' (ellipsis $ellipsised, visible ${text.take(visibleEnd)}, line ${lineRightPx}px in ${laid.size.width}px, box $box, limit $limitRight)"
     }
 
+    // Dispatch 2026-10-12-08 (RECORD -950): the height and the grid reference are the strip's while navigating, so the card's
+    // texts are the figure, the kind, the turn, the heading and the evening pieces. Was also the elevation, its "Alt" label and
+    // the grid reference (dispatch 2026-10-12-06's three columns).
     private val wholeTags = listOf(
-        NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG, NAVIGATION_HUD_ELEVATION_TAG,
-        NAVIGATION_HUD_HEADING_TAG, NAVIGATION_HUD_COORDINATES_TAG, NAVIGATION_HUD_EVENING_PIECE_TAG,
-        NAVIGATION_LABEL_TAG,
+        NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG,
+        NAVIGATION_HUD_HEADING_TAG, NAVIGATION_HUD_EVENING_PIECE_TAG,
     )
 
     private fun assertFits(where: String) {
@@ -173,21 +165,20 @@ class NavigationCardFitAcrossWidthsTest {
                 distanceUnit = DistanceUnit.MILES,
                 currentTime = CurrentTimeProvider { now },
                 showDecimalDegrees = c.decimal,
-                onToggleCoordinateFormat = {},
                 onExit = {},
                 route = c.route,
                 facing = c.facing,
-                quickSettings = quickSettings,
                 sundownLine = c.sundown,
                 backByLine = c.backBy,
-                landscape = landscapeMode,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         val problems = mutableListOf<String>()
         var measured = 0
-        for ((c, inLandscape) in cases.flatMap { listOf(it to false, it to true) }) {
-            composeRule.runOnIdle { case = c; landscapeMode = inLandscape }
+        // RECORD -951: the card's width in landscape is the compass strip's, as wide as its readouts need, so landscape is no
+        // longer a second run at the window's width; the 320 dp run is the narrow case. Was every state run at both (RECORD -940).
+        for (c in cases) {
+            composeRule.runOnIdle { case = c }
             composeRule.mainClock.advanceTimeBy(2_000)
             composeRule.waitForIdle()
             val texts = wholeTags.flatMap { layoutsUnder(it) }
@@ -195,14 +186,14 @@ class NavigationCardFitAcrossWidthsTest {
             val cuts = texts.mapNotNull { laid -> cut(laid.layout, laid.bounds, buttons.left)?.let { "${laid.tag} $it" } }
             val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG).single()
             val arrow = bounds(NAVIGATION_HUD_NORTH_ARROW_TAG).single()
-            val grid = layoutsUnder(NAVIGATION_HUD_COORDINATES_TAG)
-            val gridOwnLine = grid.isNotEmpty() && bounds(NAVIGATION_HUD_COORDINATES_TAG).single().top >= needle.bottom - 0.5.dp
             val turn = layoutsUnder(NAVIGATION_HUD_TARGET_TAG).firstOrNull()?.layout?.layoutInput?.text?.text ?: "<none>"
             val figure = layoutsUnder(NAVIGATION_HUD_DISTANCE_TAG).firstOrNull()?.layout?.layoutInput?.text?.text ?: "<none>"
-            println("FIT|$where${if (inLandscape) " landscape" else ""}|${c.name}|figure=$figure|turn=$turn|kind=${layoutsUnder(NAVIGATION_HUD_DISTANCE_KIND_TAG).size}|alt-label=${layoutsUnder(NAVIGATION_LABEL_TAG).size}|grid-own-line=$gridOwnLine|cuts=$cuts")
-            if (cuts.isNotEmpty()) problems += "${c.name}${if (inLandscape) " (landscape)" else ""}: $cuts"
-            // RECORD -941: every evening piece is whole (no "…", named on its own) and inside the right column: right of the last
-            // divider and left of the X and three-dot column.
+            val card = bounds(NAVIGATION_HUD_TAG).single()
+            // The card's height for the report (dispatch 2026-10-12-08: fit and height are measured and reported, not trimmed).
+            println("FIT|$where|${c.name}|figure=$figure|turn=$turn|kind=${layoutsUnder(NAVIGATION_HUD_DISTANCE_KIND_TAG).size}|height=${(card.bottom - card.top).value}|cuts=$cuts")
+            if (cuts.isNotEmpty()) problems += "${c.name}: $cuts"
+            // RECORD -941: every evening piece is whole (no "…", named on its own) and inside the right part: right of the divider
+            // and left of the X.
             val pieces = layoutsUnder(NAVIGATION_HUD_EVENING_PIECE_TAG)
             if ((c.sundown != null || c.backBy != null) && pieces.isEmpty()) problems += "${c.name}: no evening pieces drawn"
             val lastDivider = bounds(NAVIGATION_HUD_DIVIDER_TAG).maxOf { it.right }
@@ -215,10 +206,9 @@ class NavigationCardFitAcrossWidthsTest {
             val needleMid = (needle.top + needle.bottom) / 2
             val arrowMid = (arrow.top + arrow.bottom) / 2
             if (abs((needleMid - arrowMid).value) > 2f || needle.right > arrow.left) problems += "${c.name}: arrows apart, needle $needle, arrow $arrow"
-            if (c.liveFix != null && grid.isEmpty()) problems += "${c.name}: no grid reference drawn"
             measured++
         }
-        assertEquals("every state measured, in both orientations", 2 * cases.size, measured)
+        assertEquals("every state measured", cases.size, measured)
         assertTrue("at $where: ${problems.joinToString("; ")}", problems.isEmpty())
     }
 

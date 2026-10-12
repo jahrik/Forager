@@ -477,7 +477,8 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.runOnUiThread { returning.value = true }
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
-        composeRule.onNodeWithTag("compass-elevation-strip").assertDoesNotExist()
+        // Dispatch 2026-10-12-08 (RECORD -950): the strip stays while navigating. Was assertDoesNotExist().
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
         val heightOpen = mapSlotBounds().height
         println("MEASURED heightClosed=$heightClosed heightOpen=$heightOpen")
         assertTrue(
@@ -489,7 +490,8 @@ abstract class AvailabilityScreenLayoutTest {
 
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
-        composeRule.onNodeWithTag("compass-elevation-strip").assertDoesNotExist()
+        // Dispatch 2026-10-12-08 (RECORD -950): the strip stays while navigating. Was assertDoesNotExist().
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
         val heightFullscreen = mapSlotBounds().height
         assertTrue(
             "…and fullscreen with the HUD open must not change it either: $heightOpen vs $heightFullscreen.",

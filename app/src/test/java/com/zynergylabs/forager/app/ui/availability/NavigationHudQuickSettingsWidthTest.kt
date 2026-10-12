@@ -143,8 +143,16 @@ class NavigationHudQuickSettingsWidthTest {
         return found
     }
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -947, the owner: "Yes, only on the strip (Recommended)"; RECORD -950, -951): the three-dot
+     * button is on the compass strip only, so the navigation info has no button to compare with and without. What the test held
+     * stands without the comparison: at 360 dp each state's figure, kind and turn are laid out whole, and the status is whole or,
+     * where it cannot be (RECORD -694, -715), one line ending in "…". Was "at 360 dp the narrowed column still lays out every large
+     * figure and status line whole", asserting `causedByButton.isEmpty() && notOneLineEllipsis.isEmpty()` across the card drawn
+     * with the button and without it.
+     */
     @Test
-    fun `at 360 dp the narrowed column still lays out every large figure and status line whole`() {
+    fun `at 360 dp every large figure, kind and turn is whole, and the status whole or one line ending in an ellipsis`() {
         composeRule.setContent {
             val c = case ?: return@setContent
             NavigationHud(
@@ -156,27 +164,24 @@ class NavigationHudQuickSettingsWidthTest {
                 distanceUnit = DistanceUnit.MILES,
                 currentTime = CurrentTimeProvider { now },
                 showDecimalDegrees = false,
-                onToggleCoordinateFormat = {},
                 onExit = {},
                 route = c.route,
-                quickSettings = if (withButton) quickSettings else null,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        val without = measure(button = false)
-        val with = measure(button = true)
-        assertEquals("every case measured", cases.size, with.size)
-        val causedByButton = with.filter { (name, cut) -> cut.isNotEmpty() && without[name].orEmpty().isEmpty() }
-        // Changed by RECORD -715 (the owner: "Keep it, 12 dp taller (Recommended)"; the planner): a line cut with or without the
-        // button is not the button's, and is held to RECORD -694's rule for the status line, one line ending in "…", in place
-        // of "whole". The one such line here is "No origin waypoint for this track", too long for this column even with no
-        // button. A line the button alone cuts must still be whole.
-        val clippedBoth = with.filter { (name, cut) -> cut.isNotEmpty() && without[name].orEmpty().isNotEmpty() }
-        val notOneLineEllipsis = clippedBoth.filterValues { cuts -> cuts.any { !it.endsWith(ONE_LINE_ELLIPSIS) } }
-        assertTrue(
-            "clipped with the button and not without it: $causedByButton; clipped either way, and not one line ending in \"…\" (RECORD -694): $notOneLineEllipsis",
-            causedByButton.isEmpty() && notOneLineEllipsis.isEmpty(),
-        )
+        val problems = mutableListOf<String>()
+        var measured = 0
+        for (c in cases) {
+            composeRule.runOnIdle { case = c }
+            composeRule.waitForIdle()
+            measured++
+            listOf(NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG).forEach { tag ->
+                clipped(tag)?.let { problems += "${c.name}: $tag $it" }
+            }
+            clipped(NAVIGATION_HUD_STATUS_TAG)?.takeIf { !it.endsWith(ONE_LINE_ELLIPSIS) }?.let { problems += "${c.name}: status $it" }
+        }
+        assertEquals("every case measured", cases.size, measured)
+        assertTrue("cut where it must be whole: $problems", problems.isEmpty())
     }
 
     private companion object {

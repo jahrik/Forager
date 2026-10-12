@@ -10,9 +10,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -49,10 +52,16 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDisplay
 
 /**
- * Dispatch 2026-10-12-06 (RECORD -934's "the pill and card touch edge to edge", and the planner's call in RECORD -936: "in
- * landscape the card still touches the bar edge to edge"): navigating in a short landscape window, the search bar's inner
- * edge is the navigation card's inner edge, no gap, at both rotations, and long-presses beside the bar, below it, reach the
- * map. Since RECORD -940 the card is also the window's short side wide, as in portrait. Before this dispatch the bar stopped at its 384 dp cap and left a gap of tens of dp beside the display.
+ * Dispatch 2026-10-12-08 (RECORD -946, -950, -951). The owner, verbatim: "So when the navigation HUD slides down, it needs to
+ * stay the same size. The compass strip stays exactly where it is in both modes, but the navigation HUD with the design slides
+ * down"; and, with a screenshot of today's app, "Keep it exactly like this size. Exactly as we have it today". In a short
+ * landscape window, at both rotations: the compass strip's bounds and the search bar's are identical navigating and not; the bar
+ * meets the strip edge to edge (RECORD -934) in both; navigating, the navigation card hangs under the strip, its left and right
+ * edges the strip's, its top the strip's bottom; and long-presses beside the card, below the bar, reach the map.
+ *
+ * Was (dispatch 2026-10-12-06, RECORD -936, -940): navigating, the bar's inner edge was the card's, the card beside the bar at the
+ * top of the map in the strip's place, and the window's short side wide: `assertEquals(card.left, bar.right)`,
+ * `assertEquals(card.top, bar.top)`, `assertEquals(shortSide, card.width)`.
  */
 abstract class LandscapeCardMeetsBarTests {
     val composeRule = createComposeRule()
@@ -71,6 +80,7 @@ abstract class LandscapeCardMeetsBarTests {
     private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private var longPresses = 0
     private var rotationSeen: Int? = null
+    private var returning by androidx.compose.runtime.mutableStateOf(false)
     private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
         Box(modifier.testTag("landscape-card-map").pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }) })
     }
@@ -82,7 +92,7 @@ abstract class LandscapeCardMeetsBarTests {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
-                isReturning = true,
+                isReturning = returning,
                 navigationTarget = start,
                 returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
                 compassProvider = FixedCompass(315f),
@@ -123,6 +133,8 @@ abstract class LandscapeCardMeetsBarTests {
 
     private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
 
+    private val STRIP = "compass-elevation-strip"
+
     private fun longPressAt(x: Dp, y: Dp) {
         val at = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
         composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { down(at); advanceEventTime(700); up() }
@@ -132,38 +144,59 @@ abstract class LandscapeCardMeetsBarTests {
     private fun inAnyControl(x: Dp, y: Dp): Boolean = composeRule.onAllNodes(androidx.compose.ui.test.hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
         .any { n -> with(composeRule.density) { x.toPx() >= n.boundsInRoot.left && x.toPx() <= n.boundsInRoot.right && y.toPx() >= n.boundsInRoot.top && y.toPx() <= n.boundsInRoot.bottom } }
 
-    private fun assertMeets(rotation: Int) {
+    private fun DpRect.same(other: DpRect): Boolean =
+        listOf(left - other.left, top - other.top, right - other.right, bottom - other.bottom).all { kotlin.math.abs(it.value) <= 0.5f }
+
+    private fun settle() {
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+    }
+
+    private fun assertStripStaysAndCardHangs(rotation: Int) {
         setScreen(rotation)
+        val barOnLeft = rotation == Surface.ROTATION_90
+        val stripBefore = bounds(STRIP)
+        val barBefore = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertEquals("positive control: not navigating, no card", 0, composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).fetchSemanticsNodes().size)
+
+        composeRule.runOnIdle { returning = true }
+        settle()
+        val strip = bounds(STRIP)
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         val card = bounds(NAVIGATION_HUD_TAG)
-        println("MEASURED rotation $rotation: bar $bar, card $card")
-        val barOnLeft = rotation == Surface.ROTATION_90
+        println("MEASURED rotation $rotation: strip before $stripBefore, navigating $strip; bar before $barBefore, navigating $bar; card $card")
+        assertTrue("the strip stays exactly where it is, the same size: $stripBefore, navigating $strip", strip.same(stripBefore))
+        assertTrue("and so does the search bar: $barBefore, navigating $bar", bar.same(barBefore))
         if (barOnLeft) {
-            assertEquals("the bar's right edge is the card's left edge: bar $bar, card $card", card.left.value, bar.right.value, 0.5f)
+            assertEquals("the bar's right edge is the strip's left edge", strip.left.value, bar.right.value, 0.5f)
         } else {
-            assertEquals("the bar's left edge is the card's right edge: bar $bar, card $card", card.right.value, bar.left.value, 0.5f)
+            assertEquals("the bar's left edge is the strip's right edge", strip.right.value, bar.left.value, 0.5f)
         }
-        assertEquals("the two start at the same top", card.top.value, bar.top.value, 0.5f)
-        // RECORD -940 (the owner: "It can be the same size as portrait"): the card is the window's short side wide.
-        val window = composeRule.onRoot().getUnclippedBoundsInRoot()
-        val shortSide = minOf(window.right - window.left, window.bottom - window.top)
-        assertEquals("the card is as wide as in portrait, the window's short side: card $card, window $window", shortSide.value, (card.right - card.left).value, 0.5f)
-        // Below the bar, beside the taller card, nearer the card than the cluster on the bar's outer side: the map's.
+        assertEquals("the card's left edge is the strip's: card $card, strip $strip", strip.left.value, card.left.value, 0.5f)
+        assertEquals("the card's right edge is the strip's: card $card, strip $strip", strip.right.value, card.right.value, 0.5f)
+        assertEquals("the card hangs from the strip's bottom: card $card, strip $strip", strip.bottom.value, card.top.value, 0.5f)
+
+        // Below the bar, beside the card, nearer the card than the cluster on the bar's outer side: the map's.
         val x = if (barOnLeft) card.left - 12.dp else card.right + 12.dp
         var sampled = 0
-        for (y in listOf(bar.bottom + 4.dp, bar.bottom + 20.dp)) {
+        for (y in listOf(bar.bottom + 4.dp, bar.bottom + 20.dp, card.bottom - 4.dp)) {
             if (y >= card.bottom || inAnyControl(x, y)) continue
             val before = longPresses
             longPressAt(x, y)
-            assertEquals("a long-press at (${x.value}, ${y.value}) below the bar, beside the card, reached the map", before + 1, longPresses)
+            assertEquals("a long-press at (${x.value}, ${y.value}) beside the card reached the map", before + 1, longPresses)
             sampled++
         }
-        assertTrue("sampled below the bar: $sampled", sampled >= 1)
+        assertTrue("sampled beside the card: $sampled", sampled >= 1)
+
+        composeRule.runOnIdle { returning = false }
+        settle()
+        assertTrue("navigation over, the strip is still where it was: ${bounds(STRIP)}", bounds(STRIP).same(stripBefore))
+        assertEquals("and the card has gone", 0, composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).fetchSemanticsNodes().size)
     }
 
-    @Test fun `at ROTATION_90 navigating, the bar meets the card edge to edge`() = assertMeets(Surface.ROTATION_90)
+    @Test fun `at ROTATION_90 the strip stays put and the same size navigating or not, and the card hangs under it at its exact width`() = assertStripStaysAndCardHangs(Surface.ROTATION_90)
 
-    @Test fun `at ROTATION_270 navigating, the bar meets the card edge to edge`() = assertMeets(Surface.ROTATION_270)
+    @Test fun `at ROTATION_270 the strip stays put and the same size navigating or not, and the card hangs under it at its exact width`() = assertStripStaysAndCardHangs(Surface.ROTATION_270)
 
     private class FixedCompass(degrees: Float) : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(degrees, HeadingUncertainty.Estimated(2f), 0L))
@@ -184,11 +217,7 @@ class LandscapeCardMeetsBar780Test : LandscapeCardMeetsBarTests()
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LandscapeCardMeetsBar823Test : LandscapeCardMeetsBarTests()
 
-/**
- * A wider landscape window, where the room beside the capped bar is more than the display's 360 dp cap: the one case where the
- * bar used to stop short of the display and leave a gap (at 780 and 823 the display already took all the room beside the
- * capped bar, so those two classes pass with or without this dispatch's change; found by the revert check, CI run 38224195024).
- */
+/** A wider landscape window (dispatch 2026-10-12-06's case for the old capped bar), kept as a third width for the same claims. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w915dp-h412dp-land-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

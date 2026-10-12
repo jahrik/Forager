@@ -1,0 +1,385 @@
+package com.zynergylabs.forager.app.ui.availability
+
+import android.app.Application
+import android.content.ComponentName
+import android.view.Surface
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.CompassProvider
+import com.zynergylabs.forager.app.domain.CompassReading
+import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
+import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeclinationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
+import com.zynergylabs.forager.app.domain.HeadingUncertainty
+import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.ui.map.MapSlot
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.ExternalResource
+import org.junit.rules.RuleChain
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDisplay
+
+/**
+ * Dispatch 2026-10-12-08 (RECORD -945 to -951): the compass strip and the navigation info on the real screen, with real touches
+ * at screen coordinates, several across each target (CLAUDE.md: a semantic click asserts wiring, not routing; a finger is not a
+ * point). Each sample is counted and the count asserted, so an empty sample cannot pass.
+ */
+abstract class MapTopCardScreenTests(private val rotation: Int?) {
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
+    private val declareHostActivity = object : ExternalResource() {
+        override fun before() {
+            val app = ApplicationProvider.getApplicationContext<Application>()
+            Shadows.shadowOf(app.packageManager).addActivityIfNotPresent(ComponentName(app, ComponentActivity::class.java))
+        }
+    }
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
+
+    private val t = 1_700_000_000_000L
+    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+
+    var returning by mutableStateOf(true)
+    var route by mutableStateOf<ReturnRoute>(ReturnRoute.Unavailable(canRetry = true))
+    private var generation by mutableIntStateOf(0)
+    var exits = 0
+    var retries = 0
+    var longPresses = 0
+    private var rotationSeen: Int? = null
+
+    private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
+        Box(modifier.testTag(TOP_CARD_MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }) })
+    }
+
+    fun setScreen() {
+        if (rotation != null) Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
+        composeRule.setContent {
+            rotationSeen = LocalView.current.display?.rotation
+            key(generation) {
+                AvailabilityScreen(
+                    uiState = AvailabilityUiState(liveFix = fix),
+                    isRecording = true,
+                    isReturning = returning,
+                    onToggleReturning = { exits++ },
+                    navigationTarget = start,
+                    returnRoute = route,
+                    onRetryRoute = { retries++ },
+                    compassProvider = FixedCompass(45f),
+                    computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
+                    currentTime = CurrentTimeProvider { t + 1_000L },
+                    mapSlot = map,
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                )
+            }
+        }
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        if (rotation != null) assertEquals("the screen must see the rotation this case is about", rotation, rotationSeen)
+    }
+
+    fun shown(tag: String) = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+
+    fun bounds(tag: String): DpRect = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().first().let { n ->
+        with(composeRule.density) { DpRect(n.boundsInRoot.left.toDp(), n.boundsInRoot.top.toDp(), n.boundsInRoot.right.toDp(), n.boundsInRoot.bottom.toDp()) }
+    }
+
+    fun textOf(tag: String): String =
+        composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().first().config[SemanticsProperties.Text].joinToString { it.text }
+
+    private fun at(x: Dp, y: Dp) = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
+
+    fun touchAt(x: Dp, y: Dp) {
+        composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { down(at(x, y)); up() }
+        composeRule.waitForIdle()
+    }
+
+    fun longPressAt(x: Dp, y: Dp) {
+        composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { down(at(x, y)); advanceEventTime(700); up() }
+        composeRule.waitForIdle()
+    }
+
+    fun refresh() {
+        composeRule.runOnIdle { generation++ }
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+    }
+
+    /** The centre and four points a third of the way to each edge: inside a round button's circle as well as a square one's. */
+    fun across(r: DpRect): List<Pair<Dp, Dp>> {
+        val cx = (r.left + r.right) / 2
+        val cy = (r.top + r.bottom) / 2
+        val dx = (r.right - r.left) / 3
+        val dy = (r.bottom - r.top) / 3
+        return listOf(cx to cy, cx - dx to cy, cx + dx to cy, cx to cy - dy, cx to cy + dy)
+    }
+
+    fun controls(): List<DpRect> = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
+        .filterNot { it.config.getOrNull(SemanticsProperties.TestTag) == TOP_CARD_MAP_TAG }
+        .map { with(composeRule.density) { DpRect(it.boundsInRoot.left.toDp(), it.boundsInRoot.top.toDp(), it.boundsInRoot.right.toDp(), it.boundsInRoot.bottom.toDp()) } }
+
+    fun inAny(x: Dp, y: Dp, rects: List<DpRect>) = rects.any { x >= it.left && x <= it.right && y >= it.top && y <= it.bottom }
+
+    /** RECORD -950, "Nothing repeats": the heading once, in the navigation info; height, grid reference and the three-dot button once, on the strip. */
+    @Test
+    fun `navigating, nothing repeats - the heading in the navigation info, height, grid reference and the button on the strip`() {
+        setScreen()
+        assertTrue("the strip stays", shown(TOP_CARD_STRIP_TAG))
+        assertEquals("the heading reads once", 1, composeRule.onAllNodesWithText("45° NE", useUnmergedTree = true).fetchSemanticsNodes().size)
+        assertEquals("in the navigation info", "45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("no heading on the strip's line", 0, composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).fetchSemanticsNodes().size)
+        assertEquals("one height", 1, composeRule.onAllNodesWithTag(COMPASS_STRIP_ELEVATION_TAG).fetchSemanticsNodes().size)
+        assertEquals("one grid reference", 1, composeRule.onAllNodesWithTag(COMPASS_STRIP_COORDINATES_TAG).fetchSemanticsNodes().size)
+        assertEquals("one three-dot button", 1, composeRule.onAllNodesWithTag(MAP_QUICK_SETTINGS_BUTTON_TAG).fetchSemanticsNodes().size)
+        val strip = bounds(TOP_CARD_STRIP_TAG)
+        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        val info = bounds(NAVIGATION_HUD_TAG)
+        assertTrue("the button $button is on the strip $strip, above the navigation info $info", button.top >= strip.top && button.bottom <= info.top + 0.5.dp)
+        assertEquals("the strip's own sundown line does not show", false, shown(STRIP_SUNDOWN_LINE_TAG))
+        assertEquals("nor its Back by line", false, shown(STRIP_BACK_BY_LINE_TAG))
+    }
+
+    /** RECORD -950: X ends navigation; the navigation info goes and the heading returns to the strip's line. */
+    @Test
+    fun `real touches across the X stop navigating, and stopping puts the heading back on the strip's line`() {
+        setScreen()
+        var sampled = 0
+        for ((x, y) in across(bounds(NAVIGATION_HUD_EXIT_TAG))) {
+            val before = exits
+            touchAt(x, y)
+            assertEquals("a real touch at (${x.value}, ${y.value}) on the X stopped navigating", before + 1, exits)
+            sampled++
+        }
+        assertEquals(5, sampled)
+        composeRule.runOnIdle { returning = false }
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertTrue("the navigation info has gone", !shown(NAVIGATION_HUD_TAG))
+        assertEquals("the heading is back on the strip's line", "45° NE", textOf(COMPASS_STRIP_HEADING_TAG))
+    }
+
+    @Test
+    fun `real touches across the strip's grid reference toggle it, and across its three-dot button open the menu, while navigating`() {
+        setScreen()
+        var last = textOf(COMPASS_STRIP_COORDINATES_TAG)
+        var sampled = 0
+        for ((x, y) in across(bounds(COMPASS_STRIP_COORDINATES_TAG))) {
+            touchAt(x, y)
+            val now = textOf(COMPASS_STRIP_COORDINATES_TAG)
+            assertNotEquals("a real touch at (${x.value}, ${y.value}) on the grid reference toggled it", last, now)
+            last = now
+            sampled++
+        }
+        for ((x, y) in across(bounds(MAP_QUICK_SETTINGS_BUTTON_TAG))) {
+            val before = exits
+            touchAt(x, y)
+            assertTrue("a real touch at (${x.value}, ${y.value}) on the three-dot button opened the menu", shown(MAP_QUICK_SETTINGS_MENU_TAG))
+            assertEquals("and did not stop navigating", before, exits)
+            refresh()
+            sampled++
+        }
+        assertEquals(10, sampled)
+    }
+
+    @Test
+    fun `real touches across Try again retry, and it goes once a route is found`() {
+        setScreen()
+        var sampled = 0
+        for ((x, y) in across(bounds(NAVIGATION_HUD_RETRY_TAG))) {
+            val before = retries
+            touchAt(x, y)
+            assertEquals("a real touch at (${x.value}, ${y.value}) on Try again retried", before + 1, retries)
+            sampled++
+        }
+        assertEquals(5, sampled)
+        composeRule.runOnIdle { route = ReturnRoute.Ahead(com.zynergylabs.forager.app.domain.model.LatLng(45.52, -122.679), 1_500.0) }
+        composeRule.waitForIdle()
+        assertTrue("Try again goes once a route is found", !shown(NAVIGATION_HUD_RETRY_TAG))
+    }
+
+    /**
+     * Touches reach the map beside and around the navigation info: at its rounded lower corners, just below it and, in landscape,
+     * beside it under the search bar. The card takes no touch outside its own controls.
+     */
+    @Test
+    fun `long-presses at the card's rounded lower corners, just below it and beside it reach the map`() {
+        setScreen()
+        val card = bounds(NAVIGATION_HUD_TAG)
+        val taken = controls()
+        // Beside the card on the search bar's side, under the bar: the bar is on the left at ROTATION_90, on the right at 270.
+        val besideX = if (rotation == Surface.ROTATION_90) card.left - 12.dp else card.right + 12.dp
+        val points = listOf(
+            card.left + 2.dp to card.bottom - 2.dp,
+            card.right - 2.dp to card.bottom - 2.dp,
+            card.left + 4.dp to card.bottom - 1.dp,
+            card.right - 4.dp to card.bottom - 1.dp,
+        ) + listOf(0.15f, 0.5f, 0.85f).flatMap { f -> val x = card.left + (card.right - card.left) * f; listOf(x to card.bottom + 3.dp, x to card.bottom + 12.dp) } +
+            (if (rotation != null) listOf(besideX to (card.top + card.bottom) / 2, besideX to card.bottom - 6.dp) else emptyList())
+        var sampled = 0
+        for ((x, y) in points) {
+            if (inAny(x, y, taken)) continue
+            val before = longPresses
+            longPressAt(x, y)
+            assertEquals("a long-press at (${x.value}, ${y.value}) by the card $card reached the map", before + 1, longPresses)
+            sampled++
+        }
+        assertTrue("sampled enough points: $sampled of ${points.size}", sampled >= 8)
+    }
+
+    private class FixedCompass(degrees: Float) : CompassProvider {
+        override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(degrees, HeadingUncertainty.Estimated(2f), 0L))
+    }
+
+    private object NoDeclination : DeclinationProvider {
+        override fun declinationDegrees(latitude: Double, longitude: Double, altitudeMeters: Double?, epochMillis: Long): Float = 0f
+    }
+}
+
+/**
+ * Portrait: one card, no second tuck (RECORD -948: "have the card just extend down rather than a dual tuck, and a line to
+ * separate the heading and nav info"). The navigation info is inside the strip's card, under the thin line; the card's bottom
+ * is the info's; and no shadow is cast at the line, as a second tucked card would cast (the tuck's shadow darkens the card just
+ * under its upper piece by 4% or more: MapChromeColourPixelsTest).
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class MapTopCardPortraitScreenTest : MapTopCardScreenTests(rotation = null) {
+    @Test
+    fun `the navigation info is inside the strip's card under a thin line, one card with no second tuck`() {
+        setScreen()
+        val strip = bounds(TOP_CARD_STRIP_TAG)
+        val info = bounds(NAVIGATION_HUD_TAG)
+        val line = bounds(NAVIGATION_INFO_LINE_TAG)
+        val coordinates = bounds(COMPASS_STRIP_COORDINATES_TAG)
+        assertTrue("the info $info is inside the strip's card $strip", info.left >= strip.left - 0.5.dp && info.right <= strip.right + 0.5.dp && info.top >= strip.top)
+        assertEquals("the card's bottom is the info's", strip.bottom.value, info.bottom.value, 0.5f)
+        assertTrue("the line $line is under the strip's line (grid reference $coordinates)", line.top >= coordinates.bottom - 0.5.dp)
+        assertEquals("the line is 1 dp", 1f, (line.bottom - line.top).value, 0.3f)
+        assertTrue("the info starts at the line $line: $info", abs((info.top - line.top).value) <= 0.5f)
+
+        val image = composeRule.onRoot().captureToImage().toPixelMap()
+        fun px(x: Dp, y: Dp): Color = with(composeRule.density) { image[x.toPx().toInt(), y.toPx().toInt()] }
+        val lum = { c: Color -> 0.2126f * c.red + 0.7152f * c.green + 0.0722f * c.blue }
+        // Just below the line, and further down, at the same x near the card's left edge (clear of text).
+        val x = strip.left + 3.dp
+        val justBelow = px(x, line.bottom + 1.dp)
+        val further = px(x, line.bottom + 10.dp)
+        println("MEASURED one card: line $line, just below ${lum(justBelow)}, further ${lum(further)}")
+        assertTrue("no shadow cast at the line, as a second tuck would: ${lum(justBelow)} against ${lum(further)}", lum(justBelow) >= lum(further) * 0.98f)
+    }
+}
+
+/**
+ * RECORD -951, item 11: "re-run the probe on the new card and report". A probe, not a guard, as at a8db59f9: the real screen,
+ * navigating, over the stand-in map's flat background, and each pixel row of the card printed with its lightest and darkest red
+ * and the runs at the lightest, so a lighter patch inside the shadow under the 0.8 fill can be found, or not. Its only assertion
+ * is the positive control that the card was there to read. Removed once its output is read and recorded.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w412dp-h915dp-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class MapTopCardShadowPatchProbeTest : MapTopCardScreenTests(rotation = null) {
+    @Test
+    fun `probe the new card's pixels for a lighter patch`() {
+        setScreen()
+        val card = bounds(TOP_CARD_STRIP_TAG)
+        assertTrue("positive control: the card is on screen, navigating", shown(NAVIGATION_HUD_TAG))
+        val image = composeRule.onRoot().captureToImage().toPixelMap()
+        val density = composeRule.density
+        val top = with(density) { card.top.toPx().toInt() }
+        val bottom = with(density) { card.bottom.toPx().toInt() }
+        println("PROBE|card $card, px rows $top..$bottom of ${image.height}, width ${image.width}")
+        for (y in top until bottom step 3) {
+            val reds = (0 until image.width).map { (image[it, y].red * 255f).toInt() }
+            val max = reds.max()
+            val runs = mutableListOf<String>()
+            var start = -1
+            for (x in reds.indices) {
+                val light = reds[x] >= max - 1
+                if (light && start < 0) start = x
+                if ((!light || x == reds.lastIndex) && start >= 0) { runs += "$start-$x"; start = -1 }
+            }
+            println("PROBE|y=$y|min=${reds.min()}|max=$max|lightRuns=${runs.take(8)}")
+        }
+    }
+}
+
+/** Landscape, both rotations: the card hangs under the strip, beside the pill (RECORD -946, -950, -951). */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class MapTopCardLandscape90ScreenTest : MapTopCardScreenTests(rotation = Surface.ROTATION_90)
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class MapTopCardLandscape270ScreenTest : MapTopCardScreenTests(rotation = Surface.ROTATION_270)
+
+internal const val TOP_CARD_MAP_TAG = "top-card-map"
+internal const val TOP_CARD_STRIP_TAG = "compass-elevation-strip"
+
+private fun abs(f: Float) = kotlin.math.abs(f)

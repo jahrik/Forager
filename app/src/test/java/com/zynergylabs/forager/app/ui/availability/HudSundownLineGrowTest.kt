@@ -83,7 +83,6 @@ class HudSundownLineGrowTest {
                     distanceUnit = DistanceUnit.MILES,
                     currentTime = CurrentTimeProvider { t + 1_000L },
                     showDecimalDegrees = false,
-                    onToggleCoordinateFormat = {},
                     onExit = {},
                     modifier = Modifier.fillMaxWidth(),
                     sundownLine = line,

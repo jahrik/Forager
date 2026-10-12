@@ -415,28 +415,45 @@ class MapPopUpMotionTest {
 
     // ── Navigation start and stop (scouts N1, N2) ──────────────────────────────────────────────
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -948, -950; the owner: "have the card just extend down rather than a dual tuck"): starting
+     * navigation, the compass strip stays where it is and the navigation info grows down from under its line, on the navigation
+     * view's timing; stopping, it shrinks back, and while it leaves its controls take no touch (motion Part 2, item 5): a
+     * long-press on the leaving X reaches the map. Was "starting navigation, the leaving strip takes no touch and the navigation
+     * display slides down into place": the strip leaving (`assertFalse("the strip is gone once navigating", shown(STRIP_TAG))`),
+     * a long-press on it reaching the map, and the display sliding (`hudMid.top < hudSettled.top`).
+     */
     @Test
-    fun `starting navigation, the leaving strip takes no touch and the navigation display slides down into place`() {
+    fun `starting navigation, the strip stays and the navigation info grows down under its line; leaving, it takes no touch`() {
         setScreen()
         val strip = boundsOf(STRIP_TAG)
         switchReturning(true)
-        val hudSettled = boundsOf(NAVIGATION_HUD_TAG)
+        val infoSettled = boundsOf(NAVIGATION_HUD_TAG)
+        assertEquals("navigating, the strip's top is where it was", strip.top.value, boundsOf(STRIP_TAG).top.value, 0.5f)
         switchReturning(false)
-        assertTrue("the strip is back after stopping", shown(STRIP_TAG))
 
         pauseAfter { composeRule.runOnUiThread { returning = true } }
-        assertTrue("the strip is still on screen, leaving", shown(STRIP_TAG))
-        assertTrue("the display is on screen, arriving", shown(NAVIGATION_HUD_TAG))
-        val hudMid = boundsOf(NAVIGATION_HUD_TAG)
-        assertTrue("mid-start the display ${hudMid.describe()} is above where it settles ${hudSettled.describe()}", hudMid.top < hudSettled.top - 0.5.dp)
-        val before = longPresses
-        longPressAt(DpOffset((strip.left + strip.right) / 2, (strip.top + strip.bottom) / 2))
+        assertTrue("the strip is on screen throughout", shown(STRIP_TAG))
+        assertTrue("the info is on screen, arriving", shown(NAVIGATION_HUD_TAG))
+        val infoMid = boundsOf(NAVIGATION_HUD_TAG)
+        assertEquals("mid-start the info's top ${infoMid.describe()} is where it settles ${infoSettled.describe()}", infoSettled.top.value, infoMid.top.value, 0.5f)
+        assertTrue("mid-start the info ${infoMid.describe()} is shorter than it settles ${infoSettled.describe()}: it grows down", infoMid.bottom < infoSettled.bottom - 0.5.dp)
         settle()
-        assertEquals("the long-press on the leaving strip reached the map", before + 1, longPresses)
-        assertFalse("the strip is gone once navigating", shown(STRIP_TAG))
-        assertEquals("and the display settled in its place", hudSettled, boundsOf(NAVIGATION_HUD_TAG))
+        assertEquals("and the info settled in its place", infoSettled, boundsOf(NAVIGATION_HUD_TAG))
+
+        val exit = boundsOf(NAVIGATION_HUD_EXIT_TAG)
+        pauseAfter { composeRule.runOnUiThread { returning = false } }
+        assertTrue("the info is still on screen, leaving", shown(NAVIGATION_HUD_TAG))
+        val before = longPresses
+        longPressAt(DpOffset((exit.left + exit.right) / 2, (exit.top + exit.bottom) / 2))
+        settle()
+        assertEquals("the long-press on the leaving X reached the map", before + 1, longPresses)
+        assertFalse("the info is gone once stopped", shown(NAVIGATION_HUD_TAG))
+        assertTrue("and the strip is where it was", shown(STRIP_TAG))
     }
 
+    // Dispatch 2026-10-12-08: the navigation info grows rather than slides (portrait); under reduced motion it neither grows nor
+    // slides, it fades in place. The assertion is unchanged.
     @Test
     fun `under reduced motion the navigation display does not slide, it fades in place`() {
         reduceMotionOn()

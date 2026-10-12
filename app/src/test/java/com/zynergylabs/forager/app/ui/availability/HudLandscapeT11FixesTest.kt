@@ -293,11 +293,14 @@ abstract class HudLandscapeT11Fixes {
 
     @Test @Config(fontScale = 2.0f) fun `item 1 at font 2,0 the stale warning is whole`() = assertStaleWarningWhole()
 
+    // Dispatch 2026-10-12-08 (RECORD -950): navigating, the grid reference is on the compass strip, which stays, not in the card;
+    // -699's "whole" is held there. Was "item 1 at font 2,0 the grid reference is whole beside the distance", on
+    // NAVIGATION_HUD_COORDINATES_TAG in the card.
     @Test @Config(fontScale = 2.0f)
-    fun `item 1 at font 2,0 the grid reference is whole beside the distance`() {
+    fun `item 1 at font 2,0 the grid reference on the strip is whole while navigating, and the distance too`() {
         setScreen(Surface.ROTATION_90, clusterOnRailSide = false)
-        assertTrue("positive control: the coordinates are shown", nodes(NAVIGATION_HUD_COORDINATES_TAG).isNotEmpty())
-        assertTrue("the grid reference ${wholeText(NAVIGATION_HUD_COORDINATES_TAG)} is whole (-699)", whole(NAVIGATION_HUD_COORDINATES_TAG))
+        assertTrue("positive control: the coordinates are shown", nodes(COMPASS_STRIP_COORDINATES_TAG).isNotEmpty())
+        assertTrue("the grid reference ${wholeText(COMPASS_STRIP_COORDINATES_TAG)} is whole (-699)", whole(COMPASS_STRIP_COORDINATES_TAG))
         assertTrue("and the distance ${wholeText(NAVIGATION_HUD_DISTANCE_TAG)} is still whole (distance first)", whole(NAVIGATION_HUD_DISTANCE_TAG))
     }
 
@@ -372,7 +375,9 @@ abstract class HudLandscapeT11Fixes {
         val mapArea = tag(LAYOUT_FIXES_MAP_TAG)
         val height = mapArea.bottom - mapArea.top
         val walkerY = mapArea.top + (height + height * NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2
-        assertTrue("positive control: the evening line and Try again are both up", nodes(NAVIGATION_HUD_EVENING_LINE_TAG).isNotEmpty() && nodes(NAVIGATION_HUD_RETRY_TAG).isNotEmpty())
+        // RECORD -941: the evening lines are a stack of pieces under NAVIGATION_HUD_SUNDOWN_LINE_TAG. Was the one-line
+        // NAVIGATION_HUD_EVENING_LINE_TAG, not drawn since RECORD -940/-941, so this positive control could never pass.
+        assertTrue("positive control: the evening lines and Try again are both up", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty() && nodes(NAVIGATION_HUD_RETRY_TAG).isNotEmpty())
         assertTrue("the display $hud ends above the walker's dot at y ${walkerY.value} by its radius", hud.bottom <= walkerY - WALKER_DOT_RADIUS)
         val needle = tag(NAVIGATION_HUD_NEEDLE_TAG)
         assertTrue("the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
@@ -415,7 +420,8 @@ abstract class HudLandscapeT11Fixes {
     @Test
     fun `-770 at font 1,0 the evening line stays where the bar fits under the display with it`() {
         setWithheldEveningScreen()
-        assertTrue("the evening line is shown: there is room", nodes(NAVIGATION_HUD_EVENING_LINE_TAG).isNotEmpty())
+        // RECORD -941: the stack's tag, as above. Was NAVIGATION_HUD_EVENING_LINE_TAG, not drawn since RECORD -940/-941.
+        assertTrue("the evening lines are shown: there is room", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty())
         assertTrue("and the bar's top ${bar().top} is on the display's bottom ${tag(NAVIGATION_HUD_TAG).bottom}", bar().top >= tag(NAVIGATION_HUD_TAG).bottom - 0.5.dp)
         assertResetNorthClear()
     }

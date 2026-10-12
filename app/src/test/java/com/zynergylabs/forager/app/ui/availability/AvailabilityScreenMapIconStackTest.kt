@@ -331,12 +331,17 @@ class AvailabilityScreenMapIconStackTest {
      * magnetic + 15° declination). Fails with the strip composed while navigating (two "95° E"
      * nodes) and with the HUD back on magnetic ("80° E").
      */
+    // Dispatch 2026-10-12-08 (RECORD -948, -950: the strip stays while navigating and its line drops the heading; "Nothing
+    // repeats"): the strip is on screen, and the heading still appears exactly once, in the navigation info. Was "while navigating
+    // the compass strip is absent and the true heading appears exactly once": `onAllNodesWithTag("compass-elevation-strip")
+    // .assertCountEquals(0)`. The count of "95° E" nodes is the claim that matters, and it stands.
     @Test
-    fun `while navigating the compass strip is absent and the true heading appears exactly once`() {
+    fun `while navigating the compass strip stays without its heading, and the true heading appears exactly once`() {
         setNavigatingScreen()
         composeRule.waitForIdle()
 
-        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(1)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
         composeRule.onAllNodesWithText("95° E").assertCountEquals(1)
         assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
     }
@@ -443,12 +448,16 @@ class AvailabilityScreenMapIconStackTest {
      * The other half of item 1: the strip comes back when navigation ends — asserted by leaving,
      * not by a second screen that never navigated. Heading still exactly once, now in the strip.
      */
+    // Dispatch 2026-10-12-08 (RECORD -950, step 3: "the heading returns to the strip's line"): the strip was there all along, its
+    // line without the heading. Was "leaving navigation brings the compass strip back with the heading, still exactly once", with
+    // `onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)` before leaving.
     @Test
-    fun `leaving navigation brings the compass strip back with the heading, still exactly once`() {
+    fun `leaving navigation puts the heading back on the strip's line, still exactly once`() {
         val returning = mutableStateOf(true)
         setNavigatingScreen(returning = returning)
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(1)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
 
         composeRule.runOnUiThread { returning.value = false }
         composeRule.waitForIdle()
@@ -491,10 +500,15 @@ class AvailabilityScreenMapIconStackTest {
         // Dispatch 2026-09-28-677 changed this: the heading moved from under the north arrow to the second row, which with no
         // fix and only the dash to show is not drawn. Before, the dash showed under the arrow; the one message is unchanged.
         composeRule.onAllNodesWithTag(NAVIGATION_HUD_HEADING_TAG).assertCountEquals(0)
-        assertEquals("Location services unavailable", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        // Dispatch 2026-10-12-08 (RECORD -951, option (a): GPS status messages show on the strip only): the message is the
+        // strip's, once, and the card's status line leaves it out. Was `assertEquals("Location services unavailable",
+        // textOfTag(NAVIGATION_HUD_STATUS_TAG))`, the strip not composed; and no elevation or coordinates in the card's tags,
+        // which since -950 are the strip's.
+        assertEquals("Location services unavailable", textOfTag(COMPASS_STRIP_NO_FIX_TAG))
+        assertEquals("the card's status line leaves it out", "", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         composeRule.onAllNodesWithText("Location services unavailable").assertCountEquals(1)
-        composeRule.onAllNodesWithTag(NAVIGATION_HUD_COORDINATES_TAG).assertCountEquals(0)
-        composeRule.onAllNodesWithTag(NAVIGATION_HUD_ELEVATION_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_COORDINATES_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_ELEVATION_TAG).assertCountEquals(0)
         composeRule.onAllNodesWithText("Compass needs a fix").assertCountEquals(0)
         composeRule.onAllNodesWithText("Waiting for a fix").assertCountEquals(0)
         composeRule.onAllNodesWithText("80° E").assertCountEquals(0)
@@ -509,23 +523,27 @@ class AvailabilityScreenMapIconStackTest {
      * Dispatch 2026-09-28-549: under Imperial (US) the HUD's elevation reads in whole feet, the same
      * 210 m fix as the metric test below (210 / 0.3048 = 688.98), and the metre figure is gone.
      */
+    // Dispatch 2026-10-12-08 (RECORD -950): navigating, the height is on the strip's line. Was NAVIGATION_HUD_ELEVATION_TAG.
     @Test
-    fun `under the imperial setting the HUD's elevation reads in feet`() {
+    fun `under the imperial setting the elevation shown while navigating reads in feet`() {
         setNavigatingScreen(fix = portlandFix, unitSystemPreferenceRepository = IconStackImperialUnitSystemPreferenceRepository)
         composeRule.waitForIdle()
 
-        assertEquals("689 ft", textOfTag(NAVIGATION_HUD_ELEVATION_TAG))
+        assertEquals("689 ft", textOfTag(COMPASS_STRIP_ELEVATION_TAG))
         composeRule.onAllNodesWithText("210 m").assertCountEquals(0)
     }
 
+    // Dispatch 2026-10-12-08 (RECORD -950: "Height, grid reference and ⋮ show once, on the strip"). Was "while navigating the
+    // HUD's second row shows the elevation and the MGRS grid reference", on the card's tags.
     @Test
-    fun `while navigating the HUD's second row shows the elevation and the MGRS grid reference`() {
+    fun `while navigating the strip shows the elevation and the MGRS grid reference, once`() {
         setNavigatingScreen(fix = portlandFix)
         composeRule.waitForIdle()
 
-        assertEquals("210 m", textOfTag(NAVIGATION_HUD_ELEVATION_TAG))
-        assertEquals("10T ER 25118 40235", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+        assertEquals("210 m", textOfTag(COMPASS_STRIP_ELEVATION_TAG))
+        assertEquals("10T ER 25118 40235", textOfTag(COMPASS_STRIP_COORDINATES_TAG))
         composeRule.onAllNodesWithText("10T ER 25118 40235").assertCountEquals(1)
+        composeRule.onAllNodesWithText("210 m").assertCountEquals(1)
     }
 
     /**
@@ -544,9 +562,10 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Show map controls").assertIsDisplayed()
-        assertEquals("10T ER 25118 40235", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+        // Dispatch 2026-10-12-08 (RECORD -950): the toggle is the strip's while navigating. Was NAVIGATION_HUD_COORDINATES_TAG.
+        assertEquals("10T ER 25118 40235", textOfTag(COMPASS_STRIP_COORDINATES_TAG))
 
-        val bounds = composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG).getUnclippedBoundsInRoot()
+        val bounds = composeRule.onNodeWithTag(COMPASS_STRIP_COORDINATES_TAG).getUnclippedBoundsInRoot()
         val inset = 4.dp
         val samples = listOf(
             DpOffset((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2),
@@ -560,7 +579,7 @@ class AvailabilityScreenMapIconStackTest {
             val point = with(composeRule.density) { Offset(sample.x.toPx(), sample.y.toPx()) }
             composeRule.onRoot().performTouchInput { click(point) }
             composeRule.waitForIdle()
-            assertEquals("touch $index at $sample must flip the format", formats[(index + 1) % 2], textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+            assertEquals("touch $index at $sample must flip the format", formats[(index + 1) % 2], textOfTag(COMPASS_STRIP_COORDINATES_TAG))
             // Still in fullscreen: no touch fell through to the map. The nav is the witness.
             composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
         }
@@ -573,15 +592,18 @@ class AvailabilityScreenMapIconStackTest {
      * would come back on MGRS). A semantic click is enough here: the claim is state, not routing —
      * routing is the real-touch test above.
      */
+    // Dispatch 2026-10-12-08 (RECORD -950): navigating, the format is chosen on the strip, which stays; the claim is that the
+    // choice survives leaving navigation. Was "a coordinate format chosen in the HUD is the format the strip shows after leaving
+    // navigation", choosing on NAVIGATION_HUD_COORDINATES_TAG.
     @Test
-    fun `a coordinate format chosen in the HUD is the format the strip shows after leaving navigation`() {
+    fun `a coordinate format chosen on the strip while navigating is the format it shows after leaving navigation`() {
         val returning = mutableStateOf(true)
         setNavigatingScreen(fix = portlandFix, returning = returning)
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG).performClick()
+        composeRule.onNodeWithTag(COMPASS_STRIP_COORDINATES_TAG).performClick()
         composeRule.waitForIdle()
-        assertEquals("45.5152, -122.6784", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+        assertEquals("45.5152, -122.6784", textOfTag(COMPASS_STRIP_COORDINATES_TAG))
 
         composeRule.runOnUiThread { returning.value = false }
         composeRule.waitForIdle()

@@ -37,6 +37,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.junit.Assert.assertFalse
 
 /**
+ * Dispatch 2026-10-12-08: the navigation card has no three-dot button (RECORD -950, -951); see the test's own comment. Before:
  * RECORD -714 (the owner: "Button moves to second row (Recommended)"): where the navigation display's three-dot button sits,
  * and that real touches across its 36 dp square, corners included, open the quick menu there. At 360 dp the first row cannot
  * give data part B's longest route line its full width beside the button (firstRowHoldsTheButton), so the button ends the
@@ -65,8 +66,17 @@ abstract class NavigationHudButtonPlacementTests {
 
     private fun shown(tag: String) = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -947, the owner: "Yes, only on the strip (Recommended)"; RECORD -950, -951 item 5): the
+     * three-dot button is on the compass strip only, above the X, so the card has none, and the X stands alone at its top right.
+     * Where the button sits on the strip, and real touches across both, are held by `MapTopCardScreenTest`. Was "the button sits
+     * under the X at the card's right edge, and real touches across it open the menu" (RECORD -932's order, which -951 item 5
+     * supersedes): `assertTrue("under the X: ...", button.top >= exit.bottom - 0.5.dp)`, the button at the card's right edge, and
+     * five real touches across the button opening the menu.
+     */
     @Test
-    fun `the button sits under the X at the card's right edge, and real touches across it open the menu`() {
+    fun `the card has no three-dot button, the X is at its top right, and real touches across the X stop navigating`() {
+        var exits = 0
         composeRule.setContent {
             androidx.compose.runtime.key(generation) {
                 NavigationHud(
@@ -76,40 +86,30 @@ abstract class NavigationHudButtonPlacementTests {
                     distanceUnit = DistanceUnit.MILES,
                     currentTime = CurrentTimeProvider { now },
                     showDecimalDegrees = false,
-                    onToggleCoordinateFormat = {},
-                    onExit = {},
+                    onExit = { exits++ },
                     route = ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0),
-                    quickSettings = MapQuickSettings(isRecording = true, backBy = null, onBackByChoice = {}, onClearBackBy = {}, sundown = SundownSettings(), offTrackReminder = OffTrackReminderSettings()),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
         composeRule.waitForIdle()
-        val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
+        assertFalse("no three-dot button in the card", shown(MAP_QUICK_SETTINGS_BUTTON_TAG))
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
         val hud = bounds(NAVIGATION_HUD_TAG)
-        assertEquals("36 dp wide: $button", 36f, (button.right - button.left).value, 0.5f)
-        assertEquals("36 dp tall: $button", 36f, (button.bottom - button.top).value, 0.5f)
-        // Dispatch 2026-10-12-06 (RECORD -932, the owner: "Have the X button go above the three dot menu in the top corner. The
-        // three dot menu can go in the bottom corner"): at every width the button sits under the X at the card's right edge.
-        // Was: at 360 dp at the second row's end (RECORD -714's measured fit), at 384 dp left of the X in its row.
-        assertTrue("under the X: button $button, X $exit", button.top >= exit.bottom - 0.5.dp)
-        assertTrue("at the card's right edge: button $button in $hud", hud.right - button.right <= 16.dp)
         assertTrue("the X at the card's top right: $exit in $hud", hud.right - exit.right <= 8.dp && exit.top - hud.top <= 8.dp)
-        val inset = 3.dp
+        assertEquals("the X's 48 dp touch box: $exit", 48f, (exit.right - exit.left).value, 0.5f)
+        val inset = 4.dp
         val points = listOf(
-            (button.left + button.right) / 2 to (button.top + button.bottom) / 2,
-            button.left + inset to button.top + inset,
-            button.right - inset to button.top + inset,
-            button.left + inset to button.bottom - inset,
-            button.right - inset to button.bottom - inset,
+            (exit.left + exit.right) / 2 to (exit.top + exit.bottom) / 2,
+            exit.left + inset to exit.top + inset,
+            exit.right - inset to exit.top + inset,
+            exit.left + inset to exit.bottom - inset,
+            exit.right - inset to exit.bottom - inset,
         )
-        for ((x, y) in points) {
-            composeRule.touchAt(x, y)
-            assertTrue("a real touch at (${x.value}, ${y.value}) in $button opened the menu", shown(MAP_QUICK_SETTINGS_MENU_TAG))
-            composeRule.runOnIdle { generation++ }
+        for ((i, point) in points.withIndex()) {
+            composeRule.touchAt(point.first, point.second)
             composeRule.waitForIdle()
-            assertFalse("a fresh display before the next touch", shown(MAP_QUICK_SETTINGS_MENU_TAG))
+            assertEquals("a real touch at (${point.first.value}, ${point.second.value}) in $exit stopped navigating", i + 1, exits)
         }
     }
 }

@@ -149,8 +149,14 @@ class NavigationHudKindInStatusTest {
     private fun textOf(tag: String): String =
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().single().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -945, the owner: "Full dividers + by trail under figure (Recommended)"): the kind word is a
+     * small line of its own under the turn line, and no longer leads the status line. Was (dispatch 2026-10-12-06): "at 320 dp the
+     * kind leads the status line, whole, below the figure", asserting `assertEquals("By trail", ...)` and the kind leading the line
+     * under the columns.
+     */
     @Test
-    fun `at 320 dp the kind leads the status line, whole, below the figure`() {
+    fun `at 320 dp the kind is a small line of its own under the turn line, whole`() {
         val longest = cases.single { it.name == "Sharp right, by trail" }
         composeRule.setContent {
             val c = case ?: return@setContent
@@ -163,28 +169,25 @@ class NavigationHudKindInStatusTest {
                 distanceUnit = DistanceUnit.MILES,
                 currentTime = CurrentTimeProvider { now },
                 showDecimalDegrees = false,
-                onToggleCoordinateFormat = {},
                 onExit = {},
                 route = c.route,
-                quickSettings = if (withButton) quickSettings else null,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         composeRule.runOnIdle { case = longest; withButton = true }
         composeRule.waitForIdle()
-        assertEquals("By trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
+        assertEquals("by trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         assertEquals("the kind is whole", null, clipped(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         assertEquals("the figure is whole", null, clipped(NAVIGATION_HUD_DISTANCE_TAG))
         val kind = bounds(NAVIGATION_HUD_DISTANCE_KIND_TAG)
         val figure = bounds(NAVIGATION_HUD_DISTANCE_TAG)
+        val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG)
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
         val hud = bounds(NAVIGATION_HUD_TAG)
         assertTrue("the kind $kind is below the figure $figure", kind.top >= figure.bottom - 0.5.dp)
-        // Dispatch 2026-10-12-06: the status line runs under the three columns. RECORD -942 removed the straight-line note on
-        // the route, so the kind, trimmed from beside the figure, leads a line of its own: "By trail", whole, under the columns.
-        // Was (T11, RECORD -769): "the note gives way whole: the kind stands alone", the kind ending inside a 48 dp first row; then
-        // briefly in this dispatch, the note whole after the lead.
-        assertEquals("no note on the route", "", textOf(NAVIGATION_HUD_STATUS_TAG))
+        assertTrue("the kind $kind is below the turn line (needle $needle)", kind.top >= needle.bottom - 0.5.dp)
+        // RECORD -942: no straight-line note on the route, and the kind no longer leads the status line, so it is empty.
+        assertEquals("the status line is empty: the kind is not in it", "", textOf(NAVIGATION_HUD_STATUS_TAG))
         assertTrue("the kind's line is inside the card, left of the X: $kind in $hud, X $exit", kind.bottom <= hud.bottom && kind.right <= exit.left + 0.5.dp)
     }
 }

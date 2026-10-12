@@ -216,14 +216,18 @@ class AvailabilityScreenSundownLineTest {
         assertFalse(shown(NAVIGATION_HUD_SUNDOWN_LINE_TAG))
     }
 
+    // Dispatch 2026-10-12-08 (RECORD -950: "the strip's own sundown and Back by lines don't also show while navigating"): the strip
+    // stays, without its own line. Was "tapping Return moves the line into the HUD, and the strip with it goes"; the assertions
+    // hold, the strip's line now absent because the strip leaves it out, and the strip's presence is added.
     @Test
-    fun `tapping Return moves the line into the HUD, and the strip with it goes`() {
+    fun `tapping Return moves the line into the navigation info, and the strip stays without it`() {
         setScreen()
         recordingWith(startBackLine())
         composeRule.runOnIdle { returning = true }
         composeRule.waitForIdle()
         assertEquals(expected(), text(NAVIGATION_HUD_SUNDOWN_LINE_TAG))
         assertFalse(shown(STRIP_SUNDOWN_LINE_TAG))
+        assertTrue("the strip stays", shown("compass-elevation-strip"))
     }
 
     @Test

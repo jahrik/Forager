@@ -59,8 +59,9 @@ import org.robolectric.annotation.GraphicsMode
  * finger is not a point, so each target is touched at several points across its own bounds).
  *
  * - The card's controls take touches across them: the X, the three-dot button, the grid reference and Try again.
- * - The X sits above the three-dot button at the card's right edge (the owner: "Have the X button go above the three dot menu
- *   in the top corner. The three dot menu can go in the bottom corner").
+ * - Since dispatch 2026-10-12-08 (RECORD -950, -951 item 5) the strip stays while navigating and its card extends down past a
+ *   thin line: the three-dot button and the grid reference are on the strip's line, above the line, and the X is below it, at
+ *   the navigation info's right edge. This supersedes -932's "Have the X button go above the three dot menu".
  * - The map keeps everything else: the card's rounded lower corners, just below the card, the strip's corners, and the pill's
  *   own rounded corners (the pill is a `Surface`, which takes touches; it must take them only inside its rounded shape).
  * - The pill's lower band, where the card's tuck lies beneath it, is still the pill's: a long-press there does not reach the
@@ -202,35 +203,54 @@ class RoundedMapCardTouchTest {
         assertEquals(5, points.size)
     }
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -951 item 5: "the ⋮ sits above the X in portrait, as in the drawing the owner approved",
+     * superseding -932's order): the three-dot button on the strip's line, above the thin line, and the X below it at the
+     * navigation info's top right; real touches across each reach it, and only it. Was "the X sits above the three-dot button at
+     * the card's right edge, and real touches across the button open its menu": `assertTrue(exit.bottom <= button.top + 0.5.dp)`.
+     */
     @Test
-    fun `the X sits above the three-dot button at the card's right edge, and real touches across the button open its menu`() {
+    fun `the three-dot button sits on the strip's line above the X, and real touches across each reach it alone`() {
         setScreen()
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
         val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
-        val card = bounds(NAVIGATION_HUD_TAG)
-        assertTrue("the X $exit is above the button $button", exit.bottom <= button.top + 0.5.dp)
-        assertTrue("the X is in the card's top right: $exit in $card", card.right - exit.right < 12.dp && exit.top - card.top < 12.dp)
-        assertTrue("the button is at the card's right: $button in $card", card.right - button.right < 18.dp)
+        val info = bounds(NAVIGATION_HUD_TAG)
+        val line = bounds(NAVIGATION_INFO_LINE_TAG)
+        assertTrue("the button $button is above the X $exit", button.bottom <= exit.top + 0.5.dp)
+        assertTrue("the button $button is on the strip's line, above the line $line", button.bottom <= line.top + 0.5.dp)
+        assertTrue("the X $exit is below the line $line, at the navigation info's top right ($info)", exit.top >= line.bottom - 0.5.dp && info.right - exit.right < 12.dp)
+        assertTrue("the two share the card's right edge: button $button, X $exit", kotlin.math.abs((button.right - exit.right).value) < 12f)
         var sampled = 0
         for ((x, y) in across(button)) {
+            val exitsBefore = exits
             touchAt(x, y)
             assertTrue("a real touch at (${x.value}, ${y.value}) on the three-dot button opened the menu", shown(MAP_QUICK_SETTINGS_MENU_TAG))
+            assertEquals("and did not stop navigating", exitsBefore, exits)
             composeRule.runOnIdle { generation++ }
             composeRule.waitForIdle()
             sampled++
         }
-        assertEquals(5, sampled)
+        for ((x, y) in across(exit)) {
+            val before = exits
+            touchAt(x, y)
+            assertEquals("a real touch at (${x.value}, ${y.value}) on the X stopped navigating", before + 1, exits)
+            assertTrue("and opened no menu", !shown(MAP_QUICK_SETTINGS_MENU_TAG))
+            sampled++
+        }
+        assertEquals(10, sampled)
     }
 
+    // Dispatch 2026-10-12-08 (RECORD -950): navigating, the grid reference toggle is the strip's. Was the card's
+    // NAVIGATION_HUD_COORDINATES_TAG.
     @Test
-    fun `real touches across the grid reference toggle it each time`() {
+    fun `real touches across the grid reference on the strip toggle it each time while navigating`() {
         setScreen()
-        val r = bounds(NAVIGATION_HUD_COORDINATES_TAG)
-        var last = textOf(NAVIGATION_HUD_COORDINATES_TAG)
+        val r = bounds(COMPASS_STRIP_COORDINATES_TAG)
+        var last = textOf(COMPASS_STRIP_COORDINATES_TAG)
         var sampled = 0
         for ((x, y) in across(r)) {
             touchAt(x, y)
-            val now = textOf(NAVIGATION_HUD_COORDINATES_TAG)
+            val now = textOf(COMPASS_STRIP_COORDINATES_TAG)
             assertNotEquals("a real touch at (${x.value}, ${y.value}) on the grid reference toggled it", last, now)
             last = now
             sampled++
@@ -239,7 +259,7 @@ class RoundedMapCardTouchTest {
     }
 
     @Test
-    fun `Try again sits on the line under the columns, beside its message, and real touches across it retry`() {
+    fun `Try again sits on the line under the navigation info, beside its message, and real touches across it retry`() {
         setScreen()
         val retry = bounds(NAVIGATION_HUD_RETRY_TAG)
         val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG)

@@ -171,6 +171,20 @@ class RoundedMapCardScreenshotTest {
     @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi")
     fun `landscape 780, navigating, night`() = shoot("landscape-780-navigating-night", Surface.ROTATION_90, returning = true, dark = true)
 
+    // Dispatch 2026-10-12-08: "portrait and landscape, navigating and not, day and night". The two states the set lacked, at night.
+    @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi")
+    fun `portrait 360, not navigating, night`() = shoot("portrait-360-strip-night", null, returning = false, dark = true)
+
+    @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi")
+    fun `landscape 780, not navigating, night`() = shoot("landscape-780-strip-night", Surface.ROTATION_90, returning = false, dark = true)
+
+    // The S22's landscape window, both states, for the owner's "Keep it exactly like this size" check (RECORD -951).
+    @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
+    fun `landscape 823, not navigating, day`() = shoot("landscape-823-strip-day", Surface.ROTATION_90, returning = false, dark = false)
+
+    @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
+    fun `landscape 823, navigating, day`() = shoot("landscape-823-navigating-day", Surface.ROTATION_90, returning = true, dark = false)
+
     private class FixedCompass(degrees: Float) : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(degrees, HeadingUncertainty.Estimated(2f), 0L))
     }

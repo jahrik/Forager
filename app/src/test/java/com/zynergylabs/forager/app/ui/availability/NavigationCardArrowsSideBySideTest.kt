@@ -93,14 +93,6 @@ class NavigationCardArrowsSideBySideTest {
         Case("route unavailable, Try again", fixAt(1_500.0), ReturnRoute.Unavailable(canRetry = true), TrueHeadingReading.Available(11f)),
     )
 
-    private val quickSettings = MapQuickSettings(
-        isRecording = true,
-        backBy = null,
-        onBackByChoice = {},
-        onClearBackBy = {},
-        sundown = SundownSettings(),
-        offTrackReminder = OffTrackReminderSettings(),
-    )
 
     private var case by mutableStateOf<Case?>(null)
 
@@ -121,11 +113,9 @@ class NavigationCardArrowsSideBySideTest {
                 distanceUnit = DistanceUnit.MILES,
                 currentTime = CurrentTimeProvider { now },
                 showDecimalDegrees = c.decimal,
-                onToggleCoordinateFormat = {},
                 onExit = {},
                 route = c.route,
                 facing = c.facing,
-                quickSettings = quickSettings,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -145,9 +135,13 @@ class NavigationCardArrowsSideBySideTest {
             val arrowMid = (arrow.top + arrow.bottom) / 2
             assertTrue("${c.name} at $width: the two arrows share a line (centres $needleMid and $arrowMid)", abs((needleMid - arrowMid).value) <= 2f)
             assertTrue("${c.name} at $width: the needle $needle is left of the compass arrow $arrow", needle.right <= arrow.left)
+            // Dispatch 2026-10-12-08 (RECORD -950, the owner: "The arrows being side by side is a compass visual"; the drawing's
+            // "ahead 1° ▲ ▲ 134° SE"): the two arrows are neighbours on one line, nothing between them but the line's own gap.
+            // Was (dispatch 2026-10-12-06's three columns): one divider between them, `assertEquals(1, between.size)`, and 13 dp
+            // apart, the divider and its gaps.
             val between = dividers.filter { it.left >= needle.right - 0.5.dp && it.right <= arrow.left + 0.5.dp }
-            assertEquals("${c.name} at $width: one divider between the arrows, $dividers", 1, between.size)
-            assertEquals("${c.name} at $width: nothing but the divider and its gaps between them", 13f, (arrow.left - needle.right).value, 1f)
+            assertEquals("${c.name} at $width: no divider between the arrows, $dividers", 0, between.size)
+            assertEquals("${c.name} at $width: the arrows are neighbours, the line's 4 dp gap apart", 4f, (arrow.left - needle.right).value, 1f)
             sampled++
         }
         assertEquals("every state was measured", cases.size, sampled)
