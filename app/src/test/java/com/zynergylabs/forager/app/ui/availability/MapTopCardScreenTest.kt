@@ -233,7 +233,10 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
             last = now
             sampled++
         }
-        for ((x, y) in across(bounds(MAP_QUICK_SETTINGS_BUTTON_TAG))) {
+        // The button's bounds are read before each touch: each fresh screen (refresh) starts back on MGRS, which changes the
+        // landscape strip's width, and where the strip is left-aligned (ROTATION_270) its button moves with its right end.
+        for (i in 0 until 5) {
+            val (x, y) = across(bounds(MAP_QUICK_SETTINGS_BUTTON_TAG))[i]
             val before = exits
             touchAt(x, y)
             assertTrue("a real touch at (${x.value}, ${y.value}) on the three-dot button opened the menu", shown(MAP_QUICK_SETTINGS_MENU_TAG))
@@ -330,41 +333,6 @@ class MapTopCardPortraitScreenTest : MapTopCardScreenTests(rotation = null) {
         val further = px(x, line.bottom + 10.dp)
         println("MEASURED one card: line $line, just below ${lum(justBelow)}, further ${lum(further)}")
         assertTrue("no shadow cast at the line, as a second tuck would: ${lum(justBelow)} against ${lum(further)}", lum(justBelow) >= lum(further) * 0.98f)
-    }
-}
-
-/**
- * RECORD -951, item 11: "re-run the probe on the new card and report". A probe, not a guard, as at a8db59f9: the real screen,
- * navigating, over the stand-in map's flat background, and each pixel row of the card printed with its lightest and darkest red
- * and the runs at the lightest, so a lighter patch inside the shadow under the 0.8 fill can be found, or not. Its only assertion
- * is the positive control that the card was there to read. Removed once its output is read and recorded.
- */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w412dp-h915dp-xxhdpi")
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-class MapTopCardShadowPatchProbeTest : MapTopCardScreenTests(rotation = null) {
-    @Test
-    fun `probe the new card's pixels for a lighter patch`() {
-        setScreen()
-        val card = bounds(TOP_CARD_STRIP_TAG)
-        assertTrue("positive control: the card is on screen, navigating", shown(NAVIGATION_HUD_TAG))
-        val image = composeRule.onRoot().captureToImage().toPixelMap()
-        val density = composeRule.density
-        val top = with(density) { card.top.toPx().toInt() }
-        val bottom = with(density) { card.bottom.toPx().toInt() }
-        println("PROBE|card $card, px rows $top..$bottom of ${image.height}, width ${image.width}")
-        for (y in top until bottom step 3) {
-            val reds = (0 until image.width).map { (image[it, y].red * 255f).toInt() }
-            val max = reds.max()
-            val runs = mutableListOf<String>()
-            var start = -1
-            for (x in reds.indices) {
-                val light = reds[x] >= max - 1
-                if (light && start < 0) start = x
-                if ((!light || x == reds.lastIndex) && start >= 0) { runs += "$start-$x"; start = -1 }
-            }
-            println("PROBE|y=$y|min=${reds.min()}|max=$max|lightRuns=${runs.take(8)}")
-        }
     }
 }
 

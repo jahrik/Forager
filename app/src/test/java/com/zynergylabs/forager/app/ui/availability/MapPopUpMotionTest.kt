@@ -429,15 +429,19 @@ class MapPopUpMotionTest {
         val strip = boundsOf(STRIP_TAG)
         switchReturning(true)
         val infoSettled = boundsOf(NAVIGATION_HUD_TAG)
-        assertEquals("navigating, the strip's top is where it was", strip.top.value, boundsOf(STRIP_TAG).top.value, 0.5f)
+        val cardSettled = boundsOf(STRIP_TAG)
+        assertEquals("navigating, the strip's top is where it was", strip.top.value, cardSettled.top.value, 0.5f)
         switchReturning(false)
 
         pauseAfter { composeRule.runOnUiThread { returning = true } }
         assertTrue("the strip is on screen throughout", shown(STRIP_TAG))
         assertTrue("the info is on screen, arriving", shown(NAVIGATION_HUD_TAG))
         val infoMid = boundsOf(NAVIGATION_HUD_TAG)
+        val cardMid = boundsOf(STRIP_TAG)
         assertEquals("mid-start the info's top ${infoMid.describe()} is where it settles ${infoSettled.describe()}", infoSettled.top.value, infoMid.top.value, 0.5f)
-        assertTrue("mid-start the info ${infoMid.describe()} is shorter than it settles ${infoSettled.describe()}: it grows down", infoMid.bottom < infoSettled.bottom - 0.5.dp)
+        // The card (the strip's own card, which the info extends) grows down: laid out, so its fill grows with it.
+        assertTrue("mid-start the card ${cardMid.describe()} is shorter than it settles ${cardSettled.describe()}: it extends down", cardMid.bottom < cardSettled.bottom - 0.5.dp)
+        assertTrue("and taller than the strip alone ${strip.describe()}", cardMid.bottom > strip.bottom + 0.5.dp)
         settle()
         assertEquals("and the info settled in its place", infoSettled, boundsOf(NAVIGATION_HUD_TAG))
 

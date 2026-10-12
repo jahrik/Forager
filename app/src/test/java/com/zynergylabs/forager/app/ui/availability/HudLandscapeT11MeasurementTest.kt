@@ -366,7 +366,9 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
         composeRule.runOnIdle { recording = true; returning = true; route = ReturnRoute.Pending }
         settle()
         // T11 fixes (RECORD -766): the no-fix message may now take its short form, "No location".
-        assertHudReads("01", NAVIGATION_HUD_STATUS_TAG) { it == NO_FIX_MESSAGE || it == NO_FIX_SHORT_TEXT }
+        // Dispatch 2026-10-12-08 (RECORD -951, option (a)): the no-fix message shows once, on the strip, which stays while
+        // navigating; the card's status line leaves it out. Was the card's NAVIGATION_HUD_STATUS_TAG reading it.
+        assertHudReads("01", COMPASS_STRIP_NO_FIX_TAG) { it == NO_FIX_MESSAGE }
         measure("01-return-nofix")
 
         // 2. The route home with data part B's longest lines: "sharp right 169°", "1280 ft" "by trail", "≈ 1250 ft straight", 9843 ft.

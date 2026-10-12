@@ -599,11 +599,17 @@ private fun LeftPart(readout: NavigationHudReadout, fit: NavigationInfoFit, modi
         Row(
             modifier = Modifier.heightIn(min = COMPASS_ICON_SIZE),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            // Always composed, empty when there is no turn to word (the approach, no compass, no aim), as before.
+            // Always composed, empty when there is no turn to word (the approach, no compass, no aim), as before. Its gap is its
+            // own end padding, there only with words, so an empty slot adds no gap (what [navigationInfoFit] measures).
             WordSwap(text = fit.turnText, contentAlignment = Alignment.CenterEnd) { shown ->
-                Text(text = shown, style = small, maxLines = 1, softWrap = false, modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG))
+                Text(
+                    text = shown,
+                    style = small,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(end = if (shown.isEmpty()) 0.dp else Spacing.xs).testTag(NAVIGATION_HUD_TARGET_TAG),
+                )
             }
             // The needle stays whatever the words beside it do (T11 fixes), dimmed when there is nothing to point at. Its tag is
             // on the unrotated square it is laid out in, so its bounds are where it sits, not its rotated drawing's box.
@@ -615,6 +621,8 @@ private fun LeftPart(readout: NavigationHudReadout, fit: NavigationInfoFit, modi
                     modifier = Modifier.size(COMPASS_ICON_SIZE).rotate(readout.targetArrowDegrees ?: 0f),
                 )
             }
+            // The two arrows neighbours (RECORD -950: "The arrows being side by side is a compass visual"): one small gap.
+            Spacer(Modifier.width(NAVIGATION_ARROWS_GAP))
             if (fit.headingAsIcon) {
                 // RECORD -934: a compass status whose words do not fit takes RECORD -735's crossed-out compass, its words kept as
                 // the icon's description for a screen reader.
@@ -634,14 +642,17 @@ private fun LeftPart(readout: NavigationHudReadout, fit: NavigationInfoFit, modi
                 }
                 // Motion Part 2, item 6 (RECORD -651: "Numbers instant, words fade"). With no fix and only the dash to say, the
                 // heading is not drawn (NavigationHudReadout.secondRowShown).
-                if (readout.secondRowShown) WordSwap(text = readout.headingText) { shown ->
-                    Text(
-                        text = shown,
-                        style = small.copy(fontFeatureSettings = "tnum"),
-                        maxLines = 1,
-                        softWrap = false,
-                        modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
-                    )
+                if (readout.secondRowShown) {
+                    Spacer(Modifier.width(Spacing.xs))
+                    WordSwap(text = readout.headingText) { shown ->
+                        Text(
+                            text = shown,
+                            style = small.copy(fontFeatureSettings = "tnum"),
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
+                        )
+                    }
                 }
             }
         }
@@ -682,7 +693,7 @@ private fun EveningStack(sundownLine: String?, backByLine: String?) {
                     ) {
                         eveningPieces(whole, null).forEach { piece ->
                             WordSwap(text = piece) { shown ->
-                                Text(text = shown, style = style, textAlign = TextAlign.Center, modifier = Modifier.testTag(NAVIGATION_HUD_EVENING_PIECE_TAG))
+                                Text(text = shown, style = style, modifier = Modifier.testTag(NAVIGATION_HUD_EVENING_PIECE_TAG))
                             }
                         }
                     }
@@ -1279,6 +1290,9 @@ internal fun formatFixAge(ageMillis: Long): String {
 }
 
 private val COMPASS_ICON_SIZE = 22.dp
+
+/** Dispatch 2026-10-12-08: the gap between the turn needle and the north arrow, neighbours on one line (RECORD -950). */
+private val NAVIGATION_ARROWS_GAP = Spacing.xs
 
 /** Dispatch 2026-10-12-06: the card's column dividers, thin lines with this gap either side (6 dp, RECORD -936's tighter spacing). */
 private val CARD_DIVIDER_WIDTH = 1.dp

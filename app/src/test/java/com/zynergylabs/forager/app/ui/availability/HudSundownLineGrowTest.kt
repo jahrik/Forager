@@ -65,6 +65,7 @@ class HudSundownLineGrowTest {
     private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     private var line by mutableStateOf<String?>(null)
+    private var backBy by mutableStateOf<String?>(null)
 
     @After
     fun restore() {
@@ -86,6 +87,7 @@ class HudSundownLineGrowTest {
                     onExit = {},
                     modifier = Modifier.fillMaxWidth(),
                     sundownLine = line,
+                    backByLine = backBy,
                 )
             }
         }
@@ -122,7 +124,7 @@ class HudSundownLineGrowTest {
         show()
         val short = hudHeight()
         composeRule.mainClock.autoAdvance = false
-        composeRule.runOnUiThread { line = SUNDOWN; Snapshot.sendApplyNotifications() }
+        composeRule.runOnUiThread { line = SUNDOWN; backBy = BACK_BY; Snapshot.sendApplyNotifications() }
         val growingFrames = heightsOverFrames(20)
         assertTrue("the line is drawn", composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG).fetchSemanticsNodes().isNotEmpty())
         settle()
@@ -132,7 +134,7 @@ class HudSundownLineGrowTest {
         assertTrue("caught growing: some frame between $short and $tall in $growingFrames", growingFrames.any { it > short + 0.5.dp && it < tall - 0.5.dp })
 
         composeRule.mainClock.autoAdvance = false
-        composeRule.runOnUiThread { line = null; Snapshot.sendApplyNotifications() }
+        composeRule.runOnUiThread { line = null; backBy = null; Snapshot.sendApplyNotifications() }
         val shrinkingFrames = heightsOverFrames(20)
         assertTrue("caught shrinking: some frame between $short and $tall in $shrinkingFrames", shrinkingFrames.any { it > short + 0.5.dp && it < tall - 0.5.dp })
         settle()
@@ -150,6 +152,11 @@ class HudSundownLineGrowTest {
     }
 
     private companion object {
-        const val SUNDOWN = "Sunset 7:42 PM · start back by 7:12 PM"
+        // Dispatch 2026-10-12-08 (RECORD -945, -950): the evening stack sits beside the navigation info's left part (the distance,
+        // the turn line, the kind), about 70 dp, so a two-piece line (32 dp) no longer makes the card taller, and the claim (it
+        // grows over frames when the lines open) is read with RECORD -941's own example and Back by, five pieces, about 80 dp.
+        // Was "Sunset 7:42 PM · start back by 7:12 PM" alone.
+        const val SUNDOWN = "Sunset 12:41 AM · in 2 h 28 min · dark 1:13 · start back by 12:31"
+        const val BACK_BY = "Back by 1:30 AM"
     }
 }

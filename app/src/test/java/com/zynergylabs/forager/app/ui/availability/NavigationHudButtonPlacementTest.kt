@@ -97,7 +97,8 @@ abstract class NavigationHudButtonPlacementTests {
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
         val hud = bounds(NAVIGATION_HUD_TAG)
         assertTrue("the X at the card's top right: $exit in $hud", hud.right - exit.right <= 8.dp && exit.top - hud.top <= 8.dp)
-        assertEquals("the X's 48 dp touch box: $exit", 48f, (exit.right - exit.left).value, 0.5f)
+        // Material's icon button: laid out at 40 dp, its touch target reaching 48 dp by expansion (not in its bounds).
+        assertEquals("the X is Material's 40 dp icon button: $exit", 40f, (exit.right - exit.left).value, 0.5f)
         val inset = 4.dp
         val points = listOf(
             (exit.left + exit.right) / 2 to (exit.top + exit.bottom) / 2,
