@@ -101,7 +101,13 @@ class SundownWatchWakeUpTest {
             assertEquals(expected, delivered.last().second)
         }
         assertEquals("each once", listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET), delivered.map { it.second })
-        assertEquals("one wake-up each, at the heads-up's, the leave-by's and sunset's due time", listOf(headsUpAt, leaveBy, sunset), scheduled())
+        // Each due time is worked out again at the tick that schedules it, from that tick's fix, so it moves by
+        // under a second (CI, 2026-10-12: leave-by 466 ms, sunset 174 ms): within a second, as the fixes above are.
+        val wakeUps = scheduled()
+        assertEquals("one wake-up each, for the heads-up, the leave-by and sunset: $wakeUps", 3, wakeUps.size)
+        listOf(headsUpAt, leaveBy, sunset).zip(wakeUps).forEach { (due, at) ->
+            assertEquals("a wake-up at its alert's due time: $wakeUps", due.toDouble(), at.toDouble(), 1_000.0)
+        }
         assertEquals("all given: the wake-up cancelled", "cancel", alarmCalls.last().first)
     }
 
@@ -112,7 +118,8 @@ class SundownWatchWakeUpTest {
         watch.onFix(gpsFix(here), FixProvider.GPS).let { } // keeps the walk back fresh; its answer is not what is tested
         runBlocking { watch.onAlarm() }
         assertEquals(listOf(AlertKind.HEADS_UP), delivered.map { it.second })
-        assertEquals("the next wake-up is the leave-by's", headsUpAt + SUNDOWN_HEADS_UP_LEAD_MILLIS, scheduled().last())
+        // Within a second, for the reason the test above gives.
+        assertEquals("the next wake-up is the leave-by's", (headsUpAt + SUNDOWN_HEADS_UP_LEAD_MILLIS).toDouble(), scheduled().last().toDouble(), 1_000.0)
     }
 
     @Test
