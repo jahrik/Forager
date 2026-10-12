@@ -688,16 +688,21 @@ internal fun CompactMainScaffold(
         // so no control sits under the rail or the system bar. The top needs nothing here: the
         // Map tab's Scaffold padding already keeps the whole tab below the status bar, as in
         // portrait. Zero everywhere else, so portrait is untouched.
+        // RECORD -956: the rail is on the screen's right at both rotations, but the system navigation bar stays on the port edge,
+        // the screen's left at ROTATION_270: so the controls are kept clear of the navigation bar on both sides, always, and of the
+        // rail on the right (the cut-out, on both sides, as before, wherever the camera falls).
         val mapControlsPadding = if (showRail) {
-            val portSide = portEdge.horizontalInsetsSide()
-            val portInset = if (isMapFullscreen()) {
-                WindowInsets.navigationBars.only(portSide)
+            val railInset = if (isMapFullscreen()) {
+                WindowInsets(0.dp)
             } else if (portEdge == ScreenEdge.Left) {
                 WindowInsets(left = mapRailWidth)
             } else {
                 WindowInsets(right = mapRailWidth)
             }
-            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal).union(portInset).asPaddingValues()
+            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+                .union(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal))
+                .union(railInset)
+                .asPaddingValues()
         } else {
             PaddingValues(0.dp)
         }

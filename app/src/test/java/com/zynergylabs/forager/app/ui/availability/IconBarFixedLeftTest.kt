@@ -67,8 +67,9 @@ abstract class IconBarFixedLeftTests(private val rotation: Int, private val land
     /** The saved side, the right: in landscape stored as the port or punch-hole side, whichever is the screen's right here. */
     private val savedRight: MapIconClusterPlacement get() = MapIconClusterPlacement.DEFAULT.copy(
         portraitOnLeft = false,
-        // At ROTATION_90 the port (the rail) is on the right; at ROTATION_270 on the left, so the right is the punch-hole side.
-        landscapeOnPortSide = rotation == Surface.ROTATION_90,
+        // RECORD -956: the stored port side is the screen's right at both rotations (the rail's side). Was: the port side at
+        // ROTATION_90, the punch-hole side at ROTATION_270, when the port followed the rotation.
+        landscapeOnPortSide = true,
     )
 
     private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag("icon-bar-fixed-map")) }

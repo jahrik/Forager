@@ -29,9 +29,7 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
-import com.zynergylabs.forager.app.ui.adaptive.currentWindowPortEdge
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
-import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinConfirmActions
 import com.zynergylabs.forager.app.ui.map.CentrePinInstruction
 import com.zynergylabs.forager.app.ui.map.CentrePinMap
@@ -299,7 +297,9 @@ internal fun OfflineMapsPanel(
     if (isLandscapeWindow()) {
         OfflineMapsSideBySide(
             modifier = modifier,
-            controlsFirst = currentWindowPortEdge() == ScreenEdge.Left,
+            // RECORD -956 (the planner's answer 3): the controls on the right, beside the rail, at both rotations. Was "first
+            // when the port edge is the left", which put them on the left at ROTATION_270.
+            controlsFirst = false,
             map = { mapModifier -> pickerMap(isNightMode, mapModifier) },
             instruction = instruction,
             details = details,

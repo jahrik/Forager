@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.adaptive.mainWindowSearchEdgeFor
+import com.zynergylabs.forager.app.ui.adaptive.mainWindowRailEdgeFor
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
@@ -273,10 +275,7 @@ import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.backup.BackupControls
-import com.zynergylabs.forager.app.ui.adaptive.currentWindowPortEdge
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
-import com.zynergylabs.forager.app.ui.adaptive.punchHoleEdgeFor
-import com.zynergylabs.forager.app.ui.log.currentDisplayRotation
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.CameraXInAppCamera
 import com.zynergylabs.forager.app.ui.log.InAppCameraHost
@@ -1476,15 +1475,14 @@ fun AvailabilityScreen(
             overMap = compactTab == CompactTab.MAP,
         )
     }
-    val portEdge = currentWindowPortEdge()
-    // Landscape B2 (S1): the punch-hole edge, where the search bar, its filter chip and the icon
-    // cluster's default side go in a short landscape window. From punchHoleEdgeFor — the port
-    // edge's opposite, by the one rotation-to-edge mapping in PortEdge.kt — never derived a second
-    // way here. Read only while the rail shows, like portEdge.
-    val punchHoleEdge = punchHoleEdgeFor(
-        windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE,
-        displayRotation = currentDisplayRotation(),
-    )
+    // RECORD -956 ("One should look exactly line the other"): the rail's edge and the search bar's edge are the screen's right and
+    // left in landscape, whatever the rotation (mainWindowRailEdgeFor). The names stay portEdge and punchHoleEdge because every
+    // site below reads them; they no longer follow the charging port or the camera. Was currentWindowPortEdge() and
+    // punchHoleEdgeFor(rotation), which mirrored the screen at ROTATION_270.
+    val mainWindowLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val portEdge = mainWindowRailEdgeFor(mainWindowLandscape)
+    // Landscape B2 (S1): where the search bar, its filter chip and the icon cluster's default side go: the screen's left (-956).
+    val punchHoleEdge = mainWindowSearchEdgeFor(mainWindowLandscape)
 
     // Workstream L4b-R2: the one wrapped "leaving without answering" callback, hoisted here (rather
     // than declared separately inside compactMainScaffold) so "every in-app exit offers a discard action" stays one fact about one
