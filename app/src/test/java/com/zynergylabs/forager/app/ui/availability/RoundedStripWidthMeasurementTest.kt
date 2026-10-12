@@ -1,8 +1,15 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import android.app.Application
+import android.content.ComponentName
+import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.test.core.app.ApplicationProvider
+import org.junit.rules.ExternalResource
+import org.junit.rules.RuleChain
+import org.robolectric.Shadows
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -29,8 +36,18 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class RoundedStripWidthMeasurementTest {
 
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    // The host activity declared, as the other Robolectric Compose tests here do; the first run failed without it.
+    private val declareHostActivity = object : ExternalResource() {
+        override fun before() {
+            val app = ApplicationProvider.getApplicationContext<Application>()
+            Shadows.shadowOf(app.packageManager).addActivityIfNotPresent(ComponentName(app, ComponentActivity::class.java))
+        }
+    }
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val small = listOf(
         "by trail", "straight",
