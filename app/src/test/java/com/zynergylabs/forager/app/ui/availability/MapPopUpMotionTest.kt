@@ -424,7 +424,7 @@ class MapPopUpMotionTest {
      * a long-press on it reaching the map, and the display sliding (`hudMid.top < hudSettled.top`).
      */
     @Test
-    fun `starting navigation, the strip stays and the navigation info grows down under its line; leaving, it takes no touch`() {
+    fun `starting navigation, the strip stays and the navigation info grows down under its line, and leaving it takes no touch`() {
         setScreen()
         val strip = boundsOf(STRIP_TAG)
         switchReturning(true)
