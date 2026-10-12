@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.SideEffect
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.ui.text.style.TextAlign
@@ -301,6 +302,12 @@ internal fun NavigationHud(
      */
     eveningLineBottomLimitInRootPx: Float? = null,
     /**
+     * RECORD -955 ("C yes", extending -770 to the landscape card on the bottom edge, RECORD -953): the highest the card's top may
+     * reach, in the root, so that it covers neither Reset north nor the walker's dot; `null` puts no limit. Where the evening
+     * lines would take the card's top above it, they leave the card ([eveningStackFitsBelow]); the alerts are unaffected.
+     */
+    eveningLineTopLimitInRootPx: Float? = null,
+    /**
      * RECORD -844, -845: the return has ended on arrival and the display holds "Arrived" until it closes by
      * itself. The large slot reads "Arrived" whatever the fix says ([heldArrivalReadout]), so a drive-off
      * inside the hold does not turn it back into a distance.
@@ -340,6 +347,7 @@ internal fun NavigationHud(
                 sundownLine = sundownLine,
                 backByLine = backByLine,
                 eveningLineBottomLimitInRootPx = eveningLineBottomLimitInRootPx,
+                eveningLineTopLimitInRootPx = eveningLineTopLimitInRootPx,
                 arrivalHeld = arrivalHeld,
             )
         }
@@ -385,6 +393,7 @@ internal fun NavigationInfo(
     sundownLine: String? = null,
     backByLine: String? = null,
     eveningLineBottomLimitInRootPx: Float? = null,
+    eveningLineTopLimitInRootPx: Float? = null,
     arrivalHeld: Boolean = false,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
@@ -399,7 +408,17 @@ internal fun NavigationInfo(
     }
     val liveReadout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
     val readout = if (arrivalHeld) heldArrivalReadout(liveReadout) else liveReadout
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    // RECORD -955: the info's own bottom and height in the root, for a card anchored to the bottom edge (RECORD -953), whose top is
+    // its bottom less its height. Whether the stack is shown changes the height, not the bottom, so the decision reads the height
+    // with the stack's share taken back out ([lastEveningShown]), and cannot feed back into itself.
+    var infoBottomInRootPx by remember { mutableFloatStateOf(Float.NaN) }
+    var infoHeightPx by remember { mutableFloatStateOf(0f) }
+    var lastEveningShown by remember { mutableStateOf(false) }
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { infoBottomInRootPx = it.positionInRoot().y + it.size.height; infoHeightPx = it.size.height.toFloat() },
+    ) {
         val metrics = rememberInfoMetrics()
         val partsPx = constraints.maxWidth - metrics.fixedPx
         // RECORD -770: where the parts and the lines under them end without the evening stack, which the stack does not change, so
@@ -411,12 +430,15 @@ internal fun NavigationInfo(
         val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
         val pieceHeightPx = rememberTextMeasurer().measure("Sunset", eveningStyle, maxLines = 1).size.height
         val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
+        val stackExtraPx = maxOf(0f, pieces.size * pieceHeightPx - leftHeightPx)
+        val heightWithoutStackPx = infoHeightPx - if (lastEveningShown) stackExtraPx else 0f
         val eveningShown = pieces.isNotEmpty() && eveningLineFits(
             partsTopInRootPx + linesBelowHeightPx,
             maxOf(leftHeightPx, (pieces.size * pieceHeightPx).toFloat()),
             bottomPaddingPx,
             eveningLineBottomLimitInRootPx,
-        )
+        ) && eveningStackFitsBelow(infoBottomInRootPx, heightWithoutStackPx + stackExtraPx, eveningLineTopLimitInRootPx)
+        SideEffect { lastEveningShown = eveningShown }
         val shownSundown = sundownLine.takeIf { eveningShown }
         val shownBackBy = backByLine.takeIf { eveningShown }
         // Each evening line's own visibility, so the right part keeps a leaving line's width until its exit has run. Without it the

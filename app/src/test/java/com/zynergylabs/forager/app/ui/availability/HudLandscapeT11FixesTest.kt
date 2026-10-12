@@ -337,8 +337,11 @@ abstract class HudLandscapeT11Fixes {
         assertTrue("the stack is inside the display: $back in $both", back.bottom <= both.bottom + 0.5.dp && sundown.top >= both.top - 0.5.dp)
     }
 
+    // RECORD -955, D (the owner: "D allow"): Try again may make the card taller. Was "… the display is no taller for it …",
+    // `assertEquals((onRoute.bottom - onRoute.top), (hud.bottom - hud.top))` (RECORD -766). The new assertion: taller by no more than
+    // Try again's own 48 dp row; its place beside the message and the five real touches across it stay as they were.
     @Test
-    fun `item 2 Try again sits beside its message, the display is no taller for it, and real touches across it retry`() {
+    fun `item 2 Try again sits beside its message, the display grows by at most its row, and real touches across it retry`() {
         setScreen(Surface.ROTATION_90, clusterOnRailSide = false)
         val onRoute = tag(NAVIGATION_HUD_TAG)
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
@@ -349,7 +352,8 @@ abstract class HudLandscapeT11Fixes {
         assertTrue("positive control: the message reads <${textOf(NAVIGATION_HUD_DISTANCE_TAG)}>", textOf(NAVIGATION_HUD_DISTANCE_TAG) in setOf(ROUTE_UNAVAILABLE_TEXT, ROUTE_UNAVAILABLE_SHORT_TEXT))
         assertTrue("beside: Try again $retry starts right of the message $message", retry.left >= message.right - 0.5.dp)
         assertTrue("beside: Try again $retry is level with the message $message", retry.top < message.bottom && message.top < retry.bottom)
-        assertEquals("the display is no taller for Try again: $onRoute then $hud", (onRoute.bottom - onRoute.top).value, (hud.bottom - hud.top).value, 0.5f)
+        println("MEASURED Try again: the display $onRoute on the route, then $hud")
+        assertTrue("the display grows by at most Try again's 48 dp row: $onRoute then $hud", (hud.bottom - hud.top) <= (onRoute.bottom - onRoute.top) + 48.5.dp)
         assertTrue("still at least 48 dp tall: $retry", retry.bottom - retry.top >= 47.5.dp)
         fractions().forEachIndexed { i, (fx, fy) ->
             composeRule.touchAt(retry.left + (retry.right - retry.left) * fx, retry.top + (retry.bottom - retry.top) * fy)

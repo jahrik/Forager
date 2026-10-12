@@ -1056,6 +1056,28 @@ private fun navigationChromeTransitions(): Pair<EnterTransition, ExitTransition>
 }
 
 /**
+ * RECORD -955, C: the highest the landscape card's top may reach, in the root: the walker's dot's bottom, and, where the L is in the
+ * card's columns, the bottom of Reset north (the L's second row). `null` before the map is measured.
+ */
+private fun cardTopLimitInRootPx(cluster: MapIconClusterState, density: androidx.compose.ui.unit.Density): Float? {
+    val mapHeight = cluster.mapContentBoxHeightPx
+    if (mapHeight <= 0f) return null
+    val dotY = cluster.mapContentBoxTopInRootPx + (mapHeight + mapHeight * com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2f
+    val dotBottom = dotY + with(density) { WALKER_DOT_CLEARANCE.toPx() }
+    val l = cluster.clusterBoundsInRoot
+    val card = cluster.navigationCardBoundsInRoot
+    val resetBottom = if (l != null && card != null && l.left < card.right && card.left < l.right) {
+        l.top + with(density) { (com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET * 2 + com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING).toPx() }
+    } else {
+        null
+    }
+    return maxOf(dotBottom, resetBottom ?: dotBottom)
+}
+
+/** RECORD -955: the walker's dot's radius, the clearance the card keeps below its centre (the tests' WALKER_DOT_RADIUS). */
+internal val WALKER_DOT_CLEARANCE = 12.dp
+
+/**
  * RECORD -953: the landscape navigation card's motion, [navigationChromeTransitions] flipped: it slides up from the screen's bottom
  * edge by its own height, with a fade, on the same timing, and back down; under reduced motion it only fades.
  */
@@ -1670,12 +1692,19 @@ private fun BoxScope.CompactMapNavigationDisplay(
             arrivalHeld = navigation.isArrivalHeld,
             sundownLine = sundownLine,
             backByLine = backByLine,
+            // RECORD -955, C ("C yes", extending -770): the evening lines leave the card where they would take its top over Reset
+            // north or the walker's dot. The dot sits where the navigation view puts it (the map's height times
+            // NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding), WALKER_DOT_CLEARANCE its radius. Reset north is the L's second
+            // row, counted only where the L and the card share columns.
+            eveningLineTopLimitInRootPx = cardTopLimitInRootPx(cluster, density),
             // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
             cardCorners = MapCardCorners.TOP,
             modifier = Modifier
                 .fillMaxWidth()
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
-                .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier),
+                .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
+                // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
+                .onGloballyPositioned { coordinates -> cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot() },
         )
     }
     }

@@ -158,5 +158,12 @@ internal fun routeMessageFit(availablePx: Int, widthInLargeType: (String) -> Int
  * the line, the rows' bottom [rowsBottomPx] plus the line and the display's bottom padding, must end within it; without a
  * limit, or before the rows are measured, it always may.
  */
+/**
+ * RECORD -955 ("C yes"): for the landscape card on the bottom edge (RECORD -953), whether the card, [heightWithStackPx] tall with
+ * the evening stack, keeps its top at or below [limitTopPx] from its fixed [bottomPx]. `null` limit, or not yet measured: it fits.
+ */
+internal fun eveningStackFitsBelow(bottomPx: Float, heightWithStackPx: Float, limitTopPx: Float?): Boolean =
+    limitTopPx == null || bottomPx.isNaN() || bottomPx - heightWithStackPx >= limitTopPx - 0.5f
+
 internal fun eveningLineFits(rowsBottomPx: Float, lineHeightPx: Float, bottomPaddingPx: Float, limitPx: Float?): Boolean =
     limitPx == null || rowsBottomPx.isNaN() || rowsBottomPx + lineHeightPx + bottomPaddingPx <= limitPx + 0.5f
