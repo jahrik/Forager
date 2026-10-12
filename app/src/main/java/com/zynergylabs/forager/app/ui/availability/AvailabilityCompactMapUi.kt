@@ -1750,6 +1750,8 @@ private fun BoxScope.CompactMapBottomChrome(
                 // 80%, the standing opacity for chrome over the map — see this bar's own
                 // containerColor doc comment.
                 containerColor = navigationBarContainerColor().copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
+                // RECORD -937: rounded top corners over the map, as the card's.
+                topCornerRadius = MAP_CARD_CORNER_RADIUS,
                 isDrawerOpen = isDrawerOpen,
                 onTabSelected = onBottomNavTabSelected,
                 modifier = Modifier

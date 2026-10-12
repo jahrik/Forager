@@ -325,6 +325,31 @@ class RoundedMapCardTouchTest {
         assertTrue("sampled enough points: $sampled", sampled >= 5)
     }
 
+    /**
+     * RECORD -937: the bottom navigation bar's rounded top corners are cut from its touch area, so long-presses in the two corner
+     * gaps reach the map; just inside each corner, on the bar itself, they do not. Robolectric reports zero window insets, so
+     * the bar here is its content height alone; its height and look against the real system bar are device items.
+     */
+    @Test
+    fun `long-presses in the bottom bar's rounded top corners reach the map, and the bar keeps the rest`() {
+        setScreen()
+        val bar = bounds(COMPACT_BOTTOM_NAV_TAG)
+        var sampled = 0
+        for ((x, y) in listOf(bar.left + 2.dp to bar.top + 2.dp, bar.right - 2.dp to bar.top + 2.dp, bar.left + 4.dp to bar.top + 1.dp, bar.right - 4.dp to bar.top + 1.dp)) {
+            val before = longPresses
+            longPressAt(x, y)
+            assertEquals("a long-press at (${x.value}, ${y.value}) in the bar's rounded corner reached the map (bar $bar)", before + 1, longPresses)
+            sampled++
+        }
+        assertEquals(4, sampled)
+        // Positive control: on the bar, clear of its corners, the bar takes the long-press.
+        for ((x, y) in listOf(bar.left + 20.dp to bar.top + 4.dp, bar.right - 20.dp to bar.top + 4.dp)) {
+            val before = longPresses
+            longPressAt(x, y)
+            assertEquals("a long-press at (${x.value}, ${y.value}) on the bar itself stayed the bar's", before, longPresses)
+        }
+    }
+
     private class FixedCompass(degrees: Float) : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(degrees, HeadingUncertainty.Estimated(2f), 0L))
     }

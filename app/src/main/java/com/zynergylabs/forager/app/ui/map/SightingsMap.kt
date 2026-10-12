@@ -32,6 +32,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color as ComposeColor
@@ -1445,18 +1446,41 @@ fun SightingsMap(
         // matters for this app's USGS/ODbL credit and shouldn't quietly become tap-only.
         // A list of credits since map layers L0a (A5): the basemap's, then each visible layer's own
         // (none of today's layers has one, so the text is exactly what it always was).
-        Text(
+        MapCreditCaption(
             text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState), nightMode)),
-            style = MaterialTheme.typography.labelSmall,
-            color = ComposeColor.White,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(bottom = bottomInset)
-                .background(ComposeColor.Black.copy(alpha = 0.55f))
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+                .padding(bottom = bottomInset),
         )
     }
 }
+
+/**
+ * The map's credit line, bottom left over the map. Dispatch 2026-10-12-06, RECORD -937 (the owner: "The open street maps tint
+ * strip can also have a rounded corner on the right side only, since the left runs to the edge"): its right-hand corners are
+ * rounded, its left side square against the screen edge. Its tint is unchanged. A background and text, no pointer input, so a
+ * touch anywhere on it, its new corner gaps included, reaches the map, as it always did (`MapCreditCaptionTouchTest`).
+ */
+@Composable
+internal fun MapCreditCaption(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = ComposeColor.White,
+        modifier = modifier
+            .background(
+                ComposeColor.Black.copy(alpha = 0.55f),
+                androidx.compose.foundation.shape.AbsoluteRoundedCornerShape(topRight = MAP_CREDIT_CORNER_RADIUS, bottomRight = MAP_CREDIT_CORNER_RADIUS),
+            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .testTag(MAP_CREDIT_CAPTION_TAG),
+    )
+}
+
+/** RECORD -937: the credit line's right-hand corner radius, half its one line's height so its right end reads round. */
+internal val MAP_CREDIT_CORNER_RADIUS = 8.dp
+
+internal const val MAP_CREDIT_CAPTION_TAG = "map-credit-caption"
 
 /**
  * Adds every overlay source and layer this composable draws, all starting with empty

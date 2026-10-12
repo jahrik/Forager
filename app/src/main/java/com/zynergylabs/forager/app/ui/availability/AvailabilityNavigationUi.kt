@@ -40,6 +40,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -154,11 +158,22 @@ internal fun ForagerBottomNav(
      * translucency for the non-fullscreen state, where it *is* always over the map.
      */
     containerColor: Color = navigationBarContainerColor(),
+    /**
+     * Dispatch 2026-10-12-06, RECORD -937 (the owner: "let's give the botton navigation buttons the same rounded edge treatment
+     * so it looks uniform"): the radius of the bar's two top corners. The Map tab's overlay instance passes the card's radius;
+     * the bar stays full width, runs to the bottom edge and keeps its fill. A clip, so the corners are cut from its touch area as
+     * well as its drawing: a touch in a corner gap reaches the map beneath. 0 (the docked instances on the other tabs, where
+     * nothing but the screen's own background would show in the gap): square, as before.
+     */
+    topCornerRadius: Dp = 0.dp,
 ) {
     NavigationBar(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.testTag(COMPACT_BOTTOM_NAV_TAG).mapChromeContainerColor(containerColor),
+        modifier = modifier
+            .then(if (topCornerRadius > 0.dp) Modifier.clip(RoundedCornerShape(topStart = topCornerRadius, topEnd = topCornerRadius)) else Modifier)
+            .testTag(COMPACT_BOTTOM_NAV_TAG)
+            .mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
