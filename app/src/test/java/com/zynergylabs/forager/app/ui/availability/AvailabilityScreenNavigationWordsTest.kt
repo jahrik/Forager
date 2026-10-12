@@ -205,7 +205,8 @@ class AvailabilityScreenNavigationWordsTest {
         // are tight, and then leads the status line, capitalised (RECORD -713). Was: "by trail" beside the figure, always.
         val kindText = textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG)
         assertTrue("the kind reads by trail: <$kindText>", kindText == "by trail" || kindText == "By trail")
-        assertEquals("≈ 1250 ft straight", textOf(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -942: no straight-line note on the route. Was "≈ 1250 ft straight".
+        assertEquals("", textOf(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
         assertEquals("9843 ft", textOf(NAVIGATION_HUD_ELEVATION_TAG))
         // Each label that is drawn sits before its own reading, on its line.

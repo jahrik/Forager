@@ -1297,15 +1297,11 @@ private fun BoxScope.CompactMapTopStrip(
             Modifier
                 .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                 .padding(controlsPadding)
-                // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"; -729 had it at the window's
-                // centre): as wide as its readouts need whole, the bar keeping its floor (landscapeStripFit). It
-                // replaced the content width capped beside the bar (RECORD -694), which the navigation display keeps.
-                .landscapeStripFit(
-                    railPortEdge,
-                    punchHoleEdge,
-                    rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, showDecimalDegrees, quickSettings != null),
-                    rememberLandscapeBarFloorPx(uiState, uiState.distanceUnit),
-                )
+                // RECORD -940 (the owner: "Increase the length of the box. It can be the same size as portrait so that nothing
+                // really needs to change"; "Option 1, but permanent"): as wide as in portrait, the window's short side, always.
+                // This replaces RECORD -732's fit to its readouts with the bar's floor (landscapeStripFit), and the bar takes the
+                // rest of the room beside it, whatever that leaves the bar.
+                .width(mapCardWidth())
         } else {
             // Dispatch 2026-10-12-06: tucked under the pill, the card's fill reaching [stripTuck] above its own top (inside this
             // clip), while the strip's own bounds still start at the bar's bottom (the padding on its modifier below).
@@ -1353,7 +1349,9 @@ private fun BoxScope.CompactMapTopStrip(
             contentWidth = false,
             // RECORD -735: the crossed-out compass for no compass or an unreliable one in a short landscape window;
             // portrait keeps the full words.
-            shortHeadingStatus = railPortEdge != null,
+            // RECORD -940: laid out exactly as in portrait, so the portrait words; RECORD -735's crossed-out compass was for the
+            // narrower landscape strip that ruling replaces.
+            shortHeadingStatus = false,
             positionNote = positionNote,
             // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
             sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
@@ -1538,10 +1536,9 @@ private fun BoxScope.CompactMapNavigationDisplay(
             Modifier
                 .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                 .padding(controlsPadding)
-                // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): never wider than the room beside the search bar.
-                .besideLandscapeSearchBar(railPortEdge, punchHoleEdge, controlsPadding, chromeLayoutDirection)
-                .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
-                .fillMaxWidth()
+                // RECORD -940: as wide as in portrait, the window's short side, always. Replaces RECORD -694's room beside the
+                // search bar and the 360 dp cap for this card; the bar takes the rest of the room beside it.
+                .width(mapCardWidth())
         } else {
             // Dispatch 2026-10-12-06: tucked under the pill, as the strip is (CompactMapTopStrip's stripTuck).
             Modifier
@@ -1931,3 +1928,15 @@ internal val LANDSCAPE_HUD_MAX_WIDTH = 360.dp
 
 /** Dispatch 2026-09-28-502: the tag this tab's one log line goes under. */
 private const val COMPACT_MAP_LOG_TAG = "CompactMapTab"
+
+/**
+ * RECORD -940: the map's top cards (the navigation card and the compass strip) are as wide in landscape as in portrait, the
+ * window's short side. Read from the window's own size, not the configuration, so it is the window this app has (split screen
+ * included). Robolectric's window is the qualifiers' size; on a device, whether the window's short side matches the portrait
+ * width the owner sees is a device item (system bars).
+ */
+@Composable
+internal fun mapCardWidth(): Dp {
+    val size = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize
+    return with(LocalDensity.current) { minOf(size.width, size.height).toDp() }
+}

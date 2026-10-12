@@ -51,8 +51,11 @@ class NavigationHudFitTest {
 
     @Test
     fun `each status carries its shorter forms in order, and a warning has no empty one`() {
-        assertEquals(listOf("≈ 1250 ft straight", "≈ 1250 ft", ""), readout().statusForms())
-        assertEquals("with 'By trail' leading, the note is whole or gone", listOf("≈ 1250 ft straight", ""), readout().statusForms(kindInStatus = true))
+        // RECORD -942: the straight-line note shows only before the first route or with it withheld (Pending here); on the
+        // route (Ahead) there is no status at all. Was: the note on the route.
+        assertEquals("on the route, no note", listOf(""), readout().statusForms())
+        assertEquals(listOf("≈ 1250 ft straight", "≈ 1250 ft", ""), readout(route = ReturnRoute.Pending).statusForms())
+        assertEquals("with a lead, the note is whole or gone", listOf("≈ 1250 ft straight", ""), readout(route = ReturnRoute.Pending).statusForms(kindInStatus = true))
         assertEquals(listOf("Last fix 45 s ago", "45 s old"), readout(now = t + 45_000L).statusForms())
         assertEquals(listOf("No fix for 6 min", "No fix 6 min"), readout(now = t + 6 * 60_000L).statusForms())
         assertEquals(listOf(NO_FIX_MESSAGE, "No location"), readout(liveFix = null).statusForms())
@@ -102,7 +105,9 @@ class NavigationHudFitTest {
 
     @Test
     fun `the straight-line note shortens, then goes, before the kind's lead`() {
-        val r = readout()
+        // RECORD -942: the note now shows only with no route figure (Pending), where the display has no kind; the lead is set by
+        // hand here so the pure rule (the note gives way before a lead) is still pinned. Was: readout() on the route.
+        val r = readout(route = ReturnRoute.Pending).copy(distanceKindText = "by trail")
         assertEquals(StatusLineFit(null, "≈ 1250 ft straight"), status(r, false, 18))
         assertEquals(StatusLineFit(null, "≈ 1250 ft"), status(r, false, 17))
         assertEquals(StatusLineFit(null, ""), status(r, false, 8))

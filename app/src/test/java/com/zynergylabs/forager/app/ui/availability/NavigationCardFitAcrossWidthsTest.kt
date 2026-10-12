@@ -90,7 +90,9 @@ class NavigationCardFitAcrossWidthsTest {
         Case("route 1280 ft by trail, sharp right 169°", fixAt(380.0), ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0), TrueHeadingReading.Available(11f)),
         Case("straight ≈ 1250 ft, sharp right", fixAt(381.0), null, TrueHeadingReading.Available(11f)),
         Case("straight ≈ 800 ft, ahead", fixAt(244.0), null, TrueHeadingReading.Available(182f)),
-        Case("within 16 ft", fixAt(3.0, accuracy = 5f), null, TrueHeadingReading.Available(182f)),
+        // Arrival covers every "within" distance on the live screen (hasArrived: 15 m or twice the accuracy), so this reads
+        // "Arrived"; "≤ 16 ft" is exercised by RoundedMapCardFitTest alone.
+        Case("at the target: Arrived", fixAt(3.0, accuracy = 5f), null, TrueHeadingReading.Available(182f)),
         Case("decimal coordinates, longest route", fixAt(380.0), ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0), TrueHeadingReading.Available(11f), decimal = true),
         Case("compass unavailable, north up", fixAt(380.0), ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0), TrueHeadingReading.NoSensor, facing = NavigationFacing.NORTH_UP),
         Case("compass unreliable", fixAt(380.0), ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0), TrueHeadingReading.Unreliable),
@@ -100,9 +102,17 @@ class NavigationCardFitAcrossWidthsTest {
             sundown = "Sunset 10:58 PM · start back by 10:48", backBy = "Back by 11:30 PM",
         ),
         Case("short evening line", fixAt(244.0), null, TrueHeadingReading.Available(182f), sundown = "Dark since 7:01 PM"),
+        // RECORD -941's own example, with Back by: four pieces stacked in the right column.
+        Case(
+            "owner's evening example", fixAt(380.0), ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0), TrueHeadingReading.Available(11f),
+            sundown = "Sunset 12:41 AM · in 2 h 28 min · dark 1:13", backBy = "Back by 1:30 AM",
+        ),
     )
 
     private var case by mutableStateOf<Case?>(null)
+
+    /** RECORD -940: the card in a landscape window lays out exactly as in portrait; every state is run both ways. */
+    private var landscapeMode by mutableStateOf(false)
 
     private val quickSettings = MapQuickSettings(
         isRecording = true,
@@ -149,7 +159,7 @@ class NavigationCardFitAcrossWidthsTest {
 
     private val wholeTags = listOf(
         NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG, NAVIGATION_HUD_ELEVATION_TAG,
-        NAVIGATION_HUD_HEADING_TAG, NAVIGATION_HUD_COORDINATES_TAG, NAVIGATION_HUD_SUNDOWN_LINE_TAG, NAVIGATION_HUD_BACK_BY_LINE_TAG,
+        NAVIGATION_HUD_HEADING_TAG, NAVIGATION_HUD_COORDINATES_TAG, NAVIGATION_HUD_EVENING_PIECE_TAG,
         NAVIGATION_LABEL_TAG,
     )
 
@@ -170,13 +180,14 @@ class NavigationCardFitAcrossWidthsTest {
                 quickSettings = quickSettings,
                 sundownLine = c.sundown,
                 backByLine = c.backBy,
+                landscape = landscapeMode,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         val problems = mutableListOf<String>()
         var measured = 0
-        for (c in cases) {
-            composeRule.runOnIdle { case = c }
+        for ((c, inLandscape) in cases.flatMap { listOf(it to false, it to true) }) {
+            composeRule.runOnIdle { case = c; landscapeMode = inLandscape }
             composeRule.mainClock.advanceTimeBy(2_000)
             composeRule.waitForIdle()
             val texts = wholeTags.flatMap { layoutsUnder(it) }
@@ -188,15 +199,26 @@ class NavigationCardFitAcrossWidthsTest {
             val gridOwnLine = grid.isNotEmpty() && bounds(NAVIGATION_HUD_COORDINATES_TAG).single().top >= needle.bottom - 0.5.dp
             val turn = layoutsUnder(NAVIGATION_HUD_TARGET_TAG).firstOrNull()?.layout?.layoutInput?.text?.text ?: "<none>"
             val figure = layoutsUnder(NAVIGATION_HUD_DISTANCE_TAG).firstOrNull()?.layout?.layoutInput?.text?.text ?: "<none>"
-            println("FIT|$where|${c.name}|figure=$figure|turn=$turn|kind=${layoutsUnder(NAVIGATION_HUD_DISTANCE_KIND_TAG).size}|alt-label=${layoutsUnder(NAVIGATION_LABEL_TAG).size}|grid-own-line=$gridOwnLine|cuts=$cuts")
-            if (cuts.isNotEmpty()) problems += "${c.name}: $cuts"
+            println("FIT|$where${if (inLandscape) " landscape" else ""}|${c.name}|figure=$figure|turn=$turn|kind=${layoutsUnder(NAVIGATION_HUD_DISTANCE_KIND_TAG).size}|alt-label=${layoutsUnder(NAVIGATION_LABEL_TAG).size}|grid-own-line=$gridOwnLine|cuts=$cuts")
+            if (cuts.isNotEmpty()) problems += "${c.name}${if (inLandscape) " (landscape)" else ""}: $cuts"
+            // RECORD -941: every evening piece is whole (no "…", named on its own) and inside the right column: right of the last
+            // divider and left of the X and three-dot column.
+            val pieces = layoutsUnder(NAVIGATION_HUD_EVENING_PIECE_TAG)
+            if ((c.sundown != null || c.backBy != null) && pieces.isEmpty()) problems += "${c.name}: no evening pieces drawn"
+            val lastDivider = bounds(NAVIGATION_HUD_DIVIDER_TAG).maxOf { it.right }
+            pieces.forEach { laid ->
+                val text = laid.layout.layoutInput.text.text
+                if ((0 until laid.layout.lineCount).any { laid.layout.isLineEllipsized(it) }) problems += "${c.name}: evening piece ends in …: '$text'"
+                if (laid.bounds.left < lastDivider - 0.5.dp || laid.bounds.right > buttons.left + 0.5.dp) problems += "${c.name}: evening piece '$text' ${laid.bounds} outside the right column (from $lastDivider to ${buttons.left})"
+            }
+            }
             val needleMid = (needle.top + needle.bottom) / 2
             val arrowMid = (arrow.top + arrow.bottom) / 2
             if (abs((needleMid - arrowMid).value) > 2f || needle.right > arrow.left) problems += "${c.name}: arrows apart, needle $needle, arrow $arrow"
             if (c.liveFix != null && grid.isEmpty()) problems += "${c.name}: no grid reference drawn"
             measured++
         }
-        assertEquals("every state measured", cases.size, measured)
+        assertEquals("every state measured, in both orientations", 2 * cases.size, measured)
         assertTrue("at $where: ${problems.joinToString("; ")}", problems.isEmpty())
     }
 

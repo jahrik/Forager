@@ -27,8 +27,11 @@ package com.zynergylabs.forager.app.ui.availability
  * ([StripHeadingStatusIcon], RECORD -735's icon) in the middle column where its words do not fit there (RECORD -934). It is
  * tried at each step before the next step is taken, since the icon removes nothing a reading would show.
  *
- * The evening line never makes anything else give way: it sits in the right column only where it fits in what the right
- * column has left; otherwise it is a full-width line under the columns (RECORD -934, "Moves to a full-width line").
+ * The evening lines (RECORD -941, the owner: "Then stack it and don't fit the full length silly") sit in the right column under
+ * the grid reference, broken at their " · " joins into short pieces stacked one per line, and the card grows taller for them.
+ * So the right column is always there while there is an evening piece, as wide as its widest piece at least, and when the
+ * grid reference has gone to its own line the column holds the stack alone. A piece is never cut; where even the last step
+ * leaves the column narrower than a piece, the piece wraps, and [CardColumnsFit.overflows] says so.
  */
 internal data class CardColumnsFit(
     /** The turn as drawn before the needle: the whole words, the degrees alone, or "" (the needle alone). */
@@ -41,8 +44,6 @@ internal data class CardColumnsFit(
     val altitudeShown: Boolean,
     /** Whether the compass status is drawn as the crossed-out compass rather than its words. */
     val headingAsIcon: Boolean,
-    /** Which of the evening lines sit in the right column, under the grid reference. */
-    val eveningInColumn: EveningInColumn,
     /** Step 4: the figure is drawn in its short form ("≤ 16 ft"). */
     val figureShort: Boolean = false,
     /** Step 5: the grid reference is on its own full-width line under the columns; there is no right column. */
@@ -50,9 +51,6 @@ internal data class CardColumnsFit(
     /** Whether even step 5 left the columns wider than the room ([CardColumnsWidths.availablePx]): reported, not trimmed further. */
     val overflows: Boolean = false,
 )
-
-/** Which evening lines the right column holds. The rest are full-width lines under the columns. */
-internal enum class EveningInColumn { NONE, SUNDOWN, BACK_BY, BOTH }
 
 /**
  * The measured widths the fit is decided on, in pixels. `null` for a part that is not there in this state. The figure, the
@@ -83,10 +81,8 @@ internal data class CardColumnsWidths(
     /** The crossed-out compass's square. */
     val headingIconPx: Int,
     val coordinatesPx: Int?,
-    val sundownPx: Int?,
-    val backByPx: Int?,
-    /** The " · " between two evening parts sharing the right column. */
-    val eveningSeparatorPx: Int,
+    /** The widest of the evening pieces stacked in the right column (RECORD -941); `null` with none. */
+    val eveningPiecePx: Int? = null,
 )
 
 private data class Step(val kindIn: Boolean, val turn: TurnForm, val altLabel: Boolean, val figureShort: Boolean, val gridOwnLine: Boolean)
@@ -107,10 +103,10 @@ internal fun cardColumnsFit(w: CardColumnsWidths, turnWhole: String, turnShort: 
         val bottom = if (icon) w.headingIconPx else w.arrowPx + w.gapPx + w.headingPx
         return maxOf(top, bottom)
     }
-    fun total(s: Step, icon: Boolean) = if (s.gridOwnLine) {
-        leftPx(s) + middlePx(s, icon) + w.dividerPx
-    } else {
-        leftPx(s) + middlePx(s, icon) + (w.coordinatesPx ?: 0) + 2 * w.dividerPx
+    fun rightPx(s: Step): Int = maxOf(if (s.gridOwnLine) 0 else w.coordinatesPx ?: 0, w.eveningPiecePx ?: 0)
+    fun total(s: Step, icon: Boolean): Int {
+        val right = rightPx(s)
+        return leftPx(s) + middlePx(s, icon) + w.dividerPx + if (right > 0) right + w.dividerPx else 0
     }
     val steps = listOf(
         Step(kindIn = true, turn = TurnForm.WHOLE, altLabel = true, figureShort = false, gridOwnLine = false),
@@ -127,20 +123,12 @@ internal fun cardColumnsFit(w: CardColumnsWidths, turnWhole: String, turnShort: 
         TurnForm.WHOLE -> turnWhole
         TurnForm.SHORT -> turnShort ?: turnWhole
     }
-    val rightRoom = if (step.gridOwnLine) -1 else w.availablePx - leftPx(step) - middlePx(step, icon) - 2 * w.dividerPx
-    val evening = when {
-        w.sundownPx != null && w.backByPx != null && w.sundownPx + w.eveningSeparatorPx + w.backByPx <= rightRoom -> EveningInColumn.BOTH
-        w.sundownPx != null && w.sundownPx <= rightRoom -> EveningInColumn.SUNDOWN
-        w.sundownPx == null && w.backByPx != null && w.backByPx <= rightRoom -> EveningInColumn.BACK_BY
-        else -> EveningInColumn.NONE
-    }
     return CardColumnsFit(
         turnText = turnText,
         kindInColumn = step.kindIn && w.kindPx != null,
         altitudeLabel = step.altLabel && w.altitudeLabelPx != null,
         altitudeShown = w.altitudePx != null,
         headingAsIcon = icon,
-        eveningInColumn = evening,
         figureShort = step.figureShort && w.figureShortPx != null,
         gridOwnLine = step.gridOwnLine,
         overflows = chosen == null,

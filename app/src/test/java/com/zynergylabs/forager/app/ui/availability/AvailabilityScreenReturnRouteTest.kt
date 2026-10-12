@@ -156,7 +156,8 @@ class AvailabilityScreenReturnRouteTest {
         setScreen(ReturnRoute.Ahead(east, 1_500.0))
 
         assertEquals("0.9 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("0.7 mi straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -942: on the route there is no straight-line note. Was "0.7 mi straight".
+        assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("right 45°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 

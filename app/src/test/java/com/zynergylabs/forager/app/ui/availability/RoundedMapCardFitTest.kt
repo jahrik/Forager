@@ -15,7 +15,7 @@ import org.junit.Test
  */
 class RoundedMapCardFitTest {
 
-    private fun widths(available: Int, headingIsStatus: Boolean = false, headingPx: Int = 40, sundown: Int? = null, backBy: Int? = null) = CardColumnsWidths(
+    private fun widths(available: Int, headingIsStatus: Boolean = false, headingPx: Int = 40, evening: Int? = null) = CardColumnsWidths(
         availablePx = available,
         dividerPx = 10,
         gapPx = 2,
@@ -30,9 +30,7 @@ class RoundedMapCardFitTest {
         headingIsStatus = headingIsStatus,
         headingIconPx = 12,
         coordinatesPx = 100,
-        sundownPx = sundown,
-        backByPx = backBy,
-        eveningSeparatorPx = 6,
+        eveningPiecePx = evening,
     )
 
     private fun fit(w: CardColumnsWidths) = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
@@ -107,7 +105,6 @@ class RoundedMapCardFitTest {
         assertTrue("the altitude stays", f.altitudeShown)
         assertEquals("the turn stays at degrees: nothing past the owner's order", "169°", f.turnText)
         assertFalse(f.overflows)
-        assertEquals("no right column, so no evening line in it", EveningInColumn.NONE, f.eveningInColumn)
     }
 
     @Test
@@ -136,15 +133,22 @@ class RoundedMapCardFitTest {
         assertFalse(f.headingAsIcon)
     }
 
+    /**
+     * RECORD -941: the evening pieces stack in the right column, so the column is at least as wide as the widest piece, which
+     * trims in the owner's order like anything else that needs room; with the grid reference on its own line the column holds
+     * the stack alone. Replaces "a short evening line sits in the right column, a long one leaves it" (RECORD -934).
+     */
     @Test
-    fun `a short evening line sits in the right column, a long one leaves it, and nothing is cut for it`() {
-        // At 300 the right column has 300 - 72 - 52 - 20 = 156.
-        assertEquals(EveningInColumn.SUNDOWN, fit(widths(300, sundown = 150)).eveningInColumn)
-        assertEquals(EveningInColumn.NONE, fit(widths(300, sundown = 157)).eveningInColumn)
-        assertEquals(EveningInColumn.BOTH, fit(widths(300, sundown = 70, backBy = 80)).eveningInColumn)
-        assertEquals("Back by moves under the columns", EveningInColumn.SUNDOWN, fit(widths(300, sundown = 100, backBy = 80)).eveningInColumn)
-        assertEquals(EveningInColumn.BACK_BY, fit(widths(300, backBy = 80)).eveningInColumn)
-        val f = fit(widths(300, sundown = 400))
-        assertTrue("the columns are not trimmed for the evening line", f.kindInColumn && f.altitudeLabel && f.turnText == "sharp right 169°")
+    fun `the widest evening piece is room the right column needs, even with the grid reference on its own line`() {
+        // Pieces no wider than the grid reference change nothing.
+        assertTrue(fit(widths(244, evening = 90)).kindInColumn)
+        // A piece wider than the grid reference (120 against 100) needs 20 more: the kind gives way at 244.
+        assertFalse(fit(widths(244, evening = 120)).kindInColumn)
+        // Step 5 with a stack: left 32 + middle 32 + divider 10 + piece 60 + divider 10 = 144.
+        val w = widths(150).copy(headingPx = 20, figureShortPx = 25, evening = 60)
+        val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
+        assertTrue("the grid reference on its own line", f.gridOwnLine)
+        assertFalse("and the stack still fits its column", f.overflows)
+        assertTrue("one dp less and it is reported", cardColumnsFit(w.copy(availablePx = 143), "sharp right 169°", "169°").overflows)
     }
 }

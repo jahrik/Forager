@@ -59,6 +59,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
@@ -111,12 +114,14 @@ internal const val NAVIGATION_HUD_RETRY_TAG = "navigation-hud-retry"
 internal const val NAVIGATION_HUD_DISTANCE_KIND_TAG = "navigation-hud-distance-kind"
 /** The needle: the target compass's arrow (T11 fixes, so a test can say nothing covers it). */
 internal const val NAVIGATION_HUD_NEEDLE_TAG = "navigation-hud-needle"
-/** The landscape display's one evening line, the sundown line and Back by side by side (T11 fixes). */
+/** The landscape display's one evening line (T11 fixes). Not drawn since RECORD -940, which lays landscape out as portrait; kept so a test can say so. */
 internal const val NAVIGATION_HUD_EVENING_LINE_TAG = "navigation-hud-evening-line"
 /** Every [LabelledReadout]'s label, on the display and the strip alike: a test finds them by text within a parent. */
 internal const val NAVIGATION_LABEL_TAG = "navigation-label"
 /** Dispatch 2026-10-12-06: the compass arrow inline before the heading (or the crossed-out compass in its place), so a test can say it sits beside the needle. */
 internal const val NAVIGATION_HUD_NORTH_ARROW_TAG = "navigation-hud-north-arrow"
+/** RECORD -941: each piece of the evening stack in the card's right column. */
+internal const val NAVIGATION_HUD_EVENING_PIECE_TAG = "navigation-hud-evening-piece"
 /** Dispatch 2026-10-12-06: each of the card's two column dividers. */
 internal const val NAVIGATION_HUD_DIVIDER_TAG = "navigation-hud-divider"
 
@@ -299,8 +304,8 @@ internal fun NavigationHud(
      */
     quickSettings: MapQuickSettings? = null,
     /**
-     * T11 fixes (RECORD -766, P3): the display is in a landscape window, beside the search bar. There the evening's two lines
-     * share one ([HudEveningLine]) and "Try again" sits beside its message. Portrait keeps both as they were.
+     * T11 fixes (RECORD -766, P3): the display is in a landscape window, beside the search bar. Since RECORD -940 the card lays
+     * out exactly as in portrait, so nothing reads this for layout any more; kept for the call site's record of where it is.
      */
     landscape: Boolean = false,
     /**
@@ -352,6 +357,8 @@ internal fun NavigationHud(
                 // RECORD -770: where the rows above the evening line end, which the line does not change, so the decision to leave
                 // it out cannot feed back into what it is decided on.
                 var rowsBottomInRootPx by remember { mutableFloatStateOf(Float.NaN) }
+                var columnsTopInRootPx by remember { mutableFloatStateOf(Float.NaN) }
+                var linesBelowHeightPx by remember { mutableFloatStateOf(0f) }
                 // The X and the three-dot button stand in their own column at the card's right edge, beside the columns and the
                 // lines under them, so the card is as tall as the taller of the two, not the sum (the landscape display's height
                 // against the window's central third: Landscape B2, S10).
@@ -362,48 +369,44 @@ internal fun NavigationHud(
                         .padding(horizontal = CARD_SIDE_PADDING, vertical = Spacing.xs),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        val reduceMotion = LocalReduceMotion.current
-                        val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
-                        val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
-                        val lineEnter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top)
-                        val lineExit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top)
-                        val sundownInColumn = fit.eveningInColumn == EveningInColumn.SUNDOWN || fit.eveningInColumn == EveningInColumn.BOTH
-                        val backByInColumn = fit.eveningInColumn == EveningInColumn.BACK_BY || fit.eveningInColumn == EveningInColumn.BOTH
+                        // RECORD -941 (the owner: "Then stack it and don't fit the full length silly"): the evening lines sit in the
+                        // right column under the grid reference, in short pieces, and the card grows for them. RECORD -770 still holds
+                        // where a limit is given: the pieces stay only while the display, with them, ends within it. Worked out from
+                        // parts that do not depend on the pieces (the columns' top, the lines under them), so leaving cannot feed
+                        // back into the decision.
+                        val pieces = eveningPieces(sundownLine, backByLine)
+                        val eveningMeasurer = rememberTextMeasurer()
+                        val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+                        val pieceHeightPx = eveningMeasurer.measure("Sunset", eveningStyle, maxLines = 1).size.height
+                        val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
+                        val columnsHeightPx = metrics.topRowPx + metrics.bottomRowPx
+                        val stackTopPx = if (fit.gridOwnLine) 0 else metrics.topRowPx
+                        val withStackPx = maxOf(columnsHeightPx, stackTopPx + pieces.size * pieceHeightPx)
+                        val eveningShown = pieces.isNotEmpty() && eveningLineFits(
+                            columnsTopInRootPx + linesBelowHeightPx,
+                            withStackPx.toFloat(),
+                            bottomPaddingPx,
+                            eveningLineBottomLimitInRootPx,
+                        )
                         Column(modifier = Modifier.onGloballyPositioned { rowsBottomInRootPx = it.positionInRoot().y + it.size.height }) {
                             CardColumns(
                                 readout = readout,
                                 fit = fit,
                                 metrics = metrics,
-                                sundownLine = sundownLine.takeIf { sundownInColumn },
-                                backByLine = backByLine.takeIf { backByInColumn },
+                                sundownLine = sundownLine.takeIf { eveningShown },
+                                backByLine = backByLine.takeIf { eveningShown },
                                 onToggleCoordinateFormat = onToggleCoordinateFormat,
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { columnsTopInRootPx = it.positionInRoot().y },
                             )
                             // The lines under the columns, each only while it has something to say (RECORD -935, the owner: "Yes, keep
-                            // everything"): the grid reference's own line when it has left the right column (RECORD -936); in portrait
-                            // the evening lines; then the route and the status. In landscape the evening line is last, because RECORD
-                            // -770 lets it leave when the display would reach past its limit, and only the last line can leave
-                            // without moving the others.
-                            if (fit.gridOwnLine) readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
-                            if (!landscape) {
-                                PortraitEveningLines(sundownLine.takeIf { !sundownInColumn }, backByLine.takeIf { !backByInColumn }, lineEnter, lineExit)
+                            // everything"): the grid reference's own line when it has left the right column (RECORD -936), then the
+                            // route and the status.
+                            Column(modifier = Modifier.onGloballyPositioned { linesBelowHeightPx = it.size.height.toFloat() }) {
+                                if (fit.gridOwnLine) readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
+                                CardRouteAndStatusLines(readout, fit, columnsPx, onRetryRoute)
                             }
-                            CardRouteAndStatusLines(readout, fit, columnsPx, onRetryRoute)
-                        }
-                        if (landscape) {
-                            // T11 fixes (RECORD -766, P3): in landscape the sundown line and Back by share one line. RECORD -770: the
-                            // line stays only while the display, with it, still ends within the limit.
-                            val eveningMeasurer = rememberTextMeasurer()
-                            val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-                            val lineHeightPx = eveningMeasurer.measure("Sunset", eveningStyle, maxLines = 1).size.height
-                            val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
-                            val fits = eveningLineFits(rowsBottomInRootPx, lineHeightPx.toFloat(), bottomPaddingPx, eveningLineBottomLimitInRootPx)
-                            HudEveningLine(
-                                sundownLine.takeIf { fits && !sundownInColumn },
-                                backByLine.takeIf { fits && !backByInColumn },
-                                lineEnter,
-                                lineExit,
-                            )
                         }
                     }
                     // The owner (RECORD -932): "Have the X button go above the three dot menu in the top corner. The three dot menu can
@@ -510,9 +513,7 @@ private fun measuredCardColumnsFit(
             headingIsStatus = !readout.headingIsReading,
             headingIconPx = metrics.iconPx,
             coordinatesPx = readout.coordinatesText?.let { widthOf(it, small) },
-            sundownPx = sundownLine?.let { widthOf(it, evening) },
-            backByPx = backByLine?.let { widthOf(it, evening) },
-            eveningSeparatorPx = widthOf(" · ", evening),
+            eveningPiecePx = eveningPieces(sundownLine, backByLine).maxOfOrNull { widthOf(it, evening) },
         ),
         turnWhole = turn,
         turnShort = turnShortForm(turn),
@@ -543,7 +544,9 @@ private fun CardColumns(
     val bottomRow = with(density) { metrics.bottomRowPx.toDp() }
     val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
     val dividerColor = if (LocalForagerDarkTheme.current) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+    // Top-aligned: the right column grows with the evening stack (RECORD -941) while the left and middle keep their two fixed
+    // rows, so the two arrows stay on one line whatever the stack's height.
+    Row(modifier = modifier, verticalAlignment = Alignment.Top) {
         // Left: the figure (and its kind while it fits), then the turn words and the needle, flush against the divider.
         Column(horizontalAlignment = Alignment.End) {
             Row(modifier = Modifier.height(topRow), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -642,25 +645,56 @@ private fun CardColumns(
                 }
             }
         }
-        if (!fit.gridOwnLine) CardDivider(height = topRow + bottomRow, color = dividerColor)
-        // Right: the grid reference, its tap band the column's whole width (a real target, not the bare text), then the
-        // evening line when it fits here (RECORD -934: "Moves to a full-width line" when it does not).
-        // RECORD -936: with the grid reference on its own line under the columns there is no right column.
-        if (fit.gridOwnLine) Spacer(Modifier.weight(1f)) else Column(modifier = Modifier.weight(1f)) {
-            Box(modifier = Modifier.height(topRow).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
-            }
-            Row(modifier = Modifier.height(bottomRow), verticalAlignment = Alignment.CenterVertically) {
-                val eveningStyle = small.copy(fontFeatureSettings = "tnum")
-                sundownLine?.let { line ->
-                    WordSwap(text = line) { shown ->
-                        Text(shown, style = eveningStyle, maxLines = 1, softWrap = false, modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG))
+        val pieces = eveningPieces(sundownLine, backByLine)
+        val hasRightColumn = !fit.gridOwnLine || pieces.isNotEmpty()
+        if (hasRightColumn) CardDivider(height = topRow + bottomRow, color = dividerColor)
+        // Right: the grid reference, its tap band the column's whole width (a real target, not the bare text), then the evening
+        // stack under it (RECORD -941), which stays in this column when the grid reference has gone to its own line (RECORD -936).
+        if (!hasRightColumn) {
+            Spacer(Modifier.weight(1f))
+        } else {
+            Column(modifier = Modifier.weight(1f)) {
+                if (!fit.gridOwnLine) {
+                    Box(modifier = Modifier.height(topRow).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                        readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
                     }
                 }
-                if (sundownLine != null && backByLine != null) Text(" · ", style = eveningStyle, maxLines = 1, softWrap = false)
-                backByLine?.let { line ->
-                    WordSwap(text = line) { shown ->
-                        Text(shown, style = eveningStyle, maxLines = 1, softWrap = false, modifier = Modifier.testTag(NAVIGATION_HUD_BACK_BY_LINE_TAG))
+                EveningStack(sundownLine, backByLine)
+            }
+        }
+    }
+}
+
+/**
+ * The evening lines broken at their " · " joins into short pieces, the sundown line's first, then Back by's (RECORD -941: "Sunset
+ * 12:41 AM", "in 2 h 28 min", "dark 1:13", "Back by …").
+ */
+internal fun eveningPieces(sundownLine: String?, backByLine: String?): List<String> =
+    listOfNotNull(sundownLine, backByLine).flatMap { line -> line.split(" · ").map(String::trim).filter(String::isNotEmpty) }
+
+/**
+ * RECORD -941: the evening lines stacked in the right column, one piece per line, never ending in "…" (a piece wider than the
+ * column wraps; the fit reserves the widest piece's width, so it only wraps where the fit reports an overflow). Each line keeps
+ * its own tag on a column whose text is the whole line, so it reads as it did; each piece carries [NAVIGATION_HUD_EVENING_PIECE_TAG].
+ * Each line fades and grows as before (RECORD -672), or only fades under reduced motion.
+ */
+@Composable
+private fun EveningStack(sundownLine: String?, backByLine: String?) {
+    val reduceMotion = LocalReduceMotion.current
+    val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
+    val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
+    val enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top)
+    val exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top)
+    val style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+    for ((line, tag) in listOf(sundownLine to NAVIGATION_HUD_SUNDOWN_LINE_TAG, backByLine to NAVIGATION_HUD_BACK_BY_LINE_TAG)) {
+        val shownLine = rememberLastShown(line)
+        AnimatedVisibility(visible = line != null, enter = enter, exit = exit, label = "hudEveningStack") {
+            shownLine?.let { whole ->
+                Column(modifier = Modifier.semantics { text = AnnotatedString(whole) }.testTag(tag)) {
+                    eveningPieces(whole, null).forEach { piece ->
+                        WordSwap(text = piece) { shown ->
+                            Text(text = shown, style = style, modifier = Modifier.testTag(NAVIGATION_HUD_EVENING_PIECE_TAG))
+                        }
                     }
                 }
             }
@@ -700,44 +734,6 @@ private fun CardDivider(height: Dp, color: Color) {
             .background(color)
             .testTag(NAVIGATION_HUD_DIVIDER_TAG),
     )
-}
-
-/**
- * Portrait's evening lines under the columns, each on its own line as before (dispatch 2026-09-28-592 and -645; RECORD -672's
- * fade and grow), when it does not fit the right column.
- */
-@Composable
-private fun PortraitEveningLines(
-    sundownLine: String?,
-    backByLine: String?,
-    enter: androidx.compose.animation.EnterTransition,
-    exit: androidx.compose.animation.ExitTransition,
-) {
-    val sundownLineShown = rememberLastShown(sundownLine)
-    AnimatedVisibility(visible = sundownLine != null, enter = enter, exit = exit, label = "hudSundownLine") {
-        sundownLineShown?.let { line ->
-            WordSwap(text = line) { shown ->
-                Text(
-                    text = shown,
-                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                    // RECORD -934 ("Never cut it off"): a full-width line wraps rather than ending in "…".
-                    modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
-                )
-            }
-        }
-    }
-    val backByLineShown = rememberLastShown(backByLine)
-    AnimatedVisibility(visible = backByLine != null, enter = enter, exit = exit, label = "hudBackByLine") {
-        backByLineShown?.let { line ->
-            WordSwap(text = line) { shown ->
-                Text(
-                    text = shown,
-                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                    modifier = Modifier.testTag(NAVIGATION_HUD_BACK_BY_LINE_TAG),
-                )
-            }
-        }
-    }
 }
 
 /**
@@ -844,56 +840,6 @@ internal fun LabelledReadout(
     }
 }
 
-/**
- * T11 fixes (RECORD -766, P3; the owner: "Combine lines, allow the rest (Recommended)"), landscape only: the sundown line and
- * Back by on one line, "Sunset 10:58 PM · start back by 10:48 · Back by 11:30 PM". Back by is the walker's own deadline, so
- * it is measured first and stays whole; the sundown part takes whatever is left and ends in "…" when it must. Each part keeps
- * its own tag, so its words read as they did on their own lines. The line grows and fades as each line did ([enter],
- * [exit]). While it stays up, a part that comes or goes does so at once (no crossfade between the two layouts): the line's
- * height does not change, so nothing on the map moves.
- */
-@Composable
-private fun HudEveningLine(
-    sundownLine: String?,
-    backByLine: String?,
-    enter: androidx.compose.animation.EnterTransition,
-    exit: androidx.compose.animation.ExitTransition,
-) {
-    // What was drawn the moment both went, so the line leaves with its words on it.
-    val lastPair = rememberLastShown(if (sundownLine != null || backByLine != null) EveningParts(sundownLine, backByLine) else null)
-    val parts = if (sundownLine != null || backByLine != null) EveningParts(sundownLine, backByLine) else lastPair
-    val lineStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
-    AnimatedVisibility(visible = sundownLine != null || backByLine != null, enter = enter, exit = exit, label = "hudEveningLine") {
-        Row(modifier = Modifier.testTag(NAVIGATION_HUD_EVENING_LINE_TAG), verticalAlignment = Alignment.CenterVertically) {
-            parts?.sundown?.let { line ->
-                WordSwap(text = line, modifier = Modifier.weight(1f, fill = false)) { shown ->
-                    Text(
-                        text = shown,
-                        style = lineStyle,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
-                    )
-                }
-            }
-            if (parts?.sundown != null && parts.backBy != null) Text(" · ", style = lineStyle, maxLines = 1, softWrap = false)
-            parts?.backBy?.let { line ->
-                WordSwap(text = line) { shown ->
-                    Text(
-                        text = shown,
-                        style = lineStyle,
-                        maxLines = 1,
-                        softWrap = false,
-                        modifier = Modifier.testTag(NAVIGATION_HUD_BACK_BY_LINE_TAG),
-                    )
-                }
-            }
-        }
-    }
-}
-
-private data class EveningParts(val sundown: String?, val backBy: String?)
 
 /** The X's touch box: Material's icon button at its 48 dp minimum interactive size. */
 private val HUD_EXIT_TOUCH_SIZE = 48.dp
@@ -1315,8 +1261,12 @@ internal fun navigationReadout(
             // the accuracy.
             arrived -> ""
             approaching -> "Approaching"
-            // Dispatch -677: "0.3 mi straight", the owner's words, where it read "Straight line 0.3 mi".
-            route != null -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
+            // RECORD -942 (the owner: "Remove the 0.7m straight since the ≈800ft ahead is saying the same thing"; told it is the
+            // straight line, not the trail, "Remove it"): while the large slot holds the distance by trail, the straight-line note
+            // (dispatch -677's "0.3 mi straight") is not shown. The coder's reading, reported for the owner: before the first
+            // route and with the route withheld the large slot holds a dash or the route message, so nothing else says how far
+            // the start is, and the note stays there, as it was.
+            route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
             else -> ""
         }
     }
@@ -1328,11 +1278,12 @@ internal fun navigationReadout(
         FixFreshness.FRESH -> when {
             arrived -> emptyList()
             approaching -> listOf("")
-            route != null -> listOf(straightLineText, "")
+            route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> listOf(straightLineText, "")
             else -> emptyList()
         }
     }
-    val statusIsStraightNote = freshness == FixFreshness.FRESH && !arrived && !approaching && route != null
+    // RECORD -942: the straight-line note is shown only before the first route and with the route withheld.
+    val statusIsStraightNote = freshness == FixFreshness.FRESH && !arrived && !approaching && (route is ReturnRoute.Pending || route is ReturnRoute.Unavailable)
     return NavigationHudReadout(
         headingText = headingText,
         northArrowDegrees = northArrowDegrees,

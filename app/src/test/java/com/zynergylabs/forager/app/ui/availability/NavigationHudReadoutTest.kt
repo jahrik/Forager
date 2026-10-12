@@ -72,9 +72,12 @@ class NavigationHudReadoutTest {
         // Below a quarter mile the unit is feet: 350 m is 1148.3 ft.
         assertEquals("1148 ft", readout(route = ReturnRoute.Ahead(east, 350.0)).distanceText)
         assertEquals("350 m", readout(route = ReturnRoute.Ahead(east, 350.0), unit = DistanceUnit.KILOMETERS).distanceText)
-        // The straight line to the start, with the accuracy-aware formatting it had in the large slot.
-        assertEquals("0.7 mi straight", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
-        assertEquals("1.1 km straight", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
+        // RECORD -942 (the owner: "Remove the 0.7m straight since the ≈800ft ahead is saying the same thing"): on the route the
+        // status line has no straight-line note. Was: "0.7 mi straight" and "1.1 km straight".
+        assertEquals("", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
+        assertEquals("", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
+        // With no route figure yet, the note stays: nothing else says how far the start is.
+        assertEquals("1.1 km straight", readout(route = ReturnRoute.Pending, unit = DistanceUnit.KILOMETERS).statusText)
     }
 
     @Test
