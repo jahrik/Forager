@@ -1587,7 +1587,13 @@ private fun BoxScope.CompactMapNavigationDisplay(
             } else {
                 null
             },
-            cardCorners = if (railPortEdge == null) MapCardCorners.BOTTOM else MapCardCorners.ALL,
+            // Landscape: beside the bar, square where it meets it at the top, rounded on its outer side and at its inner bottom
+            // corner, which hangs below the bar (RECORD -934's edge to edge, the planner's call in -936).
+            cardCorners = when {
+                railPortEdge == null -> MapCardCorners.BOTTOM
+                punchHoleEdge != null && railPortEdge != punchHoleEdge -> MapCardCorners.besideBar(railPortEdge)
+                else -> MapCardCorners.ALL
+            },
             tuck = hudTuck,
             modifier = Modifier
                 // The card's bounds start at the pill's bottom, below the tuck its fill reaches into.
@@ -1919,7 +1925,7 @@ private fun BoxScope.CompactMapPickers(
 }
 
 /** Landscape B2 (S4): the navigation HUD's width cap in the rail-side top corner. */
-private val LANDSCAPE_HUD_MAX_WIDTH = 360.dp
+internal val LANDSCAPE_HUD_MAX_WIDTH = 360.dp
 
 /** Dispatch 2026-09-28-502: the tag this tab's one log line goes under. */
 private const val COMPACT_MAP_LOG_TAG = "CompactMapTab"

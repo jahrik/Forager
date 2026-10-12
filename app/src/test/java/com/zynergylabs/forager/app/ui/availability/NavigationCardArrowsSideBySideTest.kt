@@ -43,7 +43,7 @@ import kotlin.math.abs
  *
  * In every state below, at 360 and 412 dp and fonts 1.0 and 1.3, the turn needle (the end of the left column's lower row) and
  * the compass arrow (the start of the middle column's lower row) are measured: their vertical centres within 2 dp, the needle
- * left of the arrow, and the space between them exactly one divider with its gap either side (8 + 1 + 8 dp), a divider found
+ * left of the arrow, and the space between them exactly one divider with its gap either side (6 + 1 + 6 dp, RECORD -936), a divider found
  * in that space. The states run the fit through its steps (the whole turn with "by trail", the kind gone, the turn shortened
  * to degrees, a compass status as the crossed-out icon), so a step that moved either arrow would fail here. Each state's
  * turn text is printed, so the sample can be read against the steps it claims to cover.
@@ -147,7 +147,7 @@ class NavigationCardArrowsSideBySideTest {
             assertTrue("${c.name} at $width: the needle $needle is left of the compass arrow $arrow", needle.right <= arrow.left)
             val between = dividers.filter { it.left >= needle.right - 0.5.dp && it.right <= arrow.left + 0.5.dp }
             assertEquals("${c.name} at $width: one divider between the arrows, $dividers", 1, between.size)
-            assertEquals("${c.name} at $width: nothing but the divider and its gaps between them", 17f, (arrow.left - needle.right).value, 1f)
+            assertEquals("${c.name} at $width: nothing but the divider and its gaps between them", 13f, (arrow.left - needle.right).value, 1f)
             sampled++
         }
         assertEquals("every state was measured", cases.size, sampled)

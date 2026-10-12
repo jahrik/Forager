@@ -10,15 +10,22 @@ package com.zynergylabs.forager.app.ui.availability
  * - middle: "Alt 344 ft"; under it the compass arrow, then the heading ("▲ 134° SE");
  * - right: the grid reference; under it a short evening line, when one fits there.
  *
- * The order, the owner's (RECORD -934, "Trim extras when tight (Recommended)"): first the kind word goes from beside the
- * figure (it then leads the status line under the columns, as RECORD -713 already had it, so nothing is lost: RECORD -935,
- * "Yes, keep everything"); then the turn words shrink to the degrees and the needle ("169° ▲"); then the "Alt" label goes. The
- * figure, the compass and the grid reference stay whole.
+ * The order, the owner's (RECORD -934, "Trim extras when tight (Recommended)"; RECORD -936):
+ * 1. the kind word leaves the figure's side (it then leads the status line under the columns, as RECORD -713 already had it,
+ *    so nothing is lost: RECORD -935, "Yes, keep everything");
+ * 2. the turn words shrink to the degrees and the needle ("169° ▲");
+ * 3. the "Alt" label goes;
+ * 4. "within 16 ft" takes its short form, "≤ 16 ft" ([distanceShortForm], RECORD -768; RECORD -936: "Yes, '≤ 16 ft' when
+ *    tight");
+ * 5. the grid reference leaves the right column for its own full-width line under the columns, whole and tappable (RECORD
+ *    -936: "Grid ref drops to its own line"). The distance, the altitude and the compass keep their columns, and the two
+ *    arrows stay side by side across the one divider left.
+ * Nothing past that: where even step 5 does not fit, [CardColumnsFit.overflows] says so, it is logged, and the coder's
+ * report gives the numbers; the owner said to report rather than trim further.
  *
- * Two steps past the owner's order, the coder's, reached only where the three above are not enough (reported, see the
- * dispatch's report): the degrees go and the needle stays alone; then the altitude's value goes. Neither touches the three
- * the owner named. A compass status that is words, not a reading ("Compass unavailable · north up"), takes the crossed-out
- * compass ([StripHeadingStatusIcon], RECORD -735's icon) in the middle column where its words do not fit there (RECORD -934).
+ * A compass status that is words, not a reading ("Compass unavailable · north up"), takes the crossed-out compass
+ * ([StripHeadingStatusIcon], RECORD -735's icon) in the middle column where its words do not fit there (RECORD -934). It is
+ * tried at each step before the next step is taken, since the icon removes nothing a reading would show.
  *
  * The evening line never makes anything else give way: it sits in the right column only where it fits in what the right
  * column has left; otherwise it is a full-width line under the columns (RECORD -934, "Moves to a full-width line").
@@ -30,13 +37,17 @@ internal data class CardColumnsFit(
     val kindInColumn: Boolean,
     /** Whether "Alt" is drawn before the altitude. */
     val altitudeLabel: Boolean,
-    /** Whether the altitude is drawn at all (false only at the last step, or with none to draw). */
+    /** Whether the altitude is drawn at all (false only with none to draw). */
     val altitudeShown: Boolean,
     /** Whether the compass status is drawn as the crossed-out compass rather than its words. */
     val headingAsIcon: Boolean,
     /** Which of the evening lines sit in the right column, under the grid reference. */
     val eveningInColumn: EveningInColumn,
-    /** Whether even the last step left the columns wider than the room ([CardColumnsWidths.availablePx]). */
+    /** Step 4: the figure is drawn in its short form ("≤ 16 ft"). */
+    val figureShort: Boolean = false,
+    /** Step 5: the grid reference is on its own full-width line under the columns; there is no right column. */
+    val gridOwnLine: Boolean = false,
+    /** Whether even step 5 left the columns wider than the room ([CardColumnsWidths.availablePx]): reported, not trimmed further. */
     val overflows: Boolean = false,
 )
 
@@ -58,6 +69,8 @@ internal data class CardColumnsWidths(
     /** The needle's and the compass arrow's square. */
     val arrowPx: Int,
     val figurePx: Int,
+    /** The figure's short form ("≤ 16 ft"), `null` where it has none. */
+    val figureShortPx: Int? = null,
     val kindPx: Int?,
     val turnWholePx: Int?,
     val turnShortPx: Int?,
@@ -76,54 +89,45 @@ internal data class CardColumnsWidths(
     val eveningSeparatorPx: Int,
 )
 
-private data class Step(val kindIn: Boolean, val turn: TurnForm, val altLabel: Boolean, val altShown: Boolean)
-private enum class TurnForm { WHOLE, SHORT, NONE }
+private data class Step(val kindIn: Boolean, val turn: TurnForm, val altLabel: Boolean, val figureShort: Boolean, val gridOwnLine: Boolean)
+private enum class TurnForm { WHOLE, SHORT }
 
 internal fun cardColumnsFit(w: CardColumnsWidths, turnWhole: String, turnShort: String?): CardColumnsFit {
     fun turnPx(form: TurnForm): Int = when (form) {
         TurnForm.WHOLE -> w.turnWholePx?.let { it + w.gapPx + w.arrowPx } ?: w.arrowPx
         TurnForm.SHORT -> (w.turnShortPx ?: w.turnWholePx)?.let { it + w.gapPx + w.arrowPx } ?: w.arrowPx
-        TurnForm.NONE -> w.arrowPx
     }
     fun leftPx(s: Step): Int {
-        val top = w.figurePx + if (s.kindIn && w.kindPx != null) w.gapPx + w.kindPx else 0
+        val figure = if (s.figureShort) w.figureShortPx ?: w.figurePx else w.figurePx
+        val top = figure + if (s.kindIn && w.kindPx != null) w.gapPx + w.kindPx else 0
         return maxOf(top, turnPx(s.turn))
     }
     fun middlePx(s: Step, icon: Boolean): Int {
-        val top = if (s.altShown && w.altitudePx != null) {
-            w.altitudePx + if (s.altLabel && w.altitudeLabelPx != null) w.altitudeLabelPx + w.gapPx else 0
-        } else {
-            0
-        }
+        val top = w.altitudePx?.let { it + if (s.altLabel && w.altitudeLabelPx != null) w.altitudeLabelPx + w.gapPx else 0 } ?: 0
         val bottom = if (icon) w.headingIconPx else w.arrowPx + w.gapPx + w.headingPx
         return maxOf(top, bottom)
     }
-    fun rightPx(): Int = w.coordinatesPx ?: 0
-    fun total(s: Step, icon: Boolean) = leftPx(s) + middlePx(s, icon) + rightPx() + 2 * w.dividerPx
-    val ownersOrder = listOf(
-        Step(kindIn = true, turn = TurnForm.WHOLE, altLabel = true, altShown = true),
-        Step(kindIn = false, turn = TurnForm.WHOLE, altLabel = true, altShown = true),
-        Step(kindIn = false, turn = TurnForm.SHORT, altLabel = true, altShown = true),
-        Step(kindIn = false, turn = TurnForm.SHORT, altLabel = false, altShown = true),
-    )
-    val pastTheOrder = listOf(
-        Step(kindIn = false, turn = TurnForm.NONE, altLabel = false, altShown = true),
-        Step(kindIn = false, turn = TurnForm.NONE, altLabel = false, altShown = false),
-    )
-    // The heading's words are tried through the owner's order first; a status gives way to its icon before anything past it.
-    val tries = buildList {
-        ownersOrder.forEach { add(it to false) }
-        if (w.headingIsStatus) ownersOrder.forEach { add(it to true) }
-        pastTheOrder.forEach { add(it to w.headingIsStatus) }
+    fun total(s: Step, icon: Boolean) = if (s.gridOwnLine) {
+        leftPx(s) + middlePx(s, icon) + w.dividerPx
+    } else {
+        leftPx(s) + middlePx(s, icon) + (w.coordinatesPx ?: 0) + 2 * w.dividerPx
     }
+    val steps = listOf(
+        Step(kindIn = true, turn = TurnForm.WHOLE, altLabel = true, figureShort = false, gridOwnLine = false),
+        Step(kindIn = false, turn = TurnForm.WHOLE, altLabel = true, figureShort = false, gridOwnLine = false),
+        Step(kindIn = false, turn = TurnForm.SHORT, altLabel = true, figureShort = false, gridOwnLine = false),
+        Step(kindIn = false, turn = TurnForm.SHORT, altLabel = false, figureShort = false, gridOwnLine = false),
+        Step(kindIn = false, turn = TurnForm.SHORT, altLabel = false, figureShort = true, gridOwnLine = false),
+        Step(kindIn = false, turn = TurnForm.SHORT, altLabel = false, figureShort = true, gridOwnLine = true),
+    )
+    val tries = steps.flatMap { step -> if (w.headingIsStatus) listOf(step to false, step to true) else listOf(step to false) }
     val chosen = tries.firstOrNull { (s, icon) -> total(s, icon) <= w.availablePx }
     val (step, icon) = chosen ?: tries.last()
     val turnText = when (step.turn) {
         TurnForm.WHOLE -> turnWhole
         TurnForm.SHORT -> turnShort ?: turnWhole
-        TurnForm.NONE -> ""
     }
-    val rightRoom = w.availablePx - leftPx(step) - middlePx(step, icon) - 2 * w.dividerPx
+    val rightRoom = if (step.gridOwnLine) -1 else w.availablePx - leftPx(step) - middlePx(step, icon) - 2 * w.dividerPx
     val evening = when {
         w.sundownPx != null && w.backByPx != null && w.sundownPx + w.eveningSeparatorPx + w.backByPx <= rightRoom -> EveningInColumn.BOTH
         w.sundownPx != null && w.sundownPx <= rightRoom -> EveningInColumn.SUNDOWN
@@ -134,9 +138,11 @@ internal fun cardColumnsFit(w: CardColumnsWidths, turnWhole: String, turnShort: 
         turnText = turnText,
         kindInColumn = step.kindIn && w.kindPx != null,
         altitudeLabel = step.altLabel && w.altitudeLabelPx != null,
-        altitudeShown = step.altShown && w.altitudePx != null,
+        altitudeShown = w.altitudePx != null,
         headingAsIcon = icon,
         eveningInColumn = evening,
+        figureShort = step.figureShort && w.figureShortPx != null,
+        gridOwnLine = step.gridOwnLine,
         overflows = chosen == null,
     )
 }

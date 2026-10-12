@@ -66,6 +66,16 @@ internal data class MapCardCorners(val topLeft: Dp, val topRight: Dp, val bottom
         val ALL = MapCardCorners(MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS)
         val BOTTOM = MapCardCorners(0.dp, 0.dp, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS)
 
+        /**
+         * Landscape, navigating: the display beside the bar, taller than it. Its two [outer] corners round, and its inner bottom
+         * corner, below the bar; only its inner top corner, where it meets the bar, stays square.
+         */
+        fun besideBar(outer: ScreenEdge?): MapCardCorners = when (outer) {
+            ScreenEdge.Left -> MapCardCorners(MAP_CARD_CORNER_RADIUS, 0.dp, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS)
+            ScreenEdge.Right -> MapCardCorners(0.dp, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS)
+            else -> ALL
+        }
+
         /** Landscape: the two corners on [outer] round; the joined side stays square. All four with no join ([outer] `null`). */
         fun outerSide(outer: ScreenEdge?): MapCardCorners = when (outer) {
             null -> ALL

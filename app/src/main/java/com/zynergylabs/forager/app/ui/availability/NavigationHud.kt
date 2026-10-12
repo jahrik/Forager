@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExploreOff
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
@@ -353,7 +354,8 @@ internal fun NavigationHud(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                        // RECORD -936 (the owner: "Yes, slightly tighter (Recommended)"): 4 dp at the card's sides.
+                        .padding(horizontal = CARD_SIDE_PADDING, vertical = Spacing.xs),
                 ) {
                     val reduceMotion = LocalReduceMotion.current
                     val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
@@ -366,7 +368,6 @@ internal fun NavigationHud(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CardColumns(
                                 readout = readout,
-                                reading = reading,
                                 fit = fit,
                                 metrics = metrics,
                                 sundownLine = sundownLine.takeIf { sundownInColumn },
@@ -392,6 +393,8 @@ internal fun NavigationHud(
                         // everything"). In portrait the evening lines come first, then the route and the status, the planner's order
                         // (2026-10-12); in landscape the evening line is last, because RECORD -770 lets it leave when the display
                         // would reach past its limit, and only the last line can leave without moving the others.
+                        // RECORD -936: the grid reference's own line, when it has left the right column.
+                        if (fit.gridOwnLine) readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
                         if (!landscape) {
                             PortraitEveningLines(sundownLine.takeIf { !sundownInColumn }, backByLine.takeIf { !backByInColumn }, lineEnter, lineExit)
                         }
@@ -441,7 +444,7 @@ private fun rememberCardMetrics(): CardMetrics {
     return with(density) {
         val small = measurer.measure("Mg", typography.labelMedium, maxLines = 1).size.height
         val figure = measurer.measure("Mg", cardFigureStyle(), maxLines = 1).size.height
-        val padding = 2 * Spacing.sm.roundToPx()
+        val padding = 2 * CARD_SIDE_PADDING.roundToPx()
         val divider = CARD_DIVIDER_WIDTH.roundToPx() + 2 * CARD_DIVIDER_GAP.roundToPx()
         CardMetrics(
             paddingPx = padding,
@@ -449,7 +452,7 @@ private fun rememberCardMetrics(): CardMetrics {
             dividerPx = divider,
             gapPx = Spacing.xs.roundToPx(),
             arrowPx = COMPASS_ICON_SIZE.roundToPx(),
-            iconPx = stripHeadingIconSize().roundToPx(),
+            iconPx = COMPASS_ICON_SIZE.roundToPx(),
             // The grid reference's tap band (its line and Spacing.xs above and below) is the tallest top part with a fix.
             topRowPx = maxOf(figure, small + 2 * Spacing.xs.roundToPx()),
             bottomRowPx = maxOf(COMPASS_ICON_SIZE.roundToPx(), small),
@@ -460,9 +463,15 @@ private fun rememberCardMetrics(): CardMetrics {
 @Composable
 private fun cardFigureStyle(): TextStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
 
-/** The figure the left column draws: the route message moves to its own line under the columns (see [CardRouteAndStatusLines]). */
-private fun columnFigure(readout: NavigationHudReadout): String =
-    if (readout.distanceText == ROUTE_UNAVAILABLE_TEXT) NO_HEADING_TEXT else readout.distanceText
+/**
+ * The figure the left column draws: the route message moves to its own line under the columns (see [CardRouteAndStatusLines]);
+ * with [short], "within 16 ft" reads "≤ 16 ft" (RECORD -936).
+ */
+private fun columnFigure(readout: NavigationHudReadout, short: Boolean = false): String = when {
+    readout.distanceText == ROUTE_UNAVAILABLE_TEXT -> NO_HEADING_TEXT
+    short -> distanceShortForm(readout.distanceText) ?: readout.distanceText
+    else -> readout.distanceText
+}
 
 @Composable
 private fun measuredCardColumnsFit(
@@ -486,6 +495,7 @@ private fun measuredCardColumnsFit(
             gapPx = metrics.gapPx,
             arrowPx = metrics.arrowPx,
             figurePx = widthOf(columnFigure(readout), figureStyle),
+            figureShortPx = distanceShortForm(readout.distanceText)?.let { widthOf(it, figureStyle) },
             kindPx = readout.distanceKindText?.let { widthOf(it, small) },
             turnWholePx = turn.takeIf { it.isNotEmpty() }?.let { widthOf(it, small) },
             turnShortPx = turnShortForm(turn)?.let { widthOf(it, small) },
@@ -515,7 +525,6 @@ private fun measuredCardColumnsFit(
 @Composable
 private fun CardColumns(
     readout: NavigationHudReadout,
-    reading: TrueHeadingReading,
     fit: CardColumnsFit,
     metrics: CardMetrics,
     sundownLine: String?,
@@ -533,7 +542,7 @@ private fun CardColumns(
         // Left: the figure (and its kind while it fits), then the turn words and the needle, flush against the divider.
         Column(horizontalAlignment = Alignment.End) {
             Row(modifier = Modifier.height(topRow), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                WordSwap(text = columnFigure(readout), modifier = Modifier.alignByBaseline()) { shown ->
+                WordSwap(text = columnFigure(readout, fit.figureShort), modifier = Modifier.alignByBaseline()) { shown ->
                     Text(
                         text = shown,
                         style = cardFigureStyle(),
@@ -591,7 +600,12 @@ private fun CardColumns(
                 if (fit.headingAsIcon) {
                     // RECORD -934: a compass status whose words do not fit the middle column takes RECORD -735's crossed-out
                     // compass, its words kept as the icon's description for a screen reader.
-                    Box(modifier = Modifier.testTag(NAVIGATION_HUD_NORTH_ARROW_TAG)) { StripHeadingStatusIcon(reading) }
+                    // The status's own words as its description, so a facing notice ("Compass calibrating…") is read as itself.
+                    Icon(
+                        imageVector = Icons.Filled.ExploreOff,
+                        contentDescription = readout.headingText,
+                        modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG),
+                    )
                 } else {
                     // The north compass, inline before the heading (RECORD -932): rotated by minus the heading, as before.
                     Icon(
@@ -615,25 +629,13 @@ private fun CardColumns(
                 }
             }
         }
-        CardDivider(height = topRow + bottomRow, color = dividerColor)
+        if (!fit.gridOwnLine) CardDivider(height = topRow + bottomRow, color = dividerColor)
         // Right: the grid reference, its tap band the column's whole width (a real target, not the bare text), then the
         // evening line when it fits here (RECORD -934: "Moves to a full-width line" when it does not).
-        Column(modifier = Modifier.weight(1f)) {
+        // RECORD -936: with the grid reference on its own line under the columns there is no right column.
+        if (fit.gridOwnLine) Spacer(Modifier.weight(1f)) else Column(modifier = Modifier.weight(1f)) {
             Box(modifier = Modifier.height(topRow).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                readout.coordinatesText?.let { coordinates ->
-                    Text(
-                        text = coordinates,
-                        style = small,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
-                            .padding(vertical = Spacing.xs)
-                            .testTag(NAVIGATION_HUD_COORDINATES_TAG),
-                    )
-                }
+                readout.coordinatesText?.let { GridReferenceText(it, onToggleCoordinateFormat) }
             }
             Row(modifier = Modifier.height(bottomRow), verticalAlignment = Alignment.CenterVertically) {
                 val eveningStyle = small.copy(fontFeatureSettings = "tnum")
@@ -651,6 +653,27 @@ private fun CardColumns(
             }
         }
     }
+}
+
+/**
+ * The grid reference, its tap band the whole width it is given (a real target, not the bare text), padded to about 24 dp tall,
+ * toggling MGRS and decimal degrees. Whole: measured into the fit before it is placed (RECORD -699, -936); "…" only as the last
+ * resort the fit reports as an overflow.
+ */
+@Composable
+private fun GridReferenceText(coordinates: String, onToggleCoordinateFormat: () -> Unit) {
+    Text(
+        text = coordinates,
+        style = MaterialTheme.typography.labelMedium,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
+            .padding(vertical = Spacing.xs)
+            .testTag(NAVIGATION_HUD_COORDINATES_TAG),
+    )
 }
 
 /** A thin vertical line between two columns, with [CARD_DIVIDER_GAP] either side. Draws only; takes no touch. */
@@ -684,8 +707,7 @@ private fun PortraitEveningLines(
                 Text(
                     text = shown,
                     style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    // RECORD -934 ("Never cut it off"): a full-width line wraps rather than ending in "…".
                     modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
                 )
             }
@@ -698,8 +720,6 @@ private fun PortraitEveningLines(
                 Text(
                     text = shown,
                     style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.testTag(NAVIGATION_HUD_BACK_BY_LINE_TAG),
                 )
             }
@@ -1336,9 +1356,11 @@ internal fun formatFixAge(ageMillis: Long): String {
 
 private val COMPASS_ICON_SIZE = 22.dp
 
-/** Dispatch 2026-10-12-06: the card's column dividers, thin lines with this gap either side (the mockup's). */
+/** Dispatch 2026-10-12-06: the card's column dividers, thin lines with this gap either side (6 dp, RECORD -936's tighter spacing). */
 private val CARD_DIVIDER_WIDTH = 1.dp
-private val CARD_DIVIDER_GAP = Spacing.sm
+private val CARD_DIVIDER_GAP = 6.dp
+/** RECORD -936 (the owner: "Yes, slightly tighter (Recommended)"): the card's own side padding. */
+private val CARD_SIDE_PADDING = Spacing.xs
 private const val CARD_LOG_TAG = "NavigationCard"
 private val RETRY_ICON_SIZE = 18.dp
 private val RETRY_ROW_MIN_HEIGHT = 48.dp

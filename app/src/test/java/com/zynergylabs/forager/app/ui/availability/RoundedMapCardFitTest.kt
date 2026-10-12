@@ -88,13 +88,36 @@ class RoundedMapCardFitTest {
     }
 
     @Test
-    fun `past the owner's order the degrees go before the altitude, and the figure, heading and grid reference are never touched`() {
-        val w = widths(160).copy(headingPx = 20, turnShortPx = 40)
-        // Short turn: max(40, 52) = 52; none: max(40, 10) = 40. Middle without label 32. 40 + 32 + 100 + 20 = 192 > 160.
+    fun `then within 16 ft takes its short form`() {
+        // Figure 40, short 25. After step 3 at headingPx 20: left max(40, 32) = 40, middle 32, right 100, dividers 20 = 192.
+        val w = widths(191).copy(headingPx = 20, figureShortPx = 25)
         val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
-        assertEquals("the needle alone", "", f.turnText)
-        assertFalse("then the altitude", f.altitudeShown)
-        assertTrue("nothing fits: reported, not hidden", f.overflows)
+        // Short figure: left max(25, 32) = 32; total 184.
+        assertTrue("the short figure", f.figureShort)
+        assertFalse("the grid reference keeps its column", f.gridOwnLine)
+        assertFalse(f.altitudeLabel)
+    }
+
+    @Test
+    fun `last, the grid reference takes its own line, and the distance, altitude and compass keep their columns`() {
+        // Step 5: left 32 + middle 32 + one divider 10 = 74.
+        val w = widths(150).copy(headingPx = 20, figureShortPx = 25)
+        val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
+        assertTrue(f.gridOwnLine)
+        assertTrue("the altitude stays", f.altitudeShown)
+        assertEquals("the turn stays at degrees: nothing past the owner's order", "169°", f.turnText)
+        assertFalse(f.overflows)
+        assertEquals("no right column, so no evening line in it", EveningInColumn.NONE, f.eveningInColumn)
+    }
+
+    @Test
+    fun `where even the grid reference's own line is not enough, it overflows and says so, trimming nothing further`() {
+        val w = widths(70).copy(headingPx = 20, figureShortPx = 25)
+        val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
+        assertTrue("reported", f.overflows)
+        assertTrue("at the last step the owner set", f.gridOwnLine && f.figureShort)
+        assertEquals("the degrees stay", "169°", f.turnText)
+        assertTrue("the altitude stays", f.altitudeShown)
     }
 
     @Test

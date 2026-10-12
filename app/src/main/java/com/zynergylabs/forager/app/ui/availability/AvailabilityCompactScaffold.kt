@@ -1057,7 +1057,14 @@ internal fun CompactMainScaffold(
                                 // Before the strip is first measured: RECORD -729's half, for that frame.
                                 (maxWidth / 2 - punchHoleInset).coerceAtLeast(0.dp)
                             } else {
-                                minOf(LANDSCAPE_SEARCH_MAX_WIDTH, maxWidth / 2 - punchHoleInset - LANDSCAPE_SEARCH_CENTRE_GAP).coerceAtLeast(0.dp)
+                                // Navigating. Dispatch 2026-10-12-06 (RECORD -934, -936, the planner's call: "in landscape the card still
+                                // touches the bar edge to edge"): the display keeps its place and width (beside the capped bar, at most
+                                // LANDSCAPE_HUD_MAX_WIDTH, besideLandscapeSearchBar), and the bar now takes the rest of the room up to
+                                // it, where it used to stop at its cap and leave a gap. Worked out from the same constants the display's
+                                // width is, never read back from a layout (LandscapeChromeWidth.kt's reason).
+                                val capped = minOf(LANDSCAPE_SEARCH_MAX_WIDTH, maxWidth / 2 - punchHoleInset - LANDSCAPE_SEARCH_CENTRE_GAP).coerceAtLeast(0.dp)
+                                val display = minOf(LANDSCAPE_HUD_MAX_WIDTH, (maxWidth - punchHoleInset - railInset - capped).coerceAtLeast(0.dp))
+                                (maxWidth - punchHoleInset - railInset - display).coerceAtLeast(0.dp)
                             }
                         } else {
                             null
@@ -1323,7 +1330,7 @@ internal fun CompactMainScaffold(
                                                 landscapeHeight = mapSearchBarHeight.takeIf { barMeetsStrip && landscapeStripHeight > 0.dp },
                                                 // Dispatch 2026-10-12-06: the rounded pill. Beside the landscape strip it rounds its outer side
                                                 // only and meets the strip square, edge to edge with no join line (RECORD -934).
-                                                pillCorners = if (landscapeSearchWidth != null && barMeetsStrip && landscapeStripWidth > 0.dp) {
+                                                pillCorners = if (landscapeSearchWidth != null && ((barMeetsStrip && landscapeStripWidth > 0.dp) || isNavigating)) {
                                                     MapCardCorners.outerSide(if (portEdge == ScreenEdge.Left) ScreenEdge.Right else ScreenEdge.Left)
                                                 } else {
                                                     MapCardCorners.ALL
