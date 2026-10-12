@@ -35,6 +35,7 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the navigation display's sundown line fades and grows like the
@@ -45,6 +46,11 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
+// Dispatch 2026-10-12-06: native graphics, so text is measured at its real width. The card now places a short evening line in
+// its right column and a long one on its own line under the columns (RECORD -934), decided by measured widths; under the legacy
+// graphics this class ran on, every text measured a few dp wide, so the long line fitted the right column and the display did
+// not grow (diagnosed on CI run 38223100221: "0.7 mi" measured 2.3 dp). The claim, and SUNDOWN, are unchanged.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class HudSundownLineGrowTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
@@ -113,9 +119,6 @@ class HudSundownLineGrowTest {
         val lineBounds = composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).fetchSemanticsNodes().map { it.boundsInRoot }
         val hudBounds = composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot()
         println("MEASURED sundown grow: hud $hudBounds, line(s) $lineBounds, short $short, tall $tall")
-        composeRule.onAllNodes(androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag(NAVIGATION_HUD_TAG)), useUnmergedTree = true).fetchSemanticsNodes().forEach { n ->
-            println("MEASURED sundown grow node: ${n.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag)} ${n.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)} ${n.boundsInRoot}")
-        }
         assertTrue("taller with the line: $short to $tall (hud $hudBounds, line px $lineBounds)", tall > short + 4.dp)
         assertTrue("caught growing: $growing between $short and $tall", growing > short + 0.5.dp && growing < tall - 0.5.dp)
 
