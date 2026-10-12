@@ -21,8 +21,8 @@ immediately:
 
 ## Uninstalling removes everything
 
-Uninstalling Forager deletes all of it: the database, the photo files, downloaded map regions, saved
-preferences and any crash reports. Nothing is left behind on the device.
+Uninstalling Forager deletes all of it: the database, the photo files, downloaded map regions and saved
+preferences. Nothing is left behind on the device.
 
 Forager also sets `allowBackup="false"`, which means Android does **not** copy your Forager data into
 Google's automatic backup. There is no cloud copy to survive the uninstall and reappear on your next
