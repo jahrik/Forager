@@ -284,3 +284,121 @@ Other measurements:
    - the landscape pill's width beside the strip, with a real cut-out inset.
 
 Screenshots: `~/Zynergy/device-evidence/2026-10-12-nav-strip-mockup/robolectric-33cdb917/` (outside the repository).
+
+---
+
+# Continued: RECORD -953 (landscape card on the bottom edge) and -954 (the "i" beside the credit strip)
+
+Commits `0742bc31`, `ef774120`, `04144bc0`, `0f35f6c0`, `92791482`, all pushed. Not merged; still a draft.
+
+## What landed
+
+- **-953**, the owner: "have the card peak from the botton of the screen instead from the top"; "Landscape only. Portrait is
+  dialed in"; "It stays exactly how it is now. Just flipped upside down. No rearranging."
+  - In landscape the navigation card is anchored to the screen's bottom edge, in the strip's column, at the strip's exact width.
+  - Its top two corners are rounded (`MapCardCorners.TOP`). Its bottom is square on the edge, with no tuck; the 0.8 fill and shadow
+    stay.
+  - It slides up from the bottom (`navigationChromeFromBottomTransitions`), or only fades under reduced motion.
+  - Its content and order are unchanged, and the strip does not move. Portrait is unchanged.
+- **Nothing else moves.** Two things that existed only for the old top position are no longer wired:
+  - The landscape L is no longer told the card's edge, so it does not slide (T11 P4's slide below the display). There is no room
+    below a card on the bottom edge, and sliding the L would rearrange it.
+  - RECORD -770's evening-line limit is not passed. It was worked out from the L sitting below the display.
+- **-954**, the owner: "Have the map i next to the open street maps logo"; "Just landscape".
+  - The "i" is MapLibre's own attribution control. It is placed through `UiSettings.setAttributionGravity` (`SightingsMap.kt:785`)
+    and `setAttributionMargins` (`:1288`), not as a composable.
+  - So it moves through those same settings: in a short landscape window, gravity bottom-start, with a start margin of the credit
+    strip's measured width plus 4 dp and a bottom margin equal to the strip's (`attributionBesideCreditMarginsPx`).
+  - The flag is `MapRenderMode.attributionBesideCredit`, set by the Maps tab in landscape only. The "i" opens what it always opened.
+
+## Collisions, reported and left in place ("No rearranging")
+
+**Landscape, navigating, with the L on the card's side (the rail side), both rotations:**
+
+| | 780 dp | 823 dp |
+|---|---|---|
+| Card at font 1.0 | 284-360 dp | 308-384 dp |
+| L's Record / Return pill | 304-352 dp | 312-360 dp |
+| L's bar | bottom at 296 dp: 12 dp under the card | clear |
+
+- The card covers the Record / Return pill at both widths, and part of the bar at 780 dp.
+- Real touches on Record go to the card at ROTATION_90: `item 3 … navigating every bar and pill button takes real touches` fails at
+  780 and 823.
+- **Not understood:** the same test passes at ROTATION_270 with a similar overlap. I have not explained this, so I am reporting it
+  rather than relying on it.
+
+**The credit strip and the "i":**
+- The credit strip is about 306 dp wide (default basemap, 823 × 384 window). The "i" sits beside it at x 310-334 dp, sharing its
+  bottom edge.
+- At ROTATION_90 the card (x 385-743) is clear of both.
+- At ROTATION_270 the card spans x 80-438 dp along the bottom, so it covers the credit strip's right part and the "i" while
+  navigating.
+- The rail already sits over the credit strip's first 80 dp there. That predates -953; I inferred it from the scaffold, which
+  insets the "i" from the rail but not the caption, and did not measure it.
+
+## Landscape heights (-766, -770): re-measured, nothing trimmed
+
+The 10 failing tests in `HudLandscapeT11FixesAt780Test` and `…At823Test`, five each:
+
+1. **-766, "no taller for Try again":** the card is 76 dp on the route and 124 dp with Try again's row. It grows upward from the
+   bottom edge.
+2. **-770 at font 1.0** (route withheld, evening lines): the card spans 236-360 dp at 780 and 260-384 dp at 823. It covers the L's
+   bar (780: bar 36-276, overlap 40 dp; 823: bar 44-284, overlap 24 dp).
+3. **-770 at font 2.0:** the card's top is 82 dp (780) and 106 dp (823), so it covers Reset north (780: 85-133; 823: 92-140).
+4. **The walker's dot** (font 2.0, Try again and evening lines): the card spans 82-360 dp (780) and 106-384 dp (823), so it covers
+   the dot (y 225 and 240).
+5. **The L's pill:** covered on the rail side, as in the table above.
+
+**Where it is clear:**
+- With no target, the card spans 308-384 dp at font 1.0 and 266-384 dp at font 2.0 (823 dp). It is below the walker's dot (240 ± 12).
+- The `LandscapeLargeFontTest` and `NavigationWordsLandscapeTest` walker's-dot checks pass.
+
+## Tests changed by -953: old and new assertion
+
+| Test | Old | New |
+|---|---|---|
+| B2Test S4, navigating ×2 | card's top = strip's bottom | card's bottom = map's bottom; same edges as the strip |
+| LandscapeCardMeetsBarTest ×2 | card hangs from the strip's bottom | card on the window's bottom edge; map shows between; long-presses beside and above it |
+| MapTopCardScreenTest landscape, map touches | card's bottom corners; points just below it | card's top corner gaps; points just above and beside it |
+| T11 Reset north check | `reset.top >= hud.bottom`; `hud.bottom <= b.top + 48.5.dp` | Reset north does not overlap the display; the display covers none of the bar |
+| T11 -770 at font 1.0 | the bar's top on the display's bottom | the display covers none of the bar |
+| T11 "at its tallest", LargeFont, WordsLandscape | `hud.bottom <= walkerY - r` | no overlap with the dot's circle |
+| T11 item 3, the L on the display's side ×2 | L slides below the display; pill beside "+" | L and pill stay where the user put them |
+| T11 item 3, slide ends | positive control "the slide moves the bar" | the L does not move |
+| T11 item 3, mid-slide touches | touches held mid-slide | "starting navigation moves the L at no frame" |
+| T11 item 3, long-press beside the L | third point above the pill (now on the bar) | beside the pill |
+
+**New tests:**
+- In both landscape classes:
+  - the card slides up from the bottom;
+  - a pixel check that its top corners are rounded and its bottom square (a long-press cannot tell them apart; revert r22 at first
+    did not bite);
+  - the map is asked to put the "i" beside the credit strip in landscape only.
+- `AttributionBesideCreditTest`: the margins, and the "i"'s square laid against the real credit strip.
+
+## Revert checks
+
+Five, built from committed state, each build log showing 0 compile errors, branches deleted afterwards.
+
+| Check | Edit | Run | Result |
+|---|---|---|---|
+| r21 | card back at the top | 38297602847 | bit: 8 failures, e.g. "the card sits on the bottom edge" |
+| r22 | card corners square | 38297614221 | did not bite: the long-press touches only |
+| r22 (rerun after the pixel test) | same | 38300253429 | bit: "the top-left corner gap shows the map", both rotations |
+| r23 | card slides down from the top | 38297628896 | bit: "mid-start the card … is below where it settles", both rotations |
+| r24 | "i" flag off | 38297641550 | bit: "beside the credit strip … expected true but was false" |
+| r25 | "i" start margin ignores the strip | 38297652898 | bit: "the i (4.0 dp) starts past the credit's end (306.33 dp)" |
+
+## CI
+
+Run `38299141514` at `92791482`: 603 suites, 4,664 tests, **10 failures** (the collisions above), 24 skipped. Main has 0 failures.
+
+## Device items (added)
+
+- **The "i" itself.** A real MapView cannot be built under Robolectric, so the "i" cannot be touched or drawn here. Check on the phone
+  that it sits beside the credit strip and opens its attribution content.
+- **The real bottom gesture bar or navigation bar** under the landscape card (Robolectric reports zero insets). The card is anchored
+  to the controls padding's bottom.
+- **The card over the L's pill on the rail side**, and over the credit strip and the "i" at ROTATION_270.
+
+Screenshots: `~/Zynergy/device-evidence/2026-10-12-nav-strip-mockup/robolectric-92791482/` (outside the repository).
