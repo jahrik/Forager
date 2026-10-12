@@ -209,6 +209,7 @@ class NavigationCardFitAcrossWidthsTest {
             pieces.forEach { laid ->
                 val text = laid.layout.layoutInput.text.text
                 if ((0 until laid.layout.lineCount).any { laid.layout.isLineEllipsized(it) }) problems += "${c.name}: evening piece ends in …: '$text'"
+                if (text.contains(" · ")) problems += "${c.name}: evening piece not broken at its joins: '$text'"
                 if (laid.bounds.left < lastDivider - 0.5.dp || laid.bounds.right > buttons.left + 0.5.dp) problems += "${c.name}: evening piece '$text' ${laid.bounds} outside the right column (from $lastDivider to ${buttons.left})"
             }
             val needleMid = (needle.top + needle.bottom) / 2

@@ -15,6 +15,7 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
@@ -51,7 +52,7 @@ import org.robolectric.shadows.ShadowDisplay
  * Dispatch 2026-10-12-06 (RECORD -934's "the pill and card touch edge to edge", and the planner's call in RECORD -936: "in
  * landscape the card still touches the bar edge to edge"): navigating in a short landscape window, the search bar's inner
  * edge is the navigation card's inner edge, no gap, at both rotations, and long-presses beside the bar, below it, reach the
- * map. Before this dispatch the bar stopped at its 384 dp cap and left a gap of tens of dp beside the display.
+ * map. Since RECORD -940 the card is also the window's short side wide, as in portrait. Before this dispatch the bar stopped at its 384 dp cap and left a gap of tens of dp beside the display.
  */
 abstract class LandscapeCardMeetsBarTests {
     val composeRule = createComposeRule()
@@ -143,6 +144,10 @@ abstract class LandscapeCardMeetsBarTests {
             assertEquals("the bar's left edge is the card's right edge: bar $bar, card $card", card.right.value, bar.left.value, 0.5f)
         }
         assertEquals("the two start at the same top", card.top.value, bar.top.value, 0.5f)
+        // RECORD -940 (the owner: "It can be the same size as portrait"): the card is the window's short side wide.
+        val window = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val shortSide = minOf(window.right - window.left, window.bottom - window.top)
+        assertEquals("the card is as wide as in portrait, the window's short side: card $card, window $window", shortSide.value, (card.right - card.left).value, 0.5f)
         // Below the bar, beside the taller card, nearer the card than the cluster on the bar's outer side: the map's.
         val x = if (barOnLeft) card.left - 12.dp else card.right + 12.dp
         var sampled = 0
