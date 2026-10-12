@@ -346,7 +346,8 @@ internal fun NavigationHud(
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 val metrics = rememberCardMetrics()
-                val columnsPx = constraints.maxWidth - metrics.fixedPx
+                val cardPx = constraints.maxWidth
+                val columnsPx = cardPx - metrics.fixedPx
                 val fit = measuredCardColumnsFit(readout, columnsPx, metrics, sundownLine, backByLine)
                 // RECORD -770: where the rows above the evening line end, which the line does not change, so the decision to leave
                 // it out cannot feed back into what it is decided on.
@@ -398,7 +399,7 @@ internal fun NavigationHud(
                         if (!landscape) {
                             PortraitEveningLines(sundownLine.takeIf { !sundownInColumn }, backByLine.takeIf { !backByInColumn }, lineEnter, lineExit)
                         }
-                        CardRouteAndStatusLines(readout, fit, constraints.maxWidth - metrics.paddingPx, onRetryRoute)
+                        CardRouteAndStatusLines(readout, fit, cardPx - metrics.paddingPx, onRetryRoute)
                     }
                     if (landscape) {
                         // T11 fixes (RECORD -766, P3): in landscape the sundown line and Back by share one line. RECORD -770: the line

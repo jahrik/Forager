@@ -43,7 +43,7 @@ import org.junit.Assert.assertFalse
  * second row; at 384 dp (the S22) it stays left of the X. The display is composed afresh between touches, because under
  * Robolectric neither Back nor a touch elsewhere reaches the menu's popup window.
  */
-abstract class NavigationHudButtonPlacementTests(private val inSecondRow: Boolean) {
+abstract class NavigationHudButtonPlacementTests {
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
     private val declareHostActivity = object : ExternalResource() {
         override fun before() {
@@ -66,7 +66,7 @@ abstract class NavigationHudButtonPlacementTests(private val inSecondRow: Boolea
     private fun shown(tag: String) = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
 
     @Test
-    fun `the button sits where the measured fit puts it, and real touches across it open the menu`() {
+    fun `the button sits under the X at the card's right edge, and real touches across it open the menu`() {
         composeRule.setContent {
             androidx.compose.runtime.key(generation) {
                 NavigationHud(
@@ -90,14 +90,12 @@ abstract class NavigationHudButtonPlacementTests(private val inSecondRow: Boolea
         val hud = bounds(NAVIGATION_HUD_TAG)
         assertEquals("36 dp wide: $button", 36f, (button.right - button.left).value, 0.5f)
         assertEquals("36 dp tall: $button", 36f, (button.bottom - button.top).value, 0.5f)
-        if (inSecondRow) {
-            assertTrue("below the X's row: button $button, X $exit", button.top >= (exit.top + exit.bottom) / 2 + 24.dp - 0.5.dp)
-            assertTrue("at the second row's end: button $button in $hud", hud.right - button.right <= 8.5.dp)
-            assertEquals("the status line is whole beside the X alone", "≈ 1250 ft straight", composeRule.onAllNodesWithTag(NAVIGATION_HUD_STATUS_TAG, useUnmergedTree = true).fetchSemanticsNodes().single().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text })
-        } else {
-            assertTrue("left of the X: button $button, X $exit", button.right <= exit.left + 0.5.dp)
-            assertTrue("in the X's row: button $button, X $exit", button.top < exit.bottom && button.bottom > exit.top)
-        }
+        // Dispatch 2026-10-12-06 (RECORD -932, the owner: "Have the X button go above the three dot menu in the top corner. The
+        // three dot menu can go in the bottom corner"): at every width the button sits under the X at the card's right edge.
+        // Was: at 360 dp at the second row's end (RECORD -714's measured fit), at 384 dp left of the X in its row.
+        assertTrue("under the X: button $button, X $exit", button.top >= exit.bottom - 0.5.dp)
+        assertTrue("at the card's right edge: button $button in $hud", hud.right - button.right <= 16.dp)
+        assertTrue("the X at the card's top right: $exit in $hud", hud.right - exit.right <= 8.dp && exit.top - hud.top <= 8.dp)
         val inset = 3.dp
         val points = listOf(
             (button.left + button.right) / 2 to (button.top + button.bottom) / 2,
@@ -119,9 +117,9 @@ abstract class NavigationHudButtonPlacementTests(private val inSecondRow: Boolea
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class NavigationHudButtonPlacement360Test : NavigationHudButtonPlacementTests(inSecondRow = true)
+class NavigationHudButtonPlacement360Test : NavigationHudButtonPlacementTests()
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class NavigationHudButtonPlacement384Test : NavigationHudButtonPlacementTests(inSecondRow = false)
+class NavigationHudButtonPlacement384Test : NavigationHudButtonPlacementTests()
