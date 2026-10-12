@@ -355,6 +355,33 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
     }
 
     /**
+     * RECORD -953: the landscape card's top two corners are rounded and its bottom is square on the edge. Pixels, since the card
+     * takes no touch anywhere and a long-press cannot tell a rounded corner from a square one: just inside each top corner the
+     * pixel is the map's (as 4 dp above the card), while along the card's top edge, mid-width, it is the card's fill; and a bottom
+     * corner, square, is the card's.
+     */
+    fun assertCardTopCornersRounded() {
+        setScreen()
+        val card = bounds(NAVIGATION_HUD_TAG)
+        val image = composeRule.onRoot().captureToImage().toPixelMap()
+        fun px(x: Dp, y: Dp): Color = with(composeRule.density) { image[x.toPx().toInt(), y.toPx().toInt()] }
+        fun near(a: Color, b: Color) = abs(a.red - b.red) < 0.006f && abs(a.green - b.green) < 0.006f && abs(a.blue - b.blue) < 0.006f
+        val mid = (card.left + card.right) / 2
+        val mapAbove = px(mid, card.top - 4.dp)
+        val edge = px(mid, card.top + 2.dp)
+        val topLeft = px(card.left + 1.dp, card.top + 1.dp)
+        val topRight = px(card.right - 2.dp, card.top + 1.dp)
+        val bottomLeft = px(card.left + 1.dp, card.bottom - 1.dp)
+        println("MEASURED card corners, rotation $rotation: map above $mapAbove, top edge $edge, top-left $topLeft, top-right $topRight, bottom-left $bottomLeft")
+        // Closer to the map than to the card's fill, or the reverse: a cast shadow can tint a corner gap a little either way.
+        fun dist(a: Color, b: Color) = abs(a.red - b.red) + abs(a.green - b.green) + abs(a.blue - b.blue)
+        assertTrue("positive control: the card's fill differs from the map above it ($edge against $mapAbove)", !near(edge, mapAbove))
+        assertTrue("the top-left corner gap shows the map ($topLeft; map $mapAbove, card $edge)", dist(topLeft, mapAbove) < dist(topLeft, edge))
+        assertTrue("the top-right corner gap shows the map ($topRight; map $mapAbove, card $edge)", dist(topRight, mapAbove) < dist(topRight, edge))
+        assertTrue("the bottom-left corner is square, the card's ($bottomLeft; map $mapAbove, card $edge)", dist(bottomLeft, edge) < dist(bottomLeft, mapAbove))
+    }
+
+    /**
      * RECORD -953 ("have the card peak from the botton of the screen"): in landscape the card slides up from the bottom edge when
      * navigation starts. Six frames in, the card is lower than where it settles; settled, its bottom is the window's bottom.
      */
@@ -430,6 +457,9 @@ class MapTopCardLandscape90ScreenTest : MapTopCardScreenTests(rotation = Surface
 
     @Test
     fun `the navigation card slides up from the bottom edge when navigation starts`() = assertCardSlidesUpFromTheBottom()
+
+    @Test
+    fun `the navigation card's top corners are rounded and its bottom square on the edge`() = assertCardTopCornersRounded()
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -441,6 +471,9 @@ class MapTopCardLandscape270ScreenTest : MapTopCardScreenTests(rotation = Surfac
 
     @Test
     fun `the navigation card slides up from the bottom edge when navigation starts`() = assertCardSlidesUpFromTheBottom()
+
+    @Test
+    fun `the navigation card's top corners are rounded and its bottom square on the edge`() = assertCardTopCornersRounded()
 }
 
 internal const val TOP_CARD_MAP_TAG = "top-card-map"
