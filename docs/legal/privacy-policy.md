@@ -31,8 +31,6 @@ Stored in the app's own private storage, readable by no other app:
 - Photos taken in the app or imported from the gallery (`filesDir/photos/`, `FilePhotoStore.kt`).
 - Downloaded offline map regions.
 - Preferences (units, map mode, and similar).
-- Crash traces, written locally when the app crashes (`CrashFileStore.kt`). They stay on the phone
-  and are only ever shared if you choose to share one from the app's crash screen.
 
 None of this is transmitted by the app. It is deleted when you uninstall the app or clear its data.
 
@@ -171,7 +169,7 @@ what is described above.
 
 Everything Forager stores is on your device and can be deleted from inside the app, item by item —
 journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips.
-Uninstalling removes all of it, including the database, the photo files and any crash reports; with
+Uninstalling removes all of it, including the database and the photo files; with
 `allowBackup="false"` there is no cloud copy to survive and reappear. Nothing is held on a server, so
 there is no deletion request to make. Full detail is at <https://www.zynergy-labs.com/delete-data/>,
 generated from `docs/legal/delete-data.md`, and that page is the URL given in the Play Data safety
