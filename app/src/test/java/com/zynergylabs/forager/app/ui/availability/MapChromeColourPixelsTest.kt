@@ -115,9 +115,25 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
         // pill does a line higher; a fill laid under it as well would read 0.96 there.
         val band = at(search.left + 24.dp, search.bottom - 3.dp)
         assertSameColourShadowed("the pill's lower band, over the card's tuck, is the token at 0.8, not laid twice", expected, band)
-        // The wedge under the pill's lower-left corner is the card's fill alone: the token at 0.8 as well.
+        // The wedge under the pill's lower-left corner is the card's fill, not the bare map: its hue is the token's (it now carries
+        // the pill's cast shadow, below, so only the hue is held, not the level). Was: the token at 0.8, shadow factor 0.90 to 1.
         val wedge = at(search.left + 2.dp, search.bottom - 2.dp)
-        assertSameColourShadowed("the wedge under the pill's corner is the card's fill, the token at 0.8", expected, wedge)
+        val k = wedge.red / expected.red
+        assertTrue(
+            "the wedge under the pill's corner is the card's fill, the token's hue: read ${rgb(wedge)} against ${rgb(expected)}",
+            k in 0.6f..1.003f && abs(wedge.green - expected.green * k) <= 3f / 255f && abs(wedge.blue - expected.blue * k) <= 3f / 255f,
+        )
+
+        // RECORD -943's follow-up (the owner: "don't forget the card tuck. I don't see it on the preview"): the pill's shadow is cast
+        // onto the card, so the card just below the pill's lower edge is measurably darker than the card further down. 4 dp in
+        // from the left, clear of the strip's text and its rounded lower corners.
+        val justBelow = at(strip.left + 4.dp, strip.top + 1.dp)
+        val further = at(strip.left + 4.dp, (strip.top + strip.bottom) / 2)
+        val luminance = { c: Color -> 0.2126f * c.red + 0.7152f * c.green + 0.0722f * c.blue }
+        assertTrue(
+            "the card just below the pill ${rgb(justBelow)} is darker than further down ${rgb(further)} by at least 4%",
+            luminance(justBelow) <= luminance(further) * 0.96f,
+        )
 
         // The icon bar is a 0.5 layer on the cluster's 0.6 container: 0.8 together, on a point clear of an icon (as the L test).
         val bar = bounds(MAP_ICON_BAR_TAG)

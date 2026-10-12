@@ -4,6 +4,7 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
@@ -45,6 +46,15 @@ internal val MAP_CARD_CORNER_RADIUS = 16.dp
 
 /** How far above its own top the card's fill reaches, behind the pill's lower corners: the pill's corner radius. */
 internal val MAP_CARD_TUCK = MAP_CARD_CORNER_RADIUS
+
+/** How far the pill's cast shadow reaches down onto the tucked card. */
+internal val MAP_CARD_TUCK_SHADOW_DEPTH = 6.dp
+
+/**
+ * Each dp of the cast shadow lays this much black; the dp nearest the pill is covered by every step, so it is darkest
+ * (about 1 - (1 - a)^n of black over the card's fill there, about 17% at 6 steps of 0.03), fading to one step's worth.
+ */
+internal const val MAP_CARD_TUCK_SHADOW_STEP_ALPHA = 0.03f
 
 /** The shadow under the pill and the card, the elevation the control pill and the icon bar already use over the map. */
 internal val MAP_CARD_SHADOW_ELEVATION = 2.dp
@@ -128,6 +138,18 @@ internal fun Modifier.mapCardSurface(fill: Color, corners: MapCardCorners, tuck:
         }
         val fillPath = Path().apply { op(card, pill, PathOperation.Difference) }
         drawPath(fillPath, fill)
+        // RECORD -943's follow-up (the owner: "don't forget the card tuck. I don't see it on the preview"): the pill's shadow
+        // cast onto the card, which the 2 dp elevation did not show through the 0.8 fills. Drawn here, on the card, as the pill's
+        // own shape stepped down a dp at a time in faint black, clipped to the card's fill, so the band hugs the pill's lower
+        // edge and its rounded corners and fades over MAP_CARD_TUCK_SHADOW_DEPTH. Drawn under the card's content.
+        val steps = MAP_CARD_TUCK_SHADOW_DEPTH.value.toInt().coerceAtLeast(1)
+        val step = MAP_CARD_TUCK_SHADOW_DEPTH.toPx() / steps
+        clipPath(fillPath) {
+            for (i in 1..steps) {
+                val shifted = Path().apply { addPath(pill, androidx.compose.ui.geometry.Offset(0f, i * step)) }
+                drawPath(shifted, Color.Black.copy(alpha = MAP_CARD_TUCK_SHADOW_STEP_ALPHA))
+            }
+        }
     }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOutlineFill(outline: Outline, fill: Color) {
