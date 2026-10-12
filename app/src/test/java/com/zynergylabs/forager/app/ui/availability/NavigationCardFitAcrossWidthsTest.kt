@@ -211,7 +211,6 @@ class NavigationCardFitAcrossWidthsTest {
                 if ((0 until laid.layout.lineCount).any { laid.layout.isLineEllipsized(it) }) problems += "${c.name}: evening piece ends in …: '$text'"
                 if (laid.bounds.left < lastDivider - 0.5.dp || laid.bounds.right > buttons.left + 0.5.dp) problems += "${c.name}: evening piece '$text' ${laid.bounds} outside the right column (from $lastDivider to ${buttons.left})"
             }
-            }
             val needleMid = (needle.top + needle.bottom) / 2
             val arrowMid = (arrow.top + arrow.bottom) / 2
             if (abs((needleMid - arrowMid).value) > 2f || needle.right > arrow.left) problems += "${c.name}: arrows apart, needle $needle, arrow $arrow"
