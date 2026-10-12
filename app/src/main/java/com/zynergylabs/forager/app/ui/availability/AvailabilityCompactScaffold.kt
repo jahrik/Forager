@@ -433,6 +433,9 @@ internal fun CompactMainScaffold(
         // positioning — this stays a one-time text-measurement-derived constant instead, the
         // proven-safe shape that doc comment prescribes.
         val searchBarHeight = compassStripClearance * 2 + Spacing.xs * 3 + DividerDefaults.Thickness
+        // RECORD -943: the Maps tab's pill is thinner (MAP_PILL_TOP_PADDING and MAP_PILL_BOTTOM_PADDING in SearchEntryBar); its
+        // height, which everything placed by the bar's bottom on that tab reads, follows. The other tabs keep searchBarHeight.
+        val mapPillHeight = compassStripClearance * 2 + MAP_PILL_TOP_PADDING + MAP_PILL_BOTTOM_PADDING + DividerDefaults.Thickness
         // RECORD -729 (the owner: "The search bar height can change to meet the height of the strip"; on navigation, "Strip
         // only"): in a short landscape window on the Maps tab, not navigating, the bar takes the compass strip's measured height
         // (CompactMapTab's onLandscapeStripHeightMeasured), and everything placed by the bar's bottom here follows it, as -709
@@ -442,7 +445,7 @@ internal fun CompactMainScaffold(
         // RECORD -732: the strip's measured width there; the bar takes the rest of the room. 0 until measured.
         var landscapeStripWidth by remember { mutableStateOf(0.dp) }
         val barMeetsStrip = isLandscapeWindow && compactTab() == CompactTab.MAP && !isNavigating
-        val mapSearchBarHeight = if (barMeetsStrip && landscapeStripHeight > 0.dp) landscapeStripHeight else searchBarHeight
+        val mapSearchBarHeight = if (barMeetsStrip && landscapeStripHeight > 0.dp) landscapeStripHeight else mapPillHeight
         // A height left over from an earlier landscape Maps tab is not reused: it is measured again on the way back.
         LaunchedEffect(barMeetsStrip) { if (!barMeetsStrip) { landscapeStripHeight = 0.dp; landscapeStripWidth = 0.dp } }
         // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): the Maps tab's compass strip as measured,

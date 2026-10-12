@@ -257,6 +257,11 @@ internal fun SearchEntryBar(
         Column(
             modifier = if (landscapeHeight != null) {
                 Modifier.fillMaxWidth().height(landscapeHeight)
+            } else if (pillCorners != null) {
+                // RECORD -943 (the owner: "The search panel has a very thick margin and it can afford to thin out"): the pill's
+                // padding above and below its field is thinner, MAP_PILL_TOP_PADDING and MAP_PILL_BOTTOM_PADDING in place of 4 dp
+                // and 8 dp, so the pill is 41 dp tall at font 1.0 where the bar was 45 (the planner's floor: 40).
+                Modifier.fillMaxWidth().padding(top = MAP_PILL_TOP_PADDING)
             } else {
                 Modifier.fillMaxWidth().padding(top = Spacing.xs)
             },
@@ -308,7 +313,7 @@ internal fun SearchEntryBar(
                     }
                 }
             }
-            if (landscapeHeight == null) Spacer(Modifier.height(Spacing.xs * 2))
+            if (landscapeHeight == null) Spacer(Modifier.height(if (pillCorners != null) MAP_PILL_BOTTOM_PADDING else Spacing.xs * 2))
             if (pillCorners != null) {
                 // The pill has no divider; this keeps the bar the height the scaffold reckons it (searchBarHeight), so the
                 // card tucked under it and everything placed below it stay where they are measured to be.
@@ -1143,3 +1148,8 @@ internal const val TAXON_SUGGESTIONS_MENU_TAG = "taxon-suggestions-menu"
 /** The Month menu ([MonthSelector]), for tests. */
 internal const val MONTH_MENU_TAG = "month-menu"
 
+/** RECORD -943: the Maps tab's search pill's padding above its field (the bar elsewhere keeps Spacing.xs). */
+internal val MAP_PILL_TOP_PADDING = 3.dp
+
+/** RECORD -943: the pill's padding below its field, before its 1 dp spacer (the bar elsewhere keeps twice Spacing.xs). */
+internal val MAP_PILL_BOTTOM_PADDING = 4.dp

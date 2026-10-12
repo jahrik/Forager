@@ -145,7 +145,7 @@ class RoundedMapCardFitTest {
         // A piece wider than the grid reference (120 against 100) needs 20 more: the kind gives way at 244.
         assertFalse(fit(widths(244, evening = 120)).kindInColumn)
         // Step 5 with a stack: left 32 + middle 32 + divider 10 + piece 60 + divider 10 = 144.
-        val w = widths(150).copy(headingPx = 20, figureShortPx = 25, evening = 60)
+        val w = widths(150, evening = 60).copy(headingPx = 20, figureShortPx = 25)
         val f = cardColumnsFit(w, turnWhole = "sharp right 169°", turnShort = "169°")
         assertTrue("the grid reference on its own line", f.gridOwnLine)
         assertFalse("and the stack still fits its column", f.overflows)

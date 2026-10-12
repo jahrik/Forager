@@ -366,7 +366,8 @@ internal fun NavigationHud(
                     modifier = Modifier
                         .fillMaxWidth()
                         // RECORD -936 (the owner: "Yes, slightly tighter (Recommended)"): 4 dp at the card's sides.
-                        .padding(horizontal = CARD_SIDE_PADDING, vertical = Spacing.xs),
+                        // RECORD -943: the card's top padding under the tuck is trimmed to 2 dp to match the thinner pill.
+                        .padding(start = CARD_SIDE_PADDING, end = CARD_SIDE_PADDING, top = CARD_TOP_PADDING, bottom = Spacing.xs),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         // RECORD -941 (the owner: "Then stack it and don't fit the full length silly"): the evening lines sit in the
@@ -1329,6 +1330,8 @@ private val CARD_DIVIDER_WIDTH = 1.dp
 private val CARD_DIVIDER_GAP = 6.dp
 /** RECORD -936 (the owner: "Yes, slightly tighter (Recommended)"): the card's own side padding. */
 private val CARD_SIDE_PADDING = Spacing.xs
+/** RECORD -943: the card's top padding, under the pill. */
+private val CARD_TOP_PADDING = 2.dp
 private const val CARD_LOG_TAG = "NavigationCard"
 private val RETRY_ICON_SIZE = 18.dp
 private val RETRY_ROW_MIN_HEIGHT = 48.dp
