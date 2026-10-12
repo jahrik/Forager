@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.sp
@@ -54,16 +55,23 @@ class SearchBarStripSeamTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Dispatch 2026-10-12-06 (RECORD -934: the tuck supersedes RECORD -728's "no hang-down"): over the map the bar is the rounded
+     * pill with no divider, and the strip is tucked under it. Was: "the strip starts exactly at the search bar's divider, its
+     * visible bottom, with no fill below the divider" (strip.top == divider.bottom; the divider the bar's last line). Now the
+     * strip's own bounds, where its readouts and touches are, start at the pill's bottom, no gap and no overlap; only its fill
+     * reaches up behind the pill's rounded lower corners, which `MapChromeColourPixelsTests` reads as one 0.8 layer. No divider
+     * is drawn over the map, and the bar keeps its 45 dp.
+     */
     @Test
-    fun `the strip starts exactly at the search bar's divider, its visible bottom, with no fill below the divider`() {
+    fun `the strip's bounds start at the pill's bottom, no divider is drawn over the map, and the bar keeps its height`() {
         setScreen()
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
-        val divider = bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG)
         val strip = bounds(STRIP_TAG)
-        println("MEASURED bar ${bar.top}..${bar.bottom}, divider ${divider.top}..${divider.bottom}, strip ${strip.top}..${strip.bottom}")
+        println("MEASURED bar ${bar.top}..${bar.bottom}, strip ${strip.top}..${strip.bottom}")
 
-        assertEquals("the divider is the bar's last line: nothing of the bar below it", bar.bottom.value, divider.bottom.value, 0.5f)
-        assertEquals("the strip starts at the divider's bottom: no overlap, no gap", divider.bottom.value, strip.top.value, 0.5f)
+        assertTrue("no divider over the map", composeRule.onAllNodesWithTag(SEARCH_ENTRY_BAR_DIVIDER_TAG, useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
+        assertEquals("the strip's bounds start at the pill's bottom: no gap, no overlap", bar.bottom.value, strip.top.value, 0.5f)
         assertEquals("the bar's height is unchanged", 45f, (bar.bottom - bar.top).value, 0.5f)
     }
 

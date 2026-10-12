@@ -136,6 +136,17 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  * second row, the coordinates still tappable to toggle MGRS and decimal degrees. The target is
  * the active track's origin waypoint; there is no picker in this stage.
  *
+ * ## The card (dispatch 2026-10-12-06)
+ *
+ * Since dispatch 2026-10-12-06 (RECORD -932, -934, -935) the display is a rounded card tucked under the search pill
+ * (RoundedMapCard.kt), in three columns with thin dividers ([CardColumns]): the figure and its kind over the turn words and the
+ * needle; "Alt" over the compass arrow and the heading; the grid reference over a short evening line. The X sits above the
+ * three-dot button at the right edge. Under the columns, each only when it has something to say: the evening lines that do
+ * not fit the right column, the route message with "Try again", and the status line, which keeps everything it carried
+ * before (RECORD -935). What gives way when the columns do not fit is [cardColumnsFit]'s, in the owner's order. Parts of the
+ * description below that speak of a first and second row describe the layout before that dispatch; the readout itself
+ * ([navigationReadout]) is unchanged.
+ *
  * ## Where it mounts, and why
  *
  * A child of `CompactMapTab`'s own map `Box` — the same `fillMaxSize()` Box `mapSlot` lives in,

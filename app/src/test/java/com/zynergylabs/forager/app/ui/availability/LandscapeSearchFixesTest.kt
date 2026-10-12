@@ -146,11 +146,11 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         rig.tapBar()
         assertTrue("positive control: the bar's tap opened the dropdown", rig.dropdownShown())
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
-        val divider = bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG)
+        // Dispatch 2026-10-12-06: over the map the bar is the rounded pill, with no divider (RECORD -934); its own bottom is its
+        // visible bottom edge. Was: the divider's bottom, asserted equal to the bar's.
         val panel = bounds(SEARCH_DROPDOWN_TAG)
-        println("MEASURED -750 item 1 $landscape rotation $rotation: bar ${bar.d()}, divider ${divider.d()}, panel ${panel.d()}, gap ${(panel.top - divider.bottom).value}")
-        assertEquals("positive control: the divider is the bar's visible bottom edge", bar.bottom.value, divider.bottom.value, 0.5f)
-        assertEquals("the panel's top is the divider's bottom, no gap", divider.bottom.value, panel.top.value, 0.5f)
+        println("MEASURED -750 item 1 $landscape rotation $rotation: bar ${bar.d()}, panel ${panel.d()}, gap ${(panel.top - bar.bottom).value}")
+        assertEquals("the panel's top is the pill's bottom, no gap", bar.bottom.value, panel.top.value, 0.5f)
         assertEquals("the panel keeps the bar's left edge", bar.left.value, panel.left.value, 0.5f)
         assertEquals("the panel keeps the bar's right edge", bar.right.value, panel.right.value, 0.5f)
     }
@@ -361,9 +361,8 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
             if (state != "open") keyboard(180.dp, visible = true)
             val bar = bounds(SEARCH_ENTRY_BAR_TAG)
             val stripNow = bounds(STRIP_TAG)
-            val divider = bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG)
             val panel = bounds(SEARCH_DROPDOWN_TAG)
-            println("MEASURED -754 $landscape rotation $rotation long=$long $state: closed ${closed.d()}, bar ${bar.d()}, strip ${stripNow.d()}, divider ${divider.d()}, panel ${panel.d()}")
+            println("MEASURED -754 $landscape rotation $rotation long=$long $state: closed ${closed.d()}, bar ${bar.d()}, strip ${stripNow.d()}, panel ${panel.d()}")
             assertEquals("$state: the bar keeps its closed top", closed.top.value, bar.top.value, 0.5f)
             assertEquals("$state: the bar keeps its closed height, the strip's", (closed.bottom - closed.top).value, (bar.bottom - bar.top).value, 0.5f)
             assertEquals("$state: the bar keeps its closed left edge", closed.left.value, bar.left.value, 0.5f)
@@ -374,7 +373,7 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
             } else {
                 assertEquals("$state: the bar begins where the strip ends", stripNow.right.value, bar.left.value, 0.5f)
             }
-            assertEquals("$state: the panel hangs flush beneath the bar", divider.bottom.value, panel.top.value, 0.5f)
+            assertEquals("$state: the panel hangs flush beneath the bar", bar.bottom.value, panel.top.value, 0.5f)
         }
     }
 
@@ -411,7 +410,7 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         assertTrue("positive control: the bar's tap opened the dropdown", rig.dropdownShown())
         val open = bounds(SEARCH_ENTRY_BAR_TAG)
         assertEquals("open, the bar stays put", bar, open)
-        assertEquals("open, the panel hangs flush beneath it", bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG).bottom.value, bounds(SEARCH_DROPDOWN_TAG).top.value, 0.5f)
+        assertEquals("open, the panel hangs flush beneath it", bounds(SEARCH_ENTRY_BAR_TAG).bottom.value, bounds(SEARCH_DROPDOWN_TAG).top.value, 0.5f)
     }
 
     @Test fun `754 at ROTATION_90 after a second turn into landscape the bar meets the strip, closed and open`() = assertSecondTurn(Surface.ROTATION_90)
