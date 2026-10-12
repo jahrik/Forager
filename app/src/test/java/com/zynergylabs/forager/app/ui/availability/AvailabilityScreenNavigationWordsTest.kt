@@ -201,7 +201,10 @@ class AvailabilityScreenNavigationWordsTest {
 
         assertEquals("right 45°", textOf(NAVIGATION_HUD_TARGET_TAG))
         assertEquals("0.9 mi", textOf(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("by trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
+        // Dispatch 2026-10-12-06 (RECORD -934's order): the kind is the first thing to leave the figure's side when the columns
+        // are tight, and then leads the status line, capitalised (RECORD -713). Was: "by trail" beside the figure, always.
+        val kindText = textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG)
+        assertTrue("the kind reads by trail: <$kindText>", kindText == "by trail" || kindText == "By trail")
         assertEquals("≈ 1250 ft straight", textOf(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
         assertEquals("9843 ft", textOf(NAVIGATION_HUD_ELEVATION_TAG))
@@ -214,18 +217,29 @@ class AvailabilityScreenNavigationWordsTest {
             val alt = bounds(label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
             assertTrue("\"Alt\" $alt is left of the altitude $elevation", alt.right <= elevation.left)
         }
-        // The kind follows the figure on the same line.
+        // The kind follows the figure on the same line while it is beside it, else it leads the status line, below the figure.
         val figure = bounds(node(NAVIGATION_HUD_DISTANCE_TAG))
         val kind = bounds(node(NAVIGATION_HUD_DISTANCE_KIND_TAG))
-        assertTrue("the kind $kind follows the figure $figure", kind.left >= figure.right)
-        assertTrue("the kind $kind is on the figure's line $figure", kind.top < figure.bottom && kind.bottom > figure.top)
+        if (kindText == "by trail") {
+            assertTrue("the kind $kind follows the figure $figure", kind.left >= figure.right)
+            assertTrue("the kind $kind is on the figure's line $figure", kind.top < figure.bottom && kind.bottom > figure.top)
+        } else {
+            val status = bounds(node(NAVIGATION_HUD_STATUS_TAG))
+            assertTrue("the kind $kind leads the status line $status, below the figure $figure", kind.right <= status.left && kind.top >= figure.bottom)
+        }
     }
 
+    /**
+     * Dispatch 2026-10-12-06 (RECORD -934, -936): at 360 dp the three columns cannot hold the longest lines whole (measured on
+     * CI: 354.5 dp needed against 300), so they give way in the owner's order, and what is drawn is whole. Was "at 360 dp the
+     * longest lines fit whole", asserting "sharp right 169°" (then "Sharp right · 169°") drawn in full.
+     */
     @Test
-    fun `at 360 dp the longest lines fit whole`() {
+    fun `at 360 dp the longest lines give way in the owner's order, and what is drawn is whole`() {
         setScreen(facing = 281f, route = ReturnRoute.Ahead(east, 390.0))
 
-        assertEquals("sharp right 169°", textOf(NAVIGATION_HUD_TARGET_TAG))
+        val turn = textOf(NAVIGATION_HUD_TARGET_TAG)
+        assertTrue("the turn is whole or its degrees: <$turn>", turn == "sharp right 169°" || turn == "169°")
         assertEquals("1280 ft", textOf(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("281° W", textOf(NAVIGATION_HUD_HEADING_TAG))
         assertDisplayWhole()
@@ -421,7 +435,10 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
         composeRule.waitForIdle()
 
         val node = { tag: String -> composeRule.onNodeWithTag(tag, useUnmergedTree = true) }
-        assertEquals("sharp right 169°", node(NAVIGATION_HUD_TARGET_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        // Dispatch 2026-10-12-06 (RECORD -934, -936): at the landscape display's width the turn words may shrink to the degrees,
+        // the owner's second step. Was: "sharp right 169°" (then "Sharp right · 169°") in full.
+        val turnShown = node(NAVIGATION_HUD_TARGET_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
+        assertTrue("the turn is whole or its degrees: <$turnShown>", turnShown == "sharp right 169°" || turnShown == "169°")
         val assertAllWhole = { format: String ->
             listOf(
                 NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG, NAVIGATION_HUD_STATUS_TAG,

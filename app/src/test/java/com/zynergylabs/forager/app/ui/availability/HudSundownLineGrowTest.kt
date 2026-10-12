@@ -109,7 +109,10 @@ class HudSundownLineGrowTest {
         assertTrue("the line is drawn", composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG).fetchSemanticsNodes().isNotEmpty())
         settle()
         val tall = hudHeight()
-        assertTrue("taller with the line: $short to $tall", tall > short + 4.dp)
+        val lineBounds = composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).fetchSemanticsNodes().map { it.boundsInRoot }
+        val hudBounds = composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot()
+        println("MEASURED sundown grow: hud $hudBounds, line(s) $lineBounds, short $short, tall $tall")
+        assertTrue("taller with the line: $short to $tall (hud $hudBounds, line px $lineBounds)", tall > short + 4.dp)
         assertTrue("caught growing: $growing between $short and $tall", growing > short + 0.5.dp && growing < tall - 0.5.dp)
 
         changeLine(null)

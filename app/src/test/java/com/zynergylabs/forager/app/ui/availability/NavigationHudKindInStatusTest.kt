@@ -150,7 +150,7 @@ class NavigationHudKindInStatusTest {
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().single().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
 
     @Test
-    fun `at 320 dp the kind leads the status line, whole, the note gives way, and the first row stays 48 dp`() {
+    fun `at 320 dp the kind leads the status line, whole, and the note follows it whole`() {
         val longest = cases.single { it.name == "Sharp right, by trail" }
         composeRule.setContent {
             val c = case ?: return@setContent
@@ -180,13 +180,14 @@ class NavigationHudKindInStatusTest {
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
         val hud = bounds(NAVIGATION_HUD_TAG)
         assertTrue("the kind $kind is below the figure $figure", kind.top >= figure.bottom - 0.5.dp)
-        // T11 fixes, RECORD -769 (the owner: "Same rule everywhere (Recommended)"): the order confirmed in RECORD -768 applies in
-        // portrait too. At 320 dp "≈ 1250 ft straight" does not fit after "By trail ·", and the straight-line note gives way
-        // whole rather than ending in "…" (it read "By trail · ≈ 125…" before), so the kind leads an otherwise empty line.
-        assertEquals("the note gives way whole: the kind stands alone", "", textOf(NAVIGATION_HUD_STATUS_TAG))
-        // The first row is the X's 48 dp touch box, centred on the X: the status line, here the kind, must end inside it.
-        val firstRowBottom = (exit.top + exit.bottom) / 2 + 24.dp
-        assertTrue("the status line, the kind $kind, ends inside the 48 dp first row (bottom $firstRowBottom)", kind.bottom <= firstRowBottom + 0.5.dp)
-        assertEquals("the first row is 48 dp from the display's top padding", 48f, (firstRowBottom - hud.top - 4.dp).value, 0.5f)
+        // Dispatch 2026-10-12-06 (RECORD -935): the status line now runs under the three columns, the width left of the X, so at
+        // 320 dp the straight-line note fits whole after "By trail ·". Was (T11 fixes, RECORD -769, the status beside the X in a
+        // 48 dp first row): "the note gives way whole: the kind stands alone" (status ""), the kind ending inside that first row.
+        // The note's "whole or not at all" and the kind's lead still hold; the 48 dp first row is gone.
+        assertEquals("the note is whole after the kind's lead", "≈ 1250 ft straight", textOf(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("the note is whole", null, clipped(NAVIGATION_HUD_STATUS_TAG))
+        val status = bounds(NAVIGATION_HUD_STATUS_TAG)
+        assertTrue("the kind $kind leads the note $status on its line", kind.right <= status.left && kind.top < status.bottom && kind.bottom > status.top)
+        assertTrue("the line is inside the card, left of the X: $status in $hud, X $exit", status.bottom <= hud.bottom && status.right <= exit.left + 0.5.dp)
     }
 }

@@ -502,9 +502,13 @@ class AvailabilityScreenQuickSettingsTest {
         assertFalse("cleared: no line", shown(STRIP_BACK_BY_LINE_TAG))
     }
 
-    /** Q1, "Gear in nav display too (Recommended)", the three-dot button since Amendment 3: navigating, the strip is hidden; the button and the line are in the HUD, left of the exit, and a real touch opens the menu. */
+    /**
+     * Q1, "Gear in nav display too (Recommended)", the three-dot button since Amendment 3: navigating, the strip is hidden; the
+     * button and the line are in the HUD, under the exit, and a real touch opens the menu. Dispatch 2026-10-12-06 (RECORD -932,
+     * the owner: "Have the X button go above the three dot menu in the top corner"): was "left of the exit".
+     */
     @Test
-    fun `navigating, the button and the line move into the navigation display, left of the exit`() {
+    fun `navigating, the button and the line move into the navigation display, under the exit`() {
         setScreen()
         recordingWithBackBy(now + 20 * minute)
         composeRule.runOnIdle { returning = true }
@@ -515,7 +519,7 @@ class AvailabilityScreenQuickSettingsTest {
         val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
         assertTrue("the button is in the HUD: $button in $hud", button.top >= hud.top && button.bottom <= hud.bottom && button.left >= hud.left && button.right <= hud.right)
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
-        assertTrue("left of the exit: $button, exit $exit", button.right <= exit.left + 0.5.dp)
+        assertTrue("under the exit: $button, exit $exit", button.top >= exit.bottom - 0.5.dp)
         assertEquals("the same 36 dp", 36f, (button.right - button.left).value, 0.5f)
         touchAt((button.left + button.right) / 2, (button.top + button.bottom) / 2)
         assertTrue(shown(MAP_QUICK_SETTINGS_MENU_TAG))

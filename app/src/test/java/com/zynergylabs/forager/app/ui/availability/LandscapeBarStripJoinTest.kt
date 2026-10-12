@@ -149,9 +149,8 @@ abstract class LandscapeBarStripJoinTests {
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         val strip = bounds(STRIP_TAG)
         val rail = bounds(COMPACT_NAVIGATION_RAIL_TAG)
-        val line = bounds(LANDSCAPE_BAR_STRIP_LINE_TAG)
         val join = if (barOnLeft(rotation)) strip.left else strip.right
-        println("MEASURED rotation $rotation: window ${window.d()}, join ${join.value}, bar ${bar.d()} (${(bar.right - bar.left).value} wide), strip ${strip.d()} (${(strip.right - strip.left).value} wide), line ${line.d()}, rail ${rail.d()}")
+        println("MEASURED rotation $rotation: window ${window.d()}, join ${join.value}, bar ${bar.d()} (${(bar.right - bar.left).value} wide), strip ${strip.d()} (${(strip.right - strip.left).value} wide), rail ${rail.d()}")
 
         if (barOnLeft(rotation)) {
             assertEquals("the bar starts at the punch-hole (left) edge", window.left.value, bar.left.value, 0.5f)
@@ -166,15 +165,15 @@ abstract class LandscapeBarStripJoinTests {
         assertEquals("the bar is the strip's height", (strip.bottom - strip.top).value, (bar.bottom - bar.top).value, 0.5f)
         assertTrue("the strip keeps its 36 dp floor (${(strip.bottom - strip.top).value})", (strip.bottom - strip.top).value >= 36f - 0.5f)
 
-        assertEquals("the line is 1 dp wide", 1f, (line.right - line.left).value, 0.1f)
-        assertEquals("the line sits on the join", join.value, centreOf(line).value, 0.5f)
-        assertEquals("the line starts at the bar's top", bar.top.value, line.top.value, 0.5f)
-        assertEquals("the line ends at the bar's bottom, nothing below it over the map", bar.bottom.value, line.bottom.value, 0.5f)
+        // Dispatch 2026-10-12-06 (RECORD -934, the owner confirming "in landscape, the pill and card touch edge to edge (no join
+        // line)"): the 1 dp line RECORD -729 drew on the join is gone; the two pieces meet edge to edge, square on that side and
+        // rounded on their outer sides. Was: the line, 1 dp wide, on the join, from the bar's top to its bottom.
+        assertFalse("no line on the join", shown(LANDSCAPE_BAR_STRIP_LINE_TAG))
     }
 
-    @Test fun `at ROTATION_90 the bar and the strip meet at the strip's inner edge at one height, with the line on it`() = assertJoin(Surface.ROTATION_90)
+    @Test fun `at ROTATION_90 the bar and the strip meet edge to edge at the strip's inner edge at one height, with no line`() = assertJoin(Surface.ROTATION_90)
 
-    @Test fun `at ROTATION_270 the bar and the strip meet at the strip's inner edge at one height, with the line on it`() = assertJoin(Surface.ROTATION_270)
+    @Test fun `at ROTATION_270 the bar and the strip meet edge to edge at the strip's inner edge at one height, with no line`() = assertJoin(Surface.ROTATION_270)
 
     // ── The three-dot button, by real touches ──
 

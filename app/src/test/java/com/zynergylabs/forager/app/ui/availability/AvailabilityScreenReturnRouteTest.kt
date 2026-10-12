@@ -179,29 +179,31 @@ class AvailabilityScreenReturnRouteTest {
     }
 
     /**
-     * The HUD is the same height on the route, pending, and withheld with no usable points; only
-     * with "Try again" offered is it taller, by the "Try again" row (the owner's choice, "Own line
-     * under it"). No new surface either way: the map-chrome fill at 80% is the HUD's existing one
-     * (`MapChromeAlphaTest`).
+     * The HUD is the same height on the route and pending. Dispatch 2026-10-12-06 (RECORD -932, step 3; RECORD -935): a withheld
+     * route's message has moved from the large slot to its own line under the columns, so withheld with no usable points the HUD
+     * is taller by that one line, and with "Try again" offered by "Try again"'s row, laid out at its 48 dp touch height, beside
+     * the message. Was: "the HUD is one row taller only while Try again is offered", withheld with no usable points the same
+     * height as on the route. No new surface either way: the map-chrome fill at 80% is the HUD's existing one.
      */
     @Test
-    fun `the HUD is one row taller only while Try again is offered`() {
+    fun `the HUD grows by the route message's line when a route is withheld, and by Try again's row when it is offered`() {
         setScreen(ReturnRoute.Ahead(east, 1_500.0))
         val onRoute = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
-        listOf(ReturnRoute.Pending, ReturnRoute.Unavailable(canRetry = false)).forEach { state ->
-            composeRule.runOnIdle { route = state }
-            composeRule.waitForIdle()
-            val h = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
-            assertEquals("the HUD's height with $state", onRoute.value, h.value, 0.5f)
-        }
+        composeRule.runOnIdle { route = ReturnRoute.Pending }
+        composeRule.waitForIdle()
+        assertEquals("pending, the HUD's height is the route's", onRoute.value, boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }.value, 0.5f)
+        composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = false) }
+        composeRule.waitForIdle()
+        val withheld = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
+        val message = boundsOf(NAVIGATION_HUD_DISTANCE_TAG)
+        val line = message.bottom - message.top
+        assertTrue("taller by the message's line, no more: $withheld against $onRoute, line $line", withheld > onRoute + 0.5.dp && withheld <= onRoute + line + 0.5.dp)
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
         composeRule.waitForIdle()
         val taller = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
         val row = boundsOf(NAVIGATION_HUD_RETRY_TAG).let { it.bottom - it.top }
-        // Taller, and by no more than the row: the top row is already 48 dp tall for the exit
-        // button, so part of the row fits in height the HUD had (measured: 40 dp taller, row 48 dp).
-        assertTrue("taller with Try again: $taller against $onRoute", taller > onRoute + 0.5.dp)
-        assertTrue("taller by no more than the row ($row): $taller against $onRoute", taller <= onRoute + row + 0.5.dp)
+        assertTrue("taller with Try again: $taller against $withheld", taller > withheld + 0.5.dp)
+        assertTrue("taller by no more than the row ($row) over the route's height: $taller against $onRoute", taller <= onRoute + row + 0.5.dp)
     }
 
     /**
