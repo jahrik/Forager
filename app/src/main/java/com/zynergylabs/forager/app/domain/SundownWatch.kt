@@ -116,8 +116,6 @@ class SundownWatch(
     private val lastKnownLocation: LastKnownLocationSource = NoLastKnownLocation,
     private val computeCountdown: ComputeSundownCountdownUseCase = ComputeSundownCountdownUseCase(),
     private val decide: DecideSundownAlertUseCase = DecideSundownAlertUseCase(),
-    /** Each evaluation, alert and wake-up (dispatch 2026-09-28-796): `FileSundownRecord` in the app. Written outside [lock]. */
-    private val record: SundownRecord = NoSundownRecord,
     /**
      * The wake-up at the next alert's due time (dispatch 2026-09-28-796; the owner, RECORD -797: "Yes, same
      * fix (Recommended)"). Asked for after each decision, cancelled when nothing more is due. Called outside [lock].
@@ -182,26 +180,25 @@ class SundownWatch(
      * service's `onDestroy`.
      */
     fun end(trackId: String?) {
-        val cancelFor = synchronized(lock) {
+        val armed = synchronized(lock) {
             if (trackId != null && trackId != this.trackId) return
-            val armed = this.trackId?.takeIf { alarmAt != null }
+            val had = this.trackId != null && alarmAt != null
             forget()
-            armed
-        } ?: return
-        cancelAlarm(cancelFor)
+            had
+        }
+        if (armed) cancelAlarm()
     }
 
     /**
-     * The wake-up alarm arrived (dispatch 2026-09-28-796): recorded, then one evaluation. With nothing
-     * watched it records that and does nothing else.
+     * The wake-up alarm arrived (dispatch 2026-09-28-796): one evaluation. With nothing watched it does
+     * nothing else.
      */
     suspend fun onAlarm() {
         val watched = synchronized(lock) {
             alarmAt = null
             trackId
         }
-        record.write(SundownRecordEvent.AlarmDelivered(watched))
-        if (watched != null) tick(EvaluationTrigger.ALARM)
+        if (watched != null) tick()
     }
 
     /**
@@ -226,7 +223,7 @@ class SundownWatch(
     }
 
     /** One evaluation. Publishes the line, and delivers at most one alert. See the class header for what it works out. */
-    suspend fun tick(trigger: EvaluationTrigger = EvaluationTrigger.TIMER) = tickMutex.withLock {
+    suspend fun tick() = tickMutex.withLock {
         val (id, anyFix, gpsFix, alreadyFired, band, heldSunset, arrivedBefore) = synchronized(lock) {
             val id = trackId ?: return@withLock
             Snapshot(id, newestFix, newestGpsFix, fired, hopBand, sunsetAt, arrived)
@@ -238,7 +235,6 @@ class SundownWatch(
             return@withLock
         }
         val position = LatLng(sunsetFrom.lat, sunsetFrom.lng)
-        record.write(SundownRecordEvent.Evaluated(id, trigger))
 
         val enabled = preferences.getAlertsEnabled().getOrElse { error ->
             errorLog.w(TAG, "Couldn't read whether the sundown alerts are on; they stay on, the default.", error)
@@ -323,7 +319,6 @@ class SundownWatch(
         val outcome = alertDelivery.deliverReporting(
             Alert(kind, overridesSilence = true, sundown = SundownAlertDetail(countdown.sunsetAtEpochMillis, walkBack, decision.leaveByAtEpochMillis ?: countdown.turnaroundAtEpochMillis, decidedAtEpochMillis = now)),
         )
-        record.write(SundownRecordEvent.Fired(id, decision.fire!!, outcome))
         if (outcome != null && (!outcome.notificationPosted || !outcome.vibrated)) {
             errorLog.w(
                 TAG,
@@ -344,7 +339,7 @@ class SundownWatch(
             nothingMoreDue(id)
             return
         }
-        val (alert, at) = next
+        val at = next.second
         val schedule = synchronized(lock) {
             if (trackId != id) return
             nextDueAt = at
@@ -352,13 +347,11 @@ class SundownWatch(
             (set == null || kotlin.math.abs(set - at) > ALARM_RESCHEDULE_SLACK_MILLIS).also { if (it) alarmAt = at }
         }
         if (!schedule) return
-        val accepted = try {
+        try {
             alarms.schedule(WakeUpAlarm.SUNDOWN, at)
         } catch (e: Exception) {
             errorLog.w(TAG, "The sundown wake-up could not be scheduled; the timer and fixes still evaluate.", e)
-            false
         }
-        record.write(SundownRecordEvent.AlarmScheduled(id, alert, at, accepted))
     }
 
     /** Nothing more is due for [id] (all given, alerts off, or arrived): no next time, and the wake-up cancelled if set. */
@@ -368,16 +361,15 @@ class SundownWatch(
             nextDueAt = null
             (alarmAt != null).also { alarmAt = null }
         }
-        if (wasSet) cancelAlarm(id)
+        if (wasSet) cancelAlarm()
     }
 
-    private fun cancelAlarm(id: String) {
+    private fun cancelAlarm() {
         try {
             alarms.cancel(WakeUpAlarm.SUNDOWN)
         } catch (e: Exception) {
             errorLog.w(TAG, "The sundown wake-up could not be cancelled; it will find nothing due.", e)
         }
-        record.write(SundownRecordEvent.AlarmCancelled(id))
     }
 
     /** Publishes [line] for recording [id], if it is still the one watched. */

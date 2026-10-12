@@ -47,9 +47,6 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
-import com.zynergylabs.forager.app.ui.diagnostics.DIAGNOSTICS_ENTRY_LABEL
-import com.zynergylabs.forager.app.ui.diagnostics.DIAGNOSTICS_TITLE
-import com.zynergylabs.forager.app.ui.diagnostics.directoryHeading
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.MapMode
@@ -838,36 +835,11 @@ class AvailabilityScreenSettingsPanelTest {
 
         // Settings is the page showing: its own rows are there.
         composeRule.onNodeWithText("Night Maps").assertIsDisplayed()
-        composeRule.onNodeWithText("Crash Logs").performScrollTo().assertIsDisplayed()
         for (text in listOf(PHOTO_LOCATION_SETTING_LABEL, PHOTO_LOCATION_SETTING_EXPLANATION, LOCK_CAMERA_SETTING_LABEL, LOCK_CAMERA_SETTING_EXPLANATION)) {
             assertEquals("'$text' is not in Settings", 0, composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size)
         }
         assertEquals("nothing is written just by opening Settings", null, capturedAutoSaveLocation)
         assertEquals(null, capturedLockCamera)
-    }
-
-    /**
-     * Unit tests run against the debug variant, so the debug source set's entry row is the one
-     * composed here; in release it composes nothing and this route does not exist. The panel reads
-     * the real (empty) Robolectric `filesDir`, so the assertion is on the zero-count heading it
-     * produces from that, not on a stub.
-     */
-    @Test
-    fun `Settings offers Diagnostics in a debug build, one tap below Crash Logs, and it opens the panel`() {
-        setScreenWithOfflineMapsState()
-        openSettings()
-
-        composeRule.onNodeWithText("Crash Logs").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(DIAGNOSTICS_ENTRY_LABEL).performScrollTo().assertIsDisplayed().performClick()
-
-        composeRule.onNodeWithText(DIAGNOSTICS_TITLE).assertIsDisplayed()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithText(directoryHeading("photos/", 0)).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithText(directoryHeading("captures/", 0)).assertIsDisplayed()
-
-        composeRule.onNodeWithContentDescription("Back to Settings").performClick()
-        composeRule.onNodeWithText(DIAGNOSTICS_ENTRY_LABEL).performScrollTo().assertIsDisplayed()
     }
 }
 

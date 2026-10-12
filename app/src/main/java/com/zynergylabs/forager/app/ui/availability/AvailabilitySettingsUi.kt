@@ -69,13 +69,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.BuildConfig
-import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
-import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
-import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
-import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapModePicker
@@ -212,7 +208,7 @@ internal const val TOOLS_OFFLINE_MAPS_ROW_TAG = "tools-offline-maps-row"
  *
  * Journal restructure Stage 1 moved Offline Maps and Recorded Tracks out of Settings entirely, into
  * the Journal's Records tab — see [com.zynergylabs.forager.app.ui.log.RecordsTab]. This tab's own `showOfflineMaps`/
- * `showTracks` submenu state is gone with them; only [showCrashLogs] remains.
+ * `showTracks` submenu state is gone with them.
  */
 @Composable
 private fun CompactSettingsTab(
@@ -224,84 +220,28 @@ private fun CompactSettingsTab(
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
-    crashFileStore: CrashFileStore,
     backup: BackupControls,
     showBackupRequest: Int = 0,
     modifier: Modifier = Modifier,
 ) {
-    var showCrashLogs by remember { mutableStateOf(false) }
-    // Debug builds only — the row that sets this composes nothing in release. Same drill-in shape
-    // as showCrashLogs, one flag per submenu rather than an enum, matching what was here.
-    var showDiagnostics by remember { mutableStateOf(false) }
-
-    // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
-    // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
-    BackHandler(enabled = showCrashLogs) {
-        showCrashLogs = false
-    }
-    BackHandler(enabled = showDiagnostics) {
-        showDiagnostics = false
-    }
-
-    // Amendment 2 (RECORD -682, "Push slide from the left"; scout T2): Crash logs or Diagnostics slides in from the left while
-    // Settings slides out to the right, and Back reverses it. No fill of their own, as in the drawer above.
-    val page = when {
-        showCrashLogs -> SettingsDrawerPage.CRASH_LOGS
-        showDiagnostics -> SettingsDrawerPage.DIAGNOSTICS
-        else -> SettingsDrawerPage.SETTINGS
-    }
     Column(modifier = modifier.fillMaxSize()) {
-        PageSlide(
-            targetState = page,
-            depthOf = { if (it == SettingsDrawerPage.SETTINGS) 0 else 1 },
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            pageColor = Color.Transparent,
-            style = PageSlideStyle.PUSH_FROM_LEFT,
-        ) { shownPage ->
-        Column(modifier = Modifier.fillMaxSize()) {
-        when (shownPage) {
-            SettingsDrawerPage.CRASH_LOGS -> {
-                CrashLogPanel(
-                    modifier = Modifier.weight(1f),
-                    files = crashFileStore.list(),
-                    onBack = { showCrashLogs = false },
-                )
-            }
-
-            SettingsDrawerPage.DIAGNOSTICS -> {
-                DiagnosticsPanel(
-                    modifier = Modifier.weight(1f),
-                    onBack = { showDiagnostics = false },
-                )
-            }
-
-            SettingsDrawerPage.SETTINGS -> {
-                SettingsContent(
-                    modifier = Modifier.weight(1f),
-                    distanceUnit = distanceUnit,
-                    onDistanceUnitSelected = onDistanceUnitSelected,
-                    nightModeMaps = isNightMode,
-                    onNightModeMapsChanged = onNightModeMapsChanged,
-                    themeMode = themeMode,
-                    onThemeModeChanged = onThemeModeChanged,
-                    onOpenCrashLogs = { showCrashLogs = true },
-                    onOpenDiagnostics = { showDiagnostics = true },
-                    backup = backup,
-                    showBackupRequest = showBackupRequest,
-                )
-                BuildIdentityFooter()
-            }
-        }
-        }
-        }
+        SettingsContent(
+            modifier = Modifier.weight(1f),
+            distanceUnit = distanceUnit,
+            onDistanceUnitSelected = onDistanceUnitSelected,
+            nightModeMaps = isNightMode,
+            onNightModeMapsChanged = onNightModeMapsChanged,
+            themeMode = themeMode,
+            onThemeModeChanged = onThemeModeChanged,
+            backup = backup,
+            showBackupRequest = showBackupRequest,
+        )
+        BuildIdentityFooter()
     }
 }
 
-/** Which page of [CompactSettingsTab] shows (motion Part 3, Amendment 2): one value, so the pages can slide between each other. */
-private enum class SettingsDrawerPage { SETTINGS, CRASH_LOGS, DIAGNOSTICS }
-
 /**
- * The Settings panel's body: [DistanceUnitSection], theme, night maps, Backup, and Crash Logs.
+ * The Settings panel's body: [DistanceUnitSection], theme, night maps, and Backup.
  *
  * **No longer has the Sundown section, the Off-track reminder, or the two camera settings**
  * (dispatch 2026-09-28-707; the owner: "move the Sundown area to the Tools so that it's one button
@@ -320,7 +260,7 @@ private enum class SettingsDrawerPage { SETTINGS, CRASH_LOGS, DIAGNOSTICS }
  *
  * **No longer has Offline Maps or Recorded Tracks entries.** Journal restructure Stage 1 moved
  * both into the Journal's own Records tab ([RecordsTab] in `ui/log/`) — see that composable's own
- * doc comment. `CrashLogs` stays here since it isn't a Records concept.
+ * doc comment.
  *
  * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
  * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
@@ -334,9 +274,6 @@ internal fun SettingsContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     nightModeMaps: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    onOpenCrashLogs: () -> Unit,
-    /** Debug builds only: the row this opens composes nothing in release — see [DiagnosticsEntryRow]'s two source-set versions. */
-    onOpenDiagnostics: () -> Unit,
     /** The Backup section's state and callbacks (journal backup and restore, dispatch 2026-09-28-127). */
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
@@ -364,10 +301,8 @@ internal fun SettingsContent(
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
+        // Settings ends at Backup, with no divider under it (dispatch 2026-10-11, RECORD -830).
         BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
-        // Debug builds: a divider, then Crash Logs and Diagnostics. Release: nothing, so Settings ends at
-        // Backup with no divider under it (dispatch 2026-10-11, RECORD -830). See SettingsDebugRows' two versions.
-        SettingsDebugRows(onOpenCrashLogs = onOpenCrashLogs, onOpenDiagnostics = onOpenDiagnostics)
     }
 }
 
@@ -611,8 +546,7 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
  *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
- *    the same "drill in, own back step" shape [CompactSettingsTab] already uses for its own
- *    CrashLogs submenu.
+ *    the "drill in, own back step" shape.
  *
  * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
  * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
@@ -628,7 +562,6 @@ internal fun CompactToolsDrawerContent(
     onNightModeMapsChanged: (Boolean) -> Unit,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
-    crashFileStore: CrashFileStore,
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
     openSettingsRequest: Int = 0,
@@ -644,8 +577,7 @@ internal fun CompactToolsDrawerContent(
      */
     onOpenOfflineMaps: (() -> Unit)? = null,
 ) {
-    // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
-    // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
+    // Own drill-in step — see this composable's own doc comment, item 2. Composed inside this drawer sheet (which the
     // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
     // own expand state), so its own BackHandler below takes priority over the top-level
     // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
@@ -679,7 +611,6 @@ internal fun CompactToolsDrawerContent(
             onNightModeMapsChanged = onNightModeMapsChanged,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
-            crashFileStore = crashFileStore,
             backup = backup,
             showBackupRequest = openSettingsRequest,
             modifier = Modifier.fillMaxSize(),

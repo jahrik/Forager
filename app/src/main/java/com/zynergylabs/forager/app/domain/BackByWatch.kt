@@ -71,11 +71,6 @@ class BackByWatch(
     private val isReturning: (String) -> Boolean,
     private val errorLog: ErrorLog,
     /**
-     * Where each set, evaluation, alert and end is written (dispatch 2026-09-28-796): `FileBackByRecord` in
-     * the app. Written outside [lock]. Never positions.
-     */
-    private val record: BackByRecord = NoBackByRecord,
-    /**
      * The wake-up at the set time (dispatch 2026-09-28-796; the owner, RECORD -797): asked for on every
      * set and "+30 min", cancelled whenever the reminder ends. Called outside [lock].
      */
@@ -98,14 +93,12 @@ class BackByWatch(
 
     /** The service has started recording [trackId]. A time set early for this same track is kept; anything else is dropped. */
     fun begin(trackId: String) {
-        val kept = synchronized(lock) {
+        synchronized(lock) {
             if (this.trackId != trackId) forget()
             this.trackId = trackId
             begun = true
             publish(clock.nowEpochMillis())
-            backByAt
         }
-        record.write(BackByRecordEvent.Started(trackId, kept))
     }
 
     /**
@@ -113,15 +106,14 @@ class BackByWatch(
      * is begun: the service's `onDestroy`.
      */
     fun end(trackId: String?) {
-        val ended = synchronized(lock) {
+        val hadTime = synchronized(lock) {
             if (trackId == null && !begun) return
             if (trackId != null && trackId != this.trackId) return
-            val endedId = this.trackId.takeIf { backByAt != null }
+            val had = this.trackId != null && backByAt != null
             forget()
-            endedId
-        } ?: return
-        record.write(BackByRecordEvent.Ended(ended, if (trackId == null) BackByEndReason.SERVICE_DESTROYED else BackByEndReason.STOP))
-        cancelAlarm(ended)
+            had
+        }
+        if (hadTime) cancelAlarm()
     }
 
     /**
@@ -140,43 +132,34 @@ class BackByWatch(
     }
 
     /**
-     * The wake-up alarm arrived (dispatch 2026-09-28-796): recorded, then one evaluation, as the timer's.
-     * With nothing watched (a process started fresh for an alarm left from an ended one) it records that
-     * and does nothing else.
+     * The wake-up alarm arrived (dispatch 2026-09-28-796): one evaluation, as the timer's. With nothing
+     * watched (a process started fresh for an alarm left from an ended one) it does nothing.
      */
     suspend fun onAlarm() {
         val watched = synchronized(lock) { trackId?.takeIf { backByAt != null } }
-        record.write(BackByRecordEvent.AlarmDelivered(watched))
-        if (watched != null) tick(EvaluationTrigger.ALARM)
+        if (watched != null) tick()
     }
 
-    private fun armAlarm(trackId: String, at: Long) {
-        val accepted = try {
+    private fun armAlarm(at: Long) {
+        try {
             alarms.schedule(WakeUpAlarm.BACK_BY, at)
         } catch (e: Exception) {
             errorLog.w(TAG, "The back-by wake-up could not be scheduled; the timer and fixes still evaluate it.", e)
-            false
         }
-        record.write(BackByRecordEvent.AlarmScheduled(trackId, at, accepted))
     }
 
-    private fun cancelAlarm(trackId: String) {
+    private fun cancelAlarm() {
         try {
             alarms.cancel(WakeUpAlarm.BACK_BY)
         } catch (e: Exception) {
             errorLog.w(TAG, "The back-by wake-up could not be cancelled; it will find nothing set.", e)
         }
-        record.write(BackByRecordEvent.AlarmCancelled(trackId))
     }
 
     override fun set(trackId: String, atEpochMillis: Long): Boolean {
-        var watched: String? = null
         val accepted = synchronized(lock) {
             if (this.trackId != trackId) {
-                if (begun) {
-                    watched = this.trackId
-                    return@synchronized false
-                }
+                if (begun) return@synchronized false
                 forget()
                 this.trackId = trackId
             }
@@ -185,32 +168,23 @@ class BackByWatch(
             publish(clock.nowEpochMillis())
             true
         }
-        record.write(BackByRecordEvent.Set(trackId, atEpochMillis, accepted, watched))
-        if (accepted) armAlarm(trackId, atEpochMillis)
+        if (accepted) armAlarm(atEpochMillis)
         return accepted
     }
 
-    override fun clear(trackId: String) = endBy(trackId, BackByEndReason.CLEAR)
-
-    /** A choice from the menu with no recording on the screen (dispatch 2026-09-28-796): nothing is set, and that is recorded. */
-    override fun setWithNoRecording() {
-        record.write(BackByRecordEvent.SetWithNoRecording)
-    }
+    override fun clear(trackId: String) = endBy(trackId)
 
     /** "I'm back" on the alert: the reminder ends; the recording carries on. */
-    fun imBack(trackId: String) = endBy(trackId, BackByEndReason.IM_BACK)
+    fun imBack(trackId: String) = endBy(trackId)
 
-    private fun endBy(trackId: String, reason: BackByEndReason) {
+    private fun endBy(trackId: String) {
         val wasSet = synchronized(lock) {
             if (this.trackId != trackId) return
             val was = backByAt != null
             endReminder()
             was
         }
-        if (wasSet) {
-            record.write(BackByRecordEvent.Ended(trackId, reason))
-            cancelAlarm(trackId)
-        }
+        if (wasSet) cancelAlarm()
     }
 
     /** "+30 min" on the alert: the time moves to now plus [BACK_BY_LATER_MILLIS], and alerts again then. */
@@ -223,12 +197,11 @@ class BackByWatch(
             publish(now)
             backByAt
         } ?: return
-        record.write(BackByRecordEvent.Later(trackId, at))
-        armAlarm(trackId, at)
+        armAlarm(at)
     }
 
     /** One evaluation. See the class header. */
-    suspend fun tick(trigger: EvaluationTrigger = EvaluationTrigger.TIMER) = tickMutex.withLock {
+    suspend fun tick() = tickMutex.withLock {
         val (id, at, alerted, gpsFix) = synchronized(lock) {
             val id = trackId ?: return@withLock
             val at = backByAt ?: return@withLock
@@ -238,13 +211,9 @@ class BackByWatch(
 
         if (hasArrivedAfterReturn(id, gpsFix, now)) {
             val ended = synchronized(lock) { (trackId == id && backByAt == at).also { if (it) endReminder() } }
-            if (ended) {
-                record.write(BackByRecordEvent.Ended(id, BackByEndReason.ARRIVAL))
-                cancelAlarm(id)
-            }
+            if (ended) cancelAlarm()
             return@withLock
         }
-        record.write(BackByRecordEvent.Evaluated(id, at, due = now >= at, trigger = trigger))
 
         val fire = now >= at && alerted != at
         val stillSet = synchronized(lock) {
@@ -257,8 +226,7 @@ class BackByWatch(
         val outcome = alertDelivery.deliverReporting(
             Alert(AlertKind.BACK_BY, overridesSilence = true, backBy = BackByAlertDetail(trackId = id, backByAtEpochMillis = at)),
         )
-        record.write(BackByRecordEvent.Fired(id, at, outcome))
-        // A buzz Android drops is recorded as skipped, with its reason, as the sundown alerts record theirs (dispatch
+        // A buzz Android drops is logged as skipped, with its reason, as the sundown alerts log theirs (dispatch
         // 2026-09-28-685, merged with RECORD -687): never "issued".
         if (outcome != null && (!outcome.notificationPosted || !outcome.vibrated)) {
             errorLog.w(

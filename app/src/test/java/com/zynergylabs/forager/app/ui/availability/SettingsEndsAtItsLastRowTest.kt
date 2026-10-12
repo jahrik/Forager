@@ -18,11 +18,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Settings' scrolling content ends one bottom padding ([Spacing.md]) below its last row, in both
- * build types: no divider is drawn under the last row (dispatch 2026-10-11, the planner's follow-up to
- * RECORD -830: "release Settings must not end with a stray divider under Backup"). In a debug build
- * the last row is Diagnostics; in a release build, with the Crash Logs and Diagnostics rows gone, it
- * is the Backup section, and the divider that separated Backup from those rows must go with them.
+ * Settings' scrolling content ends one bottom padding ([Spacing.md]) below its last row: no divider
+ * is drawn under the last row (dispatch 2026-10-11, the planner's follow-up to RECORD -830: "release
+ * Settings must not end with a stray divider under Backup"). The last row is the Backup section.
  *
  * A divider carries no semantics, so it is measured rather than found: scrolled to the end, the gap
  * between the lowest node inside the scrolling column and the column's own bottom edge. With nothing
