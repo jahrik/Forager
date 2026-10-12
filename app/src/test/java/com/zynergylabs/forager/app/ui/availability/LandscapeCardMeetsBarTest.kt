@@ -178,3 +178,13 @@ class LandscapeCardMeetsBar780Test : LandscapeCardMeetsBarTests()
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LandscapeCardMeetsBar823Test : LandscapeCardMeetsBarTests()
+
+/**
+ * A wider landscape window, where the room beside the capped bar is more than the display's 360 dp cap: the one case where the
+ * bar used to stop short of the display and leave a gap (at 780 and 823 the display already took all the room beside the
+ * capped bar, so those two classes pass with or without this dispatch's change; found by the revert check, CI run 38224195024).
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w915dp-h412dp-land-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class LandscapeCardMeetsBar915Test : LandscapeCardMeetsBarTests()
