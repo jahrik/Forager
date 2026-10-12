@@ -114,7 +114,7 @@ abstract class HudLandscapeT11Fixes {
         createdAtEpochMillis = morning, trackId = "t1", designation = WaypointDesignation.ORIGIN,
     )
 
-    /** Due east: a phone facing 281° turns 169° right, "Sharp right · 169°", data part B's longest turn. */
+    /** Due east: a phone facing 281° turns 169° right, "sharp right 169°", data part B's longest turn. */
     private val east = LatLng(here.lat, here.lng + 0.001)
 
     private val utc = TimeZone.getTimeZone("UTC")
@@ -272,7 +272,7 @@ abstract class HudLandscapeT11Fixes {
         assertEquals("positive control: the route home's longest figure", "1280 ft", textOf(NAVIGATION_HUD_DISTANCE_TAG))
         assertTrue("the distance ${wholeText(NAVIGATION_HUD_DISTANCE_TAG)} is drawn whole", whole(NAVIGATION_HUD_DISTANCE_TAG))
         val turn = textOf(NAVIGATION_HUD_TARGET_TAG)
-        assertTrue("the turn words are whole, the bearing alone or gone: <$turn>", turn in setOf("Sharp right · 169°", "169°", ""))
+        assertTrue("the turn words are whole, the bearing alone or gone: <$turn>", turn in setOf("sharp right 169°", "169°", ""))
         if (!turn.isNullOrEmpty()) assertTrue("what the turn column shows is whole: <$turn>", whole(NAVIGATION_HUD_TARGET_TAG))
         assertEquals("the needle stays", 1, nodes(NAVIGATION_HUD_NEEDLE_TAG).size)
     }

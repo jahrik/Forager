@@ -13,17 +13,17 @@ class NavigationWordsTest {
     @Test
     fun `the owner's two examples read as the owner wrote them`() {
         // 350° clockwise is 10° to the left; 45° clockwise is 45° to the right.
-        assertEquals("Slight left · 10°", turnText(350f))
-        assertEquals("Right · 45°", turnText(45f))
+        assertEquals("slight left 10°", turnText(350f))
+        assertEquals("right 45°", turnText(45f))
     }
 
     @Test
     fun `under 180 clockwise is to the right and over 180 to the left, never a number past 180`() {
         assertEquals(Turn(TurnBand.TURN, TurnSide.RIGHT, 90), turnFor(90f))
         assertEquals(Turn(TurnBand.TURN, TurnSide.LEFT, 90), turnFor(270f))
-        assertEquals("Left · 90°", turnText(270f))
-        assertEquals("Sharp left · 135°", turnText(225f))
-        assertEquals("Sharp right · 169°", turnText(169f))
+        assertEquals("left 90°", turnText(270f))
+        assertEquals("sharp left 135°", turnText(225f))
+        assertEquals("sharp right 169°", turnText(169f))
     }
 
     @Test
@@ -49,26 +49,26 @@ class NavigationWordsTest {
     @Test
     fun `the band is chosen on the rounded degrees, so the words and the number shown agree`() {
         // 9.6 rounds to 10, so it is Slight, as "· 10°" says; 9.4 rounds to 9 and is Ahead.
-        assertEquals("Slight right · 10°", turnText(9.6f))
-        assertEquals("Ahead · 9°", turnText(9.4f))
-        assertEquals("Slight left · 10°", turnText(350.4f))
+        assertEquals("slight right 10°", turnText(9.6f))
+        assertEquals("ahead 9°", turnText(9.4f))
+        assertEquals("slight left 10°", turnText(350.4f))
     }
 
     @Test
     fun `ahead and behind carry no side`() {
-        assertEquals("Ahead · 0°", turnText(0f))
-        assertEquals("Ahead · 4°", turnText(356f))
-        assertEquals("Behind · 180°", turnText(180f))
-        assertEquals("Behind · 175°", turnText(185f))
+        assertEquals("ahead 0°", turnText(0f))
+        assertEquals("ahead 4°", turnText(356f))
+        assertEquals("behind 180°", turnText(180f))
+        assertEquals("behind 175°", turnText(185f))
         assertEquals(null, turnFor(4f).side)
         assertEquals(null, turnFor(185f).side)
     }
 
     @Test
     fun `out-of-range input wraps rather than reading past 180`() {
-        assertEquals("Slight left · 10°", turnText(-10f))
-        assertEquals("Right · 45°", turnText(405f))
-        assertEquals("Ahead · 0°", turnText(360f))
+        assertEquals("slight left 10°", turnText(-10f))
+        assertEquals("right 45°", turnText(405f))
+        assertEquals("ahead 0°", turnText(360f))
     }
 
     @Test

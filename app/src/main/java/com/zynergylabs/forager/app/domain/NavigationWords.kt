@@ -4,7 +4,7 @@ import kotlin.math.roundToInt
 
 /*
  * The navigation display's words (dispatch 2026-09-28-677, data part B; the owner in RECORD -656, "Plain words + labels
- * (Recommended)": turns read like "Slight left · 10°" or "Right · 45°", with an arrow, never 0 to 359; the distance says
+ * (Recommended)": turns in words with an arrow, never 0 to 359, written "slight left 10°" since dispatch 2026-10-12-06; the distance says
  * "0.4 mi by trail" or "0.3 mi straight"). Pure, so a band edge or a side swapped is a pinned-literal test failure.
  */
 
@@ -59,7 +59,11 @@ fun turnFor(relativeDegrees: Float): Turn {
     return Turn(band, side, degrees)
 }
 
-/** "Slight left · 10°", "Right · 45°", "Ahead · 4°", "Behind · 175°". */
+/**
+ * "slight left 10°", "right 45°", "ahead 4°", "behind 175°": lower case, the degrees after the words with no separator, and the
+ * needle drawn after them on the display (dispatch 2026-10-12-06; the owner's mockup and step path, RECORD -932, confirmed in
+ * RECORD -934 as superseding -656's "Slight left · 10°" form). The bands are unchanged.
+ */
 fun turnWords(turn: Turn): String {
     val side = when (turn.side) {
         TurnSide.LEFT -> "left"
@@ -67,13 +71,13 @@ fun turnWords(turn: Turn): String {
         null -> ""
     }
     val words = when (turn.band) {
-        TurnBand.AHEAD -> "Ahead"
-        TurnBand.SLIGHT -> "Slight $side"
-        TurnBand.TURN -> side.replaceFirstChar { it.uppercaseChar() }
-        TurnBand.SHARP -> "Sharp $side"
-        TurnBand.BEHIND -> "Behind"
+        TurnBand.AHEAD -> "ahead"
+        TurnBand.SLIGHT -> "slight $side"
+        TurnBand.TURN -> side
+        TurnBand.SHARP -> "sharp $side"
+        TurnBand.BEHIND -> "behind"
     }
-    return "$words · ${turn.degrees}°"
+    return "$words ${turn.degrees}°"
 }
 
 /** [turnWords] for a relative bearing: what the display's turn line reads. */

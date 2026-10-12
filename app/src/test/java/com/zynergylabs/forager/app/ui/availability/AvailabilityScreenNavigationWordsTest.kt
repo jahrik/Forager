@@ -57,7 +57,7 @@ import org.robolectric.annotation.GraphicsMode
  * while not (the strip).
  *
  * The dispatch's own checks: at 360 dp, with long strings, in landscape, each line must fit, whole, and the display must not
- * grow. "Long" is chosen, not typical: the longest turn ("Sharp right · 169°"), a four-digit route in feet with "by trail",
+ * grow. "Long" is chosen, not typical: the longest turn ("sharp right 169°"), a four-digit route in feet with "by trail",
  * the status line's straight line at its longest feet form, a four-digit altitude in feet, and an MGRS reference. Every line
  * is read through its own laid-out text ([SemanticsActions.GetTextLayoutResult]): not ellipsised, every character visible,
  * and the box as wide as the text needs, as `AvailabilityScreenReturnRouteTest` reads "Unable to calculate route".
@@ -199,7 +199,7 @@ class AvailabilityScreenNavigationWordsTest {
     fun `on the route the display reads the turn in words, the route by trail, the straight line straight, and its heading and altitude, labelled where they fit`() {
         setScreen(facing = 45f, route = ReturnRoute.Ahead(east, 1_500.0))
 
-        assertEquals("Right · 45°", textOf(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("right 45°", textOf(NAVIGATION_HUD_TARGET_TAG))
         assertEquals("0.9 mi", textOf(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("by trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         assertEquals("≈ 1250 ft straight", textOf(NAVIGATION_HUD_STATUS_TAG))
@@ -225,7 +225,7 @@ class AvailabilityScreenNavigationWordsTest {
     fun `at 360 dp the longest lines fit whole`() {
         setScreen(facing = 281f, route = ReturnRoute.Ahead(east, 390.0))
 
-        assertEquals("Sharp right · 169°", textOf(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("sharp right 169°", textOf(NAVIGATION_HUD_TARGET_TAG))
         assertEquals("1280 ft", textOf(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("281° W", textOf(NAVIGATION_HUD_HEADING_TAG))
         assertDisplayWhole()
@@ -421,7 +421,7 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
         composeRule.waitForIdle()
 
         val node = { tag: String -> composeRule.onNodeWithTag(tag, useUnmergedTree = true) }
-        assertEquals("Sharp right · 169°", node(NAVIGATION_HUD_TARGET_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        assertEquals("sharp right 169°", node(NAVIGATION_HUD_TARGET_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
         val assertAllWhole = { format: String ->
             listOf(
                 NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG, NAVIGATION_HUD_STATUS_TAG,

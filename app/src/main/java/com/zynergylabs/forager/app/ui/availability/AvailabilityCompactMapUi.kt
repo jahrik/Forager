@@ -1268,6 +1268,15 @@ private fun BoxScope.CompactMapTopStrip(
     // or down and in, by the panel's own height, with a fade, all one timed animation exactly as long as the map's
     // tilt (Amendment 1, RECORD -672). Under reduced motion the fade alone, on the pop-ups' fade.
     val (navigationChromeEnter, navigationChromeExit) = navigationChromeTransitions()
+    // Dispatch 2026-10-12-06 (RECORD -932, -934): in portrait the strip is the rounded card tucked under the pill; none in
+    // landscape, where the two sit side by side, or once the pill has slid away in fullscreen (mapCardTuck).
+    val stripTuck = if (railPortEdge == null) mapCardTuck(topInset) else 0.dp
+    // Landscape: rounded on its outer side and square where it meets the pill, edge to edge, no join line (RECORD -934).
+    val stripCorners = when {
+        railPortEdge == null -> MapCardCorners.BOTTOM
+        punchHoleEdge != null && railPortEdge != punchHoleEdge -> MapCardCorners.outerSide(railPortEdge)
+        else -> MapCardCorners.ALL
+    }
     // Motion Part 2, item 3 (dispatch 2026-09-28-666, scouts N1 and N2; the owner, RECORD -651: "Move with the map"):
     // on starting navigation the strip slides up and out, clipped at its own top edge so it goes in under the search
     // bar, while the navigation display below slides down and in the same way, both on navigationViewChromeSpec,
@@ -1298,11 +1307,13 @@ private fun BoxScope.CompactMapTopStrip(
                     rememberLandscapeBarFloorPx(uiState, uiState.distanceUnit),
                 )
         } else {
+            // Dispatch 2026-10-12-06: tucked under the pill, the card's fill reaching [stripTuck] above its own top (inside this
+            // clip), while the strip's own bounds still start at the bar's bottom (the padding on its modifier below).
             Modifier
                 .align(Alignment.TopCenter)
                 .padding(controlsPadding)
                 .fillMaxWidth()
-                .padding(top = topInset)
+                .padding(top = topInset - stripTuck)
         }
             .clipToBounds()
             .leavingTakesNoTouches(leaving = isNavigating),
@@ -1332,6 +1343,8 @@ private fun BoxScope.CompactMapTopStrip(
                     .onSizeChanged { if (!isNavigating) { landscapeStripHeightPx = it.height; landscapeStripWidthPx = it.width } }
             } else {
                 Modifier
+                    // Dispatch 2026-10-12-06: the strip's bounds start at the pill's bottom, below the tuck its fill reaches into.
+                    .padding(top = stripTuck)
                     .fillMaxWidth()
                     // The strip's own height (item 2), and not while it leaves (motion Part 2).
                     .onSizeChanged { if (!isNavigating) compassStripHeightPx = it.height }
@@ -1348,6 +1361,8 @@ private fun BoxScope.CompactMapTopStrip(
             // Amendment 3 (RECORD -648): "a 3 dot menu at the far right", placed by the strip,
             // not the screen (RECORD -649): the strip's own right end in every orientation.
             quickSettings = quickSettings,
+            cardCorners = stripCorners,
+            tuck = stripTuck,
         )
         DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
     }
@@ -1365,26 +1380,10 @@ private fun BoxScope.CompactMapTopStrip(
     // while it is not measured (portrait, navigating, before its first layout), where the bar keeps its own.
     LaunchedEffect(landscapeStripHeightPx) { onLandscapeStripHeightMeasured(with(compassStripDensity) { landscapeStripHeightPx.toDp() }) }
     LaunchedEffect(landscapeStripWidthPx) { onLandscapeStripWidthMeasured(with(compassStripDensity) { landscapeStripWidthPx.toDp() }) }
-    // RECORD -729, item 4: a 1 dp vertical line where the bar and the strip meet, in the bar's divider colour, as tall
-    // as the two; since RECORD -732 at the strip's inner edge, not the window's centre. Drawn over their join and
-    // nothing else, so it adds no fill over the map, and it takes no touch (a Box with a background has no pointer
-    // input). Not in fullscreen, where the bar is away.
-    if (railPortEdge != null && punchHoleEdge != null && railPortEdge != punchHoleEdge && !isNavigating && !isFullscreen && landscapeStripHeightPx > 0 && landscapeStripWidthPx > 0) {
-        val joinFromRailEdge = with(compassStripDensity) { landscapeStripWidthPx.toDp() } - 0.5.dp
-        Box(
-            modifier = Modifier
-                .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
-                .padding(controlsPadding)
-                .absolutePadding(
-                    left = if (railPortEdge == ScreenEdge.Left) joinFromRailEdge else 0.dp,
-                    right = if (railPortEdge == ScreenEdge.Right) joinFromRailEdge else 0.dp,
-                )
-                .width(1.dp)
-                .height(with(compassStripDensity) { landscapeStripHeightPx.toDp() })
-                .background(mapIconStackBorderColor())
-                .testTag(LANDSCAPE_BAR_STRIP_LINE_TAG),
-        )
-    }
+    // RECORD -729, item 4 drew a 1 dp vertical line where the bar and the strip meet in landscape. Dispatch 2026-10-12-06
+    // (RECORD -934, the owner's answer confirming "in landscape, the pill and card touch edge to edge (no join line)"): the
+    // line is gone; the two meet square on their joined side and round on their outer sides (stripCorners, the bar's
+    // pillCorners in the scaffold). LANDSCAPE_BAR_STRIP_LINE_TAG is kept so a test can say no such line is drawn.
 }
 
 /** The taxon and journal-entries chips, moved out of [CompactMapTab] unchanged (RECORD -741). */
@@ -1510,6 +1509,9 @@ private fun BoxScope.CompactMapNavigationDisplay(
     val punchHoleEdge = landscape.punchHoleEdge
     val chromeLayoutDirection = LocalLayoutDirection.current
     val (navigationChromeEnter, navigationChromeExit) = navigationChromeTransitions()
+    // Dispatch 2026-10-12-06 (RECORD -932, -934): in portrait the rounded card tucked under the pill; in landscape beside the bar,
+    // rounded all round, at today's place and 360 dp cap (whether it meets the bar there depends on the window, as before).
+    val hudTuck = if (railPortEdge == null) mapCardTuck(topInset) else 0.dp
     // T11 fixes: no display, no floor for the L.
     LaunchedEffect(isNavigating) { if (!isNavigating) cluster.navigationDisplayBottomInRootPx = null }
     // Navigation HUD stage one. Composed after the cluster (so its own exit wins any
@@ -1541,11 +1543,12 @@ private fun BoxScope.CompactMapNavigationDisplay(
                 .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
                 .fillMaxWidth()
         } else {
+            // Dispatch 2026-10-12-06: tucked under the pill, as the strip is (CompactMapTopStrip's stripTuck).
             Modifier
                 .align(Alignment.TopCenter)
                 .padding(controlsPadding)
                 .fillMaxWidth()
-                .padding(top = topInset)
+                .padding(top = topInset - hudTuck)
         }
             .clipToBounds()
             .leavingTakesNoTouches(leaving = !isNavigating),
@@ -1584,7 +1587,11 @@ private fun BoxScope.CompactMapNavigationDisplay(
             } else {
                 null
             },
+            cardCorners = if (railPortEdge == null) MapCardCorners.BOTTOM else MapCardCorners.ALL,
+            tuck = hudTuck,
             modifier = Modifier
+                // The card's bounds start at the pill's bottom, below the tuck its fill reaches into.
+                .padding(top = hudTuck)
                 .fillMaxWidth()
                 .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.TOP_STRIP) else Modifier)
                 // T11 fixes (P4): the display's bottom edge, for the landscape L's slide below it; only while navigating, so a

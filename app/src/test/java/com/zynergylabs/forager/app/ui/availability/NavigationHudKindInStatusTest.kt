@@ -88,7 +88,7 @@ class NavigationHudKindInStatusTest {
         Case("Last seen 23 h ago, finding GPS…", null, start, ReturnRoute.Pending, lastKnownFix = fixAt(1_500.0, at = now - 23 * 3_600_000L)),
         Case("Approximate, finding GPS…", null, start, ReturnRoute.Pending, approximateFix = fixAt(1_500.0).copy(accuracyMeters = 60f, provider = FixProvider.NETWORK)),
         // Data part B (dispatch 2026-09-28-677, merged into back-by with RECORD -687): its longest first row, the turn in
-        // words ("Sharp right · 169°") beside a four-digit figure in feet with "by trail", which that part fitted at 360 dp
+        // words ("sharp right 169°") beside a four-digit figure in feet with "by trail", which that part fitted at 360 dp
         // before this button was in the row.
         Case("Sharp right, by trail", fixAt(380.0), start, ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0), headingDegrees = 11f),
     )

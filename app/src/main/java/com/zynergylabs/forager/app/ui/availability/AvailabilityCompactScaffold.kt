@@ -1321,6 +1321,13 @@ internal fun CompactMainScaffold(
                                                 overMap = true,
                                                 // RECORD -729: the strip's height in landscape, not navigating; null keeps the bar's own.
                                                 landscapeHeight = mapSearchBarHeight.takeIf { barMeetsStrip && landscapeStripHeight > 0.dp },
+                                                // Dispatch 2026-10-12-06: the rounded pill. Beside the landscape strip it rounds its outer side
+                                                // only and meets the strip square, edge to edge with no join line (RECORD -934).
+                                                pillCorners = if (landscapeSearchWidth != null && barMeetsStrip && landscapeStripWidth > 0.dp) {
+                                                    MapCardCorners.outerSide(if (portEdge == ScreenEdge.Left) ScreenEdge.Right else ScreenEdge.Left)
+                                                } else {
+                                                    MapCardCorners.ALL
+                                                },
                                             )
                                             // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
                                             // bar's bottom over this column, so the notice starts where the strip's own measured height ends.

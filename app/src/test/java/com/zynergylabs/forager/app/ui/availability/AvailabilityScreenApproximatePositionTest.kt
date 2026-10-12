@@ -247,7 +247,7 @@ class AvailabilityScreenApproximatePositionTest {
 
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
         assertEquals("≈ 3.2 km", text(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("the needle: the creek is due north of a walker facing north", "Ahead · 0°", text(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("the needle: the creek is due north of a walker facing north", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
         // Dispatch 2026-09-28-677: from an approximate reading the figure is the straight line, and says so.
         assertEquals("straight", text(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         assertEquals(APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))

@@ -128,7 +128,7 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
         createdAtEpochMillis = morning,
     )
 
-    /** The route home's lookahead, due east, so a phone facing 281° turns 169° right: "Sharp right · 169°". */
+    /** The route home's lookahead, due east, so a phone facing 281° turns 169° right: "sharp right 169°". */
     private val east = LatLng(here.lat, here.lng + 0.001)
 
     private val utc = TimeZone.getTimeZone("UTC")
@@ -369,12 +369,12 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
         assertHudReads("01", NAVIGATION_HUD_STATUS_TAG) { it == NO_FIX_MESSAGE || it == NO_FIX_SHORT_TEXT }
         measure("01-return-nofix")
 
-        // 2. The route home with data part B's longest lines: "Sharp right · 169°", "1280 ft" "by trail", "≈ 1250 ft straight", 9843 ft.
+        // 2. The route home with data part B's longest lines: "sharp right 169°", "1280 ft" "by trail", "≈ 1250 ft straight", 9843 ft.
         emitFix(here.lat)
         composeRule.runOnIdle { route = ReturnRoute.Ahead(east, 390.0) }
         settle()
         // T11 fixes: the turn words may give way to the bearing alone, or go; the needle's state is read off the route figure then.
-        assertHudReads("02", NAVIGATION_HUD_TARGET_TAG) { it == "Sharp right · 169°" || it == "169°" || (it == "" && textOf(NAVIGATION_HUD_DISTANCE_TAG) == "390 m") }
+        assertHudReads("02", NAVIGATION_HUD_TARGET_TAG) { it == "sharp right 169°" || it == "169°" || (it == "" && textOf(NAVIGATION_HUD_DISTANCE_TAG) == "390 m") }
         measure("02-return-longest")
 
         // 2f. The same in feet, data part B's own longest ("1280 ft", "≈ 1250 ft straight"); feet from here on. The fixture's

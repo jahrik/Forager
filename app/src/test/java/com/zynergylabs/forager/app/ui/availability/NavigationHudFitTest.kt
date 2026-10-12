@@ -36,8 +36,8 @@ class NavigationHudFitTest {
 
     @Test
     fun `the short forms read as the owner confirmed them`() {
-        assertEquals("169°", turnShortForm("Sharp right · 169°"))
-        assertEquals("4°", turnShortForm("Ahead · 4°"))
+        assertEquals("169°", turnShortForm("sharp right 169°"))
+        assertEquals("4°", turnShortForm("ahead 4°"))
         assertNull(turnShortForm(""))
         assertNull(turnShortForm("Target"))
         assertEquals("≤ 16 ft", distanceShortForm("within 16 ft"))
@@ -75,10 +75,10 @@ class NavigationHudFitTest {
 
     @Test
     fun `the first row gives way in order - the kind moves, the turn shrinks to the bearing, the turn goes, the figure shortens`() {
-        val r = readout().copy(targetText = "Sharp right · 169°", distanceText = "1280 ft", distanceKindText = "by trail")
+        val r = readout().copy(targetText = "sharp right 169°", distanceText = "1280 ft", distanceKindText = "by trail")
         // turn 18, figure 7, kind 8 + gap 1.
-        assertEquals(FirstRowFit("Sharp right · 169°", "1280 ft", kindInStatus = false), firstRow(r, 18 + 7 + 1 + 8))
-        assertEquals(FirstRowFit("Sharp right · 169°", "1280 ft", kindInStatus = true), firstRow(r, 18 + 7))
+        assertEquals(FirstRowFit("sharp right 169°", "1280 ft", kindInStatus = false), firstRow(r, 18 + 7 + 1 + 8))
+        assertEquals(FirstRowFit("sharp right 169°", "1280 ft", kindInStatus = true), firstRow(r, 18 + 7))
         assertEquals(FirstRowFit("169°", "1280 ft", kindInStatus = true), firstRow(r, 4 + 7))
         assertEquals("the needle's own width stays", FirstRowFit("", "1280 ft", kindInStatus = true), firstRow(r, 2 + 7))
         assertEquals("only then the figure, which has no shorter form, is cut by its ellipsis", FirstRowFit("", "1280 ft", kindInStatus = true), firstRow(r, 5))

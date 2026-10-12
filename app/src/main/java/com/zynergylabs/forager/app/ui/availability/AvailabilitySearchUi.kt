@@ -183,6 +183,13 @@ internal fun SearchEntryBar(
      * other tabs, navigating, and before the strip is first measured).
      */
     landscapeHeight: Dp? = null,
+    /**
+     * Dispatch 2026-10-12-06 (RECORD -932, -934): over the map the bar is the rounded pill the navigation card and the compass
+     * strip tuck under (see RoundedMapCard.kt): these corners, a 2 dp shadow, and no divider (the divider was the seam against
+     * the square strip; the pill's own edge is the seam now, and a 1 dp spacer keeps the bar's height). `null`, the other tabs,
+     * keeps the square bar with its divider, unchanged (RECORD -934: "the pill is over the map only").
+     */
+    pillCorners: MapCardCorners? = null,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = mapChromeContentColor(isDarkTheme)
@@ -239,8 +246,8 @@ internal fun SearchEntryBar(
         color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
         contentColor = contentColor,
         tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        shape = RectangleShape,
+        shadowElevation = if (pillCorners != null) MAP_CARD_SHADOW_ELEVATION else 0.dp,
+        shape = pillCorners?.shape() ?: RectangleShape,
         modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
     ) {
         // RECORD -728 (the owner: "There is a slightly hang down of chrome from the search menu that extends into the strip
@@ -302,10 +309,16 @@ internal fun SearchEntryBar(
                 }
             }
             if (landscapeHeight == null) Spacer(Modifier.height(Spacing.xs * 2))
-            HorizontalDivider(
-                color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
-                modifier = Modifier.testTag(SEARCH_ENTRY_BAR_DIVIDER_TAG),
-            )
+            if (pillCorners != null) {
+                // The pill has no divider; this keeps the bar the height the scaffold reckons it (searchBarHeight), so the
+                // card tucked under it and everything placed below it stay where they are measured to be.
+                Spacer(Modifier.height(DividerDefaults.Thickness))
+            } else {
+                HorizontalDivider(
+                    color = if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT,
+                    modifier = Modifier.testTag(SEARCH_ENTRY_BAR_DIVIDER_TAG),
+                )
+            }
         }
     }
 }

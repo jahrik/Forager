@@ -103,7 +103,7 @@ class NavigationHudReadoutTest {
     fun `navigating to a waypoint with no route keeps the straight line in the large slot and aims at the waypoint`() {
         val r = readout(route = null)
         assertEquals("0.7 mi", r.distanceText)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertEquals("", r.statusText)
         assertFalse(r.routeRetryOffered)
     }
@@ -112,9 +112,9 @@ class NavigationHudReadoutTest {
     fun `the needle aims at the route's lookahead, not at the start`() {
         // The start is due north (a 315° turn from 45°); the lookahead due east (a 45° turn).
         val r = readout(route = ReturnRoute.Ahead(east, 1_500.0))
-        assertEquals("Right · 45°", r.targetText)
+        assertEquals("right 45°", r.targetText)
         assertEquals(45f, r.targetArrowDegrees!!, 0.5f)
-        assertEquals("Left · 45°", readout(route = null).targetText)
+        assertEquals("left 45°", readout(route = null).targetText)
     }
 
     @Test
@@ -189,7 +189,7 @@ class NavigationHudReadoutTest {
 
         assertEquals("45° NE", r.headingText)
         assertEquals(-45f, r.northArrowDegrees)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
         assertEquals("0.7 mi", r.distanceText)
         assertFalse(r.distanceDeEmphasised)
@@ -202,7 +202,7 @@ class NavigationHudReadoutTest {
 
         val r = readout(target = west)
 
-        assertEquals("Sharp left · 135°", r.targetText)
+        assertEquals("sharp left 135°", r.targetText)
         assertEquals(225f, r.targetArrowDegrees!!, 0.05f)
     }
 
@@ -273,7 +273,7 @@ class NavigationHudReadoutTest {
         assertNotNull("a needle at 16.46 m with 8 m accuracy", r2.targetArrowDegrees)
         assertEquals(315f, r2.targetArrowDegrees!!, 1e-3f)
         assertEquals("Approaching", r2.statusText)
-        assertEquals("Left · 45°", r2.targetText)
+        assertEquals("left 45°", r2.targetText)
     }
 
     // ── Dispatch 2026-09-28-578, Amendment 1 (-579): "Approaching" has its own zone ─────────────
@@ -290,7 +290,7 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("≈ 50 m", r.distanceText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertFalse(r.distanceDeEmphasised)
     }
 
@@ -333,7 +333,7 @@ class NavigationHudReadoutTest {
 
         assertNotNull(r.targetArrowDegrees)
         assertEquals("", r.statusText)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         // Dispatch -502 changed this (Amendment 2). Before: the large slot was asserted to read "33 ft" (no
         // accuracy, no rounding, no marker). After: arrival applies to any target, and with no accuracy its
         // radius is 15 m, so 10 m reads "Arrived". The needle, drawn with no basis for approaching, is unchanged.
@@ -358,7 +358,7 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("164 ft", r.distanceText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
     }
 
     @Test
@@ -406,7 +406,7 @@ class NavigationHudReadoutTest {
         assertEquals("≈ 50 m", r.distanceText)
         assertTrue(r.distanceDeEmphasised)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
     }
 
     @Test
@@ -592,10 +592,10 @@ class NavigationHudReadoutTest {
     fun `the turn is in words from the needle's own angle`() {
         // Facing 45°, the start due north: 315° clockwise, 45° to the left; the arrow's rotation is unchanged.
         val r = readout(route = null)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertEquals(315f, r.targetArrowDegrees!!, 0.5f)
         // Facing 350°, the start due north: 10° clockwise, a slight right.
-        assertEquals("Slight right · 10°", readout(heading = TrueHeadingReading.Available(350f), route = null).targetText)
+        assertEquals("slight right 10°", readout(heading = TrueHeadingReading.Available(350f), route = null).targetText)
     }
 
     @Test

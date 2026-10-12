@@ -436,7 +436,7 @@ class AvailabilityScreenMapIconStackTest {
         compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 3_000L))
         composeRule.waitForIdle()
         assertEquals("185° S", textOfTag(NAVIGATION_HUD_HEADING_TAG))
-        assertEquals("Behind · 175°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("behind 175°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**
@@ -473,7 +473,7 @@ class AvailabilityScreenMapIconStackTest {
         assertEquals("1.5 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("1.1 km straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         // Target due north (0°) from a device facing 95° true: 265° relative, a left turn.
-        assertEquals("Left · 95°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("left 95°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**

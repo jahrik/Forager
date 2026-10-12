@@ -444,6 +444,9 @@ internal fun CompassElevationStrip(
      * height it was.
      */
     quickSettings: MapQuickSettings? = null,
+    /** Dispatch 2026-10-12-06: the rounded card's corners, and how far its fill reaches up behind the pill (RoundedMapCard.kt). */
+    cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
+    tuck: Dp = 0.dp,
 ) {
     val reading by heading
     CompassElevationStripContent(
@@ -460,6 +463,8 @@ internal fun CompassElevationStrip(
         sundownLine = sundownLine,
         backByLine = backByLine,
         quickSettings = quickSettings,
+        cardCorners = cardCorners,
+        tuck = tuck,
     )
 }
 
@@ -495,6 +500,8 @@ private fun CompassElevationStripContent(
     sundownLine: String? = null,
     backByLine: String? = null,
     quickSettings: MapQuickSettings? = null,
+    cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
+    tuck: Dp = 0.dp,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -515,9 +522,13 @@ private fun CompassElevationStripContent(
                 // return-to-vehicle IconButton a real touch target; that control moved out to
                 // ControlPill (Part B), so this strip wraps its Row's natural text-content height
                 // again, the same as before that dispatch.
-                .background(
-                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
-                    shape = RectangleShape,
+                // Dispatch 2026-10-12-06 (RECORD -932, -934): the rounded card, tucked under the pill in portrait, still a
+                // background with no pointer input of its own (RoundedMapCard.kt), so the map keeps every touch but the strip's
+                // own controls, its corner gaps included.
+                .mapCardSurface(
+                    fill = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                    corners = cardCorners,
+                    tuck = tuck,
                 )
                 // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
                 // AnchoredAtScreenPoint's minY and the taxon filter chip's top padding both need to
