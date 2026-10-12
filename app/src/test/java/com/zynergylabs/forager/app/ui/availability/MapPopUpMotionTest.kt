@@ -433,7 +433,8 @@ class MapPopUpMotionTest {
         assertEquals("navigating, the strip's top is where it was", strip.top.value, cardSettled.top.value, 0.5f)
         switchReturning(false)
 
-        pauseAfter { composeRule.runOnUiThread { returning = true } }
+        // Six frames in, part way through the growth (at two the card had not yet grown past the strip's own line: run 38259665051).
+        pauseAfter(frames = 6) { composeRule.runOnUiThread { returning = true } }
         assertTrue("the strip is on screen throughout", shown(STRIP_TAG))
         assertTrue("the info is on screen, arriving", shown(NAVIGATION_HUD_TAG))
         val infoMid = boundsOf(NAVIGATION_HUD_TAG)

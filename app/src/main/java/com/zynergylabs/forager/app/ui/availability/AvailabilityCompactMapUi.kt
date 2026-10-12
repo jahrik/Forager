@@ -1858,6 +1858,8 @@ private fun BoxScope.CompactMapBottomChrome(
                 onTabSelected = onBottomNavTabSelected,
                 portEdge = railPortEdge,
                 containerColor = navigationBarContainerColor().copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
+                // RECORD -952: its two corners facing the map rounded, as the portrait bottom bar's top two (RECORD -937).
+                innerCornerRadius = MAP_CARD_CORNER_RADIUS,
                 modifier = Modifier.mapKeepOut(MapKeepOutIds.RAIL).onGloballyPositioned { coordinates ->
                     onRailWidthMeasured(coordinates.size.width.toFloat())
                 },

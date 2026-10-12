@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.runtime.SideEffect
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.layout.Layout
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
@@ -400,7 +402,6 @@ internal fun NavigationInfo(
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val metrics = rememberInfoMetrics()
         val partsPx = constraints.maxWidth - metrics.fixedPx
-        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, sundownLine, backByLine)
         // RECORD -770: where the parts and the lines under them end without the evening stack, which the stack does not change, so
         // the decision to leave it out cannot feed back into what it is decided on.
         var partsTopInRootPx by remember { mutableFloatStateOf(Float.NaN) }
@@ -416,6 +417,22 @@ internal fun NavigationInfo(
             bottomPaddingPx,
             eveningLineBottomLimitInRootPx,
         )
+        val shownSundown = sundownLine.takeIf { eveningShown }
+        val shownBackBy = backByLine.takeIf { eveningShown }
+        // Each evening line's own visibility, so the right part keeps a leaving line's width until its exit has run. Without it the
+        // part dropped to no width the moment the lines went, and the pieces still animating out wrapped a character a line,
+        // spiking the card's height for the length of the exit (caught by HudSundownLineGrowTest, CI run 38259665051).
+        val sundownVisibility = remember { MutableTransitionState(shownSundown != null) }
+        val backByVisibility = remember { MutableTransitionState(shownBackBy != null) }
+        SideEffect {
+            sundownVisibility.targetState = shownSundown != null
+            backByVisibility.targetState = shownBackBy != null
+        }
+        val lastSundown = rememberLastShown(shownSundown)
+        val lastBackBy = rememberLastShown(shownBackBy)
+        val holdSundown = shownSundown ?: lastSundown.takeIf { sundownVisibility.currentState || !sundownVisibility.isIdle }
+        val holdBackBy = shownBackBy ?: lastBackBy.takeIf { backByVisibility.currentState || !backByVisibility.isIdle }
+        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -427,8 +444,11 @@ internal fun NavigationInfo(
                     readout = readout,
                     fit = fit,
                     metrics = metrics,
-                    sundownLine = sundownLine.takeIf { eveningShown },
-                    backByLine = backByLine.takeIf { eveningShown },
+                    sundownLine = shownSundown,
+                    backByLine = shownBackBy,
+                    sundownVisibility = sundownVisibility,
+                    backByVisibility = backByVisibility,
+                    reserveRight = eveningPieces(holdSundown, holdBackBy).isNotEmpty(),
                     onLeftHeight = { leftHeightPx = it },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -535,11 +555,14 @@ private fun InfoParts(
     metrics: InfoMetrics,
     sundownLine: String?,
     backByLine: String?,
+    sundownVisibility: MutableTransitionState<Boolean>,
+    backByVisibility: MutableTransitionState<Boolean>,
+    /** Whether the right part keeps its width: an evening line shown, or one still leaving. */
+    reserveRight: Boolean,
     onLeftHeight: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dividerColor = if (LocalForagerDarkTheme.current) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT
-    val shownPieces = eveningPieces(sundownLine, backByLine)
     Layout(
         modifier = modifier,
         contents = listOf(
@@ -553,13 +576,13 @@ private fun InfoParts(
                         .testTag(NAVIGATION_HUD_DIVIDER_TAG),
                 )
             },
-            { EveningStack(sundownLine, backByLine) },
+            { EveningStack(sundownLine, backByLine, sundownVisibility, backByVisibility) },
         ),
     ) { (left, divider, right), constraints ->
         val total = constraints.maxWidth
         // The right part keeps the widest piece's width; where even that leaves the left part short (an overflow the fit
         // reports), the left part stays whole and the pieces wrap in what is left, never cut (RECORD -941).
-        val wantRight = if (shownPieces.isEmpty()) 0 else fit.rightPx
+        val wantRight = if (reserveRight) fit.rightPx else 0
         val rightWidth = if (fit.overflows) minOf(wantRight, maxOf(0, total - metrics.dividerPx - fit.leftPx)) else wantRight
         val leftWidth = maxOf(0, total - metrics.dividerPx - rightWidth)
         val leftPlaceable = left.single().measure(constraints.copy(minWidth = leftWidth, maxWidth = leftWidth, minHeight = 0))
@@ -675,7 +698,12 @@ internal fun eveningPieces(sundownLine: String?, backByLine: String?): List<Stri
  * [NAVIGATION_HUD_EVENING_PIECE_TAG]. Each line fades and grows as before (RECORD -672), or only fades under reduced motion.
  */
 @Composable
-private fun EveningStack(sundownLine: String?, backByLine: String?) {
+private fun EveningStack(
+    sundownLine: String?,
+    backByLine: String?,
+    sundownVisibility: MutableTransitionState<Boolean>,
+    backByVisibility: MutableTransitionState<Boolean>,
+) {
     val reduceMotion = LocalReduceMotion.current
     val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
     val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
@@ -683,9 +711,12 @@ private fun EveningStack(sundownLine: String?, backByLine: String?) {
     val exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top)
     val style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        for ((line, tag) in listOf(sundownLine to NAVIGATION_HUD_SUNDOWN_LINE_TAG, backByLine to NAVIGATION_HUD_BACK_BY_LINE_TAG)) {
+        for ((line, tag, visibility) in listOf(
+            Triple(sundownLine, NAVIGATION_HUD_SUNDOWN_LINE_TAG, sundownVisibility),
+            Triple(backByLine, NAVIGATION_HUD_BACK_BY_LINE_TAG, backByVisibility),
+        )) {
             val shownLine = rememberLastShown(line)
-            AnimatedVisibility(visible = line != null, enter = enter, exit = exit, label = "hudEveningStack") {
+            AnimatedVisibility(visibleState = visibility, enter = enter, exit = exit, label = "hudEveningStack") {
                 shownLine?.let { whole ->
                     Column(
                         modifier = Modifier.fillMaxWidth().semantics { text = AnnotatedString(whole) }.testTag(tag),

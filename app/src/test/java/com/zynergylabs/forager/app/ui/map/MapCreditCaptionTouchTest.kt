@@ -90,8 +90,14 @@ class MapCreditCaptionTouchTest {
 
     private fun near(a: Color, b: Color) = abs(a.red - b.red) < 0.04f && abs(a.green - b.green) < 0.04f && abs(a.blue - b.blue) < 0.04f
 
+    /**
+     * Dispatch 2026-10-12-08, RECORD -952 (the owner: "can the openstreetmaps tint strip have all corners rounded instead of just
+     * the one corner, like a pill?"): all four corner gaps show the map. Was "only the top-right corner is rounded and shows the
+     * map, the other three are square": the top-right gap the map's, and `!near(mapColour, ...)` at the bottom-right, top-left and
+     * bottom-left corners (RECORD -938).
+     */
     @Test
-    fun `only the top-right corner is rounded and shows the map, the other three are square`() {
+    fun `all four corners are rounded, a pill, and each corner gap shows the map`() {
         setScreen()
         val caption = composeRule.onNodeWithTag(MAP_CREDIT_CAPTION_TAG).getUnclippedBoundsInRoot()
         val shot = composeRule.onRoot().captureToImage()
@@ -102,18 +108,22 @@ class MapCreditCaptionTouchTest {
         val image = shot.toPixelMap()
         fun at(x: Dp, y: Dp) = with(composeRule.density) { image[x.toPx().toInt(), y.toPx().toInt()] }
         assertTrue("top-right corner gap shows the map", near(mapColour, at(caption.right - 1.dp, caption.top + 1.dp)))
-        assertTrue("bottom-right corner is the caption's tint, square", !near(mapColour, at(caption.right - 1.dp, caption.bottom - 1.dp)))
-        assertTrue("top-left corner is the caption's tint, square", !near(mapColour, at(caption.left + 1.dp, caption.top + 1.dp)))
-        assertTrue("bottom-left corner is the caption's tint, square", !near(mapColour, at(caption.left + 1.dp, caption.bottom - 1.dp)))
+        assertTrue("bottom-right corner gap shows the map", near(mapColour, at(caption.right - 1.dp, caption.bottom - 1.dp)))
+        assertTrue("top-left corner gap shows the map", near(mapColour, at(caption.left + 1.dp, caption.top + 1.dp)))
+        assertTrue("bottom-left corner gap shows the map", near(mapColour, at(caption.left + 1.dp, caption.bottom - 1.dp)))
         assertTrue("positive control: the caption's middle is its tint", !near(mapColour, at((caption.left + caption.right) / 2, caption.top + 1.dp)))
     }
 
     @Test
-    fun `long-presses on the caption and in its rounded corner's gap reach the map`() {
+    fun `long-presses on the caption and in its rounded corners' gaps reach the map`() {
         setScreen()
         val c = composeRule.onNodeWithTag(MAP_CREDIT_CAPTION_TAG).getUnclippedBoundsInRoot()
         val points = listOf(
             c.right - 1.dp to c.top + 1.dp,
+            // RECORD -952: the three other corners round too.
+            c.right - 1.dp to c.bottom - 1.dp,
+            c.left + 1.dp to c.top + 1.dp,
+            c.left + 1.dp to c.bottom - 1.dp,
             (c.left + c.right) / 2 to (c.top + c.bottom) / 2,
             c.left + 2.dp to (c.top + c.bottom) / 2,
         )

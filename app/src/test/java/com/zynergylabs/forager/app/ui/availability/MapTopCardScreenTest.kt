@@ -292,6 +292,41 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
         assertTrue("sampled enough points: $sampled of ${points.size}", sampled >= 8)
     }
 
+    /**
+     * RECORD -952 (the owner: "In landscape mode: Can we have the rounded corners on the app navigation buttons (the one on the
+     * right side of the display) like it is in portrait?"): the rail's two corners facing the map are cut, as the bottom bar's top
+     * two are (RECORD -937), so long-presses in each corner gap reach the map; clear of the corners the rail keeps them. A point
+     * within a control's reach (its bounds, or the 6 dp a 36 dp control's touch target extends: the strip's three-dot button sits
+     * against the rail's top corner) is skipped and counted, since a finger there goes to that control, on a device too.
+     */
+    fun assertRailInnerCornerGapsReachMap() {
+        returning = false
+        setScreen()
+        val rail = bounds(COMPACT_NAVIGATION_RAIL_TAG)
+        val innerX = if (rotation == Surface.ROTATION_90) rail.left else rail.right
+        val inward = if (rotation == Surface.ROTATION_90) 1 else -1
+        val reach = controls().map { DpRect(it.left - 6.dp, it.top - 6.dp, it.right + 6.dp, it.bottom + 6.dp) }
+        val top = listOf(innerX + 2.dp * inward to rail.top + 2.dp, innerX + 4.dp * inward to rail.top + 1.dp)
+        val bottom = listOf(innerX + 2.dp * inward to rail.bottom - 2.dp, innerX + 4.dp * inward to rail.bottom - 1.dp)
+        var reached = 0
+        val skipped = mutableListOf<Pair<Dp, Dp>>()
+        for ((x, y) in top + bottom) {
+            if (inAny(x, y, reach)) { skipped += x to y; continue }
+            val before = longPresses
+            longPressAt(x, y)
+            assertEquals("a long-press at (${x.value}, ${y.value}) in the rail's rounded inner corner reached the map (rail $rail)", before + 1, longPresses)
+            reached++
+        }
+        println("MEASURED rail corner gaps, rotation $rotation: rail $rail, reached $reached, skipped beside a control $skipped")
+        assertTrue("both bottom-corner points reached the map", bottom.none { it in skipped })
+        assertTrue("sampled at least the bottom corner: $reached", reached >= 2)
+        // Positive control: on the rail, clear of its corners, the rail takes the long-press.
+        val mid = innerX + 6.dp * inward to (rail.top + rail.bottom) / 2
+        val before = longPresses
+        longPressAt(mid.first, mid.second)
+        assertEquals("a long-press on the rail itself at (${mid.first.value}, ${mid.second.value}) stayed the rail's", before, longPresses)
+    }
+
     private class FixedCompass(degrees: Float) : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(degrees, HeadingUncertainty.Estimated(2f), 0L))
     }
@@ -340,12 +375,18 @@ class MapTopCardPortraitScreenTest : MapTopCardScreenTests(rotation = null) {
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class MapTopCardLandscape90ScreenTest : MapTopCardScreenTests(rotation = Surface.ROTATION_90)
+class MapTopCardLandscape90ScreenTest : MapTopCardScreenTests(rotation = Surface.ROTATION_90) {
+    @Test
+    fun `long-presses in the rail's rounded inner corners reach the map, and the rail keeps the rest`() = assertRailInnerCornerGapsReachMap()
+}
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class MapTopCardLandscape270ScreenTest : MapTopCardScreenTests(rotation = Surface.ROTATION_270)
+class MapTopCardLandscape270ScreenTest : MapTopCardScreenTests(rotation = Surface.ROTATION_270) {
+    @Test
+    fun `long-presses in the rail's rounded inner corners reach the map, and the rail keeps the rest`() = assertRailInnerCornerGapsReachMap()
+}
 
 internal const val TOP_CARD_MAP_TAG = "top-card-map"
 internal const val TOP_CARD_STRIP_TAG = "compass-elevation-strip"
