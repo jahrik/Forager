@@ -378,7 +378,9 @@ abstract class HudLandscapeT11Fixes {
         // RECORD -941: the evening lines are a stack of pieces under NAVIGATION_HUD_SUNDOWN_LINE_TAG. Was the one-line
         // NAVIGATION_HUD_EVENING_LINE_TAG, not drawn since RECORD -940/-941, so this positive control could never pass.
         assertTrue("positive control: the evening lines and Try again are both up", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty() && nodes(NAVIGATION_HUD_RETRY_TAG).isNotEmpty())
-        assertTrue("the display $hud ends above the walker's dot at y ${walkerY.value} by its radius", hud.bottom <= walkerY - WALKER_DOT_RADIUS)
+        // RECORD -953: the display is on the bottom edge, below the dot, so "never over the walker's dot" (-766) is no overlap
+        // with the dot's circle. Was `hud.bottom <= walkerY - WALKER_DOT_RADIUS` (the display above it).
+        assertTrue("the display $hud covers none of the walker's dot at y ${walkerY.value}", hud.bottom <= walkerY - WALKER_DOT_RADIUS || hud.top >= walkerY + WALKER_DOT_RADIUS)
         val needle = tag(NAVIGATION_HUD_NEEDLE_TAG)
         assertTrue("the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
         // What is drawn after the display (the rail) or beside it (the search bar, the L) must not reach the needle.
@@ -403,8 +405,11 @@ abstract class HudLandscapeT11Fixes {
         val hud = tag(NAVIGATION_HUD_TAG)
         val reset = described("Reset orientation to north")
         val b = bar()
-        assertTrue("Reset north $reset is clear of the display $hud", reset.top >= hud.bottom - 0.5.dp)
-        assertTrue("the display $hud covers no more than the bar's Fullscreen row (bar $b)", hud.bottom <= b.top + 48.5.dp)
+        // RECORD -953: the display sits on the bottom edge, so "clear" is no overlap rather than "below the display", and its
+        // claim on the bar is that it covers none of it. Was: `reset.top >= hud.bottom` and `hud.bottom <= b.top + 48.5.dp` (the
+        // display above, covering at most the bar's Fullscreen row).
+        assertTrue("Reset north $reset is clear of the display $hud", !reset.overlapsRect(hud))
+        assertTrue("the display $hud covers none of the bar $b", !b.overlapsRect(hud))
         val before = map.content?.resetOrientationRequestId ?: 0
         fractions().forEach { (fx, fy) -> composeRule.touchAt(reset.left + (reset.right - reset.left) * fx, reset.top + (reset.bottom - reset.top) * fy) }
         composeRule.waitForIdle()
@@ -422,7 +427,9 @@ abstract class HudLandscapeT11Fixes {
         setWithheldEveningScreen()
         // RECORD -941: the stack's tag, as above. Was NAVIGATION_HUD_EVENING_LINE_TAG, not drawn since RECORD -940/-941.
         assertTrue("the evening lines are shown: there is room", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty())
-        assertTrue("and the bar's top ${bar().top} is on the display's bottom ${tag(NAVIGATION_HUD_TAG).bottom}", bar().top >= tag(NAVIGATION_HUD_TAG).bottom - 0.5.dp)
+        // RECORD -953: the L no longer slides below the display (the display is on the bottom edge). Was: the bar's top on the
+        // display's bottom. The claim kept: the display covers none of the bar.
+        assertTrue("and the display ${tag(NAVIGATION_HUD_TAG)} covers none of the bar ${bar()}", !bar().overlapsRect(tag(NAVIGATION_HUD_TAG)))
         assertResetNorthClear()
     }
 
@@ -433,7 +440,12 @@ abstract class HudLandscapeT11Fixes {
     private fun returnButton(): DpRect = tag("control-pill-return-to-vehicle")
     private fun add(): DpRect = described("Plan a trip or log a find here")
 
-    /** The L on the display's side: down below the display, the pill beside "+", and back to where the user put it. */
+    /**
+     * RECORD -953 (the owner: "It stays exactly how it is now. Just flipped upside down. No rearranging"): the display is on the
+     * bottom edge, so there is nowhere below it for the L to slide; the L on the display's side stays exactly where the user put
+     * it, the pill under the bar. Was (T11 fixes, P4): the L slid below the display and its pill moved beside "+":
+     * `barDown.top >= hud.bottom` and the record and return buttons level with "+".
+     */
     private fun assertSlideOnTheDisplaysSide(rotation: Int) {
         setScreen(rotation, clusterOnRailSide = true, navigating = false)
         // Where the user put it: dragged down 20 dp from where it opened, which the screen stores.
@@ -454,14 +466,10 @@ abstract class HudLandscapeT11Fixes {
         val rec = record()
         val ret = returnButton()
         assertTrue("positive control: the display is on the L's side ($hud, bar $barDown)", if (onLeft) hud.left < barDown.right else hud.right > barDown.left)
-        assertTrue("the bar's top ${barDown.top} is not above the display's bottom ${hud.bottom}", barDown.top >= hud.bottom - 0.5.dp)
-        assertEquals("the record button is level with +: $rec, + $addRow", addRow.top.value, rec.top.value, 0.5f)
-        assertEquals("the return button is level with +: $ret, + $addRow", addRow.top.value, ret.top.value, 0.5f)
-        if (onLeft) {
-            assertTrue("the pill is right of the bar: record $rec, return $ret, bar $barDown", minOf(rec.left, ret.left) >= barDown.right - 0.5.dp)
-        } else {
-            assertTrue("the pill is left of the bar: record $rec, return $ret, bar $barDown", maxOf(rec.right, ret.right) <= barDown.left + 0.5.dp)
-        }
+        println("MEASURED rotation $rotation: display $hud, bar $barDown, record $rec, return $ret, + $addRow; covered: record ${rec.overlapsRect(hud)}, return ${ret.overlapsRect(hud)}, bar ${barDown.overlapsRect(hud)}")
+        assertEquals("the bar stays where the user put it: $barBefore then $barDown", barBefore.top.value, barDown.top.value, 0.5f)
+        assertEquals("the pill stays under it: $recordBefore then $rec", recordBefore.top.value, rec.top.value, 0.5f)
+        assertEquals("the pill stays under it: $recordBefore then $rec", recordBefore.left.value, rec.left.value, 0.5f)
         assertEquals("nothing was stored while navigating", writes, placementWrites.size)
 
         composeRule.runOnIdle { returning = false }
@@ -473,9 +481,9 @@ abstract class HudLandscapeT11Fixes {
         assertEquals("nothing was stored by the slide", writes, placementWrites.size)
     }
 
-    @Test fun `item 3 at ROTATION_90 the L on the display's side slides below it and comes back`() = assertSlideOnTheDisplaysSide(Surface.ROTATION_90)
+    @Test fun `item 3 at ROTATION_90 the L on the display's side stays where the user put it while navigating, and after`() = assertSlideOnTheDisplaysSide(Surface.ROTATION_90)
 
-    @Test fun `item 3 at ROTATION_270 the L on the display's side slides below it and comes back`() = assertSlideOnTheDisplaysSide(Surface.ROTATION_270)
+    @Test fun `item 3 at ROTATION_270 the L on the display's side stays where the user put it while navigating, and after`() = assertSlideOnTheDisplaysSide(Surface.ROTATION_270)
 
     /**
      * On the side away from the display the slide does not apply: the pill stays under the bar and the L is not pushed down to
@@ -566,7 +574,9 @@ abstract class HudLandscapeT11Fixes {
         composeRule.runOnIdle { returning = true }
         settle()
         val ends = SlideEnds(barUp, bar(), recordUnder, record())
-        assertTrue("positive control: the slide moves the bar ($ends)", ends.barDown.top - ends.barUp.top > 8.dp)
+        // RECORD -953: there is no slide (the display is on the bottom edge). Was the positive control `ends.barDown.top -
+        // ends.barUp.top > 8.dp`; now the L does not move, which is what the mid-slide test then holds.
+        assertEquals("the L does not move when navigation starts ($ends)", ends.barUp.top.value, ends.barDown.top.value, 0.5f)
         return ends
     }
 
@@ -592,7 +602,23 @@ abstract class HudLandscapeT11Fixes {
 
     @Test fun `item 3 at ROTATION_270 navigating every bar and pill button takes real touches across it`() = assertEveryButtonTakesTouches(Surface.ROTATION_270, navigating = true)
 
-    @Test fun `item 3 at ROTATION_90 mid-slide every bar and pill button takes real touches across it`() = assertEveryButtonTakesTouches(Surface.ROTATION_90, navigating = true, atMidSlide = true)
+    // RECORD -953: no slide, so no mid-slide frame to hold. Was "item 3 at ROTATION_90 mid-slide every bar and pill button takes
+    // real touches across it" (holdMidSlide). What stands: starting navigation does not move the L, frame by frame.
+    @Test
+    fun `item 3 at ROTATION_90 starting navigation moves the L at no frame`() {
+        setScreen(Surface.ROTATION_90, clusterOnRailSide = true, navigating = false)
+        val barUp = bar()
+        val recordUp = record()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnIdle { returning = true }
+        val moved = (0 until MAX_FRAMES).mapNotNull {
+            composeRule.mainClock.advanceTimeByFrame()
+            val b = bar(); val r = record()
+            if (kotlin.math.abs((b.top - barUp.top).value) > 0.5f || kotlin.math.abs((r.top - recordUp.top).value) > 0.5f) "frame $it: bar $b, record $r" else null
+        }
+        composeRule.mainClock.autoAdvance = true
+        assertTrue("the L moved at: $moved", moved.isEmpty())
+    }
 
     /** CLAUDE.md, the `Surface` pitfall: with the pill beside "+", the map beside the L still takes a long-press. */
     @Test
@@ -604,7 +630,10 @@ abstract class HudLandscapeT11Fixes {
         val onLeft = (b.left + b.right) / 2 < (window().left + window().right) / 2
         val pill = DpRect(minOf(rec.left, ret.left), minOf(rec.top, ret.top), maxOf(rec.right, ret.right), maxOf(rec.bottom, ret.bottom))
         val x = if (onLeft) b.right + 24.dp else b.left - 24.dp
-        val points = listOf(x to (b.top + b.bottom) / 2, x to pill.top - 24.dp, (pill.left + pill.right) / 2 to pill.top - 12.dp)
+        // RECORD -953: the pill no longer slides out beside "+"; it stays under the bar, so the third point is beside the pill, not
+        // above it (above it is now the bar). Was `(pill.left + pill.right) / 2 to pill.top - 12.dp`.
+        val pillX = if (onLeft) pill.right + 24.dp else pill.left - 24.dp
+        val points = listOf(x to (b.top + b.bottom) / 2, x to pill.top - 24.dp, pillX to (pill.top + pill.bottom) / 2)
         points.forEach { (px, py) ->
             val before = map.longPresses
             longPressAt(px, py)

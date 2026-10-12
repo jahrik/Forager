@@ -194,7 +194,9 @@ class LandscapeLargeFontTest {
         val height = mapArea.bottom - mapArea.top
         val walkerY = mapArea.top + (height + height * com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2
         println("MEASURED $label: display $hud, height ${hud.bottom - hud.top}, clearance above the central third ${(thirdTop - hud.bottom).value} dp, above the walker's dot ${(walkerY - 12.dp - hud.bottom).value} dp")
-        assertTrue("$label: the display $hud ends above the walker's dot at y ${walkerY.value} by its radius", hud.bottom <= walkerY - 12.dp)
+        // RECORD -953: the display is on the bottom edge, below the dot; "never over the walker's dot" is no overlap with its
+        // circle. Was `hud.bottom <= walkerY - 12.dp` (the display above it, -951).
+        assertTrue("$label: the display $hud covers none of the walker's dot at y ${walkerY.value}", hud.bottom <= walkerY - 12.dp || hud.top >= walkerY + 12.dp)
         val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG)
         assertTrue("$label: the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)

@@ -499,7 +499,8 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
         val mapArea = node(WORDS_LANDSCAPE_MAP_TAG).getUnclippedBoundsInRoot()
         val height = mapArea.bottom - mapArea.top
         val walkerY = mapArea.top + (height + height * com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2
-        assertTrue("the display $hud ends above the walker's dot at y ${walkerY.value} by its radius", hud.bottom <= walkerY - 12.dp)
+        // RECORD -953: the display on the bottom edge, below the dot: no overlap with its circle. Was `hud.bottom <= walkerY - 12.dp`.
+        assertTrue("the display $hud covers none of the walker's dot at y ${walkerY.value}", hud.bottom <= walkerY - 12.dp || hud.top >= walkerY + 12.dp)
         val needle = node(NAVIGATION_HUD_NEEDLE_TAG).getUnclippedBoundsInRoot()
         assertTrue("the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
         listOf(SEARCH_ENTRY_BAR_TAG, "compass-elevation-strip").forEach { other ->
