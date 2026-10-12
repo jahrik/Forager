@@ -409,7 +409,9 @@ abstract class LandscapeBarStripJoinTests {
             // RECORD -940: the landscape strip lays out exactly as in portrait, so the status reads in portrait's words, not
             // RECORD -735's crossed-out compass. Was: the icon, labelled <$label>, and no words in the slot.
             assertFalse("<$label>: no crossed-out compass", shown(COMPASS_STRIP_HEADING_ICON_TAG))
-            assertEquals("<$label>: the portrait words in the heading slot", label, layoutOf(COMPASS_STRIP_HEADING_TAG).first)
+            // As in portrait, the words are whole where they fit, or the heading gives way first (RECORD -713's order), the
+            // altitude and the coordinates staying (checked below).
+            if (shown(COMPASS_STRIP_HEADING_TAG)) assertEquals("<$label>: the portrait words in the heading slot", label, layoutOf(COMPASS_STRIP_HEADING_TAG).first)
             assertTrue("<$label>: altitude and coordinates still show, whole ($shownReadouts)", shown(COMPASS_STRIP_ELEVATION_TAG) && shown(COMPASS_STRIP_COORDINATES_TAG))
             assertEquals("<$label>: the strip's left edge is where it is with a heading", withHeading.left.value, strip.left.value, 0.5f)
             assertEquals("<$label>: the strip's right edge is where it is with a heading", withHeading.right.value, strip.right.value, 0.5f)
