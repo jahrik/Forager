@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import org.junit.After
+import androidx.compose.ui.semantics.getOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
