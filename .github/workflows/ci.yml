@@ -10,7 +10,7 @@ on:
   # (docs/audits/2026-09-26-pre-main-working-trunk.md), so a merge into it needs its own
   # recorded result, not only the PR's pull_request run.
   push:
-    branches: [main, pre-main]
+    branches: [main, pre-main, dev]
   # No branches: filter here (unlike push above): this project stacks PRs against other
   # working branches, not just main (e.g. PR #49, claude/l4-close-out-beta-prep-night-maps
   # against claude/l4-close-out-beta-prep) -- restricting to main left every PR in that chain
