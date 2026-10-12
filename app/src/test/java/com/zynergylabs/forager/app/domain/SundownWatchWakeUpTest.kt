@@ -101,6 +101,7 @@ class SundownWatchWakeUpTest {
             assertEquals(expected, delivered.last().second)
         }
         assertEquals("each once", listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET), delivered.map { it.second })
+        assertEquals("one wake-up each, at the heads-up's, the leave-by's and sunset's due time", listOf(headsUpAt, leaveBy, sunset), scheduled())
         assertEquals("all given: the wake-up cancelled", "cancel", alarmCalls.last().first)
     }
 
@@ -111,7 +112,7 @@ class SundownWatchWakeUpTest {
         watch.onFix(gpsFix(here), FixProvider.GPS).let { } // keeps the walk back fresh; its answer is not what is tested
         runBlocking { watch.onAlarm() }
         assertEquals(listOf(AlertKind.HEADS_UP), delivered.map { it.second })
-        assertEquals("the next wake-up is asked for", "schedule", alarmCalls.last().first)
+        assertEquals("the next wake-up is the leave-by's", headsUpAt + SUNDOWN_HEADS_UP_LEAD_MILLIS, scheduled().last())
     }
 
     @Test
