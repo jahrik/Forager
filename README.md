@@ -48,8 +48,8 @@ Source paths named below that do not start with a top-level folder are under
   maps. A find can carry photos, taken with the camera or imported. Recorded tracks can be exported as GPX.
 - **Tools** opens a drawer with the **Trip Planner** (planned trips, and the days in the coming stretch that
   look worth going, from rain history) and **Settings**: night mode, night maps, units, whether to save your
-  location into photos, locking the camera to portrait, backup and restore of the journal to a folder you
-  choose, and crash logs.
+  location into photos, locking the camera to portrait, and backup and restore of the journal to a folder you
+  choose.
 
 ## Which build am I running?
 
