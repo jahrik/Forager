@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -338,6 +339,28 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
         assertEquals("a long-press on the rail itself at (${mid.first.value}, ${mid.second.value}) stayed the rail's", before, longPresses)
     }
 
+    /**
+     * RECORD -953 ("have the card peak from the botton of the screen"): in landscape the card slides up from the bottom edge when
+     * navigation starts. Six frames in, the card is lower than where it settles; settled, its bottom is the window's bottom.
+     */
+    fun assertCardSlidesUpFromTheBottom() {
+        returning = true
+        setScreen()
+        val settled = bounds(NAVIGATION_HUD_TAG)
+        composeRule.runOnIdle { returning = false }
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnUiThread { returning = true; androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications() }
+        repeat(6) { composeRule.mainClock.advanceTimeByFrame() }
+        val mid = bounds(NAVIGATION_HUD_TAG)
+        composeRule.mainClock.autoAdvance = true
+        println("MEASURED card slide, rotation $rotation: mid $mid, settled $settled")
+        assertTrue("mid-start the card $mid is below where it settles $settled: it slides up", mid.top > settled.top + 0.5.dp)
+        val window = composeRule.onRoot().getUnclippedBoundsInRoot()
+        assertEquals("settled, the card's bottom is the window's bottom", window.bottom.value, settled.bottom.value, 0.5f)
+    }
+
     private class FixedCompass(degrees: Float) : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(degrees, HeadingUncertainty.Estimated(2f), 0L))
     }
@@ -389,6 +412,9 @@ class MapTopCardPortraitScreenTest : MapTopCardScreenTests(rotation = null) {
 class MapTopCardLandscape90ScreenTest : MapTopCardScreenTests(rotation = Surface.ROTATION_90) {
     @Test
     fun `long-presses in the rail's rounded inner corners reach the map, and the rail keeps the rest`() = assertRailInnerCornerGapsReachMap()
+
+    @Test
+    fun `the navigation card slides up from the bottom edge when navigation starts`() = assertCardSlidesUpFromTheBottom()
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -397,6 +423,9 @@ class MapTopCardLandscape90ScreenTest : MapTopCardScreenTests(rotation = Surface
 class MapTopCardLandscape270ScreenTest : MapTopCardScreenTests(rotation = Surface.ROTATION_270) {
     @Test
     fun `long-presses in the rail's rounded inner corners reach the map, and the rail keeps the rest`() = assertRailInnerCornerGapsReachMap()
+
+    @Test
+    fun `the navigation card slides up from the bottom edge when navigation starts`() = assertCardSlidesUpFromTheBottom()
 }
 
 internal const val TOP_CARD_MAP_TAG = "top-card-map"
