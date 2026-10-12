@@ -311,12 +311,13 @@ class AvailabilityScreenLandscapeB2Test {
         assertTrue("the strip $strip does not reach the search bar $bar", strip.right <= bar.left)
     }
 
-    // Dispatch 2026-10-12-08 (RECORD -946, -950, -951; the owner: "The compass strip stays exactly where it is in both modes, but
-    // the navigation HUD with the design slides down"): navigating, the strip stays in the rail-side top corner and the card hangs
-    // under it at its width. Was (Landscape B2 S4, RECORD -694): the strip hidden, the HUD at the top of the map in its place, at
+    // Dispatch 2026-10-12-08 (RECORD -946, -950, -951, -953; the owner: "The compass strip stays exactly where it is in both modes";
+    // -953: "have the card peak from the botton of the screen instead from the top ... Just flipped upside down"): navigating, the
+    // strip stays in the rail-side top corner and the card sits on the map's bottom edge in the strip's column, at its width. Was
+    // (-951): the card's top the strip's bottom. Was (Landscape B2 S4, RECORD -694): the strip hidden, the HUD at the top of the map in its place, at
     // most 360 dp wide: `assertTrue(... strip ... isEmpty())`, `assertEquals(m.top, hud.top)`, `hud.width <= 360.dp`.
     @Test
-    fun `S4 at ROTATION_90 navigating, the strip stays in the top corner on the rail side and the card hangs under it at its width`() {
+    fun `S4 at ROTATION_90 navigating, the strip stays in the top corner on the rail side and the card sits on the bottom edge at its width`() {
         setScreen(Surface.ROTATION_90, B2_FIX_STATE, isReturning = true)
         val hud = tagBounds(NAVIGATION_HUD_TAG)
         val strip = tagBounds(B2_STRIP_TAG)
@@ -325,13 +326,13 @@ class AvailabilityScreenLandscapeB2Test {
 
         assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
         assertEquals("the strip is at the top of the map", m.top.value, strip.top.value, 0.5f)
-        assertEquals("the card's top is the strip's bottom: card $hud, strip $strip", strip.bottom.value, hud.top.value, 0.5f)
+        assertEquals("the card's bottom is the map's bottom: card $hud, map $m", m.bottom.value, hud.bottom.value, 0.5f)
         assertEquals("the card's left edge is the strip's", strip.left.value, hud.left.value, 0.5f)
         assertEquals("the card's right edge is the strip's", strip.right.value, hud.right.value, 0.5f)
     }
 
     @Test
-    fun `S4 at ROTATION_270 navigating, the strip stays in the top corner on the rail side and the card hangs under it at its width`() {
+    fun `S4 at ROTATION_270 navigating, the strip stays in the top corner on the rail side and the card sits on the bottom edge at its width`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE, isReturning = true)
         val hud = tagBounds(NAVIGATION_HUD_TAG)
         val strip = tagBounds(B2_STRIP_TAG)
@@ -340,7 +341,7 @@ class AvailabilityScreenLandscapeB2Test {
 
         assertEquals("the strip starts at the rail's inner edge", rail.right.value, strip.left.value, 0.5f)
         assertEquals("the strip is at the top of the map", m.top.value, strip.top.value, 0.5f)
-        assertEquals("the card's top is the strip's bottom: card $hud, strip $strip", strip.bottom.value, hud.top.value, 0.5f)
+        assertEquals("the card's bottom is the map's bottom: card $hud, map $m", m.bottom.value, hud.bottom.value, 0.5f)
         assertEquals("the card's left edge is the strip's", strip.left.value, hud.left.value, 0.5f)
         assertEquals("the card's right edge is the strip's", strip.right.value, hud.right.value, 0.5f)
     }

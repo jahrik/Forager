@@ -76,6 +76,9 @@ internal data class MapCardCorners(val topLeft: Dp, val topRight: Dp, val bottom
         val ALL = MapCardCorners(MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS)
         val BOTTOM = MapCardCorners(0.dp, 0.dp, MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS)
 
+        /** RECORD -953: the landscape navigation card on the screen's bottom edge: its top two corners round, its bottom square. */
+        val TOP = MapCardCorners(MAP_CARD_CORNER_RADIUS, MAP_CARD_CORNER_RADIUS, 0.dp, 0.dp)
+
         /**
          * Landscape, navigating: the display beside the bar, taller than it. Its two [outer] corners round, and its inner bottom
          * corner, below the bar; only its inner top corner, where it meets the bar, stays square.

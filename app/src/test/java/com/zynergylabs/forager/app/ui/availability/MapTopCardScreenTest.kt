@@ -268,19 +268,30 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
      * beside it under the search bar. The card takes no touch outside its own controls.
      */
     @Test
-    fun `long-presses at the card's rounded lower corners, just below it and beside it reach the map`() {
+    fun `long-presses at the card's rounded corner gaps, just off its open edge and beside it reach the map`() {
         setScreen()
         val card = bounds(NAVIGATION_HUD_TAG)
         val taken = controls()
         // Beside the card on the search bar's side, under the bar: the bar is on the left at ROTATION_90, on the right at 270.
         val besideX = if (rotation == Surface.ROTATION_90) card.left - 12.dp else card.right + 12.dp
-        val points = listOf(
-            card.left + 2.dp to card.bottom - 2.dp,
-            card.right - 2.dp to card.bottom - 2.dp,
-            card.left + 4.dp to card.bottom - 1.dp,
-            card.right - 4.dp to card.bottom - 1.dp,
-        ) + listOf(0.15f, 0.5f, 0.85f).flatMap { f -> val x = card.left + (card.right - card.left) * f; listOf(x to card.bottom + 3.dp, x to card.bottom + 12.dp) } +
-            (if (rotation != null) listOf(besideX to (card.top + card.bottom) / 2, besideX to card.bottom - 6.dp) else emptyList())
+        val points = if (rotation == null) {
+            listOf(
+                card.left + 2.dp to card.bottom - 2.dp,
+                card.right - 2.dp to card.bottom - 2.dp,
+                card.left + 4.dp to card.bottom - 1.dp,
+                card.right - 4.dp to card.bottom - 1.dp,
+            ) + listOf(0.15f, 0.5f, 0.85f).flatMap { f -> val x = card.left + (card.right - card.left) * f; listOf(x to card.bottom + 3.dp, x to card.bottom + 12.dp) }
+        } else {
+            // RECORD -953: the landscape card sits on the bottom edge, its top two corners rounded: its top corner gaps, just above
+            // it, and beside it reach the map.
+            listOf(
+                card.left + 2.dp to card.top + 2.dp,
+                card.right - 2.dp to card.top + 2.dp,
+                card.left + 4.dp to card.top + 1.dp,
+                card.right - 4.dp to card.top + 1.dp,
+            ) + listOf(0.15f, 0.5f, 0.85f).flatMap { f -> val x = card.left + (card.right - card.left) * f; listOf(x to card.top - 3.dp, x to card.top - 12.dp) } +
+                listOf(besideX to card.top + 12.dp, besideX to (card.top + card.bottom) / 2)
+        }
         var sampled = 0
         for ((x, y) in points) {
             if (inAny(x, y, taken)) continue

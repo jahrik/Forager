@@ -56,8 +56,9 @@ import org.robolectric.shadows.ShadowDisplay
  * stay the same size. The compass strip stays exactly where it is in both modes, but the navigation HUD with the design slides
  * down"; and, with a screenshot of today's app, "Keep it exactly like this size. Exactly as we have it today". In a short
  * landscape window, at both rotations: the compass strip's bounds and the search bar's are identical navigating and not; the bar
- * meets the strip edge to edge (RECORD -934) in both; navigating, the navigation card hangs under the strip, its left and right
- * edges the strip's, its top the strip's bottom; and long-presses beside the card, below the bar, reach the map.
+ * meets the strip edge to edge (RECORD -934) in both; navigating, the navigation card's left and right edges are the strip's; and
+ * long-presses beside the card and above it reach the map. RECORD -953 moved the card from under the strip to the bottom edge
+ * ("Just flipped upside down"); before it, the card's top was the strip's bottom.
  *
  * Was (dispatch 2026-10-12-06, RECORD -936, -940): navigating, the bar's inner edge was the card's, the card beside the bar at the
  * top of the map in the strip's place, and the window's short side wide: `assertEquals(card.left, bar.right)`,
@@ -174,19 +175,25 @@ abstract class LandscapeCardMeetsBarTests {
         }
         assertEquals("the card's left edge is the strip's: card $card, strip $strip", strip.left.value, card.left.value, 0.5f)
         assertEquals("the card's right edge is the strip's: card $card, strip $strip", strip.right.value, card.right.value, 0.5f)
-        assertEquals("the card hangs from the strip's bottom: card $card, strip $strip", strip.bottom.value, card.top.value, 0.5f)
+        // RECORD -953 ("have the card peak from the botton of the screen ... Just flipped upside down"): the card sits on the
+        // window's bottom edge in the strip's column. Was (-951): `assertEquals(strip.bottom, card.top)`, hung from the strip.
+        val window = composeRule.onRoot().getUnclippedBoundsInRoot()
+        assertEquals("the card sits on the bottom edge: card $card, window $window", window.bottom.value, card.bottom.value, 0.5f)
+        assertTrue("and the map shows between the strip and the card: strip $strip, card $card", card.top > strip.bottom + 8.dp)
 
-        // Below the bar, beside the card, nearer the card than the cluster on the bar's outer side: the map's.
+        // Beside the card, on the search bar's side, nearer the card than the cluster on the bar's outer side, and between the strip
+        // and the card in the strip's column: the map's.
         val x = if (barOnLeft) card.left - 12.dp else card.right + 12.dp
+        val midX = (card.left + card.right) / 2
         var sampled = 0
-        for (y in listOf(bar.bottom + 4.dp, bar.bottom + 20.dp, card.bottom - 4.dp)) {
-            if (y >= card.bottom || inAnyControl(x, y)) continue
+        for ((px, y) in listOf(x to card.top + 12.dp, x to (card.top + card.bottom) / 2, midX to (strip.bottom + card.top) / 2, midX to card.top - 4.dp)) {
+            if (inAnyControl(px, y)) continue
             val before = longPresses
-            longPressAt(x, y)
-            assertEquals("a long-press at (${x.value}, ${y.value}) beside the card reached the map", before + 1, longPresses)
+            longPressAt(px, y)
+            assertEquals("a long-press at (${px.value}, ${y.value}) beside or above the card reached the map", before + 1, longPresses)
             sampled++
         }
-        assertTrue("sampled beside the card: $sampled", sampled >= 1)
+        assertTrue("sampled beside and above the card: $sampled", sampled >= 2)
 
         composeRule.runOnIdle { returning = false }
         settle()
@@ -194,9 +201,9 @@ abstract class LandscapeCardMeetsBarTests {
         assertEquals("and the card has gone", 0, composeRule.onAllNodesWithTag(NAVIGATION_HUD_TAG).fetchSemanticsNodes().size)
     }
 
-    @Test fun `at ROTATION_90 the strip stays put and the same size navigating or not, and the card hangs under it at its exact width`() = assertStripStaysAndCardHangs(Surface.ROTATION_90)
+    @Test fun `at ROTATION_90 the strip stays put and the same size navigating or not, and the card sits on the bottom edge at its exact width`() = assertStripStaysAndCardHangs(Surface.ROTATION_90)
 
-    @Test fun `at ROTATION_270 the strip stays put and the same size navigating or not, and the card hangs under it at its exact width`() = assertStripStaysAndCardHangs(Surface.ROTATION_270)
+    @Test fun `at ROTATION_270 the strip stays put and the same size navigating or not, and the card sits on the bottom edge at its exact width`() = assertStripStaysAndCardHangs(Surface.ROTATION_270)
 
     private class FixedCompass(degrees: Float) : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(degrees, HeadingUncertainty.Estimated(2f), 0L))

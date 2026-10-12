@@ -1054,6 +1054,21 @@ private fun navigationChromeTransitions(): Pair<EnterTransition, ExitTransition>
 }
 
 /**
+ * RECORD -953: the landscape navigation card's motion, [navigationChromeTransitions] flipped: it slides up from the screen's bottom
+ * edge by its own height, with a fade, on the same timing, and back down; under reduced motion it only fades.
+ */
+@Composable
+private fun navigationChromeFromBottomTransitions(): Pair<EnterTransition, ExitTransition> {
+    val reduceMotion = LocalReduceMotion.current
+    val slide = MotionTokens.navigationViewChromeSpec<IntOffset>()
+    val timedFade = MotionTokens.navigationViewChromeSpec<Float>()
+    val reducedFade = MotionTokens.mapPopUpFadeSpec<Float>()
+    val enter = if (reduceMotion) fadeIn(animationSpec = reducedFade) else slideInVertically(animationSpec = slide) { fullHeight -> fullHeight } + fadeIn(animationSpec = timedFade)
+    val exit = if (reduceMotion) fadeOut(animationSpec = reducedFade) else slideOutVertically(animationSpec = slide) { fullHeight -> fullHeight } + fadeOut(animationSpec = timedFade)
+    return enter to exit
+}
+
+/**
  * The tapped thing's bubble, moved out of [CompactMapTab] unchanged (RECORD -741): see that function's comments where it is called.
  * Its [minY] and [backEnabled] are worked out there, from state the tab owns.
  */
@@ -1572,14 +1587,24 @@ private fun CompactMapPortraitNavigationInfo(
 }
 
 /**
- * Landscape (dispatch 2026-10-12-08, RECORD -946, -950, -951): the navigation card, hanging under the compass strip at the strip's
- * exact width, tucked beneath it as portrait's strip is under the pill, with the cast shadow and the card's shade, a shade darker
- * than the strip. The owner: "The compass strip stays exactly where it is in both modes, but the navigation HUD with the design
- * slides down". So the strip neither moves nor resizes; the card slides down from under it on start and back up on stop, clipped
- * at the strip's lower edge, on the navigation view's timing (Motion Part 2), or only fades under reduced motion. Its place and
- * width are the strip's measured ones (read, never fed back: nothing the strip measures depends on the card). Composed after the
- * cluster (so its X wins any overlap with a cluster dragged up to its bound) and before the bottom bar and rail (so they keep
- * winning their own bands), as the display always was; never touches mapSlot.
+ * Landscape (dispatch 2026-10-12-08, RECORD -946, -950, -951, -953): the navigation card, at the strip's exact width and in its
+ * column, a shade darker than the strip, its content and order unchanged.
+ *
+ * RECORD -953, the owner: "An alternative is to have the card peak from the botton of the screen instead from the top. It can stay
+ * beneath the heading, just peaking from the opposite direction"; "Landscape only. Portrait is dialed in"; "It stays exactly how it
+ * is now. Just flipped upside down. No rearranging." So the card is anchored to the screen's bottom edge, not hung under the strip:
+ * its top two corners rounded, its bottom square on the edge, no tuck, the 0.8 fill and its shadow. It slides up from the bottom
+ * when navigation starts and back down when it ends, on the navigation view's timing (Motion Part 2), or only fades under reduced
+ * motion. The strip stays exactly where it is. Was (-946 to -951): hung under the strip, tucked, sliding down from under it.
+ *
+ * Nothing else moves. The landscape L's slide below the display (T11 fixes, P4) is not fed the card's edge any more: below a card
+ * on the bottom edge there is nowhere to slide, and sliding it would rearrange it. RECORD -770's limit on the evening lines was
+ * worked out from the L below the display, and is not passed either. Whatever the card now covers at the bottom is reported with
+ * its numbers, not moved (RECORD -953: "No rearranging").
+ *
+ * Its width is the strip's measured one (read, never fed back). Composed after the cluster (so its X wins any overlap with the
+ * cluster) and before the bottom chrome and rail (so they keep winning their own bands), as the display always was; never touches
+ * mapSlot.
  */
 @Composable
 private fun BoxScope.CompactMapNavigationDisplay(
@@ -1600,31 +1625,26 @@ private fun BoxScope.CompactMapNavigationDisplay(
     landscapeStripWidth: MutableIntState,
 ) {
     val railPortEdge = landscape.railPortEdge ?: return
-    val punchHoleEdge = landscape.punchHoleEdge
     val isNavigating = navigation.isNavigating
     val density = LocalDensity.current
     val stripHeightPx by landscapeStripHeight
     val stripWidthPx by landscapeStripWidth
-    val (navigationChromeEnter, navigationChromeExit) = navigationChromeTransitions()
+    val (bottomEnter, bottomExit) = navigationChromeFromBottomTransitions()
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
-    // T11 fixes: no display, no floor for the L.
-    LaunchedEffect(isNavigating) { if (!isNavigating) cluster.navigationDisplayBottomInRootPx = null }
-    // Before the strip is first measured there is no width to hang at; nothing is drawn for that frame.
+    // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
+    LaunchedEffect(Unit) { cluster.navigationDisplayBottomInRootPx = null }
+    // Before the strip is first measured there is no width to take; nothing is drawn for that frame.
     if (stripWidthPx <= 0 || stripHeightPx <= 0) return
-    val stripCorners = landscapeStripCorners(railPortEdge, punchHoleEdge)
-    // How far the card's fill reaches up behind the strip's rounded lower corner: the corner's radius (MAP_CARD_TUCK).
-    val tuck = MAP_CARD_TUCK
     // Motion Part 2, item 3: leaving, it takes no touch and gives up its keep-out at once. RECORD -691: no minimum touch target
     // while it leaves (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
     NoTouchTargetExpansion(active = !isNavigating) {
     androidx.compose.animation.AnimatedVisibility(
         visible = isNavigating,
-        enter = navigationChromeEnter,
-        exit = navigationChromeExit,
+        enter = bottomEnter,
+        exit = bottomExit,
         modifier = Modifier
-            .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+            .align(if (railPortEdge == ScreenEdge.Left) Alignment.BottomStart else Alignment.BottomEnd)
             .padding(controlsPadding)
-            .padding(top = with(density) { stripHeightPx.toDp() } - tuck)
             .width(with(density) { stripWidthPx.toDp() })
             .clipToBounds()
             .leavingTakesNoTouches(leaving = !isNavigating),
@@ -1648,26 +1668,12 @@ private fun BoxScope.CompactMapNavigationDisplay(
             arrivalHeld = navigation.isArrivalHeld,
             sundownLine = sundownLine,
             backByLine = backByLine,
-            // RECORD -770: with the L below the display, the display ends no lower than the bar's lowest top plus its Fullscreen
-            // row, or its evening lines leave.
-            eveningLineBottomLimitInRootPx = if (navigationSlideApplies(cluster.landscape, isNavigating, cluster.isOnLeftSide, cluster.railPortEdge)) {
-                cluster.navigationLowestBarTopInRootPx?.let { it + with(density) { com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET.toPx() } }
-            } else {
-                null
-            },
-            // Its lower two corners round; its top runs in under the strip.
-            cardCorners = MapCardCorners.BOTTOM,
-            tuck = tuck,
-            upperCorners = stripCorners,
+            // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
+            cardCorners = MapCardCorners.TOP,
             modifier = Modifier
-                // The card's bounds start at the strip's bottom, below the tuck its fill reaches into.
-                .padding(top = tuck)
                 .fillMaxWidth()
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
-                .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
-                // T11 fixes (P4): the display's bottom edge, for the landscape L's slide below it; only while navigating, so a
-                // leaving display hands the L back at once.
-                .onGloballyPositioned { coordinates -> if (isNavigating) cluster.navigationDisplayBottomInRootPx = coordinates.boundsInRoot().bottom },
+                .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier),
         )
     }
     }
