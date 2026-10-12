@@ -519,7 +519,9 @@ class AvailabilityScreenWaypointNavigateTest {
 
         assertEquals("the return picks up again", 1, resumes)
         assertNull(navigatingTo())
-        assertTrue("the return's HUD: the straight line to the start is labelled", text(NAVIGATION_HUD_STATUS_TAG).endsWith(" straight"))
+        // RECORD -942: on the route the return's HUD has no straight-line note; its large figure is the route's, by trail. Was:
+        // the status line ends in " straight".
+        assertEquals("the return's HUD: no straight-line note on the route", "", text(NAVIGATION_HUD_STATUS_TAG))
         assertEquals(returnLine, map.content!!.route!!.line)
         assertTrue("the bubble is back", shown(MAP_BUBBLE_TAG))
 

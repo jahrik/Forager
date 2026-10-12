@@ -125,9 +125,10 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
         )
 
         // RECORD -943's follow-up (the owner: "don't forget the card tuck. I don't see it on the preview"): the pill's shadow is cast
-        // onto the card, so the card just below the pill's lower edge is measurably darker than the card further down. 4 dp in
-        // from the left, clear of the strip's text and its rounded lower corners.
-        val justBelow = at(strip.left + 4.dp, strip.top + 1.dp)
+        // onto the card, so the card just below the pill's lower edge is measurably darker than the card further down. Just below
+        // the pill's flat lower edge, at the strip's middle (1 dp down, above its text), against 4 dp in at mid-height (clear of
+        // the text and of the rounded corners). Not 4 dp in at the top: there the pill's rounded corner lifts its edge 5 dp.
+        val justBelow = at((strip.left + strip.right) / 2, strip.top + 1.dp)
         val further = at(strip.left + 4.dp, (strip.top + strip.bottom) / 2)
         val luminance = { c: Color -> 0.2126f * c.red + 0.7152f * c.green + 0.0722f * c.blue }
         assertTrue(

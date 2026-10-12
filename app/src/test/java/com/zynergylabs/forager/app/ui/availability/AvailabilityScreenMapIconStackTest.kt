@@ -471,7 +471,8 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         assertEquals("1.5 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("1.1 km straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -942: on the route, no straight-line note. Was "1.1 km straight".
+        assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         // Target due north (0°) from a device facing 95° true: 265° relative, a left turn.
         assertEquals("left 95°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
@@ -773,7 +774,9 @@ class AvailabilityScreenMapIconStackTest {
             computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
             navigationTarget = hudOrigin,
             currentTime = hudClock,
-            returnRoute = hudRoute,
+            // RECORD -942: the straight-line note, this test's reading of the held fix, shows only before the first route, so the
+            // route is pending here. Was hudRoute (on the route), where the note no longer shows.
+            returnRoute = ReturnRoute.Pending,
         )
         composeRule.waitForIdle()
 

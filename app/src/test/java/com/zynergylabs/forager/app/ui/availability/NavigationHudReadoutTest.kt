@@ -304,9 +304,10 @@ class NavigationHudReadoutTest {
 
         assertEquals("Approaching", readout(target = inside).statusText)
         assertEquals("", readout(target = outside).statusText)
-        // Under a route the line past the zone is the straight line, as far away.
+        // Under a route the zone is the same; past it the line is empty (RECORD -942: no straight-line note on the route). Was:
+        // the straight line past the zone.
         assertEquals("Approaching", readout(target = inside, route = ReturnRoute.Ahead(east, 120.0)).statusText)
-        assertTrue(readout(target = outside, route = ReturnRoute.Ahead(east, 120.0)).statusText.endsWith(" straight"))
+        assertEquals("", readout(target = outside, route = ReturnRoute.Ahead(east, 120.0)).statusText)
     }
 
     /**

@@ -318,7 +318,12 @@ abstract class LandscapeBarStripJoinTests {
      * readoutsFitBeside dropping from the front; the coordinates never drop. A long species search makes the bar's summary
      * long enough that this happens in both windows (positive control: the heading is dropped).
      */
-    @Test fun `at ROTATION_90 a long search keeps the bar's floor and the strip drops from the front, coordinates whole`() {
+    // RECORD -940 (the owner: "It can be the same size as portrait so that nothing really needs to change"; "Option 1, but
+    // permanent"): the strip keeps the portrait width whatever the bar's search, so its readouts stay whole and the bar takes what
+    // is left, under its floor if it must. Was (RECORD -732): "a long search keeps the bar's floor and the strip drops from the
+    // front, coordinates whole", the heading dropped. The bar's resting text at that width is measured and printed for the
+    // report, not asserted: whether it stays whole there is the ruling's consequence, reported to the owner.
+    @Test fun `at ROTATION_90 a long search leaves the strip at its portrait width with its readouts whole, and the bar takes the rest`() {
         val state = AvailabilityUiState(
             liveFix = fix,
             region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.52, lng = -122.68, radiusKm = 15),
@@ -333,11 +338,31 @@ abstract class LandscapeBarStripJoinTests {
         val strip = bounds(STRIP_TAG)
         val shownReadouts = readoutsShown()
         println("MEASURED rotation $rotation long search: bar ${bar.d()} (${(bar.right - bar.left).value} wide), strip ${strip.d()} (${(strip.right - strip.left).value} wide), readouts $shownReadouts")
-        assertTrue("positive control: the floor bound, so the heading gave way ($shownReadouts)", !shown(COMPASS_STRIP_HEADING_TAG))
-        assertTrue("the coordinates are shown", shown(COMPASS_STRIP_COORDINATES_TAG))
-        assertBarTextWhole(rotation, bar)
+        val window = composeRule.onRoot().getUnclippedBoundsInRoot()
+        assertEquals("the strip is the window's short side wide", minOf(window.right - window.left, window.bottom - window.top).value, (strip.right - strip.left).value, 0.5f)
+        assertTrue("the heading, altitude and coordinates are all shown ($shownReadouts)", shown(COMPASS_STRIP_HEADING_TAG) && shown(COMPASS_STRIP_ELEVATION_TAG) && shown(COMPASS_STRIP_COORDINATES_TAG))
+        reportBarText(rotation, bar)
         val clear = bounds(SEARCH_BAR_CLEAR_TAG)
         assertTrue("Clear ${clear.d()} lies inside the bar ${bar.d()}", clear.left >= bar.left - 0.5.dp && clear.right <= bar.right + 0.5.dp)
+    }
+
+    private fun reportBarText(rotation: Int, bar: DpRect) {
+        val texts = composeRule.onAllNodes(
+            androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag(SEARCH_ENTRY_BAR_TAG)) and
+                androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult),
+            useUnmergedTree = true,
+        ).fetchSemanticsNodes()
+        val summary = texts.mapNotNull { node ->
+            val text = node.config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text } ?: return@mapNotNull null
+            text.takeIf { it.contains(" · ") }?.let { it to node }
+        }
+        assertEquals("positive control: one resting text in the bar (${texts.size} texts)", 1, summary.size)
+        val (text, node) = summary.single()
+        val results = mutableListOf<TextLayoutResult>()
+        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        val layout = results.single()
+        println("MEASURED rotation $rotation bar ${bar.d()} (${(bar.right - bar.left).value} wide) resting text <$text>: lines ${layout.lineCount}, visible ${layout.getLineEnd(0, visibleEnd = true)} of ${text.length}")
+        println("MEASURED -940 consequence, rotation $rotation: the bar's resting text <$text> shows ${layout.getLineEnd(0, visibleEnd = true)} of ${text.length} characters, ellipsised ${layout.isLineEllipsized(0)}")
     }
 
     private fun assertBarTextWhole(rotation: Int, bar: DpRect) {
@@ -379,15 +404,12 @@ abstract class LandscapeBarStripJoinTests {
             composeRule.mainClock.advanceTimeBy(2_000)
             composeRule.waitForIdle()
             val strip = bounds(STRIP_TAG)
-            val icon = bounds(COMPASS_STRIP_HEADING_ICON_TAG)
-            val description = composeRule.onNodeWithTag(COMPASS_STRIP_HEADING_ICON_TAG, useUnmergedTree = true).fetchSemanticsNode()
-                .config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString("")
             val shownReadouts = readoutsShown()
-            println("MEASURED rotation $rotation <$label>: icon ${icon.d()}, strip ${strip.d()}, with a heading ${withHeading.d()}, readouts $shownReadouts")
-            assertEquals("the icon is labelled <$label>", label, description)
-            assertFalse("<$label>: no heading words in the slot", shown(COMPASS_STRIP_HEADING_TAG))
-            assertEquals("<$label>: the icon is the 14 sp line's 20 dp square", 20f, (icon.right - icon.left).value, 0.5f)
-            assertTrue("<$label>: the icon ${icon.d()} lies whole inside the strip ${strip.d()}", icon.left >= strip.left && icon.right <= strip.right && icon.top >= strip.top && icon.bottom <= strip.bottom)
+            println("MEASURED rotation $rotation <$label>: strip ${strip.d()}, with a heading ${withHeading.d()}, readouts $shownReadouts")
+            // RECORD -940: the landscape strip lays out exactly as in portrait, so the status reads in portrait's words, not
+            // RECORD -735's crossed-out compass. Was: the icon, labelled <$label>, and no words in the slot.
+            assertFalse("<$label>: no crossed-out compass", shown(COMPASS_STRIP_HEADING_ICON_TAG))
+            assertEquals("<$label>: the portrait words in the heading slot", label, layoutOf(COMPASS_STRIP_HEADING_TAG).first)
             assertTrue("<$label>: altitude and coordinates still show, whole ($shownReadouts)", shown(COMPASS_STRIP_ELEVATION_TAG) && shown(COMPASS_STRIP_COORDINATES_TAG))
             assertEquals("<$label>: the strip's left edge is where it is with a heading", withHeading.left.value, strip.left.value, 0.5f)
             assertEquals("<$label>: the strip's right edge is where it is with a heading", withHeading.right.value, strip.right.value, 0.5f)
@@ -397,9 +419,9 @@ abstract class LandscapeBarStripJoinTests {
         }
     }
 
-    @Test fun `at ROTATION_90 with no compass or an unreliable one the crossed-out compass shows, labelled, and the join stays put`() = assertStatusIcon(Surface.ROTATION_90)
+    @Test fun `at ROTATION_90 with no compass or an unreliable one the portrait words show and the join stays put`() = assertStatusIcon(Surface.ROTATION_90)
 
-    @Test fun `at ROTATION_270 with no compass or an unreliable one the crossed-out compass shows, labelled, and the join stays put`() = assertStatusIcon(Surface.ROTATION_270)
+    @Test fun `at ROTATION_270 with no compass or an unreliable one the portrait words show and the join stays put`() = assertStatusIcon(Surface.ROTATION_270)
 
     private object NoCompass : CompassProvider {
         override val heading: Flow<CompassReading?> = MutableStateFlow(null)

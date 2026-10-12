@@ -303,22 +303,35 @@ abstract class HudLandscapeT11Fixes {
 
     // ── Item 2: height ──
 
+    /**
+     * RECORD -941 (the owner: "Then stack it and don't fit the full length silly"), replacing T11's one combined landscape line
+     * (RECORD -766, P3) for the card: the sundown line and Back by stack in the right column, in pieces broken at their " · "
+     * joins, Back by under the sundown line, every piece whole and inside the display. Was: "the sundown line and Back by share
+     * one line, Back by whole, and the display is no taller for Back by" (the two side by side on one line).
+     */
     @Test
-    fun `item 2 the sundown line and Back by share one line, Back by whole, and the display is no taller for Back by`() {
+    fun `item 2 the sundown line and Back by stack in the right column in whole pieces, Back by under the sundown line`() {
         line = recordingLine
         setScreen(Surface.ROTATION_90, clusterOnRailSide = false)
-        val sundownOnly = tag(NAVIGATION_HUD_TAG)
         composeRule.runOnIdle { backBy = BackByShown(trackId = "t1", backByAtEpochMillis = now + 40 * minute, nowEpochMillis = now) }
         settle()
         val both = tag(NAVIGATION_HUD_TAG)
         val sundown = tag(NAVIGATION_HUD_SUNDOWN_LINE_TAG)
         val back = tag(NAVIGATION_HUD_BACK_BY_LINE_TAG)
         assertTrue("positive control: Back by reads <${textOf(NAVIGATION_HUD_BACK_BY_LINE_TAG)}>", textOf(NAVIGATION_HUD_BACK_BY_LINE_TAG)?.startsWith("Back by") == true)
-        assertTrue("one line: the sundown line $sundown and Back by $back overlap vertically", sundown.top < back.bottom && back.top < sundown.bottom)
-        assertTrue("Back by follows the sundown line on it: $sundown then $back", back.left >= sundown.right - 0.5.dp)
-        assertTrue("Back by ${wholeText(NAVIGATION_HUD_BACK_BY_LINE_TAG)} is whole", whole(NAVIGATION_HUD_BACK_BY_LINE_TAG))
-        assertEquals("the display is no taller with Back by: $sundownOnly then $both", (sundownOnly.bottom - sundownOnly.top).value, (both.bottom - both.top).value, 0.5f)
-        assertTrue("the evening line is inside the display", tag(NAVIGATION_HUD_EVENING_LINE_TAG).let { it.top >= both.top - 0.5.dp && it.bottom <= both.bottom + 0.5.dp })
+        assertTrue("Back by $back is under the sundown line $sundown", back.top >= sundown.bottom - 0.5.dp)
+        assertTrue("the two start at one left edge, in one column: $sundown, $back", kotlin.math.abs((back.left - sundown.left).value) < 0.5f)
+        val pieces = nodes(NAVIGATION_HUD_EVENING_PIECE_TAG)
+        assertTrue("positive control: the pieces are drawn (${pieces.size})", pieces.size >= 2)
+        pieces.forEach { node ->
+            val results = mutableListOf<TextLayoutResult>()
+            node.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(results)
+            val layout = results.single()
+            val text = layout.layoutInput.text.text
+            assertTrue("<$text> is a piece, broken at its joins", !text.contains(" · "))
+            assertTrue("<$text> is not ellipsised", (0 until layout.lineCount).none { layout.isLineEllipsized(it) })
+        }
+        assertTrue("the stack is inside the display: $back in $both", back.bottom <= both.bottom + 0.5.dp && sundown.top >= both.top - 0.5.dp)
     }
 
     @Test

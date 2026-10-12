@@ -64,7 +64,7 @@ class SearchBarStripSeamTest {
      * is drawn over the map, and the pill is 41 dp (RECORD -943; was "keeps its 45 dp").
      */
     @Test
-    fun `the strip's bounds start at the pill's bottom, no divider is drawn over the map, and the pill is 41 dp`() {
+    fun `the strip's bounds start at the pill's bottom, no divider is drawn over the map, and the pill is 40 dp`() {
         setScreen()
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         val strip = bounds(STRIP_TAG)
@@ -73,8 +73,8 @@ class SearchBarStripSeamTest {
         assertTrue("no divider over the map", composeRule.onAllNodesWithTag(SEARCH_ENTRY_BAR_DIVIDER_TAG, useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
         assertEquals("the strip's bounds start at the pill's bottom: no gap, no overlap", bar.bottom.value, strip.top.value, 0.5f)
         // RECORD -943 (the owner: "The search panel has a very thick margin and it can afford to thin out"): the Maps tab's pill
-        // is 41 dp at font 1.0 (3 dp above its field, 4 dp and a 1 dp spacer below), the planner's floor 40. Was 45 dp.
-        assertEquals("the pill is 41 dp", 41f, (bar.bottom - bar.top).value, 0.5f)
+        // is 40 dp here, at 384 dp and font 1.0 (3 dp above its field, 4 dp and a 1 dp spacer below), the planner's floor. Was 45.
+        assertEquals("the pill is 40 dp", 40f, (bar.bottom - bar.top).value, 0.5f)
         assertTrue("and no less than the planner's 40 dp floor", (bar.bottom - bar.top).value >= 40f - 0.5f)
     }
 
