@@ -402,3 +402,112 @@ Run `38299141514` at `92791482`: 603 suites, 4,664 tests, **10 failures** (the c
 - **The card over the L's pill on the rail side**, and over the credit strip and the "i" at ROTATION_270.
 
 Screenshots: `~/Zynergy/device-evidence/2026-10-12-nav-strip-mockup/robolectric-92791482/` (outside the repository).
+
+---
+
+# RECORD -955, -956 and -958 (same dispatch, continued)
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `240d2a22` | -955: icon bar fixed on the screen's left while landscape and navigating, never saved (`AvailabilityMapIconCluster.kt`, `fixedLeft`); C: the evening lines leave the landscape card where its top would cover Reset north or the walker's dot; D: Try again may make the card taller |
+| `1622a11d` | -955 C, second build: the decision uses a height built from parts the evening stack does not change, plus a 4 dp margin once shown. The first build read the card's measured height and never settled at font 2.0 (CI `38304300338`, the T11 harness hung) |
+| `a83e7704` | -956: rail on the right and search bar on the left at both landscape rotations (`PortEdge.kt` `mainWindowRailEdgeFor` / `mainWindowSearchEdgeFor`, read by `AvailabilityScreen.kt`); map controls kept clear of the navigation bar on both sides; offline-maps controls on the right; `LandscapeRotationsAlikeTest` |
+| `c4b495fc` | -958: `cameraArrangement` returns `LandscapePortRight` in every landscape window; camera tests changed; a 90-vs-270 bounds equality test |
+| `b14bed51`, `3e21948e` | Tests restated for -956 and -955 (below). `LandscapeRotationsAlikeTest` fixed: it set content twice per test and failed before asserting anything (CI `38307164887`) |
+
+## The -955 C loop: confirmed fixed
+
+Run `38307164887` at `a83e7704` finished. `HudLandscapeT11At780Test` and `HudLandscapeT11At823Test` each ran 12 cases, including all four font 2.0 cases, with 0 failures. At `240d2a22` the same harness had never finished. This was the first fix attempt, so the second-attempt stop does not apply.
+
+## -958: placement only, capture untouched
+
+The change is one branch in `CameraArrangement.kt` (`cameraArrangement`). The following were read and not changed:
+- The photo's orientation comes from the sensor: `CameraXCaptureSession.kt` sets `targetRotation` from `deviceRotation`.
+- The glyphs turn by sensor minus display (`rotateWithDevice`).
+- `IntendedOrientation` does not read the arrangement.
+
+`CameraBands.kt` pads each band by the cut-out and navigation-bar inset on its own edge, so the cut-out is still cleared on whichever side the camera falls. Nothing shared code between placement and capture, so there was nothing to stop and report.
+
+## Collisions under -956 plus -955 (CI `38309436037`, measured by T11 fixes item 3)
+
+The numbers are identical at ROTATION_90 and ROTATION_270, in dp.
+
+| Window | Card | Bar (fixed left) | Pill (record, return) | Overlap |
+|---|---|---|---|---|
+| 823 x 384 | x 385.3 to 743, y 308 to 384 | x 8 to 56, y 64 to 304 | x 8 to 104, y 312 to 360 | none |
+| 780 x 360 | x 342.3 to 700, y 284 to 360 | x 8 to 56, y 56 to 296 | x 8 to 104, y 304 to 352 | none |
+
+The card no longer covers the L's pill or the bar.
+
+Open item B (the card over the credit strip and the "i" at the rotation where the card was on the left) no longer arises: the card is on the right at both rotations. Whether the bottom-left credit strip reaches the card's left edge at 780 dp is **not measured**, because Robolectric cannot draw the real credit strip.
+
+At font 2.0, with Try again and the evening lines gone (-955 C), the card still covers the walker's dot. -955 accepts this overlap ("Overlap left at font 2.0 is accepted"):
+- 823: card top 218, dot at y 240 with radius 12;
+- 780: card top 194, dot at y 225.
+
+## Tests changed: old and new assertion
+
+Each changed test names its ruling in a comment beside the old assertion.
+
+- **-958**
+  - `CameraArrangementTest`: ROTATION_270 was `LandscapePortLeft`, now `LandscapePortRight`.
+  - "the two landscapes never resolve to the same arrangement" (`assertNotEquals`) is reversed to "resolve to the same".
+  - `CameraEdgesTest`: the edge at 270 was `Left`, now `Right`.
+  - `InAppCameraDialogLandscapeTest`, the 270 shutter test: was shutter left, `frame.left + Spacing.lg`; now one shared assertion run at both rotations.
+  - `InAppCameraDialogLandscapeTest`, the 270 strip test: was flush right; now flush left.
+  - New test: `the camera's controls have the same bounds at ROTATION_90 and ROTATION_270`. It opens the dialog at 90, then afresh at 270 in one composition, and compares the shutter, band, count, strip and five chips.
+- **-956** (CI `38307164887` listed the mirrored cases: 58 failures, of which 5 were the broken `LandscapeRotationsAlikeTest`, 6 were -955 and 2 were the card screen's touch points). These now assert ROTATION_90's layout:
+  - `AvailabilityScreenLandscapeB2Test` S1, S2, S4 x2, S6 x3, S7, and `turnTo`'s rail check;
+  - the B2 side-memory case. Its landscape default can no longer tell the two memories apart, so the landscape cluster is now dragged right and the portrait side is read back;
+  - `AvailabilityScreenShortLandscapeTest` (rail side, long-press x);
+  - `AvailabilityScreenBubbleClearanceTest`;
+  - `CompactToolsDrawerTest` (LTR and RTL);
+  - `LandscapeBarStripJoinTest` (`barOnLeft`);
+  - `LandscapeCardMeetsBarTest`;
+  - `LandscapeLClusterTest` L1 and L3, `LandscapeLClusterPixelsTest` L5;
+  - `LandscapeOfflinePickerTest`;
+  - `LandscapeSearchFixesTest` (four rotation branches);
+  - `LayoutFixesShortLandscapeTest` TR2. T5 was the zero end inset at 270; it is now the rail's width, as at 90;
+  - `MapTopCardScreenTest` (beside-card x, rail inner edge).
+- **-956, passing but testing the wrong side.** These were found by reading the passing 270 cases (the planner's answer 6), not by CI:
+  - `AvailabilityScreenShortLandscapeTest` 270 no-control-under-rail dragged away from the rail;
+  - `LandscapeLRulingsTest` A2 snapped to the search side; D4's probe labels were swapped;
+  - `LayoutFixesLandscapeRulingsTest` T1, and Q4 x2, where the cluster never met the legend;
+  - `LayoutFixesChipRowHeldTest`: three 270 cases whose snap was a no-op.
+
+  These were read and left alone, because each reads the side from the layout or does not depend on it: `NavigationHudFitTest`, `HudLandscapeT11MeasurementTest`, `LandscapeStripPortraitHeightTest`, `MapBarPressFeedbackTest`, `LandscapeLFullscreenCycleTest`, `AvailabilityScreenLandscapeB3DestinationsTest`, `AvailabilityScreenTabletAsPhoneTest`, `LandscapeLargeFontTest`, `AvailabilityScreenJournalShortWindowTest`, and the camera's rotate-with-device and capture-rotation tests.
+- **-955**
+  - `HudLandscapeT11FixesTest` item 3 x4 was "the pill stays under it", `recordBefore.left == rec.left`, while navigating. It now checks:
+    - the L saved on the right moves to the screen's left while navigating, at its height;
+    - nothing is stored;
+    - the L is back after navigation ends.
+  - Item 2 "at its tallest" x2 had the positive control "the evening lines and Try again are both up", followed by the dot assertion. It now asserts that the evening lines have left. The remaining overlap is printed, not asserted, as -955 accepts it.
+  - The D change ("no taller for Try again") is in `240d2a22`.
+
+## Revert checks
+
+Each was built from committed state, each build log showed 0 compile errors, and each failure message is specific to its edit.
+
+| Check | Edit | Run | Result |
+|---|---|---|---|
+| r26 | -955 `fixedLeftNow = false` | 38307645746 | **not citable**: filter `*IconBarFixedLeftTest` matched no class ("No tests found"); rerun as r29 |
+| r27 | -956 rail back on `currentWindowPortEdge()` | 38307655849 | **not citable**: the test itself was broken ("has already set content") at that base; rerun as r30 |
+| r28 | -958 ROTATION_270 back to `LandscapePortLeft` | 38307666370 | bit: 6 failures, e.g. "the same at both rotations; differ: in-app-camera-shutter 552–624 vs 16–88" |
+| r29 | -955 `fixedLeftNow = false` | 38309447411 | bit: 4 failures (90 and 270), "landscape and navigating: the screen's left (DpRect(left=687 …))" |
+| r30 | -956 rail back on `currentWindowPortEdge()` | 38309461986 | bit: 5 of 5, rail 743–823 vs 0–80, the drawer sheet on opposite sides, attribution end inset 80 vs 0 |
+
+## CI
+
+Run `38309436037` at `3e21948e`: 607 suites, 4,676 tests, **0 failures**, 24 skipped.
+
+## Device items (added)
+
+- **-956, ROTATION_270:** the system navigation bar (3-button or gesture) sits on the port edge, now the screen's left. Check that the search bar, the L and the card stay clear of it. The controls padding includes `navigationBars` on both sides, but Robolectric reports zero insets.
+- **-956, ROTATION_270:** the rail's items sit over the camera cut-out's side. Check that none is cut.
+- **-956:** fullscreen insets at both rotations.
+- **-958:** the in-app camera at both rotations on a phone shows the shutter on the right and the strip on the left, with the cut-out kept clear on either side. Photos taken at ROTATION_90 and at ROTATION_270 are both saved upright.
+- **B:** at 780 dp, whether the credit strip reaches the card.
+
+Screenshots: `~/Zynergy/device-evidence/2026-10-12-nav-strip-mockup/robolectric-3e21948e/` (outside the repository).
