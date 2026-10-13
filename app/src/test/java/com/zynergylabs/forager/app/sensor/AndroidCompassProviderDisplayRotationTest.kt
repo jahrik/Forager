@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -136,5 +137,13 @@ class AndroidCompassProviderDisplayRotationTest {
     @Test
     fun `fallback - portrait at ROTATION_0 is unchanged (control)`() {
         assertEquals(30f, headingFromFallback(Surface.ROTATION_0), 0.01f)
+    }
+
+    @Test
+    fun `displayRemapAxes - the axis pair for each of the four rotations, written out`() {
+        assertNull("portrait: no remap", displayRemapAxes(Surface.ROTATION_0))
+        assertEquals(SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X, displayRemapAxes(Surface.ROTATION_90))
+        assertEquals(SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y, displayRemapAxes(Surface.ROTATION_180))
+        assertEquals(SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X, displayRemapAxes(Surface.ROTATION_270))
     }
 }

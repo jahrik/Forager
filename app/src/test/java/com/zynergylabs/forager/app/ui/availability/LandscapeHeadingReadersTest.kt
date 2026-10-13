@@ -47,9 +47,9 @@ import kotlin.math.sin
  * [AndroidCompassProvider] feeds the real [rememberTrueHeading] (declination fixed at zero, so true equals magnetic), and the one
  * reading it produces is handed to each reader the app hands it to:
  *
- * - the map's bearing while navigating facing up, and the puck's cone: [TrueHeadingCompassEngine], what MapLibre's camera and
+ * - the map's bearing while navigating facing up, and the puck's cone: [TrueHeadingCompassEngine], what the map library's camera and
  *   puck read (`SightingsMap`). The camera's own bearing cannot be read under Robolectric (no native map), so this stops at
- *   the value handed to MapLibre;
+ *   the value handed to the map library;
  * - the navigation display's heading text, north arrow and turn needle: [navigationReadout];
  * - the compass strip's heading text when not navigating: the real [CompassElevationStrip], read from its node.
  *
@@ -136,7 +136,7 @@ class LandscapeHeadingReadersTest {
 
     private fun assertReaders(readers: Readers, degrees: Float, text: String, needle: Float) {
         assertEquals("the heading", degrees, (readers.heading as TrueHeadingReading.Available).degrees, 0.05f)
-        assertEquals("the map's bearing and the puck's cone (handed to MapLibre)", degrees, readers.mapBearing, 0.05f)
+        assertEquals("the map's bearing and the puck's cone (handed to the map library)", degrees, readers.mapBearing, 0.05f)
         assertEquals("the navigation display's heading", text, readers.hud.headingText)
         assertEquals("the navigation display's north arrow", -degrees, readers.hud.northArrowDegrees!!, 0.05f)
         assertEquals("the navigation display's turn needle", needle, readers.hud.targetArrowDegrees!!, 0.05f)
