@@ -433,16 +433,25 @@ internal fun CompactMainScaffold(
         // positioning — this stays a one-time text-measurement-derived constant instead, the
         // proven-safe shape that doc comment prescribes.
         val searchBarHeight = compassStripClearance * 2 + Spacing.xs * 3 + DividerDefaults.Thickness
+        // RECORD -943: the Maps tab's pill is thinner (MAP_PILL_TOP_PADDING and MAP_PILL_BOTTOM_PADDING in SearchEntryBar); its
+        // height, which everything placed by the bar's bottom on that tab reads, follows. The other tabs keep searchBarHeight.
+        // RECORD -951: never under the pill's 40 dp floor (MAP_PILL_MIN_HEIGHT), as SearchEntryBar lays it out.
+        val mapPillHeight = (compassStripClearance * 2 + MAP_PILL_TOP_PADDING + MAP_PILL_BOTTOM_PADDING + DividerDefaults.Thickness)
+            .coerceAtLeast(MAP_PILL_MIN_HEIGHT)
         // RECORD -729 (the owner: "The search bar height can change to meet the height of the strip"; on navigation, "Strip
         // only"): in a short landscape window on the Maps tab, not navigating, the bar takes the compass strip's measured height
         // (CompactMapTab's onLandscapeStripHeightMeasured), and everything placed by the bar's bottom here follows it, as -709
         // has things follow the strip's measured bottom in portrait. Equal heights mean the bar's bottom is the strip's too.
-        // 0 until the strip is measured, and while navigating, where the bar keeps searchBarHeight. Portrait never sets it.
+        // 0 until the strip is measured, where the bar keeps its own height. Portrait never sets it. Since dispatch 2026-10-12-08
+        // (RECORD -951) navigating too: the strip stays beside the bar, and nothing resizes when navigation starts.
         var landscapeStripHeight by remember { mutableStateOf(0.dp) }
         // RECORD -732: the strip's measured width there; the bar takes the rest of the room. 0 until measured.
         var landscapeStripWidth by remember { mutableStateOf(0.dp) }
-        val barMeetsStrip = isLandscapeWindow && compactTab() == CompactTab.MAP && !isNavigating
-        val mapSearchBarHeight = if (barMeetsStrip && landscapeStripHeight > 0.dp) landscapeStripHeight else searchBarHeight
+        // Dispatch 2026-10-12-08 (RECORD -946, -950, -951): while navigating the compass strip stays beside the bar, the two still
+        // the top bar, and nothing resizes when navigation starts (the owner: "Keep it exactly like this size. Exactly as we have
+        // it today"; "Just rearrange it"). So the bar meets the strip navigating or not; it was "not navigating" only.
+        val barMeetsStrip = isLandscapeWindow && compactTab() == CompactTab.MAP
+        val mapSearchBarHeight = if (barMeetsStrip && landscapeStripHeight > 0.dp) landscapeStripHeight else mapPillHeight
         // A height left over from an earlier landscape Maps tab is not reused: it is measured again on the way back.
         LaunchedEffect(barMeetsStrip) { if (!barMeetsStrip) { landscapeStripHeight = 0.dp; landscapeStripWidth = 0.dp } }
         // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): the Maps tab's compass strip as measured,
@@ -679,16 +688,21 @@ internal fun CompactMainScaffold(
         // so no control sits under the rail or the system bar. The top needs nothing here: the
         // Map tab's Scaffold padding already keeps the whole tab below the status bar, as in
         // portrait. Zero everywhere else, so portrait is untouched.
+        // RECORD -956: the rail is on the screen's right at both rotations, but the system navigation bar stays on the port edge,
+        // the screen's left at ROTATION_270: so the controls are kept clear of the navigation bar on both sides, always, and of the
+        // rail on the right (the cut-out, on both sides, as before, wherever the camera falls).
         val mapControlsPadding = if (showRail) {
-            val portSide = portEdge.horizontalInsetsSide()
-            val portInset = if (isMapFullscreen()) {
-                WindowInsets.navigationBars.only(portSide)
+            val railInset = if (isMapFullscreen()) {
+                WindowInsets(0.dp)
             } else if (portEdge == ScreenEdge.Left) {
                 WindowInsets(left = mapRailWidth)
             } else {
                 WindowInsets(right = mapRailWidth)
             }
-            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal).union(portInset).asPaddingValues()
+            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+                .union(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal))
+                .union(railInset)
+                .asPaddingValues()
         } else {
             PaddingValues(0.dp)
         }
@@ -1046,18 +1060,15 @@ internal fun CompactMainScaffold(
                             } else {
                                 mapControlsPadding.calculateRightPadding(searchLayoutDirection)
                             }
-                            if (!isNavigating && landscapeStripWidth > 0.dp) {
-                                // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): not navigating, the bar
-                                // takes the room the strip leaves and ends where the strip begins (CompactMapTab's
-                                // landscapeStripFit, which keeps the bar's floor). No 384 dp cap and no gap. While navigating it
-                                // keeps the capped width below, which the navigation display is placed beside (RECORD -694, -715;
-                                // the owner, on navigation: "Strip only").
+                            if (landscapeStripWidth > 0.dp) {
+                                // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): the bar takes the room the
+                                // strip leaves and ends where the strip begins (CompactMapTab's landscapeStripFit, which keeps the
+                                // bar's floor). No 384 dp cap and no gap. Dispatch 2026-10-12-08 (RECORD -951): navigating too, since
+                                // the strip stays beside the bar at its own width and the navigation card hangs under the strip.
                                 (maxWidth - punchHoleInset - railInset - landscapeStripWidth).coerceAtLeast(0.dp)
-                            } else if (!isNavigating) {
+                            } else {
                                 // Before the strip is first measured: RECORD -729's half, for that frame.
                                 (maxWidth / 2 - punchHoleInset).coerceAtLeast(0.dp)
-                            } else {
-                                minOf(LANDSCAPE_SEARCH_MAX_WIDTH, maxWidth / 2 - punchHoleInset - LANDSCAPE_SEARCH_CENTRE_GAP).coerceAtLeast(0.dp)
                             }
                         } else {
                             null
@@ -1321,6 +1332,13 @@ internal fun CompactMainScaffold(
                                                 overMap = true,
                                                 // RECORD -729: the strip's height in landscape, not navigating; null keeps the bar's own.
                                                 landscapeHeight = mapSearchBarHeight.takeIf { barMeetsStrip && landscapeStripHeight > 0.dp },
+                                                // Dispatch 2026-10-12-06: the rounded pill. Beside the landscape strip it rounds its outer side
+                                                // only and meets the strip square, edge to edge with no join line (RECORD -934).
+                                                pillCorners = if (landscapeSearchWidth != null && barMeetsStrip && landscapeStripWidth > 0.dp) {
+                                                    MapCardCorners.outerSide(if (portEdge == ScreenEdge.Left) ScreenEdge.Right else ScreenEdge.Left)
+                                                } else {
+                                                    MapCardCorners.ALL
+                                                },
                                             )
                                             // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
                                             // bar's bottom over this column, so the notice starts where the strip's own measured height ends.

@@ -65,7 +65,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.SurfaceContainerDark
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerHighestDark
 import com.zynergylabs.forager.app.ui.theme.SurfaceContainerLight
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerLowestLight
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.motion.IconSwap
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
@@ -277,6 +279,23 @@ internal val MapIconStackButtonColorLight = SurfaceContainerLight.copy(alpha = M
 
 /** The standing opacity for chrome floating over the map — the one value every fill here targets. */
 internal const val MAP_CHROME_OVER_MAP_ALPHA = 0.8f
+
+/**
+ * Dispatch 2026-10-12-08 (RECORD -945, the owner: "Lighter pill + shadow (Recommended)"; RECORD -951 for the roles): the search
+ * pill over the map, and in landscape the compass strip beside it (the two are the top bar, RECORD -946), are a shade lighter
+ * than the strip or card tucked under them, so the tuck reads by day and at night. The fill's colour changes, not its alpha:
+ * still [MAP_CHROME_OVER_MAP_ALPHA]. Taken from the theme's own surface ramp, its lightest end in each theme, since no role this
+ * theme sets is lighter than `surfaceContainer` in both: `surfaceContainerLowest` by day (#FFFFFF) and `surfaceContainerHighest`
+ * at night (#373737). `MapChromeColourTokenTest` asserts they equal the scheme's own.
+ *
+ * Rejected: one step lighter (`surfaceContainerLow` / `surfaceContainerHigh`): at 0.8 the day step is about 5%, which does not
+ * read over a busy map. Rejected too: setting `surfaceBright` in the theme to these values, which would have been one role
+ * name at the cost of a theme change the planner ruled out (RECORD -951).
+ */
+internal val MapPillColorLight = SurfaceContainerLowestLight.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
+
+/** [MapPillColorLight]'s night counterpart. */
+internal val MapPillColorDark = SurfaceContainerHighestDark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
 /**
  * Map chrome at 80% where it covers a map (dispatch 2026-09-28-56 as amended by -58; planner message

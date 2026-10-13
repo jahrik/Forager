@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.runtime.SideEffect
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
@@ -172,11 +173,12 @@ internal class MapIconClusterState(
      */
     var isOnLeftSide: Boolean
         get() {
-            val port = railPortEdge
-            val punch = punchHoleEdge
-            return if (port != null && punch != null) (if (position.landscapeOnPortSide) port else punch) == ScreenEdge.Left else position.isOnLeftSide
+            if (fixedLeft) return true
+            return savedOnLeftSide
         }
         set(value) {
+            // RECORD -955: while fixed, a side is never written, so the saved one is what returns.
+            if (fixedLeft) return
             val port = railPortEdge
             val punch = punchHoleEdge
             if (port != null && punch != null) {
@@ -185,6 +187,23 @@ internal class MapIconClusterState(
                 position.isOnLeftSide = value
             }
         }
+
+    /** The side the user saved (the one [isOnLeftSide] reads whenever the bar is not [fixedLeft]). */
+    val savedOnLeftSide: Boolean
+        get() {
+            val port = railPortEdge
+            val punch = punchHoleEdge
+            return if (port != null && punch != null) (if (position.landscapeOnPortSide) port else punch) == ScreenEdge.Left else position.isOnLeftSide
+        }
+
+    /**
+     * RECORD -955, the owner: "There's no friendly way to keep the icon bar on the right in landscape mode. I say we keep it on the
+     * left in landscape"; "The screen left"; "Only have it fixed in a) landscape and b) with navigation mode on. Those two conditions
+     * must be met to have it fixed to the left. Else it can be set on the right as an option for the user". True while both hold:
+     * the bar is on the screen's left and cannot be dragged or snapped across. Never written into the saved side ([isOnLeftSide]'s
+     * setter does nothing while it holds), so when either condition ends the saved side returns. Set by [MapIconCluster].
+     */
+    var fixedLeft by mutableStateOf(false)
 
     /** The offset the user last dragged the cluster to, the only thing a drag writes (the single source of truth); [displayedOffsetPx] is what is drawn. */
     var userChosenOffsetPx: Float
@@ -233,6 +252,9 @@ internal class MapIconClusterState(
      * null while not navigating. What the landscape L slides down below ([navigationSlideApplies]).
      */
     var navigationDisplayBottomInRootPx: Float? by mutableStateOf(null)
+
+    /** RECORD -955: the landscape navigation card's bounds in the root while shown, written by the card; for its evening-line limit. */
+    var navigationCardBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
     /**
      * T11 fixes: where the L's top would be in the root at a drag offset of 0, at its current height. Measured with the cluster
@@ -546,6 +568,21 @@ internal fun BoxScope.MapIconCluster(
                 // Landed, or cut short by a new drag: either way it is drawn where it is laid out. Only if this is still the
                 // current glide: a glide replaced by the next release must not reset the one that replaced it.
                 if (glide.job === coroutineContext[Job]) glide.remaining = 0f
+            }
+        }
+    }
+    // RECORD -955: fixed to the screen's left while the window is landscape and navigation is on. When that starts or ends and the
+    // side it gives differs from what is drawn, the bar glides there from where it is, as after a drag (or moves at once under
+    // reduced motion). Read after layout (SideEffect), so the glide starts from the side last drawn.
+    val fixedLeftNow = state.landscape && isNavigating
+    SideEffect {
+        if (state.fixedLeft != fixedLeftNow) {
+            val wasLeft = state.isOnLeftSide
+            val from = state.glide.leftInRootPx(minimized = state.isMinimized)
+            state.fixedLeft = fixedLeftNow
+            if (state.isOnLeftSide != wasLeft && !reduceMotionNow && from != null) {
+                state.glide.fromLeftInRootPx = from
+                startGlide()
             }
         }
     }

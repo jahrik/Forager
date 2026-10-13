@@ -88,7 +88,7 @@ class NavigationHudKindInStatusTest {
         Case("Last seen 23 h ago, finding GPS…", null, start, ReturnRoute.Pending, lastKnownFix = fixAt(1_500.0, at = now - 23 * 3_600_000L)),
         Case("Approximate, finding GPS…", null, start, ReturnRoute.Pending, approximateFix = fixAt(1_500.0).copy(accuracyMeters = 60f, provider = FixProvider.NETWORK)),
         // Data part B (dispatch 2026-09-28-677, merged into back-by with RECORD -687): its longest first row, the turn in
-        // words ("Sharp right · 169°") beside a four-digit figure in feet with "by trail", which that part fitted at 360 dp
+        // words ("sharp right 169°") beside a four-digit figure in feet with "by trail", which that part fitted at 360 dp
         // before this button was in the row.
         Case("Sharp right, by trail", fixAt(380.0), start, ReturnRoute.Ahead(LatLng(start.lat, start.lng), 390.0), headingDegrees = 11f),
     )
@@ -149,8 +149,14 @@ class NavigationHudKindInStatusTest {
     private fun textOf(tag: String): String =
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().single().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -945, the owner: "Full dividers + by trail under figure (Recommended)"): the kind word is a
+     * small line of its own under the turn line, and no longer leads the status line. Was (dispatch 2026-10-12-06): "at 320 dp the
+     * kind leads the status line, whole, below the figure", asserting `assertEquals("By trail", ...)` and the kind leading the line
+     * under the columns.
+     */
     @Test
-    fun `at 320 dp the kind leads the status line, whole, the note gives way, and the first row stays 48 dp`() {
+    fun `at 320 dp the kind is a small line of its own under the turn line, whole`() {
         val longest = cases.single { it.name == "Sharp right, by trail" }
         composeRule.setContent {
             val c = case ?: return@setContent
@@ -163,30 +169,25 @@ class NavigationHudKindInStatusTest {
                 distanceUnit = DistanceUnit.MILES,
                 currentTime = CurrentTimeProvider { now },
                 showDecimalDegrees = false,
-                onToggleCoordinateFormat = {},
                 onExit = {},
                 route = c.route,
-                quickSettings = if (withButton) quickSettings else null,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         composeRule.runOnIdle { case = longest; withButton = true }
         composeRule.waitForIdle()
-        assertEquals("By trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
+        assertEquals("by trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         assertEquals("the kind is whole", null, clipped(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         assertEquals("the figure is whole", null, clipped(NAVIGATION_HUD_DISTANCE_TAG))
         val kind = bounds(NAVIGATION_HUD_DISTANCE_KIND_TAG)
         val figure = bounds(NAVIGATION_HUD_DISTANCE_TAG)
+        val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG)
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
         val hud = bounds(NAVIGATION_HUD_TAG)
         assertTrue("the kind $kind is below the figure $figure", kind.top >= figure.bottom - 0.5.dp)
-        // T11 fixes, RECORD -769 (the owner: "Same rule everywhere (Recommended)"): the order confirmed in RECORD -768 applies in
-        // portrait too. At 320 dp "≈ 1250 ft straight" does not fit after "By trail ·", and the straight-line note gives way
-        // whole rather than ending in "…" (it read "By trail · ≈ 125…" before), so the kind leads an otherwise empty line.
-        assertEquals("the note gives way whole: the kind stands alone", "", textOf(NAVIGATION_HUD_STATUS_TAG))
-        // The first row is the X's 48 dp touch box, centred on the X: the status line, here the kind, must end inside it.
-        val firstRowBottom = (exit.top + exit.bottom) / 2 + 24.dp
-        assertTrue("the status line, the kind $kind, ends inside the 48 dp first row (bottom $firstRowBottom)", kind.bottom <= firstRowBottom + 0.5.dp)
-        assertEquals("the first row is 48 dp from the display's top padding", 48f, (firstRowBottom - hud.top - 4.dp).value, 0.5f)
+        assertTrue("the kind $kind is below the turn line (needle $needle)", kind.top >= needle.bottom - 0.5.dp)
+        // RECORD -942: no straight-line note on the route, and the kind no longer leads the status line, so it is empty.
+        assertEquals("the status line is empty: the kind is not in it", "", textOf(NAVIGATION_HUD_STATUS_TAG))
+        assertTrue("the kind's line is inside the card, left of the X: $kind in $hud, X $exit", kind.bottom <= hud.bottom && kind.right <= exit.left + 0.5.dp)
     }
 }

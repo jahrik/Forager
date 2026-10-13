@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerLowestLight
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerHighestDark
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -75,8 +77,14 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
         assertTrue("$message: expected ${rgb(expected)} darkened by a factor of 0.90 to 1, read ${rgb(actual)} (factor %.3f)".format(k), ok)
     }
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -945, -951): the pill is a shade lighter than the strip, card, icon bar and navigation bar,
+     * which stay one colour. Was "the search bar, the compass strip, the icon bar and the navigation bar are drawn as one colour",
+     * the pill and its lower band held to the token at 0.8 (`assertSameColourShadowed("the search pill is the token at 0.8",
+     * expected, ...)`).
+     */
     @Test
-    fun `the search bar, the compass strip, the icon bar and the navigation bar are drawn as one colour`() {
+    fun `the search pill is a shade lighter, and the compass strip, the icon bar and the navigation bar are drawn as one colour`() {
         composeRule.setContent { MapChromeTestScreen(state, map, roles, darkTheme = dark) }
         composeRule.waitForIdle()
         val image = composeRule.onRoot().captureToImage().toPixelMap()
@@ -94,17 +102,57 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
             blue = chrome.blue * alpha + reference.blue * (1f - alpha),
         )
         val expected = composite(token, over)
+        // RECORD -951: the pill's role, the surface ramp's lightest end in each theme.
+        val pillExpected = composite(if (dark) SurfaceContainerHighestDark else SurfaceContainerLowestLight, over)
 
         val nav = bounds(COMPACT_BOTTOM_NAV_TAG)
         val navPixel = at(nav.left + 4.dp, (nav.top + nav.bottom) / 2)
         assertSame("the navigation bar over the map is the token at 0.8", expected, navPixel)
 
+        // Dispatch 2026-10-12-06: the search bar is the rounded pill and the strip the card tucked under it, each with the 2 dp
+        // shadow the icon bar has, which shows through the 0.8 fill (see assertSameColourShadowed): held to the token darkened by a
+        // neutral factor, as the icon bar is. Was assertSame, against the square, shadowless bar and strip.
         val search = bounds(SEARCH_ENTRY_BAR_TAG)
-        assertSame("the search bar is drawn as the navigation bar is", navPixel, at(search.left + 4.dp, (search.top + search.bottom) / 2))
-        assertSame("the search bar is the token at 0.8", expected, at(search.left + 4.dp, (search.top + search.bottom) / 2))
+        val searchMid = (search.top + search.bottom) / 2
+        val pillPixel = at(search.left + 4.dp, searchMid)
+        assertSameColourShadowed("the search pill is its lighter role at 0.8", pillExpected, pillPixel)
 
         val strip = bounds("compass-elevation-strip")
-        assertSame("the compass strip is the token at 0.8", expected, at(strip.left + 4.dp, (strip.top + strip.bottom) / 2))
+        // 4 dp in, mid-height, clear of the strip's text and of its rounded lower corners (16 dp from its bottom).
+        val stripPixel = at(strip.left + 4.dp, (strip.top + strip.bottom) / 2)
+        assertSameColourShadowed("the compass strip is the token at 0.8", expected, stripPixel)
+        // RECORD -945: the tuck reads by day and at night, the pill measurably lighter than the strip under it.
+        val lum = { c: Color -> 0.2126f * c.red + 0.7152f * c.green + 0.0722f * c.blue }
+        assertTrue(
+            "the pill ${rgb(pillPixel)} is lighter than the strip ${rgb(stripPixel)} by at least 2%",
+            lum(pillPixel) >= lum(stripPixel) * 1.02f,
+        )
+
+        // The tuck (RoundedMapCard.kt): the card's fill reaches up behind the pill's rounded lower corners, less the pill's own
+        // shape, so nowhere is the 0.8 laid twice. The pill's lower band, where the card's tuck lies beneath it, reads as the
+        // pill does a line higher; a fill laid under it as well would read 0.96 there.
+        val band = at(search.left + 24.dp, search.bottom - 3.dp)
+        assertSameColourShadowed("the pill's lower band, over the card's tuck, is the pill's colour at 0.8, not laid twice", pillExpected, band)
+        // The wedge under the pill's lower-left corner is the card's fill, not the bare map: its hue is the token's (it now carries
+        // the pill's cast shadow, below, so only the hue is held, not the level). Was: the token at 0.8, shadow factor 0.90 to 1.
+        val wedge = at(search.left + 2.dp, search.bottom - 2.dp)
+        val k = wedge.red / expected.red
+        assertTrue(
+            "the wedge under the pill's corner is the card's fill, the token's hue: read ${rgb(wedge)} against ${rgb(expected)}",
+            k in 0.6f..1.003f && abs(wedge.green - expected.green * k) <= 3f / 255f && abs(wedge.blue - expected.blue * k) <= 3f / 255f,
+        )
+
+        // RECORD -943's follow-up (the owner: "don't forget the card tuck. I don't see it on the preview"): the pill's shadow is cast
+        // onto the card, so the card just below the pill's lower edge is measurably darker than the card further down. Just below
+        // the pill's flat lower edge, at the strip's middle (1 dp down, above its text), against 4 dp in at mid-height (clear of
+        // the text and of the rounded corners). Not 4 dp in at the top: there the pill's rounded corner lifts its edge 5 dp.
+        val justBelow = at((strip.left + strip.right) / 2, strip.top + 1.dp)
+        val further = at(strip.left + 4.dp, (strip.top + strip.bottom) / 2)
+        val luminance = { c: Color -> 0.2126f * c.red + 0.7152f * c.green + 0.0722f * c.blue }
+        assertTrue(
+            "the card just below the pill ${rgb(justBelow)} is darker than further down ${rgb(further)} by at least 4%",
+            luminance(justBelow) <= luminance(further) * 0.96f,
+        )
 
         // The icon bar is a 0.5 layer on the cluster's 0.6 container: 0.8 together, on a point clear of an icon (as the L test).
         val bar = bounds(MAP_ICON_BAR_TAG)

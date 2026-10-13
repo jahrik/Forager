@@ -238,6 +238,18 @@ class AvailabilityScreenApproximatePositionTest {
 
     // ── The HUD ──
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -951, option (a)): what the position is (approximate, last seen) shows once, on the strip,
+     * which stays while navigating; the navigation info's status line leaves it out.
+     */
+    private fun assertPositionMessageOnStripOnly(stripNote: String) {
+        assertEquals("the strip's note", stripNote, text(COMPASS_STRIP_POSITION_NOTE_TAG))
+        assertEquals("the card's status line leaves it out", "", text(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("the message shows once", 1, composeRule.onAllNodesWithText(stripNote).fetchSemanticsNodes().size)
+        assertEquals("and the card's own wording does not show", 0, composeRule.onAllNodesWithText(APPROXIMATE_HUD_TEXT).fetchSemanticsNodes().size)
+    }
+
+
     @Test
     fun `navigating to a far waypoint, the HUD shows the approximate distance and the needle`() {
         setScreen()
@@ -247,13 +259,14 @@ class AvailabilityScreenApproximatePositionTest {
 
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
         assertEquals("≈ 3.2 km", text(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("the needle: the creek is due north of a walker facing north", "Ahead · 0°", text(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("the needle: the creek is due north of a walker facing north", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
         // Dispatch 2026-09-28-677: from an approximate reading the figure is the straight line, and says so.
         assertEquals("straight", text(NAVIGATION_HUD_DISTANCE_KIND_TAG))
-        assertEquals(APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
-        assertFalse("no coordinates row for a reading known to 120 m", shown(NAVIGATION_HUD_COORDINATES_TAG))
-        // Dispatch 2026-09-28-535: the HUD carries the words while navigating, and the strip is not composed.
-        assertFalse("the strip gives way to the HUD", shown(COMPASS_STRIP_POSITION_NOTE_TAG))
+        // Dispatch 2026-10-12-08 (RECORD -951, option (a): GPS status messages show on the strip only): the strip stays while
+        // navigating and carries the note, once; the card's status line leaves it out. Was: `assertEquals(APPROXIMATE_HUD_TEXT,
+        // text(NAVIGATION_HUD_STATUS_TAG))` and `assertFalse("the strip gives way to the HUD", shown(COMPASS_STRIP_POSITION_NOTE_TAG))`.
+        assertPositionMessageOnStripOnly("Approximate location, finding GPS…")
+        assertFalse("no coordinates for a reading known to 120 m", shown(COMPASS_STRIP_COORDINATES_TAG))
         assertNoBubble(APPROXIMATE_LOCATION_TEXT)
     }
 
@@ -266,7 +279,8 @@ class AvailabilityScreenApproximatePositionTest {
 
         assertEquals("—", text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("no needle", "", text(NAVIGATION_HUD_TARGET_TAG))
-        assertEquals(APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -951 (a): the note on the strip, once; was APPROXIMATE_HUD_TEXT on the card's status line.
+        assertPositionMessageOnStripOnly("Approximate location, finding GPS…")
     }
 
     @Test
@@ -293,7 +307,8 @@ class AvailabilityScreenApproximatePositionTest {
 
         assertEquals("≈ 3.2 km", text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("no needle while returning (decision D5; the owner's answer)", "", text(NAVIGATION_HUD_TARGET_TAG))
-        assertEquals(APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -951 (a): the note on the strip, once; was APPROXIMATE_HUD_TEXT on the card's status line.
+        assertPositionMessageOnStripOnly("Approximate location, finding GPS…")
     }
 
     @Test
@@ -305,7 +320,8 @@ class AvailabilityScreenApproximatePositionTest {
 
         assertEquals("—", text(NAVIGATION_HUD_DISTANCE_TAG))
         assertFalse("no needle", text(NAVIGATION_HUD_TARGET_TAG).startsWith("Turn"))
-        assertEquals("Last seen 2 h ago, finding GPS…", text(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -951 (a): the note on the strip, once; was the same words on the card's status line.
+        assertPositionMessageOnStripOnly("Last seen 2 h ago, finding GPS…")
         assertNoBubble("Last seen 2 h ago")
     }
 
@@ -357,7 +373,9 @@ class AvailabilityScreenApproximatePositionTest {
         assertEquals(PositionLook.APPROXIMATE, look())
         // Navigating, the HUD stands where the strip was (as in the -510 tests above): its message, and no
         // needle, since the waypoint is inside twice the reading's circle.
-        assertEquals("$provider: the HUD's approximate message", APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -951 (a): the note on the strip, once; was APPROXIMATE_HUD_TEXT on the card's status line.
+        assertEquals("$provider: the strip's approximate note", "Approximate location, finding GPS…", text(COMPASS_STRIP_POSITION_NOTE_TAG))
+        assertEquals("$provider: the card's status line leaves it out", "", text(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("$provider: no needle", "", text(NAVIGATION_HUD_TARGET_TAG))
     }
 

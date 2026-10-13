@@ -244,7 +244,10 @@ class LandscapeOfflinePickerTest {
         val railRect = rail()
         val window = root()
         val railOnRight = railRect.left > (window.left + window.right) / 2
-        assertEquals("ROTATION_90 has the rail on the right, 270 on the left", rotation == Surface.ROTATION_90, railOnRight)
+        // RECORD -956 (the owner: "One should look exactly line the other"), and the planner's answer 3 (the picker's controls on the right): the rail
+        // on the right at both rotations. Was `assertEquals("ROTATION_90 has the rail on the right, 270 on the left",
+        // rotation == Surface.ROTATION_90, railOnRight)`.
+        assertTrue("the rail is on the right at rotation $rotation", railOnRight)
         if (railOnRight) {
             assertTrue("the map ($mapRect) is on the punch-hole side, left of the controls ($okRect)", mapRect.right <= okRect.left)
         } else {

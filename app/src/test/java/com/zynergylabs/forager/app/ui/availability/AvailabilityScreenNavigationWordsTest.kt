@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.platform.testTag
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -57,7 +58,7 @@ import org.robolectric.annotation.GraphicsMode
  * while not (the strip).
  *
  * The dispatch's own checks: at 360 dp, with long strings, in landscape, each line must fit, whole, and the display must not
- * grow. "Long" is chosen, not typical: the longest turn ("Sharp right · 169°"), a four-digit route in feet with "by trail",
+ * grow. "Long" is chosen, not typical: the longest turn ("sharp right 169°"), a four-digit route in feet with "by trail",
  * the status line's straight line at its longest feet form, a four-digit altitude in feet, and an MGRS reference. Every line
  * is read through its own laid-out text ([SemanticsActions.GetTextLayoutResult]): not ellipsised, every character visible,
  * and the box as wide as the text needs, as `AvailabilityScreenReturnRouteTest` reads "Unable to calculate route".
@@ -182,12 +183,14 @@ class AvailabilityScreenNavigationWordsTest {
             "distance kind" to NAVIGATION_HUD_DISTANCE_KIND_TAG,
             "turn" to NAVIGATION_HUD_TARGET_TAG,
             "status" to NAVIGATION_HUD_STATUS_TAG,
-            "coordinates" to NAVIGATION_HUD_COORDINATES_TAG,
+            // Dispatch 2026-10-12-08 (RECORD -950): navigating, the grid reference and the height are the strip's. Was the card's
+            // NAVIGATION_HUD_COORDINATES_TAG and NAVIGATION_HUD_ELEVATION_TAG, and its "Alt".
+            "coordinates" to COMPASS_STRIP_COORDINATES_TAG,
         ).forEach { (name, tag) -> assertWhole(name, node(tag)) }
         if (drawn(NAVIGATION_HUD_HEADING_TAG)) assertWhole("heading", node(NAVIGATION_HUD_HEADING_TAG))
-        if (drawn(NAVIGATION_HUD_ELEVATION_TAG)) assertWhole("elevation", node(NAVIGATION_HUD_ELEVATION_TAG))
+        if (drawn(COMPASS_STRIP_ELEVATION_TAG)) assertWhole("elevation", node(COMPASS_STRIP_ELEVATION_TAG))
         // RECORD -728: the heading has no label any more ("Facing" removed), so only "Alt" can be drawn.
-        if (labelDrawn(NAVIGATION_HUD_TAG, ALTITUDE_LABEL)) assertWhole("altitude label", label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
+        if (labelDrawn(STRIP_TAG_FOR_WORDS, ALTITUDE_LABEL)) assertWhole("altitude label", label(STRIP_TAG_FOR_WORDS, ALTITUDE_LABEL))
     }
 
     /**
@@ -199,33 +202,44 @@ class AvailabilityScreenNavigationWordsTest {
     fun `on the route the display reads the turn in words, the route by trail, the straight line straight, and its heading and altitude, labelled where they fit`() {
         setScreen(facing = 45f, route = ReturnRoute.Ahead(east, 1_500.0))
 
-        assertEquals("Right · 45°", textOf(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("right 45°", textOf(NAVIGATION_HUD_TARGET_TAG))
         assertEquals("0.9 mi", textOf(NAVIGATION_HUD_DISTANCE_TAG))
+        // Dispatch 2026-10-12-08 (RECORD -945, the owner: "Full dividers + by trail under figure (Recommended)"): the kind is a
+        // small line of its own under the turn line, always "by trail". Was (dispatch 2026-10-12-06): "by trail" beside the figure,
+        // or "By trail" leading the status line where the columns were tight.
         assertEquals("by trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
-        assertEquals("≈ 1250 ft straight", textOf(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -942: no straight-line note on the route. Was "≈ 1250 ft straight".
+        assertEquals("", textOf(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
-        assertEquals("9843 ft", textOf(NAVIGATION_HUD_ELEVATION_TAG))
+        // RECORD -950: the height is on the strip's line while navigating. Was NAVIGATION_HUD_ELEVATION_TAG in the card.
+        assertEquals("9843 ft", textOf(COMPASS_STRIP_ELEVATION_TAG))
         // Each label that is drawn sits before its own reading, on its line.
         // RECORD -728 (the owner: "just remove the word "facing" and nothing else"): the heading reads alone; it was "Facing"'s
         // place before it that was checked here.
         assertNoFacing()
-        val elevation = bounds(node(NAVIGATION_HUD_ELEVATION_TAG))
-        if (labelDrawn(NAVIGATION_HUD_TAG, ALTITUDE_LABEL)) {
-            val alt = bounds(label(NAVIGATION_HUD_TAG, ALTITUDE_LABEL))
+        val elevation = bounds(node(COMPASS_STRIP_ELEVATION_TAG))
+        if (labelDrawn(STRIP_TAG_FOR_WORDS, ALTITUDE_LABEL)) {
+            val alt = bounds(label(STRIP_TAG_FOR_WORDS, ALTITUDE_LABEL))
             assertTrue("\"Alt\" $alt is left of the altitude $elevation", alt.right <= elevation.left)
         }
-        // The kind follows the figure on the same line.
         val figure = bounds(node(NAVIGATION_HUD_DISTANCE_TAG))
+        val needle = bounds(node(NAVIGATION_HUD_NEEDLE_TAG))
         val kind = bounds(node(NAVIGATION_HUD_DISTANCE_KIND_TAG))
-        assertTrue("the kind $kind follows the figure $figure", kind.left >= figure.right)
-        assertTrue("the kind $kind is on the figure's line $figure", kind.top < figure.bottom && kind.bottom > figure.top)
+        assertTrue("the kind $kind is below the figure $figure", kind.top >= figure.bottom - 0.5.dp)
+        assertTrue("the kind $kind is under the turn line (needle $needle)", kind.top >= needle.bottom - 0.5.dp)
     }
 
+    /**
+     * Dispatch 2026-10-12-06 (RECORD -934, -936): at 360 dp the three columns cannot hold the longest lines whole (measured on
+     * CI: 354.5 dp needed against 300), so they give way in the owner's order, and what is drawn is whole. Was "at 360 dp the
+     * longest lines fit whole", asserting "sharp right 169°" (then "Sharp right · 169°") drawn in full.
+     */
     @Test
-    fun `at 360 dp the longest lines fit whole`() {
+    fun `at 360 dp the longest lines give way in the owner's order, and what is drawn is whole`() {
         setScreen(facing = 281f, route = ReturnRoute.Ahead(east, 390.0))
 
-        assertEquals("Sharp right · 169°", textOf(NAVIGATION_HUD_TARGET_TAG))
+        val turn = textOf(NAVIGATION_HUD_TARGET_TAG)
+        assertTrue("the turn is whole or its degrees: <$turn>", turn == "sharp right 169°" || turn == "169°")
         assertEquals("1280 ft", textOf(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("281° W", textOf(NAVIGATION_HUD_HEADING_TAG))
         assertDisplayWhole()
@@ -259,14 +273,17 @@ class AvailabilityScreenNavigationWordsTest {
      * Amendment 1 (RECORD -680; the owner: "Shorter decimals, no labels (Recommended)"): the decimal pair reads
      * "45.5200, -122.6800" and, with the longest lines, fits whole at 360 dp, as MGRS does. The tap still switches.
      */
+    // Dispatch 2026-10-12-08 (RECORD -950): navigating, the decimal pair is on the strip's line, beside the height, while the
+    // card holds the longest lines. Was "at 360 dp the display's decimal coordinates fit whole beside the longest lines", on the
+    // card's NAVIGATION_HUD_COORDINATES_TAG.
     @Test
-    fun `at 360 dp the display's decimal coordinates fit whole beside the longest lines`() {
+    fun `at 360 dp navigating, the strip's decimal coordinates fit whole while the card holds the longest lines`() {
         setScreen(facing = 281f, route = ReturnRoute.Ahead(east, 390.0))
-        touchCentre(node(NAVIGATION_HUD_COORDINATES_TAG))
-        assertEquals("45.5200, -122.6800", textOf(NAVIGATION_HUD_COORDINATES_TAG))
+        touchCentre(node(COMPASS_STRIP_COORDINATES_TAG))
+        assertEquals("45.5200, -122.6800", textOf(COMPASS_STRIP_COORDINATES_TAG))
         assertDisplayWhole()
-        touchCentre(node(NAVIGATION_HUD_COORDINATES_TAG))
-        assertEquals("a second tap switches back to MGRS", coordinatesStripText(LatLng(fix.lat, fix.lng), false), textOf(NAVIGATION_HUD_COORDINATES_TAG))
+        touchCentre(node(COMPASS_STRIP_COORDINATES_TAG))
+        assertEquals("a second tap switches back to MGRS", coordinatesStripText(LatLng(fix.lat, fix.lng), false), textOf(COMPASS_STRIP_COORDINATES_TAG))
     }
 
     @Test
@@ -375,8 +392,15 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
     private val start = Waypoint(id = "origin", lat = 45.52 + 380.0 / 111_195.0, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val east = LatLng(45.52, -122.679)
 
+    /**
+     * Dispatch 2026-10-12-08: navigating, the height and the grid reference are the strip's (RECORD -950), so they are checked
+     * there; and RECORD -951 settles the height rule: RECORD -766 (dispatch 2026-10-09-02, item 2; the owner: "Combine lines,
+     * allow the rest (Recommended)") governs, so the navigating display may reach into the central third, never over the walker's
+     * dot or the needle. Was "in landscape the longest lines fit whole and the display ends above the central third", asserting
+     * `hud.bottom <= thirdTop` and the card's own elevation and coordinates whole.
+     */
     @Test
-    fun `in landscape the longest lines fit whole and the display ends above the central third`() {
+    fun `in landscape the longest lines fit whole and the display stays above the walker's dot, nothing covering the needle`() {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
@@ -391,7 +415,7 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
                     override fun declinationDegrees(latitude: Double, longitude: Double, altitudeMeters: Double?, epochMillis: Long): Float = 0f
                 }),
                 currentTime = CurrentTimeProvider { t + 1_000L },
-                mapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) },
+                mapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag(WORDS_LANDSCAPE_MAP_TAG)) },
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},
@@ -421,11 +445,14 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
         composeRule.waitForIdle()
 
         val node = { tag: String -> composeRule.onNodeWithTag(tag, useUnmergedTree = true) }
-        assertEquals("Sharp right · 169°", node(NAVIGATION_HUD_TARGET_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        // Dispatch 2026-10-12-06 (RECORD -934, -936): at the landscape display's width the turn words may shrink to the degrees,
+        // the owner's second step. Was: "sharp right 169°" (then "Sharp right · 169°") in full.
+        val turnShown = node(NAVIGATION_HUD_TARGET_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
+        assertTrue("the turn is whole or its degrees: <$turnShown>", turnShown == "sharp right 169°" || turnShown == "169°")
         val assertAllWhole = { format: String ->
             listOf(
                 NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG, NAVIGATION_HUD_STATUS_TAG,
-                NAVIGATION_HUD_HEADING_TAG, NAVIGATION_HUD_ELEVATION_TAG, NAVIGATION_HUD_COORDINATES_TAG,
+                NAVIGATION_HUD_HEADING_TAG, COMPASS_STRIP_ELEVATION_TAG, COMPASS_STRIP_COORDINATES_TAG,
             ).forEach { tag ->
                 val interaction = node(tag)
                 val results = mutableListOf<TextLayoutResult>()
@@ -442,9 +469,10 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
                     assertEquals("$format, $tag <$text>: every character visible", text.length, layout.getLineEnd(0, visibleEnd = true))
                 }
             }
-            // The planner's extension of -699 to the display: its coordinates are measured first and always whole.
+            // The planner's extension of -699 to the display: its coordinates are measured first and always whole. Since dispatch
+            // 2026-10-12-08 they are the strip's while navigating (RECORD -950).
             val coordinatesLayout = mutableListOf<TextLayoutResult>().also {
-                node(NAVIGATION_HUD_COORDINATES_TAG).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(it)
+                node(COMPASS_STRIP_COORDINATES_TAG).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(it)
             }.single()
             val coordinatesText = coordinatesLayout.layoutInput.text.text
             assertFalse("$format: the display's coordinates <$coordinatesText> are not ellipsised", coordinatesLayout.isLineEllipsized(0))
@@ -458,14 +486,32 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
         }
         assertAllWhole("MGRS")
         // Amendment 1 (RECORD -680): the decimal pair, switched by a real touch, fits whole here too.
-        node(NAVIGATION_HUD_COORDINATES_TAG).performTouchInput { click(center) }
+        node(COMPASS_STRIP_COORDINATES_TAG).performTouchInput { click(center) }
         composeRule.waitForIdle()
-        assertEquals("45.5200, -122.6800", node(NAVIGATION_HUD_COORDINATES_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        assertEquals("45.5200, -122.6800", node(COMPASS_STRIP_COORDINATES_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
         assertAllWhole("decimal")
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         val hud = node(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot()
         val thirdTop = root.top + (root.bottom - root.top) / 3
         println("MEASURED landscape display: $hud, central third from ${thirdTop.value} dp, clearance ${(thirdTop - hud.bottom).value} dp")
-        assertTrue("the display $hud ends above the central third (from $thirdTop)", hud.bottom <= thirdTop)
+        // RECORD -766 as RECORD -951 applies it: the walker's dot is where the navigation view puts it, the map's height times
+        // NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding (HudLandscapeT11FixesTest's rule, the dot's 12 dp radius).
+        val mapArea = node(WORDS_LANDSCAPE_MAP_TAG).getUnclippedBoundsInRoot()
+        val height = mapArea.bottom - mapArea.top
+        val walkerY = mapArea.top + (height + height * com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2
+        // RECORD -953: the display on the bottom edge, below the dot: no overlap with its circle. Was `hud.bottom <= walkerY - 12.dp`.
+        assertTrue("the display $hud covers none of the walker's dot at y ${walkerY.value}", hud.bottom <= walkerY - 12.dp || hud.top >= walkerY + 12.dp)
+        val needle = node(NAVIGATION_HUD_NEEDLE_TAG).getUnclippedBoundsInRoot()
+        assertTrue("the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
+        listOf(SEARCH_ENTRY_BAR_TAG, "compass-elevation-strip").forEach { other ->
+            val o = node(other).getUnclippedBoundsInRoot()
+            assertFalse("$other $o does not cover the needle $needle", o.left < needle.right && needle.left < o.right && o.top < needle.bottom && needle.top < o.bottom)
+        }
     }
 }
+
+/** The compass strip tag, for its labels while navigating (dispatch 2026-10-12-08). */
+private const val STRIP_TAG_FOR_WORDS = "compass-elevation-strip"
+
+/** The landscape words test's map stand-in, for where the walker's dot sits (RECORD -766). */
+private const val WORDS_LANDSCAPE_MAP_TAG = "words-landscape-map"

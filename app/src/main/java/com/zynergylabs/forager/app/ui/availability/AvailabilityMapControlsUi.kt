@@ -12,6 +12,9 @@ package com.zynergylabs.forager.app.ui.availability
 // AvailabilityCompactMapUi.kt. No symbol left behind is reached from here. Seam F (the wide layout)
 // was released by the owner for this split, as recorded in the Understory amendment merged in #130.
 
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.semantics.semantics
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.animation.AnimatedVisibility
@@ -444,8 +447,29 @@ internal fun CompassElevationStrip(
      * height it was.
      */
     quickSettings: MapQuickSettings? = null,
+    /** Dispatch 2026-10-12-06: the rounded card's corners, and how far its fill reaches up behind the pill (RoundedMapCard.kt). */
+    cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
+    tuck: Dp = 0.dp,
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -948, -950): the strip stays while navigating, and its line drops the north arrow and the
+     * heading, which the navigation info shows once. Height, grid reference and the three-dot button stay here.
+     */
+    navigating: Boolean = false,
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -946, -951): the strip's fill; `null` is the map chrome token. In landscape the strip and
+     * the search pill are the top bar, both in the pill's lighter shade ([com.zynergylabs.forager.app.ui.map.MapPillColorLight]).
+     */
+    fill: Color? = null,
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -950, portrait): "have the card just extend down rather than a dual tuck". The navigation
+     * info, drawn inside this strip's own card under its line, so the two are one card with one fill and one shadow. `null`
+     * draws nothing, and the strip is the height it was.
+     */
+    navigationInfo: (@Composable () -> Unit)? = null,
 ) {
-    val reading by heading
+    // Dispatch 2026-10-12-08: while navigating the line shows no heading, so the heading State is not read here then, and only the
+    // navigation info's leaf reads it at sensor rate, as when the strip was removed while navigating.
+    val reading = if (navigating) TrueHeadingReading.NeedsFix else heading.value
     CompassElevationStripContent(
         heading = reading,
         elevationMeters = elevationMeters,
@@ -460,6 +484,11 @@ internal fun CompassElevationStrip(
         sundownLine = sundownLine,
         backByLine = backByLine,
         quickSettings = quickSettings,
+        cardCorners = cardCorners,
+        tuck = tuck,
+        navigating = navigating,
+        fill = fill,
+        navigationInfo = navigationInfo,
     )
 }
 
@@ -495,6 +524,11 @@ private fun CompassElevationStripContent(
     sundownLine: String? = null,
     backByLine: String? = null,
     quickSettings: MapQuickSettings? = null,
+    cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
+    tuck: Dp = 0.dp,
+    navigating: Boolean = false,
+    fill: Color? = null,
+    navigationInfo: (@Composable () -> Unit)? = null,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -515,9 +549,13 @@ private fun CompassElevationStripContent(
                 // return-to-vehicle IconButton a real touch target; that control moved out to
                 // ControlPill (Part B), so this strip wraps its Row's natural text-content height
                 // again, the same as before that dispatch.
-                .background(
-                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
-                    shape = RectangleShape,
+                // Dispatch 2026-10-12-06 (RECORD -932, -934): the rounded card, tucked under the pill in portrait, still a
+                // background with no pointer input of its own (RoundedMapCard.kt), so the map keeps every touch but the strip's
+                // own controls, its corner gaps included.
+                .mapCardSurface(
+                    fill = fill ?: if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                    corners = cardCorners,
+                    tuck = tuck,
                 )
                 // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
                 // AnchoredAtScreenPoint's minY and the taxon filter chip's top padding both need to
@@ -525,7 +563,7 @@ private fun CompassElevationStripContent(
                 // measured value is the only one that stays correct as font scale or content change
                 // it. Also still what this composable's own regression test targets directly.
                 .testTag("compass-elevation-strip")
-                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
+                .mapChromeContainerColor(fill ?: if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
             // Dispatch 2026-09-28-645 (Amendment 2, the owner: "Taller strip (Recommended)"; Amendment 3,
             // RECORD -648: "a 3 dot menu at the far right", 36 dp): a Row so the quick-settings button
@@ -533,6 +571,9 @@ private fun CompassElevationStripContent(
             // strip's own height: the strip is at least that tall, and nothing hangs over the map. The
             // Row draws nothing and takes no touches; the button takes them in its own square. Its place
             // follows the strip, not the screen (RECORD -649, the owner: "far right in the strip").
+            // Dispatch 2026-10-12-08: a Column around that Row, drawing nothing and taking no touch, so the navigation info sits
+            // under the line inside this card (portrait, RECORD -950); the three-dot button stays on the line, above the X.
+            Column(modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth()) {
             Row(
                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -573,7 +614,8 @@ private fun CompassElevationStripContent(
                 // match the return-to-vehicle control's box that shared this Row; that control is
                 // gone, and holding this box at 48dp anyway would defeat item 1's height revert by
                 // becoming the Row's own tallest child in the vehicle box's place.
-                Box(contentAlignment = Alignment.Center) {
+                // Dispatch 2026-10-12-08 (RECORD -948): navigating, the line drops the north arrow with the heading.
+                if (!navigating) Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
@@ -590,6 +632,7 @@ private fun CompassElevationStripContent(
                 val readoutKind = when {
                     positionNote != null -> StripReadout.POSITION_NOTE
                     location == null -> StripReadout.NO_FIX
+                    navigating -> StripReadout.NAVIGATING
                     else -> StripReadout.READOUT
                 }
                 val lastNote = rememberLastShown(positionNote)
@@ -623,6 +666,8 @@ private fun CompassElevationStripContent(
                             ) {
                                 // Motion Part 2, item 6: words crossfade, numbers change at once (WordSwap).
                                 // Dispatch 2026-09-28-677: labelled, as on the navigation display (LabelledReadout).
+                                // Dispatch 2026-10-12-08: navigating, the note alone; the heading is the navigation info's.
+                                if (!navigating) {
                                 if (shortHeadingStatus && heading.isCompassStatus()) StripHeadingStatusIcon(heading) else
                                 LabelledReadout(label = stripHeadingLabel(heading), labelStyle = stripReadoutStyle()) {
                                     WordSwap(text = stripHeadingText(heading)) { shown ->
@@ -637,6 +682,7 @@ private fun CompassElevationStripContent(
                                     }
                                 }
                                 Text("·", style = stripReadoutStyle())
+                                }
                                 WordSwap(text = lastNote.stripText, modifier = Modifier.weight(1f, fill = false)) { shown ->
                                     Text(
                                         text = shown,
@@ -647,6 +693,14 @@ private fun CompassElevationStripContent(
                                     )
                                 }
                             }
+                        } else if (kind == StripReadout.NAVIGATING && lastLocation != null) {
+                            StripNavigatingReadout(
+                                elevationMeters = elevationMeters,
+                                unitSystem = unitSystem,
+                                location = lastLocation,
+                                showDecimalDegrees = showDecimalDegrees,
+                                onToggleCoordinateFormat = onToggleCoordinateFormat,
+                            )
                         } else if (kind == StripReadout.NO_FIX || lastLocation == null) {
                             // One statement across the strip — see this composable's own doc comment. Not
                             // tappable: there is no coordinate pair to toggle, and nothing to fabricate one
@@ -811,16 +865,7 @@ private fun CompassElevationStripContent(
                             .then(if (contentWidth) Modifier else Modifier.fillMaxWidth()),
                         contentAlignment = Alignment.Center,
                     ) { shownLine ->
-                        Text(
-                            text = shownLine,
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
-                                .testTag(STRIP_SUNDOWN_LINE_TAG),
-                        )
+                        StripEveningLine(line = shownLine, tag = STRIP_SUNDOWN_LINE_TAG, contentWidth = contentWidth)
                     }
                 }
             }
@@ -841,25 +886,125 @@ private fun CompassElevationStripContent(
                             .then(if (contentWidth) Modifier else Modifier.fillMaxWidth()),
                         contentAlignment = Alignment.Center,
                     ) { shownLine ->
-                        Text(
-                            text = shownLine,
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
-                                .testTag(STRIP_BACK_BY_LINE_TAG),
-                        )
+                        StripEveningLine(line = shownLine, tag = STRIP_BACK_BY_LINE_TAG, contentWidth = contentWidth)
                     }
                 }
             }
             }
             if (quickSettings != null) MapQuickSettingsButton(quickSettings)
             }
+            navigationInfo?.invoke()
+            }
         }
     }
 }
+
+/**
+ * Dispatch 2026-10-12-08 (RECORD -948, -950): the strip's line while navigating, "344 ft · 10T ER 24991 40768": the height and
+ * the grid reference, the grid reference still toggling MGRS and decimal. The north arrow and the heading are the navigation
+ * info's, so they show once. A path of its own beside the strip's readout row rather than a flag threaded through it; it gives way
+ * by the same rule (readoutsFitBeside: the label first, then the height; the grid reference whole).
+ */
+@Composable
+private fun StripNavigatingReadout(
+    elevationMeters: Double?,
+    unitSystem: UnitSystem,
+    location: LatLng,
+    showDecimalDegrees: Boolean,
+    onToggleCoordinateFormat: () -> Unit,
+) {
+    val readoutStyle = stripReadoutStyle().copy(fontFeatureSettings = "tnum")
+    val labelStyle = stripReadoutStyle()
+    val measurer = rememberTextMeasurer()
+    val elevationLabel = ALTITUDE_LABEL.takeIf { elevationMeters != null }
+    val elevationText = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT
+    val coordinatesText = coordinatesStripText(location, showDecimalDegrees)
+    BoxWithConstraints(contentAlignment = Alignment.Center) {
+        val density = LocalDensity.current
+        fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+        val fit = readoutsFitBeside(
+            availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE,
+            coordinatesPx = widthOf(coordinatesText, readoutStyle),
+            labelsPx = listOf(elevationLabel?.let { widthOf(it, labelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0),
+            valuesPx = listOf(widthOf(elevationText, readoutStyle)),
+            separatorPx = widthOf("·", labelStyle) + with(density) { 2 * Spacing.sm.roundToPx() },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+        ) {
+            if (fit.shown[0]) {
+                LabelledReadout(label = elevationLabel.takeIf { fit.labels }, labelStyle = labelStyle) {
+                    WordSwap(text = elevationText) { shownText ->
+                        Text(
+                            text = shownText,
+                            style = readoutStyle,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag(COMPASS_STRIP_ELEVATION_TAG),
+                        )
+                    }
+                }
+                Text("·", style = labelStyle)
+            }
+            Text(
+                text = coordinatesText,
+                style = readoutStyle,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
+                    .testTag(COMPASS_STRIP_COORDINATES_TAG),
+            )
+        }
+    }
+}
+
+/**
+ * RECORD -951 (the planner's call, item 4): the strip's own sundown or Back by line, whole on one line where it fits, and
+ * otherwise broken at its " · " joins into short pieces stacked one per line, as the navigation card's evening stack is (RECORD
+ * -941). Nothing is ellipsised; a piece wider than the strip wraps. The line keeps [tag], on a node whose text is the whole line,
+ * so it reads as it did; each stacked piece carries [STRIP_EVENING_PIECE_TAG].
+ */
+@Composable
+private fun StripEveningLine(line: String, tag: String, contentWidth: Boolean) {
+    val style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val wholePx = measurer.measure(line, style, maxLines = 1, softWrap = false).size.width
+        val fits = !constraints.hasBoundedWidth || wholePx <= constraints.maxWidth
+        if (fits) {
+            Text(
+                text = line,
+                style = style,
+                maxLines = 1,
+                softWrap = false,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                    .testTag(tag),
+            )
+        } else {
+            Column(
+                modifier = Modifier
+                    .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                    .semantics { text = AnnotatedString(line) }
+                    .testTag(tag),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                eveningPieces(line, null).forEach { piece ->
+                    Text(text = piece, style = style, textAlign = TextAlign.Center, modifier = Modifier.testTag(STRIP_EVENING_PIECE_TAG))
+                }
+            }
+        }
+    }
+}
+
+/** RECORD -951: each stacked piece of the strip's sundown or Back by line, where the whole line does not fit. */
+internal const val STRIP_EVENING_PIECE_TAG = "strip-evening-piece"
 
 /**
  * RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): what the landscape strip needs to show its readout
@@ -1141,4 +1286,4 @@ private fun stripHeadingText(heading: TrueHeadingReading): String = when (headin
 private fun stripHeadingLabel(heading: TrueHeadingReading): String? = null
 
 /** What the compass strip's readout shows (motion Part 2, Amendment 1, item 3): the key its crossfade runs on. */
-private enum class StripReadout { POSITION_NOTE, NO_FIX, READOUT }
+private enum class StripReadout { POSITION_NOTE, NO_FIX, READOUT, NAVIGATING }

@@ -72,9 +72,12 @@ class NavigationHudReadoutTest {
         // Below a quarter mile the unit is feet: 350 m is 1148.3 ft.
         assertEquals("1148 ft", readout(route = ReturnRoute.Ahead(east, 350.0)).distanceText)
         assertEquals("350 m", readout(route = ReturnRoute.Ahead(east, 350.0), unit = DistanceUnit.KILOMETERS).distanceText)
-        // The straight line to the start, with the accuracy-aware formatting it had in the large slot.
-        assertEquals("0.7 mi straight", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
-        assertEquals("1.1 km straight", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
+        // RECORD -942 (the owner: "Remove the 0.7m straight since the ≈800ft ahead is saying the same thing"): on the route the
+        // status line has no straight-line note. Was: "0.7 mi straight" and "1.1 km straight".
+        assertEquals("", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
+        assertEquals("", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
+        // With no route figure yet, the note stays: nothing else says how far the start is.
+        assertEquals("1.1 km straight", readout(route = ReturnRoute.Pending, unit = DistanceUnit.KILOMETERS).statusText)
     }
 
     @Test
@@ -103,7 +106,7 @@ class NavigationHudReadoutTest {
     fun `navigating to a waypoint with no route keeps the straight line in the large slot and aims at the waypoint`() {
         val r = readout(route = null)
         assertEquals("0.7 mi", r.distanceText)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertEquals("", r.statusText)
         assertFalse(r.routeRetryOffered)
     }
@@ -112,9 +115,9 @@ class NavigationHudReadoutTest {
     fun `the needle aims at the route's lookahead, not at the start`() {
         // The start is due north (a 315° turn from 45°); the lookahead due east (a 45° turn).
         val r = readout(route = ReturnRoute.Ahead(east, 1_500.0))
-        assertEquals("Right · 45°", r.targetText)
+        assertEquals("right 45°", r.targetText)
         assertEquals(45f, r.targetArrowDegrees!!, 0.5f)
-        assertEquals("Left · 45°", readout(route = null).targetText)
+        assertEquals("left 45°", readout(route = null).targetText)
     }
 
     @Test
@@ -189,7 +192,7 @@ class NavigationHudReadoutTest {
 
         assertEquals("45° NE", r.headingText)
         assertEquals(-45f, r.northArrowDegrees)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
         assertEquals("0.7 mi", r.distanceText)
         assertFalse(r.distanceDeEmphasised)
@@ -202,7 +205,7 @@ class NavigationHudReadoutTest {
 
         val r = readout(target = west)
 
-        assertEquals("Sharp left · 135°", r.targetText)
+        assertEquals("sharp left 135°", r.targetText)
         assertEquals(225f, r.targetArrowDegrees!!, 0.05f)
     }
 
@@ -273,7 +276,7 @@ class NavigationHudReadoutTest {
         assertNotNull("a needle at 16.46 m with 8 m accuracy", r2.targetArrowDegrees)
         assertEquals(315f, r2.targetArrowDegrees!!, 1e-3f)
         assertEquals("Approaching", r2.statusText)
-        assertEquals("Left · 45°", r2.targetText)
+        assertEquals("left 45°", r2.targetText)
     }
 
     // ── Dispatch 2026-09-28-578, Amendment 1 (-579): "Approaching" has its own zone ─────────────
@@ -290,7 +293,7 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("≈ 50 m", r.distanceText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertFalse(r.distanceDeEmphasised)
     }
 
@@ -301,9 +304,10 @@ class NavigationHudReadoutTest {
 
         assertEquals("Approaching", readout(target = inside).statusText)
         assertEquals("", readout(target = outside).statusText)
-        // Under a route the line past the zone is the straight line, as far away.
+        // Under a route the zone is the same; past it the line is empty (RECORD -942: no straight-line note on the route). Was:
+        // the straight line past the zone.
         assertEquals("Approaching", readout(target = inside, route = ReturnRoute.Ahead(east, 120.0)).statusText)
-        assertTrue(readout(target = outside, route = ReturnRoute.Ahead(east, 120.0)).statusText.endsWith(" straight"))
+        assertEquals("", readout(target = outside, route = ReturnRoute.Ahead(east, 120.0)).statusText)
     }
 
     /**
@@ -333,7 +337,7 @@ class NavigationHudReadoutTest {
 
         assertNotNull(r.targetArrowDegrees)
         assertEquals("", r.statusText)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         // Dispatch -502 changed this (Amendment 2). Before: the large slot was asserted to read "33 ft" (no
         // accuracy, no rounding, no marker). After: arrival applies to any target, and with no accuracy its
         // radius is 15 m, so 10 m reads "Arrived". The needle, drawn with no basis for approaching, is unchanged.
@@ -358,7 +362,7 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("164 ft", r.distanceText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
     }
 
     @Test
@@ -406,7 +410,7 @@ class NavigationHudReadoutTest {
         assertEquals("≈ 50 m", r.distanceText)
         assertTrue(r.distanceDeEmphasised)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
     }
 
     @Test
@@ -592,10 +596,10 @@ class NavigationHudReadoutTest {
     fun `the turn is in words from the needle's own angle`() {
         // Facing 45°, the start due north: 315° clockwise, 45° to the left; the arrow's rotation is unchanged.
         val r = readout(route = null)
-        assertEquals("Left · 45°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertEquals(315f, r.targetArrowDegrees!!, 0.5f)
         // Facing 350°, the start due north: 10° clockwise, a slight right.
-        assertEquals("Slight right · 10°", readout(heading = TrueHeadingReading.Available(350f), route = null).targetText)
+        assertEquals("slight right 10°", readout(heading = TrueHeadingReading.Available(350f), route = null).targetText)
     }
 
     @Test

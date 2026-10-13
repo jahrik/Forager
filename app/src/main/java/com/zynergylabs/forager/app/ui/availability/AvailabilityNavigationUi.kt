@@ -15,6 +15,7 @@ package com.zynergylabs.forager.app.ui.availability
 // is reached from here. Seam F (the wide layout) was released by the owner for this split, as
 // recorded in the Understory amendment merged in #130.
 
+import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
@@ -40,6 +41,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -154,11 +159,22 @@ internal fun ForagerBottomNav(
      * translucency for the non-fullscreen state, where it *is* always over the map.
      */
     containerColor: Color = navigationBarContainerColor(),
+    /**
+     * Dispatch 2026-10-12-06, RECORD -937 (the owner: "let's give the botton navigation buttons the same rounded edge treatment
+     * so it looks uniform"): the radius of the bar's two top corners. The Map tab's overlay instance passes the card's radius;
+     * the bar stays full width, runs to the bottom edge and keeps its fill. A clip, so the corners are cut from its touch area as
+     * well as its drawing: a touch in a corner gap reaches the map beneath. 0 (the docked instances on the other tabs, where
+     * nothing but the screen's own background would show in the gap): square, as before.
+     */
+    topCornerRadius: Dp = 0.dp,
 ) {
     NavigationBar(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.testTag(COMPACT_BOTTOM_NAV_TAG).mapChromeContainerColor(containerColor),
+        modifier = modifier
+            .then(if (topCornerRadius > 0.dp) Modifier.clip(RoundedCornerShape(topStart = topCornerRadius, topEnd = topCornerRadius)) else Modifier)
+            .testTag(COMPACT_BOTTOM_NAV_TAG)
+            .mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
@@ -216,12 +232,30 @@ internal fun ForagerNavigationRail(
     portEdge: ScreenEdge,
     modifier: Modifier = Modifier,
     containerColor: Color = navigationBarContainerColor(),
+    /**
+     * Dispatch 2026-10-12-08, RECORD -952 (the owner: "In landscape mode: Can we have the rounded corners on the app navigation
+     * buttons (the one on the right side of the display) like it is in portrait?"): the radius of the rail's two corners that face
+     * the map, its inner side's top and bottom, as [ForagerBottomNav]'s `topCornerRadius` rounds the bar's two top corners. A
+     * clip, so the corners are cut from its touch area as well as its drawing and a touch in a corner gap reaches the map. 0, the
+     * docked rail beside the other tabs' content: square, as before.
+     */
+    innerCornerRadius: Dp = 0.dp,
 ) {
+    // The inner side is the side away from the port edge, where the map is.
+    val innerCorners = if (portEdge == ScreenEdge.Left) {
+        AbsoluteRoundedCornerShape(topRight = innerCornerRadius, bottomRight = innerCornerRadius)
+    } else {
+        AbsoluteRoundedCornerShape(topLeft = innerCornerRadius, bottomLeft = innerCornerRadius)
+    }
     NavigationRail(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         windowInsets = WindowInsets.navigationBars.only(portEdge.horizontalInsetsSide()),
-        modifier = modifier.fillMaxHeight().testTag(COMPACT_NAVIGATION_RAIL_TAG).mapChromeContainerColor(containerColor),
+        modifier = modifier
+            .fillMaxHeight()
+            .then(if (innerCornerRadius > 0.dp) Modifier.clip(innerCorners) else Modifier)
+            .testTag(COMPACT_NAVIGATION_RAIL_TAG)
+            .mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationRailItem(

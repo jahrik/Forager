@@ -502,20 +502,29 @@ class AvailabilityScreenQuickSettingsTest {
         assertFalse("cleared: no line", shown(STRIP_BACK_BY_LINE_TAG))
     }
 
-    /** Q1, "Gear in nav display too (Recommended)", the three-dot button since Amendment 3: navigating, the strip is hidden; the button and the line are in the HUD, left of the exit, and a real touch opens the menu. */
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -947, the owner: "Yes, only on the strip (Recommended)"; RECORD -950, -951 item 5): navigating,
+     * the strip stays and keeps the three-dot button, above the X; the Back by line moves into the navigation info, shown once.
+     * Was (Q1, "Gear in nav display too"; dispatch 2026-10-12-06): "navigating, the button and the line move into the navigation
+     * display, under the exit", asserting `assertFalse("the strip is hidden", shown(STRIP_TAG))`, the button inside the HUD, and
+     * `button.top >= exit.bottom`.
+     */
     @Test
-    fun `navigating, the button and the line move into the navigation display, left of the exit`() {
+    fun `navigating, the button stays on the strip above the exit, and the line moves into the navigation info, once`() {
         setScreen()
         recordingWithBackBy(now + 20 * minute)
         composeRule.runOnIdle { returning = true }
         composeRule.waitForIdle()
-        assertFalse("the strip is hidden", shown(STRIP_TAG))
+        assertTrue("the strip stays", shown(STRIP_TAG))
         assertEquals("Back by ${clock.full(now + 20 * minute)}", text(NAVIGATION_HUD_BACK_BY_LINE_TAG))
+        assertFalse("the strip's own Back by line does not also show", shown(STRIP_BACK_BY_LINE_TAG))
+        assertEquals("one three-dot button", 1, composeRule.onAllNodesWithTag(MAP_QUICK_SETTINGS_BUTTON_TAG).fetchSemanticsNodes().size)
+        val strip = bounds(STRIP_TAG)
         val hud = bounds(NAVIGATION_HUD_TAG)
         val button = bounds(MAP_QUICK_SETTINGS_BUTTON_TAG)
-        assertTrue("the button is in the HUD: $button in $hud", button.top >= hud.top && button.bottom <= hud.bottom && button.left >= hud.left && button.right <= hud.right)
+        assertTrue("the button is on the strip, above the navigation info: $button, info $hud", button.top >= strip.top && button.bottom <= hud.top + 0.5.dp)
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
-        assertTrue("left of the exit: $button, exit $exit", button.right <= exit.left + 0.5.dp)
+        assertTrue("above the exit: $button, exit $exit", button.bottom <= exit.top + 0.5.dp)
         assertEquals("the same 36 dp", 36f, (button.right - button.left).value, 0.5f)
         touchAt((button.left + button.right) / 2, (button.top + button.bottom) / 2)
         assertTrue(shown(MAP_QUICK_SETTINGS_MENU_TAG))

@@ -243,7 +243,7 @@ class AvailabilityScreenWaypointNavigateTest {
     /** The HUD aims at the creek pin, due north of a walker facing north, with the straight line to it in the large slot. */
     private fun assertHudAimsAtCreek() {
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
-        assertEquals("the needle aims at the waypoint", "Ahead · 0°", text(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("the needle aims at the waypoint", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
         val straight = GeoDistance.metersBetween(LatLng(fix.lat, fix.lng), LatLng(creek.lat, creek.lng))
         assertEquals(formatDistanceWithAccuracy(straight, fix.accuracyMeters, viewModel.uiState.value.distanceUnit), text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("the straight-line HUD: no route, so no \"Straight line\" label", "", text(NAVIGATION_HUD_STATUS_TAG))
@@ -519,7 +519,9 @@ class AvailabilityScreenWaypointNavigateTest {
 
         assertEquals("the return picks up again", 1, resumes)
         assertNull(navigatingTo())
-        assertTrue("the return's HUD: the straight line to the start is labelled", text(NAVIGATION_HUD_STATUS_TAG).endsWith(" straight"))
+        // RECORD -942: on the route the return's HUD has no straight-line note; its large figure is the route's, by trail. Was:
+        // the status line ends in " straight".
+        assertEquals("the return's HUD: no straight-line note on the route", "", text(NAVIGATION_HUD_STATUS_TAG))
         assertEquals(returnLine, map.content!!.route!!.line)
         assertTrue("the bubble is back", shown(MAP_BUBBLE_TAG))
 

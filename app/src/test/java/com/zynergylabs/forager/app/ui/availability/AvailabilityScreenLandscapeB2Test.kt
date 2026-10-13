@@ -136,12 +136,11 @@ class AvailabilityScreenLandscapeB2Test {
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
         assertEquals("the screen must actually see the turn to $rotation", rotation, rotationSeenByScreen)
+        // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"): the rail is on the right at both rotations,
+        // so the proof that the screen saw the turn is the rotation it read (above), not the rail's side. Was: at 270 "after the turn
+        // to 270 the screen put the rail on the left", `assertEquals(root().left, railSide.left)`.
         val railSide = rail()
-        if (rotation == Surface.ROTATION_270) {
-            assertEquals("after the turn to 270 the screen put the rail on the left", root().left.value, railSide.left.value, 0.5f)
-        } else {
-            assertEquals("after the turn to $rotation the screen put the rail on the right", root().right.value, railSide.right.value, 0.5f)
-        }
+        assertEquals("after the turn to $rotation the rail is on the right", root().right.value, railSide.right.value, 0.5f)
     }
 
     // ── S1: the punch-hole edge comes from punchHoleEdgeFor ──
@@ -153,7 +152,9 @@ class AvailabilityScreenLandscapeB2Test {
      */
     private fun assertPunchHoleSide(rotation: Int) {
         setScreen(rotation)
-        val punchHole = punchHoleEdgeFor(windowIsLandscape = true, displayRotation = rotation)
+        // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"): the search side is mainWindowSearchEdgeFor, the left at
+        // both rotations. Was punchHoleEdgeFor(rotation), which made ROTATION_270's case assert the right.
+        val punchHole = com.zynergylabs.forager.app.ui.adaptive.mainWindowSearchEdgeFor(windowIsLandscape = true)
         val bar = searchBar()
         val c = cluster()
         val r = root()
@@ -183,7 +184,7 @@ class AvailabilityScreenLandscapeB2Test {
     fun `S1 at ROTATION_90 the punch-hole-side controls are on punchHoleEdgeFor's edge`() = assertPunchHoleSide(Surface.ROTATION_90)
 
     @Test
-    fun `S1 at ROTATION_270 the punch-hole-side controls are on punchHoleEdgeFor's edge`() = assertPunchHoleSide(Surface.ROTATION_270)
+    fun `S1 at ROTATION_270 the search-side controls are on the left, as at ROTATION_90 (RECORD -956)`() = assertPunchHoleSide(Surface.ROTATION_270)
 
     private fun tagBounds(tag: String): DpRect = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
     private fun root(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
@@ -210,16 +211,18 @@ class AvailabilityScreenLandscapeB2Test {
         assertEquals("the bar ends at the strip's inner edge: bar $bar, strip $strip", strip.left.value, bar.right.value, 0.5f)
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"). Was: the bar on the right at 270,
+    // `assertEquals(root().right, bar.right)` and `assertEquals(strip.right, bar.left)`.
     @Test
-    fun `S2 at ROTATION_270 the search bar sits at the top on the punch-hole side, right, up to the strip's inner edge`() {
+    fun `S2 at ROTATION_270 the search bar sits at the top on the left, as at ROTATION_90, up to the strip's inner edge`() {
         setScreen(Surface.ROTATION_270)
         val bar = searchBar()
         val m = mapBounds()
         val strip = tagBounds(B2_STRIP_TAG)
 
-        assertEquals("the bar ends at the punch-hole-side (right) edge", root().right.value, bar.right.value, 0.5f)
+        assertEquals("the bar starts at the left edge", root().left.value, bar.left.value, 0.5f)
         assertEquals("the bar is at the top of the map", m.top.value, bar.top.value, 0.5f)
-        assertEquals("the bar starts at the strip's inner edge: bar $bar, strip $strip", strip.right.value, bar.left.value, 0.5f)
+        assertEquals("the bar ends at the strip's inner edge: bar $bar, strip $strip", strip.left.value, bar.right.value, 0.5f)
     }
 
     @Test
@@ -297,43 +300,57 @@ class AvailabilityScreenLandscapeB2Test {
         assertTrue("the strip $strip does not reach the search bar $bar", strip.left >= bar.right)
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"). Was: the rail on the left at 270, the
+    // strip starting at its inner edge, `assertEquals(rail.right, strip.left)`, and the bar to the strip's right.
     @Test
-    fun `S4 at ROTATION_270 the compass strip is content-width in the top corner on the rail side, not below the search bar`() {
+    fun `S4 at ROTATION_270 the compass strip is content-width in the top corner on the rail side, the right, as at ROTATION_90`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE)
         val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
         val bar = searchBar()
         val m = mapBounds()
 
-        assertEquals("the strip starts at the rail's inner edge", rail.right.value, strip.left.value, 0.5f)
+        assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
         assertEquals("the strip is at the top of the map, not below the search bar", m.top.value, strip.top.value, 0.5f)
-        assertTrue("the strip $strip is content-width, well short of the space beside the rail", strip.width < (m.right - rail.right) / 2)
-        assertTrue("the strip $strip does not reach the search bar $bar", strip.right <= bar.left)
+        assertTrue("the strip $strip is content-width, well short of the space beside the rail", strip.width < (rail.left - m.left) / 2)
+        assertTrue("the strip $strip does not reach the search bar $bar", strip.left >= bar.right)
     }
 
+    // Dispatch 2026-10-12-08 (RECORD -946, -950, -951, -953; the owner: "The compass strip stays exactly where it is in both modes";
+    // -953: "have the card peak from the botton of the screen instead from the top ... Just flipped upside down"): navigating, the
+    // strip stays in the rail-side top corner and the card sits on the map's bottom edge in the strip's column, at its width. Was
+    // (-951): the card's top the strip's bottom. Was (Landscape B2 S4, RECORD -694): the strip hidden, the HUD at the top of the map in its place, at
+    // most 360 dp wide: `assertTrue(... strip ... isEmpty())`, `assertEquals(m.top, hud.top)`, `hud.width <= 360.dp`.
     @Test
-    fun `S4 at ROTATION_90 the navigation HUD is in the top corner on the rail side, at most 360dp wide`() {
+    fun `S4 at ROTATION_90 navigating, the strip stays in the top corner on the rail side and the card sits on the bottom edge at its width`() {
         setScreen(Surface.ROTATION_90, B2_FIX_STATE, isReturning = true)
         val hud = tagBounds(NAVIGATION_HUD_TAG)
+        val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
         val m = mapBounds()
 
-        assertTrue("the strip stays hidden while navigating", composeRule.onAllNodesWithTag(B2_STRIP_TAG).fetchSemanticsNodes().isEmpty())
-        assertEquals("the HUD ends at the rail's inner edge", rail.left.value, hud.right.value, 0.5f)
-        assertEquals("the HUD is at the top of the map", m.top.value, hud.top.value, 0.5f)
-        assertTrue("the HUD $hud is at most 360dp wide", hud.width <= 360.dp + 0.5.dp)
+        assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
+        assertEquals("the strip is at the top of the map", m.top.value, strip.top.value, 0.5f)
+        assertEquals("the card's bottom is the map's bottom: card $hud, map $m", m.bottom.value, hud.bottom.value, 0.5f)
+        assertEquals("the card's left edge is the strip's", strip.left.value, hud.left.value, 0.5f)
+        assertEquals("the card's right edge is the strip's", strip.right.value, hud.right.value, 0.5f)
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"). Was: `assertEquals(rail.right, strip.left)`,
+    // the rail on the left at 270.
     @Test
-    fun `S4 at ROTATION_270 the navigation HUD is in the top corner on the rail side, at most 360dp wide`() {
+    fun `S4 at ROTATION_270 navigating, the strip stays in the top corner on the rail side, the right, and the card sits on the bottom edge at its width`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE, isReturning = true)
         val hud = tagBounds(NAVIGATION_HUD_TAG)
+        val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
         val m = mapBounds()
 
-        assertEquals("the HUD starts at the rail's inner edge", rail.right.value, hud.left.value, 0.5f)
-        assertEquals("the HUD is at the top of the map", m.top.value, hud.top.value, 0.5f)
-        assertTrue("the HUD $hud is at most 360dp wide", hud.width <= 360.dp + 0.5.dp)
+        assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
+        assertEquals("the strip is at the top of the map", m.top.value, strip.top.value, 0.5f)
+        assertEquals("the card's bottom is the map's bottom: card $hud, map $m", m.bottom.value, hud.bottom.value, 0.5f)
+        assertEquals("the card's left edge is the strip's", strip.left.value, hud.left.value, 0.5f)
+        assertEquals("the card's right edge is the strip's", strip.right.value, hud.right.value, 0.5f)
     }
 
     // ── S5: tabular figures (landscape half; the portrait half is AvailabilityScreenPortraitStripTnumTest) ──
@@ -357,33 +374,37 @@ class AvailabilityScreenLandscapeB2Test {
         assertTrue("the cluster $c is on the left half of $r", (c.left + c.right) / 2 < (r.left + r.right) / 2)
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"), and the planner's answer 2 (a stored port side reads
+    // as the screen's right, a stored punch-hole side as its left): the three S6 cases below assert the screen side at both
+    // rotations. Was: the side followed the device edge, so at 270 the default was the right, a turn from 90 moved the cluster from
+    // left to right, and a cluster dragged right at 90 went left at 270.
     @Test
-    fun `S6 at ROTATION_270 the cluster defaults to the punch-hole side, right`() {
+    fun `S6 at ROTATION_270 the cluster defaults to the left, as at ROTATION_90`() {
         setScreen(Surface.ROTATION_270)
         val c = cluster()
         val r = root()
-        assertTrue("the cluster $c is on the right half of $r", (c.left + c.right) / 2 > (r.left + r.right) / 2)
+        assertTrue("the cluster $c is on the left half of $r", (c.left + c.right) / 2 < (r.left + r.right) / 2)
     }
 
     @Test
-    fun `S6 turning from ROTATION_90 to ROTATION_270 keeps the cluster on the same device edge, the punch-hole edge`() {
+    fun `S6 turning from ROTATION_90 to ROTATION_270 keeps the cluster on the same screen side, the left`() {
         setScreen(Surface.ROTATION_90)
-        assertTrue("at 90 the cluster starts on the left, the punch-hole side", cluster().centreXv() < root().centreXv())
+        assertTrue("at 90 the cluster starts on the left", cluster().centreXv() < root().centreXv())
 
         turnTo(Surface.ROTATION_270)
 
-        assertTrue("at 270 the punch-hole edge is the right; the cluster follows it", cluster().centreXv() > root().centreXv())
+        assertTrue("at 270 the cluster is still on the left", cluster().centreXv() < root().centreXv())
     }
 
     @Test
-    fun `S6 a cluster dragged to the port side stays on the port edge across a turn from ROTATION_90 to ROTATION_270`() {
+    fun `S6 a cluster dragged to the right stays on the right across a turn from ROTATION_90 to ROTATION_270`() {
         setScreen(Surface.ROTATION_90)
         dragMinimizeHandle(dxDp = 400.dp)
-        assertTrue("at 90 the cluster was dragged to the right, the port side", cluster().centreXv() > root().centreXv())
+        assertTrue("at 90 the cluster was dragged to the right", cluster().centreXv() > root().centreXv())
 
         turnTo(Surface.ROTATION_270)
 
-        assertTrue("at 270 the port edge is the left; the cluster follows it", cluster().centreXv() < root().centreXv())
+        assertTrue("at 270 the cluster is still on the right", cluster().centreXv() > root().centreXv())
     }
 
     private fun dragMinimizeHandle(dxDp: Dp) {
@@ -440,16 +461,18 @@ class AvailabilityScreenLandscapeB2Test {
         assertSameBounds("after the slide", mapBefore, mapBounds())
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"). Was: at 270 the rail slid toward the left,
+    // `it.right < railBefore.right - 0.5.dp && it.right > root().left`.
     @Test
-    fun `S7 entering fullscreen at ROTATION_270 slides the rail toward the port edge, left`() {
+    fun `S7 entering fullscreen at ROTATION_270 slides the rail off to the right, as at ROTATION_90`() {
         setScreen(Surface.ROTATION_270)
         val railBefore = rail()
         val mapBefore = mapBounds()
 
         val frames = railFramesAfter(mapBefore) { composeRule.onNodeWithContentDescription("Fullscreen").performClick() }
 
-        val midSlide = frames.filter { it.right < railBefore.right - 0.5.dp && it.right > root().left }
-        assertTrue("the rail must be seen part-way toward the port edge (left) on some frame; frames seen: $frames", midSlide.isNotEmpty())
+        val midSlide = frames.filter { it.left > railBefore.left + 0.5.dp && it.left < root().right }
+        assertTrue("the rail must be seen part-way toward the right on some frame; frames seen: $frames", midSlide.isNotEmpty())
         assertTrue("after the slide the rail is gone", !railExists())
     }
 
@@ -677,31 +700,39 @@ class AvailabilityScreenLandscapeB2TurnTest {
         composeRule.waitForIdle()
         assertTrue("portrait: the cluster starts on the right", cluster().centreXv() > root().centreXv())
 
-        // Portrait: drag it to the left.
-        val b = composeRule.onNodeWithTag(B2_MINIMIZE_HANDLE_TAG).getUnclippedBoundsInRoot()
-        val start = with(composeRule.density) { Offset(((b.left + b.right) / 2).toPx(), ((b.top + b.bottom) / 2).toPx()) }
-        val delta = with(composeRule.density) { Offset((-300).dp.toPx(), 0f) }
-        composeRule.onRoot().performTouchInput {
-            down(start)
-            advanceEventTime(600)
-            moveTo(start + delta)
-            advanceEventTime(50)
-            up()
+        fun drag(dx: Dp) {
+            val b = composeRule.onNodeWithTag(B2_MINIMIZE_HANDLE_TAG).getUnclippedBoundsInRoot()
+            val start = with(composeRule.density) { Offset(((b.left + b.right) / 2).toPx(), ((b.top + b.bottom) / 2).toPx()) }
+            val delta = with(composeRule.density) { Offset(dx.toPx(), 0f) }
+            composeRule.onRoot().performTouchInput {
+                down(start)
+                advanceEventTime(600)
+                moveTo(start + delta)
+                advanceEventTime(50)
+                up()
+            }
+            composeRule.waitForIdle()
+            composeRule.mainClock.advanceTimeBy(2_000)
+            composeRule.waitForIdle()
         }
-        composeRule.waitForIdle()
-        composeRule.mainClock.advanceTimeBy(2_000)
-        composeRule.waitForIdle()
+
+        // Portrait: drag it to the left.
+        drag((-300).dp)
         assertTrue("portrait: dragged to the left", cluster().centreXv() < root().centreXv())
 
-        // Turn to landscape at ROTATION_270: the port (and rail) is on the left, so the punch-hole
-        // side, the cluster's landscape default, is the right — landscape's own default, not the
-        // portrait drag to the left carried over. 270 is used because there the two differ.
+        // RECORD -956 (the owner: "One should look exactly line the other"): the landscape default is the screen's left at both
+        // rotations, the same side the portrait drag went to, so the default alone can no longer tell the two memories apart. Was:
+        // at ROTATION_270 the default was the right ("270 is used because there the two differ"), asserted right here. Now the
+        // landscape cluster is dragged to the right, and the portrait side read back afterwards: shared memory would carry the
+        // right back to portrait.
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_270)
         landscape = true
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
-        assertTrue("landscape at 270: the cluster defaults to the punch-hole side, the right", cluster().centreXv() > root().centreXv())
+        assertTrue("landscape at 270: the cluster defaults to the left", cluster().centreXv() < root().centreXv())
+        drag(300.dp)
+        assertTrue("landscape: dragged to the right", cluster().centreXv() > root().centreXv())
 
         // Back to portrait: the portrait drag is still remembered.
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_0)

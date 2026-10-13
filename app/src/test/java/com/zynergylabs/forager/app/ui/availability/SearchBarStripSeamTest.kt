@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.sp
@@ -54,17 +55,44 @@ class SearchBarStripSeamTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Dispatch 2026-10-12-06 (RECORD -934: the tuck supersedes RECORD -728's "no hang-down"): over the map the bar is the rounded
+     * pill with no divider, and the strip is tucked under it. Was: "the strip starts exactly at the search bar's divider, its
+     * visible bottom, with no fill below the divider" (strip.top == divider.bottom; the divider the bar's last line). Now the
+     * strip's own bounds, where its readouts and touches are, start at the pill's bottom, no gap and no overlap; only its fill
+     * reaches up behind the pill's rounded lower corners, which `MapChromeColourPixelsTests` reads as one 0.8 layer. No divider
+     * is drawn over the map, and the pill is 40 dp (RECORD -943; was "keeps its 45 dp").
+     */
     @Test
-    fun `the strip starts exactly at the search bar's divider, its visible bottom, with no fill below the divider`() {
+    fun `the strip's bounds start at the pill's bottom, no divider is drawn over the map, and the pill is 40 dp`() {
         setScreen()
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
-        val divider = bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG)
         val strip = bounds(STRIP_TAG)
-        println("MEASURED bar ${bar.top}..${bar.bottom}, divider ${divider.top}..${divider.bottom}, strip ${strip.top}..${strip.bottom}")
+        println("MEASURED bar ${bar.top}..${bar.bottom}, strip ${strip.top}..${strip.bottom}")
 
-        assertEquals("the divider is the bar's last line: nothing of the bar below it", bar.bottom.value, divider.bottom.value, 0.5f)
-        assertEquals("the strip starts at the divider's bottom: no overlap, no gap", divider.bottom.value, strip.top.value, 0.5f)
-        assertEquals("the bar's height is unchanged", 45f, (bar.bottom - bar.top).value, 0.5f)
+        assertTrue("no divider over the map", composeRule.onAllNodesWithTag(SEARCH_ENTRY_BAR_DIVIDER_TAG, useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
+        assertEquals("the strip's bounds start at the pill's bottom: no gap, no overlap", bar.bottom.value, strip.top.value, 0.5f)
+        // RECORD -943 (the owner: "The search panel has a very thick margin and it can afford to thin out"): the Maps tab's pill
+        // is 40 dp here, at 384 dp and font 1.0 (3 dp above its field, 4 dp and a 1 dp spacer below), the planner's floor. Was 45.
+        assertEquals("the pill is 40 dp", 40f, (bar.bottom - bar.top).value, 0.5f)
+        assertTrue("and no less than the planner's 40 dp floor", (bar.bottom - bar.top).value >= 40f - 0.5f)
+    }
+
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -951, item 8: "Enforce the 40 dp pill floor, with a test at font 0.85"): RECORD -943's floor
+     * held in code. At font 0.85 the field, twice a line, is shorter, and the pill would be about 37 dp without the floor; with it,
+     * 40, and the strip still starts at the pill's bottom.
+     */
+    @Test
+    @Config(fontScale = 0.85f)
+    fun `at font 0,85 the pill keeps its 40 dp floor and the strip still starts at its bottom`() {
+        setScreen()
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        val strip = bounds(STRIP_TAG)
+        println("MEASURED font 0.85: bar ${bar.top}..${bar.bottom} (${(bar.bottom - bar.top).value} dp), strip ${strip.top}..${strip.bottom}")
+        assertEquals("positive control: font 0.85", 0.85f, composeRule.density.fontScale, 0.001f)
+        assertTrue("the pill is at least 40 dp: ${(bar.bottom - bar.top).value}", (bar.bottom - bar.top).value >= 40f - 0.5f)
+        assertEquals("the strip's bounds start at the pill's bottom: no gap, no overlap", bar.bottom.value, strip.top.value, 0.5f)
     }
 
     private fun fontSizeOf(node: SemanticsNodeInteraction): Float {

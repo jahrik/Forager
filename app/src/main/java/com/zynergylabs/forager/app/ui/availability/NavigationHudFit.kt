@@ -38,13 +38,16 @@ internal fun staleFixShortText(ageMillis: Long): String = "${formatFixAge(ageMil
 internal fun lostFixShortText(ageMillis: Long): String = "No fix ${formatFixAge(ageMillis)}"
 
 /**
- * The bearing alone, "169°", from turn words "Sharp right · 169°" ([com.zynergylabs.forager.app.domain.turnText]); `null`
+ * The bearing alone, "169°", from turn words "sharp right 169°" ([com.zynergylabs.forager.app.domain.turnText]); `null`
  * when [turnText] is not turn words (empty, "Target"). Read from the text rather than stored beside it, so a readout copied
- * with new turn words (the approximate-position display's) shortens the words it actually shows.
+ * with new turn words (the approximate-position display's) shortens the words it actually shows. Dispatch 2026-10-12-06: the
+ * words lost their " · " separator, so the degrees are the last word; read before that by the separator, which would have
+ * returned `null` for every turn under the new wording and silently skipped the degrees-only form.
  */
 internal fun turnShortForm(turnText: String): String? {
-    val degrees = turnText.substringAfterLast(" · ", missingDelimiterValue = "")
-    return degrees.takeIf { it.isNotEmpty() && it.endsWith("°") }
+    if (!turnText.contains(' ')) return null
+    val degrees = turnText.substringAfterLast(' ')
+    return degrees.takeIf { it.length > 1 && it.endsWith("°") && it.dropLast(1).all(Char::isDigit) }
 }
 
 /** "≤ 16 ft" for "within 16 ft" ([com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy]); `null` for any other figure. */
@@ -155,5 +158,12 @@ internal fun routeMessageFit(availablePx: Int, widthInLargeType: (String) -> Int
  * the line, the rows' bottom [rowsBottomPx] plus the line and the display's bottom padding, must end within it; without a
  * limit, or before the rows are measured, it always may.
  */
+/**
+ * RECORD -955 ("C yes"): for the landscape card on the bottom edge (RECORD -953), whether the card, [heightWithStackPx] tall with
+ * the evening stack, keeps its top at or below [limitTopPx] from its fixed [bottomPx]. `null` limit, or not yet measured: it fits.
+ */
+internal fun eveningStackFitsBelow(bottomPx: Float, heightWithStackPx: Float, limitTopPx: Float?): Boolean =
+    limitTopPx == null || bottomPx.isNaN() || bottomPx - heightWithStackPx >= limitTopPx - 0.5f
+
 internal fun eveningLineFits(rowsBottomPx: Float, lineHeightPx: Float, bottomPaddingPx: Float, limitPx: Float?): Boolean =
     limitPx == null || rowsBottomPx.isNaN() || rowsBottomPx + lineHeightPx + bottomPaddingPx <= limitPx + 0.5f

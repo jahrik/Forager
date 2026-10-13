@@ -32,6 +32,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color as ComposeColor
@@ -297,6 +298,8 @@ fun SightingsMap(
     attributionBottomInset: Dp? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionKeepClear]'s own doc comment. */
     attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionBesideCredit]'s own doc comment. */
+    attributionBesideCredit: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.returnMemory]'s own doc comment. */
     returnMemory: MapReturnMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.backEnabled]'s own doc comment. */
@@ -1280,11 +1283,26 @@ fun SightingsMap(
             )
         }
     }
-    LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection) {
+    // RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): in a short landscape window
+    // the button moves to the bottom start, just past the credit strip's measured end, its bottom on the strip's bottom. It is
+    // MapLibre's own attribution control, so it moves through the same two UiSettings calls as before (gravity and margins), not
+    // as a composable; it opens what it always opened. Portrait and every other map keep the bottom-end corner.
+    var creditWidthPx by remember { mutableIntStateOf(0) }
+    val besideCreditGapPx = with(LocalDensity.current) { ATTRIBUTION_BESIDE_CREDIT_GAP_DP.dp.roundToPx() }
+    val creditBottomPx = with(LocalDensity.current) { bottomInset.roundToPx() }
+    LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection, attributionBesideCredit, creditWidthPx, creditBottomPx) {
         val map = mapLibreMap ?: return@LaunchedEffect
         val defaults = attributionDefaultMargins ?: return@LaunchedEffect
-        val (left, top, right, bottom) = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = layoutDirection == LayoutDirection.Rtl)
-        map.uiSettings.setAttributionMargins(left, top, right, bottom)
+        val isRtl = layoutDirection == LayoutDirection.Rtl
+        if (attributionBesideCredit && creditWidthPx > 0) {
+            map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.START)
+            val (left, top, right, bottom) = attributionBesideCreditMarginsPx(defaults, creditWidthPx, besideCreditGapPx, creditBottomPx, isRtl)
+            map.uiSettings.setAttributionMargins(left, top, right, bottom)
+        } else {
+            map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
+            val (left, top, right, bottom) = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = isRtl)
+            map.uiSettings.setAttributionMargins(left, top, right, bottom)
+        }
     }
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
@@ -1445,18 +1463,47 @@ fun SightingsMap(
         // matters for this app's USGS/ODbL credit and shouldn't quietly become tap-only.
         // A list of credits since map layers L0a (A5): the basemap's, then each visible layer's own
         // (none of today's layers has one, so the text is exactly what it always was).
-        Text(
+        MapCreditCaption(
             text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState), nightMode)),
-            style = MaterialTheme.typography.labelSmall,
-            color = ComposeColor.White,
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(bottom = bottomInset)
-                .background(ComposeColor.Black.copy(alpha = 0.55f))
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+                // RECORD -954: its laid-out width, for the "i" beside it in landscape.
+                .onSizeChanged { creditWidthPx = it.width },
         )
     }
 }
+
+/**
+ * The map's credit line, bottom left over the map. Dispatch 2026-10-12-06, RECORD -937 (the owner: "The open street maps tint
+ * strip can also have a rounded corner on the right side only, since the left runs to the edge"; then, correcting it, "curve
+ * only the upper right side since it's the only side exposed"): only its top-right corner was rounded. Dispatch 2026-10-12-08,
+ * RECORD -952 (the owner: "In either mode: can the openstreetmaps tint strip have all corners rounded instead of just the one
+ * corner, like a pill?"): all four corners round, half its height, a pill, in both orientations; this replaces -938's top-right
+ * corner only. Its tint is unchanged. A background and text, no pointer input, so a touch anywhere on it, its corner gaps
+ * included, reaches the map, as it always did (`MapCreditCaptionTouchTest`).
+ */
+@Composable
+internal fun MapCreditCaption(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = ComposeColor.White,
+        modifier = modifier
+            // The tag first, so its bounds are the tinted strip's, padding included.
+            .testTag(MAP_CREDIT_CAPTION_TAG)
+            .background(
+                ComposeColor.Black.copy(alpha = 0.55f),
+                androidx.compose.foundation.shape.RoundedCornerShape(percent = MAP_CREDIT_PILL_PERCENT),
+            )
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
+}
+
+/** RECORD -952: the credit line's corners, all four at half its height: a pill. Was RECORD -938's top-right corner, 8 dp. */
+internal const val MAP_CREDIT_PILL_PERCENT = 50
+
+internal const val MAP_CREDIT_CAPTION_TAG = "map-credit-caption"
 
 /**
  * Adds every overlay source and layer this composable draws, all starting with empty
@@ -1829,6 +1876,21 @@ private fun applyCameraRestore(map: MapLibreMap, restore: MapCameraRestore) {
  * which is the right in a left-to-right layout and the left in a right-to-left one (the button's
  * gravity is `BOTTOM or END`).
  */
+/**
+ * RECORD -954: MapLibre's attribution margins for its button at the bottom START, beside the map credit strip: the start margin is
+ * the strip's width plus [gapPx] (MapLibre's own start default replaced, since the strip itself starts at the map's edge), and the
+ * bottom margin is the strip's own bottom inset, so the two share a bottom edge. Top and end keep MapLibre's defaults. The pure
+ * half, so the arithmetic is a unit test (`AttributionBesideCreditTest`); what MapLibre draws there is device-only.
+ */
+internal fun attributionBesideCreditMarginsPx(defaults: IntArray, creditWidthPx: Int, gapPx: Int, creditBottomPx: Int, isRtl: Boolean): IntArray {
+    val (left, top, right, _) = defaults
+    val start = creditWidthPx + gapPx
+    return if (isRtl) intArrayOf(left, top, start, creditBottomPx) else intArrayOf(start, top, right, creditBottomPx)
+}
+
+/** RECORD -954: the gap between the map credit strip's end and the attribution button beside it. */
+internal const val ATTRIBUTION_BESIDE_CREDIT_GAP_DP = 4f
+
 internal fun attributionMarginsPx(defaults: IntArray, bottomInsetPx: Int, endInsetPx: Int, isRtl: Boolean): IntArray {
     val (left, top, right, bottom) = defaults
     return if (isRtl) {

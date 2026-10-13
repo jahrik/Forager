@@ -45,7 +45,7 @@ import org.robolectric.shadows.ShadowDisplay
 /**
  * RECORD -750 (dispatch 2026-09-28-750), items 1, 2 and 4, through the real [AvailabilityScreen] and the real
  * [AvailabilityViewModel] ([RealSearchScreenRig]), every touch real. Each test starts in portrait and turns the phone to the
- * S22's landscape windows (780 x 360 and 823 x 384 dp) at ROTATION_90 (the bar on the left) or ROTATION_270 (on the right),
+ * S22's landscape windows (780 x 360 and 823 x 384 dp) at ROTATION_90 or ROTATION_270 (the bar on the left at both since RECORD -956; was on the right at 270),
  * as the owner did.
  *
  * Item 1, the owner: "The drop down search panel has a gap between the top of the panel and the bottom of the bar. It should
@@ -124,11 +124,8 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         assertTrue("positive control: landscape after the turn (window ${w.d()})", (w.right - w.left) > (w.bottom - w.top))
         assertTrue("positive control: the landscape strip is up", shown(STRIP_TAG))
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
-        if (rotation == Surface.ROTATION_90) {
-            assertEquals("positive control: at ROTATION_90 the bar is on the left", w.left.value, bar.left.value, 0.5f)
-        } else {
-            assertEquals("positive control: at ROTATION_270 the bar is on the right", w.right.value, bar.right.value, 0.5f)
-        }
+        // RECORD -956 (the owner: "One should look exactly line the other"): the bar is on the left at both rotations. Was, at ROTATION_270: assertEquals("positive control: at ROTATION_270 the bar is on the right", w.right.value, bar.right.value, 0.5f)
+        assertEquals("positive control: the bar is on the left", w.left.value, bar.left.value, 0.5f)
     }
 
     private fun shown(tag: String) = composeRule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
@@ -146,11 +143,11 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         rig.tapBar()
         assertTrue("positive control: the bar's tap opened the dropdown", rig.dropdownShown())
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
-        val divider = bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG)
+        // Dispatch 2026-10-12-06: over the map the bar is the rounded pill, with no divider (RECORD -934); its own bottom is its
+        // visible bottom edge. Was: the divider's bottom, asserted equal to the bar's.
         val panel = bounds(SEARCH_DROPDOWN_TAG)
-        println("MEASURED -750 item 1 $landscape rotation $rotation: bar ${bar.d()}, divider ${divider.d()}, panel ${panel.d()}, gap ${(panel.top - divider.bottom).value}")
-        assertEquals("positive control: the divider is the bar's visible bottom edge", bar.bottom.value, divider.bottom.value, 0.5f)
-        assertEquals("the panel's top is the divider's bottom, no gap", divider.bottom.value, panel.top.value, 0.5f)
+        println("MEASURED -750 item 1 $landscape rotation $rotation: bar ${bar.d()}, panel ${panel.d()}, gap ${(panel.top - bar.bottom).value}")
+        assertEquals("the panel's top is the pill's bottom, no gap", bar.bottom.value, panel.top.value, 0.5f)
         assertEquals("the panel keeps the bar's left edge", bar.left.value, panel.left.value, 0.5f)
         assertEquals("the panel keeps the bar's right edge", bar.right.value, panel.right.value, 0.5f)
     }
@@ -282,11 +279,8 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         println("MEASURED -750 item 4 $landscape rotation $rotation search=$withSearch: bar ${bar.d()}, strip ${strip.d()}")
         assertEquals("the bar's top is the strip's top", strip.top.value, bar.top.value, 0.5f)
         assertEquals("the bar is the strip's height", (strip.bottom - strip.top).value, (bar.bottom - bar.top).value, 0.5f)
-        if (rotation == Surface.ROTATION_90) {
-            assertEquals("the bar ends where the strip begins", strip.left.value, bar.right.value, 0.5f)
-        } else {
-            assertEquals("the bar begins where the strip ends", strip.right.value, bar.left.value, 0.5f)
-        }
+        // RECORD -956 (the owner: "One should look exactly line the other"): the bar is on the left at both rotations. Was, at ROTATION_270: assertEquals("the bar begins where the strip ends", strip.right.value, bar.left.value, 0.5f)
+        assertEquals("the bar ends where the strip begins", strip.left.value, bar.right.value, 0.5f)
         val (text, layout) = summaryLayout()
         val visible = layout.getLineEnd(0, visibleEnd = true)
         println("MEASURED -750 item 4 summary <$text>: lines ${layout.lineCount}, visible $visible of ${text.length}, overflow ${layout.layoutInput.overflow}, lineRight ${layout.getLineRight(0)}, width ${layout.size.width}, ellipsised ${layout.isLineEllipsized(0)}, visualOverflow ${layout.hasVisualOverflow}, fontSize ${layout.layoutInput.style.fontSize}, offsetAtRight ${layout.getOffsetForPosition(androidx.compose.ui.geometry.Offset(layout.size.width - 1f, 10f))}")
@@ -361,20 +355,16 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
             if (state != "open") keyboard(180.dp, visible = true)
             val bar = bounds(SEARCH_ENTRY_BAR_TAG)
             val stripNow = bounds(STRIP_TAG)
-            val divider = bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG)
             val panel = bounds(SEARCH_DROPDOWN_TAG)
-            println("MEASURED -754 $landscape rotation $rotation long=$long $state: closed ${closed.d()}, bar ${bar.d()}, strip ${stripNow.d()}, divider ${divider.d()}, panel ${panel.d()}")
+            println("MEASURED -754 $landscape rotation $rotation long=$long $state: closed ${closed.d()}, bar ${bar.d()}, strip ${stripNow.d()}, panel ${panel.d()}")
             assertEquals("$state: the bar keeps its closed top", closed.top.value, bar.top.value, 0.5f)
             assertEquals("$state: the bar keeps its closed height, the strip's", (closed.bottom - closed.top).value, (bar.bottom - bar.top).value, 0.5f)
             assertEquals("$state: the bar keeps its closed left edge", closed.left.value, bar.left.value, 0.5f)
             assertEquals("$state: the bar keeps its closed right edge", closed.right.value, bar.right.value, 0.5f)
             assertEquals("$state: the strip is where it was", strip, stripNow)
-            if (rotation == Surface.ROTATION_90) {
-                assertEquals("$state: the bar ends where the strip begins", stripNow.left.value, bar.right.value, 0.5f)
-            } else {
-                assertEquals("$state: the bar begins where the strip ends", stripNow.right.value, bar.left.value, 0.5f)
-            }
-            assertEquals("$state: the panel hangs flush beneath the bar", divider.bottom.value, panel.top.value, 0.5f)
+            // RECORD -956 (the owner: "One should look exactly line the other"): the bar is on the left at both rotations. Was, at ROTATION_270: assertEquals("$state: the bar begins where the strip ends", stripNow.right.value, bar.left.value, 0.5f)
+            assertEquals("$state: the bar ends where the strip begins", stripNow.left.value, bar.right.value, 0.5f)
+            assertEquals("$state: the panel hangs flush beneath the bar", bar.bottom.value, panel.top.value, 0.5f)
         }
     }
 
@@ -401,17 +391,14 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
         val strip = bounds(STRIP_TAG)
         println("MEASURED -754 second turn $landscape rotation $rotation: first bar ${firstBar.d()}, bar ${bar.d()}, strip ${strip.d()}")
         assertEquals("the bar is the strip's height after the second turn", (strip.bottom - strip.top).value, (bar.bottom - bar.top).value, 0.5f)
-        if (rotation == Surface.ROTATION_90) {
-            assertEquals("the bar ends where the strip begins after the second turn", strip.left.value, bar.right.value, 0.5f)
-        } else {
-            assertEquals("the bar begins where the strip ends after the second turn", strip.right.value, bar.left.value, 0.5f)
-        }
+        // RECORD -956 (the owner: "One should look exactly line the other"): the bar is on the left at both rotations. Was, at ROTATION_270: assertEquals("the bar begins where the strip ends after the second turn", strip.right.value, bar.left.value, 0.5f)
+        assertEquals("the bar ends where the strip begins after the second turn", strip.left.value, bar.right.value, 0.5f)
         assertEquals("the bar is where the first turn put it", firstBar, bar)
         rig.tapBar()
         assertTrue("positive control: the bar's tap opened the dropdown", rig.dropdownShown())
         val open = bounds(SEARCH_ENTRY_BAR_TAG)
         assertEquals("open, the bar stays put", bar, open)
-        assertEquals("open, the panel hangs flush beneath it", bounds(SEARCH_ENTRY_BAR_DIVIDER_TAG).bottom.value, bounds(SEARCH_DROPDOWN_TAG).top.value, 0.5f)
+        assertEquals("open, the panel hangs flush beneath it", bounds(SEARCH_ENTRY_BAR_TAG).bottom.value, bounds(SEARCH_DROPDOWN_TAG).top.value, 0.5f)
     }
 
     @Test fun `754 at ROTATION_90 after a second turn into landscape the bar meets the strip, closed and open`() = assertSecondTurn(Surface.ROTATION_90)

@@ -1,7 +1,5 @@
 package com.zynergylabs.forager.app.ui.log
 
-import com.zynergylabs.forager.app.ui.adaptive.portEdgeFor
-
 /**
  * Which of the camera dialog's arrangements a session uses — chosen once when the camera opens and
  * held for the life of the dialog. Owner's requirement, device check on `51882cb`, step 3.4:
@@ -134,10 +132,12 @@ internal fun cameraArrangement(
     // the emulator 2026-09-19 — so anything that makes 180 reachable again needs a fourth
     // arrangement built with it. See this function's doc comment.
     lockToPortrait || !windowIsLandscape -> CameraArrangement.Portrait
-    // The rotation-to-port-edge mapping is shared with the main window's navigation rail and
-    // lives in one place, ui/adaptive's portEdgeFor (landscape B1, Resolution R16). Unchanged:
-    // ROTATION_270 is the port on the left, anything else in landscape the port on the right.
-    portEdgeFor(windowIsLandscape = true, displayRotation) == ScreenEdge.Left -> CameraArrangement.LandscapePortLeft
+    // RECORD -958 (asked whether the in-app camera should look the same both ways, as the map does since RECORD -956, the owner:
+    // "Yes"): in a landscape window the layout is the same at ROTATION_90 and ROTATION_270, as it was at ROTATION_90: the shutter on
+    // the screen's right, the strip on its left. On-screen placement only: the photo's orientation comes from the sensor
+    // (CameraCaptureSession.deviceRotation, CameraXCaptureSession's targetRotation), and the glyphs still turn by sensor minus display
+    // (rotateWithDevice), neither of which reads this. Was: portEdgeFor(displayRotation), the port's edge, so ROTATION_270 was the
+    // mirror ([CameraArrangement.LandscapePortLeft], now unreached; kept so the enum's history and its tests stay readable).
     else -> CameraArrangement.LandscapePortRight
 }
 

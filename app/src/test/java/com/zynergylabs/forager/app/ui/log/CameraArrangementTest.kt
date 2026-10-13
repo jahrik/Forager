@@ -41,30 +41,30 @@ class CameraArrangementTest {
             cameraArrangement(lockToPortrait = false, windowIsLandscape = false, displayRotation = Surface.ROTATION_180),
         )
 
-        // The two landscapes are mirror images and must not share an answer.
+        // RECORD -958 (the owner: "Yes", the camera to look the same both ways): both landscapes get ROTATION_90's arrangement,
+        // the shutter on the screen's right. Was: "The two landscapes are mirror images and must not share an answer", with
+        // ROTATION_270 expected as LandscapePortLeft.
         assertEquals(
-            "ROTATION_90, port on the user's right: " + portEdgeOf(CameraArrangement.LandscapePortRight),
+            "ROTATION_90: " + portEdgeOf(CameraArrangement.LandscapePortRight),
             CameraArrangement.LandscapePortRight,
             cameraArrangement(lockToPortrait = false, windowIsLandscape = true, displayRotation = Surface.ROTATION_90),
         )
         assertEquals(
-            "ROTATION_270, port on the user's left: " + portEdgeOf(CameraArrangement.LandscapePortLeft),
-            CameraArrangement.LandscapePortLeft,
+            "ROTATION_270, the same as ROTATION_90 (RECORD -958): " + portEdgeOf(CameraArrangement.LandscapePortRight),
+            CameraArrangement.LandscapePortRight,
             cameraArrangement(lockToPortrait = false, windowIsLandscape = true, displayRotation = Surface.ROTATION_270),
         )
     }
 
     @Test
-    fun `the two landscapes never resolve to the same arrangement`() {
-        // The defect in one line: the old function could not tell these apart, and any future
-        // change that collapses them reintroduces it.
+    fun `the two landscapes resolve to the same arrangement (RECORD -958)`() {
+        // RECORD -958 reverses this test. Was `the two landscapes never resolve to the same arrangement`, assertNotEquals(ninety,
+        // twoSeventy), "a landscape arrangement that ignores the rotation puts the shutter on the punch-hole edge in one of the two":
+        // the owner has since ruled the layout identical at both rotations; where the photo's orientation comes from is untouched
+        // (the sensor, not this function).
         val ninety = cameraArrangement(lockToPortrait = false, windowIsLandscape = true, displayRotation = Surface.ROTATION_90)
         val twoSeventy = cameraArrangement(lockToPortrait = false, windowIsLandscape = true, displayRotation = Surface.ROTATION_270)
-        org.junit.Assert.assertNotEquals(
-            "a landscape arrangement that ignores the rotation puts the shutter on the punch-hole edge in one of the two",
-            ninety,
-            twoSeventy,
-        )
+        assertEquals("one layout at both rotations", ninety, twoSeventy)
     }
 
     @Test
@@ -111,9 +111,11 @@ class CameraEdgesTest {
     }
 
     @Test
-    fun `the port edge is the window's right at ROTATION_90 and left at ROTATION_270`() {
-        assertEquals("port on the user's right", ScreenEdge.Right, portEdge(arrangementAt(Surface.ROTATION_90, landscape = true)))
-        assertEquals("port on the user's left", ScreenEdge.Left, portEdge(arrangementAt(Surface.ROTATION_270, landscape = true)))
+    fun `the shutter's edge is the window's right at ROTATION_90 and ROTATION_270 alike`() {
+        // RECORD -958: was `the port edge is the window's right at ROTATION_90 and left at ROTATION_270`, expecting ScreenEdge.Left at
+        // ROTATION_270. The arrangement no longer follows the port, so the edge the shutter is drawn on is the right at both.
+        assertEquals("ROTATION_90", ScreenEdge.Right, portEdge(arrangementAt(Surface.ROTATION_90, landscape = true)))
+        assertEquals("ROTATION_270 (RECORD -958)", ScreenEdge.Right, portEdge(arrangementAt(Surface.ROTATION_270, landscape = true)))
     }
 
     @Test
