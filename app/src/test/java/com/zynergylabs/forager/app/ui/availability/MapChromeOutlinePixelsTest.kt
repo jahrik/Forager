@@ -153,7 +153,8 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
     private fun capture(shot: String) {
         val bitmap: ImageBitmap = composeRule.onRoot().captureToImage()
         val dir = File("build/test-results/testDebugUnitTest/map-chrome-outline-screens").apply { mkdirs() }
-        val file = File(dir, "$orientation-$shot-$theme.png")
+        val widthDp = (bitmap.width / composeRule.density.density).roundToInt()
+        val file = File(dir, "$orientation-$widthDp-$shot-$theme.png")
         file.outputStream().use { bitmap.asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
         println("SCREENSHOT|${file.absolutePath}|${bitmap.width}x${bitmap.height}")
         image = bitmap.toPixelMap()
@@ -356,6 +357,84 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertLineNear("the rail's rounded inner top corner", px(rail.left + arcInset), px(rail.top + arcInset), fill)
         assertLineNear("the rail's rounded inner bottom corner", px(rail.left + arcInset), px(rail.bottom - arcInset), fill)
         assertNoLine("the rail's outer side, on the screen's edge", inEnd(rail.right), px(mid), at(rail.right - 6.dp, mid))
+        // RECORD -990 (the owner: "can landscape get the same navigation bar outline treatment?"): its top and bottom carry the
+        // line out to the screen's edge, as the bottom bar's sides do (-989). Until -990 these carried none (not asserted).
+        assertLine("the rail's top", px(rail.left + 40.dp), inStart(rail.top), fill)
+        assertLine("the rail's top, at the screen's edge", inEnd(rail.right) - 3, inStart(rail.top), at(rail.right - 6.dp, mid))
+        assertLine("the rail's bottom", px(rail.left + 40.dp), inEnd(rail.bottom), fill)
+        assertLine("the rail's bottom, at the screen's edge", inEnd(rail.right) - 3, inEnd(rail.bottom), at(rail.right - 6.dp, mid))
+    }
+
+    /**
+     * RECORD -990 (the owner: "there's still a slight gap in the outline in landscape mode"). Read from the owner's S26 Ultra
+     * screenshot: where the strip's rounded end meets the rail, its corner arcs ended one stroke inside the strip while the rail's
+     * line runs one stroke inside the rail, so between the two arcs the outline stepped out by a stroke (3 px at xxhdpi) and the
+     * strip's fill showed through the step. No map pixels show there, so a check for map pixels on the outline cannot see it;
+     * this one follows the line instead. Row by row down the piece's end, it finds the innermost run of outline pixels (the one
+     * nearest the piece) and requires its centre to move by at most [MAX_STEP_PX] from one row to the next.
+     */
+    private fun assertEndOutlineContinuous(what: String, piece: DpRect, rail: DpRect, pieceFill: Color, railFill: Color, fromY: Dp, toY: Dp) {
+        val x0 = px(piece.right) - px(8.dp)
+        val x1 = px(rail.left) + px(4.dp)
+        var last: Float? = null
+        val centres = mutableListOf<Float>()
+        for (y in px(fromY)..px(toY)) {
+            val line = (x0..x1).filter { x -> isJoinLine(at(x, y), pieceFill, railFill) }
+            assertTrue("$what: the outline is there at row $y px (x $x0..$x1)", line.isNotEmpty())
+            val run = line.takeWhile { it - line.first() < 4 && (it == line.first() || line.contains(it - 1)) }
+            val centre = run.average().toFloat()
+            centres += centre
+            last?.let { prev ->
+                assertTrue(
+                    "$what: the outline steps by ${"%.1f".format(abs(centre - prev))} px between rows ${y - 1} and $y (from $prev to $centre); " +
+                        "centres ${centres.joinToString { "%.1f".format(it) }}",
+                    abs(centre - prev) <= MAX_STEP_PX,
+                )
+            }
+            last = centre
+        }
+        println("MEASURED $orientation $theme $what: centres ${centres.joinToString { "%.1f".format(it) }}")
+    }
+
+    /**
+     * RECORD -990, the walk: around the joined top bar and the rail, every short run across the outline holds an outline pixel,
+     * so no stretch shows the map, or a fill, where a line should be. The runs cross: the pill's and the strip's bottoms and tops
+     * between their corners, the rail's inner edge from below its top corner to above its bottom corner, and the rail's top
+     * and bottom out to the screen's edge.
+     */
+    private fun assertWalkFindsLine(what: String, runs: List<List<Pair<Int, Int>>>, fillA: Color, fillB: Color) {
+        val broken = runs.filter { run -> run.none { (x, y) -> isLine(at(x, y), fillA) || isLine(at(x, y), fillB) } }
+        println("MEASURED $orientation $theme walk $what: ${runs.size} runs, ${broken.size} without a line")
+        assertTrue("$what: every run across the outline holds a line pixel; ${broken.size} of ${runs.size} do not, first at ${broken.firstOrNull()?.firstOrNull()}", broken.isEmpty())
+    }
+
+    protected fun landscapeOutlineUnbroken() {
+        setScreen(navigating = false, shot = "pill-strip-rail")
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val strip = bounds(STRIP_TAG)
+        val rail = bounds(COMPACT_NAVIGATION_RAIL_TAG)
+        val pillFill = at(pill.left + 40.dp, (pill.top + pill.bottom) / 2)
+        val stripFill = at(strip.left + 24.dp, (strip.top + strip.bottom) / 2)
+        val railFill = at(rail.left + 6.dp, (rail.top + rail.bottom) / 2)
+        val r = 16.dp
+        fun across(x: Int, edgeY: Int) = (edgeY - 4..edgeY + 4).filter { it in 0 until image.height }.map { x to it }
+        fun down(y: Int, edgeX: Int) = (edgeX - 4..edgeX + 4).filter { it in 0 until image.width }.map { it to y }
+        assertWalkFindsLine("the pill's top and bottom", (px(pill.left + r)..px(pill.right - 2.dp) step 3).flatMap { listOf(across(it, px(pill.top) + 1), across(it, px(pill.bottom) - 2)) }, pillFill, stripFill)
+        assertWalkFindsLine("the strip's top and bottom", (px(strip.left + 2.dp)..px(strip.right - r) step 3).flatMap { listOf(across(it, px(strip.top) + 1), across(it, px(strip.bottom) - 2)) }, stripFill, pillFill)
+        assertWalkFindsLine("the rail's inner edge", (px(rail.top + r)..px(rail.bottom - r) step 3).map { down(it, px(rail.left) + 1) }, railFill, stripFill)
+        assertWalkFindsLine("the rail's top and bottom", (px(rail.left + r)..px(rail.right) - 1 step 3).flatMap { listOf(across(it, px(rail.top) + 1), across(it, px(rail.bottom) - 2)) }, railFill, railFill)
+        assertWalkFindsLine("the pill's outer end", (px(pill.top + r)..px(pill.bottom - r)).map { down(it, px(pill.left) + 1) }, pillFill, pillFill)
+        assertEndOutlineContinuous("the strip's end against the rail", strip, rail, stripFill, railFill, strip.top + 6.dp, strip.bottom - 6.dp)
+    }
+
+    protected fun landscapeCardEndUnbroken() {
+        setScreen(navigating = true, shot = "navigating")
+        val card = bounds(NAVIGATION_HUD_TAG)
+        val rail = bounds(COMPACT_NAVIGATION_RAIL_TAG)
+        val y = card.top + 30.dp
+        val cardFill = at(card.left + 4.dp, y)
+        val railFill = at(rail.left + 6.dp, y)
+        assertEndOutlineContinuous("the navigation card's end against the rail", card, rail, cardFill, railFill, card.top + 6.dp, card.top + 40.dp)
     }
 
     protected fun landscapeCard() {
@@ -418,6 +497,9 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
 
         /** See [isJoinLine]. */
         const val JOIN_CLEAR_OF_FILLS = 0.18f
+
+        /** See [assertEndOutlineContinuous]: an arc near its end moves well under a pixel a row; the step it guards is 3 px. */
+        const val MAX_STEP_PX = 1.5f
     }
 }
 
@@ -434,11 +516,15 @@ abstract class MapChromeOutlinePortraitTests(dark: Boolean) : MapChromeOutlinePi
 abstract class MapChromeOutlineLandscapeTests(dark: Boolean) : MapChromeOutlinePixelsTests(dark, rotation = Surface.ROTATION_90) {
     @Test fun `the pill and the strip are outlined all the way round, with one line on each join`() = landscapePillAndStrip()
 
-    @Test fun `the rail is outlined on its inner edge and corners, not its outer side`() = landscapeRail()
+    @Test fun `the rail is outlined on its inner edge, corners, top and bottom, not its outer side`() = landscapeRail()
 
     @Test fun `the navigation card is outlined on its top and inner side, not its bottom, with one line against the rail`() = landscapeCard()
 
     @Test fun `in fullscreen the strip draws its side by the pill and its far end on the window's edge`() = landscapeFullscreenStrip()
+
+    @Test fun `the outline round the top bar and the rail is unbroken, and the strip's end meets the rail's line without a step`() = landscapeOutlineUnbroken()
+
+    @Test fun `navigating, the card's end meets the rail's line without a step`() = landscapeCardEndUnbroken()
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -460,3 +546,13 @@ class MapChromeOutlineLandscapeDayTest : MapChromeOutlineLandscapeTests(dark = f
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class MapChromeOutlineLandscapeNightTest : MapChromeOutlineLandscapeTests(dark = true)
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w780dp-h360dp-land-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class MapChromeOutlineLandscape780DayTest : MapChromeOutlineLandscapeTests(dark = false)
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w780dp-h360dp-land-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class MapChromeOutlineLandscape780NightTest : MapChromeOutlineLandscapeTests(dark = true)

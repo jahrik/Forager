@@ -401,8 +401,8 @@ internal val MAP_CHROME_OUTLINE_WIDTH = 1.dp
  * Which sides of a piece of map chrome carry the outline (RECORD -967, the owner: "1 C one line between the two like there is
  * now" and "2 yes"). Absolute sides, since the pieces sit against absolute screen edges.
  *
- * - **A side on the screen's own edge carries none** (RECORD -967): the rail's outer side, top and bottom, the bottom bar's
- *   bottom and the landscape card's bottom.
+ * - **A side on the screen's own edge carries none** (RECORD -967): the rail's outer side (by the system's navigation buttons),
+ *   the bottom bar's bottom and the landscape card's bottom. The rail's top and bottom carry it since RECORD -990.
  * - **Except, since the owner's later answers:**
  *   - the top pills in portrait (RECORD -976, "Have the outlines follow the entire pill at top"): the search pill all the way
  *     round, the compass strip on its sides and bottom, its top left open under the pill;
@@ -417,7 +417,21 @@ internal val MAP_CHROME_OUTLINE_WIDTH = 1.dp
  *   is one straight edge the full height of the screen, and the strip and card cover parts of it that change while navigating.
  * - **A rounded corner always carries the outline**: its gap shows the map, whichever sides it joins.
  */
-internal data class MapChromeOutlineSides(val left: Boolean, val top: Boolean, val right: Boolean, val bottom: Boolean)
+internal data class MapChromeOutlineSides(
+    val left: Boolean,
+    val top: Boolean,
+    val right: Boolean,
+    val bottom: Boolean,
+    /**
+     * RECORD -990 (the owner: "there's still a slight gap in the outline in landscape mode"): a side left open because the piece
+     * beside it draws the one shared line there (the strip and the navigation card beside the rail). Its rounded corners then
+     * run out to that line's centre, one stroke beyond this piece's own edge, so they meet the neighbour's line with no step.
+     * Before -990 they ended inside the piece, one stroke short of the rail's line, and the outline stepped out by that much
+     * between the corners (the owner's S26 Ultra screenshot, the strip's end against the rail).
+     */
+    val leftShared: Boolean = false,
+    val rightShared: Boolean = false,
+)
 
 /**
  * The open outline of a piece [size] big with these corner radii (px), as one path: the drawn [sides] and every rounded corner,
@@ -436,9 +450,9 @@ internal fun mapChromeOutlinePath(
     sides: MapChromeOutlineSides,
 ): Path {
     val h = strokePx / 2f
-    val l = h
+    val l = if (sides.leftShared && !sides.left) -h else h
     val t = h
-    val r = size.width - h
+    val r = if (sides.rightShared && !sides.right) size.width + h else size.width - h
     val b = size.height - h
     val tl = (topLeft - h).coerceAtLeast(0f)
     val tr = (topRight - h).coerceAtLeast(0f)

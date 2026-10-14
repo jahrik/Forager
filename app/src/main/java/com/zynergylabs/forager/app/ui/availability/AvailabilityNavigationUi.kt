@@ -278,19 +278,21 @@ internal fun ForagerNavigationRail(
             .then(if (innerCornerRadius > 0.dp) Modifier.clip(innerCorners) else Modifier)
             // Dispatch 2026-10-13-02 (RECORD -966, -967): over the map, the icon bar's outline along the rail's inner edge and its
             // two rounded corners there. The inner edge is the one line between the rail and the landscape strip and navigation
-            // card beside it, which leave that side open while the rail is shown (MapChromeOutlineSides). Its outer side, top
-            // and bottom lie on the screen's edges and carry none.
+            // card beside it, which leave that side open while the rail is shown (MapChromeOutlineSides). RECORD -990 (the owner:
+            // "can landscape get the same navigation bar outline treatment?", -989's for the bottom bar): along its top and bottom
+            // too, out to the screen's edge; its outer side, which meets the system's navigation buttons, carries none. Until -990
+            // its top and bottom carried none either.
             .then(
                 if (innerCornerRadius > 0.dp) {
                     if (portEdge == ScreenEdge.Left) {
                         Modifier.mapChromeEdges(
                             mapChromeOutline(), 0.dp, innerCornerRadius, innerCornerRadius, 0.dp,
-                            MapChromeOutlineSides(left = false, top = false, right = true, bottom = false),
+                            MapChromeOutlineSides(left = false, top = true, right = true, bottom = true),
                         )
                     } else {
                         Modifier.mapChromeEdges(
                             mapChromeOutline(), innerCornerRadius, 0.dp, 0.dp, innerCornerRadius,
-                            MapChromeOutlineSides(left = true, top = false, right = false, bottom = false),
+                            MapChromeOutlineSides(left = true, top = true, right = false, bottom = true),
                         )
                     }
                 } else {

@@ -283,9 +283,10 @@ internal fun landscapeColumnOutlineSides(
     railSideOnScreenEdgeDrawn: Boolean = false,
 ): MapChromeOutlineSides {
     val railSide = !railShown && (railSideInset > 0.dp || railSideOnScreenEdgeDrawn)
+    // RECORD -990: while the rail is shown it draws the shared line, and this piece's rounded corners on that side meet it.
     return if (railPortEdge == ScreenEdge.Left) {
-        MapChromeOutlineSides(left = railSide, top = top, right = innerSideDrawn, bottom = bottom)
+        MapChromeOutlineSides(left = railSide, top = top, right = innerSideDrawn, bottom = bottom, leftShared = railShown)
     } else {
-        MapChromeOutlineSides(left = innerSideDrawn, top = top, right = railSide, bottom = bottom)
+        MapChromeOutlineSides(left = innerSideDrawn, top = top, right = railSide, bottom = bottom, rightShared = railShown)
     }
 }
