@@ -50,17 +50,17 @@ class NaturalOrientationHoldTest {
     }
 
     @Test
-    fun `a quarter turn (ROTATION_90): natural top is the window's left, natural bottom its right`() {
+    fun `a quarter turn (ROTATION_90), natural top is the window's left, natural bottom its right`() {
         assertEquals(EdgeInsets(left = 4.dp, top = 1.dp, right = 2.dp, bottom = 3.dp), windowEdgesInNaturalFrame(window, quarterTurns = 1))
     }
 
     @Test
-    fun `a half turn (ROTATION_180): opposite edges swap`() {
+    fun `a half turn (ROTATION_180), opposite edges swap`() {
         assertEquals(EdgeInsets(left = 3.dp, top = 4.dp, right = 1.dp, bottom = 2.dp), windowEdgesInNaturalFrame(window, quarterTurns = 2))
     }
 
     @Test
-    fun `three quarters (ROTATION_270): natural top is the window's right, natural bottom its left`() {
+    fun `three quarters (ROTATION_270), natural top is the window's right, natural bottom its left`() {
         assertEquals(EdgeInsets(left = 2.dp, top = 3.dp, right = 4.dp, bottom = 1.dp), windowEdgesInNaturalFrame(window, quarterTurns = 3))
     }
 }

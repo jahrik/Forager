@@ -131,7 +131,7 @@ class InAppCameraLargeScreenHoldTest {
     }
 
     @Test
-    fun `at ROTATION_90, full screen, the layout stays the device's own: shutter on the natural bottom, strip on the natural top`() {
+    fun `at ROTATION_90, full screen, the layout stays the device's own, shutter on the natural bottom, strip on the natural top`() {
         open(Surface.ROTATION_90)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
@@ -149,7 +149,7 @@ class InAppCameraLargeScreenHoldTest {
     }
 
     @Test
-    fun `at ROTATION_270, full screen, the layout stays the device's own: shutter on the window's left, strip on its right`() {
+    fun `at ROTATION_270, full screen, the layout stays the device's own, shutter on the window's left, strip on its right`() {
         open(Surface.ROTATION_270)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
@@ -227,7 +227,7 @@ class InAppCameraLargeScreenHoldTest {
 
     /** RECORD -985: in split screen or a freeform window the content lays out to the window's own shape, as before the hold. */
     @Test
-    fun `in a multi-window window there is no hold: the landscape arrangement, and the turn cancels`() {
+    fun `in a multi-window window there is no hold, the landscape arrangement, and the turn cancels`() {
         open(Surface.ROTATION_270, multiWindow = true)
         val frame = bounds(IN_APP_CAMERA_TAG)
         assertEquals("the landscape arrangement: shutter on the window's right (RECORD -958)", (frame.right - Spacing.lg).value, bounds(CAMERA_SHUTTER_TAG).right.value, 0.51f)
