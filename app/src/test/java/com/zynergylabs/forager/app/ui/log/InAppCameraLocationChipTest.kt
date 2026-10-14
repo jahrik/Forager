@@ -72,7 +72,6 @@ class InAppCameraLocationChipTest {
             InAppCameraDialog(
                 session = FakeCameraCaptureSession(),
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                lockToPortrait = false,
                 onPhotoCaptured = {},
                 onDismiss = {},
                 gridMode = GridMode.Off,

@@ -89,6 +89,10 @@ package com.zynergylabs.forager.app.ui.log
  * two window inputs are constant and cannot disagree with the window. It goes through the same
  * `remember` as setting off. It is not protected: the moment either input stops being constant —
  * a platform that ignores the portrait request, say — it is on the same path as everything else.
+ *
+ * **History since dispatch 2026-10-13-03:** "Lock camera to portrait" was removed (RECORD -968), and
+ * with it this function's first input, `lockToPortrait`, which returned [CameraArrangement.Portrait]
+ * whatever the window. "The setting" above, and "setting off" throughout, now describe the only case.
  */
 internal enum class CameraArrangement {
     /** Today's layout: Done top-left, count and shutter along the bottom, controls turning in place. */
@@ -121,7 +125,6 @@ internal enum class CameraArrangement {
  * test can state what each of the four produces.
  */
 internal fun cameraArrangement(
-    lockToPortrait: Boolean,
     windowIsLandscape: Boolean,
     displayRotation: Int,
 ): CameraArrangement = when {
@@ -131,7 +134,7 @@ internal fun cameraArrangement(
     // *would* be wrong there — shutter on the punch-hole edge, strip on the port edge, measured on
     // the emulator 2026-09-19 — so anything that makes 180 reachable again needs a fourth
     // arrangement built with it. See this function's doc comment.
-    lockToPortrait || !windowIsLandscape -> CameraArrangement.Portrait
+    !windowIsLandscape -> CameraArrangement.Portrait
     // RECORD -958 (asked whether the in-app camera should look the same both ways, as the map does since RECORD -956, the owner:
     // "Yes"): in a landscape window the layout is the same at ROTATION_90 and ROTATION_270, as it was at ROTATION_90: the shutter on
     // the screen's right, the strip on its left. On-screen placement only: the photo's orientation comes from the sensor

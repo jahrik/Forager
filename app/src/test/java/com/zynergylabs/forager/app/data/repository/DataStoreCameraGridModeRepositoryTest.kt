@@ -17,7 +17,8 @@ import org.robolectric.annotation.Config
 
 /**
  * A real round trip through Jetpack DataStore, the same shape and per-test file deletion as
- * [DataStoreCameraOrientationPreferenceRepositoryTest], plus the fake the camera's tests use, held
+ * [DataStorePhotoLocationPreferenceRepositoryTest] (the camera-orientation test it named was removed with that setting,
+ * dispatch 2026-10-13-03), plus the fake the camera's tests use, held
  * to the same round trip so the two cannot drift apart.
  */
 @RunWith(RobolectricTestRunner::class)

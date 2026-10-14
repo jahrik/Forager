@@ -32,6 +32,14 @@ import org.robolectric.annotation.Config
  * surfaces as `Result.failure` — asserted here too, since a capture that cannot happen must not
  * read as one that did.
  *
+ * ## Since dispatch 2026-10-13-03
+ *
+ * "Lock camera to portrait" was removed (RECORD -968), and with it the two tests that held its shot
+ * to `ROTATION_0` (`locked, the shot assigns ROTATION_0 whatever the sensor said` and `locked before
+ * any reading, the shot still assigns ROTATION_0`); they are recorded in
+ * `docs/archive/camera-portrait-lock.md`. The unlocked tests below were the setting-off case and are
+ * now the only case. "Unlocked" in their names is kept so the history above still reads.
+ *
  * ## What a coincident default would hide, and how it is kept out
  *
  * `ImageCapture`'s default target rotation is `ROTATION_0`, which is also what the lock assigns.
@@ -55,21 +63,6 @@ class CameraXCaptureSessionShotRotationTest {
 
     private fun imageCaptureAt(rotation: Int): ImageCapture = ImageCapture.Builder().setTargetRotation(rotation).build()
 
-    @Test
-    fun `locked, the shot assigns ROTATION_0 whatever the sensor said`() = runTest {
-        val session = CameraXCaptureSession(app, lockToPortrait = true)
-        val capture = imageCaptureAt(Surface.ROTATION_90)
-        session.installImageCapture(capture)
-        session.onDeviceOrientation(270) // a quarter turn counter-clockwise: ROTATION_90 when unlocked
-        assertEquals("precondition: not already where the lock would put it", Surface.ROTATION_90, capture.targetRotation)
-
-        val result = session.capture(destination())
-
-        assertEquals(Surface.ROTATION_0, capture.targetRotation)
-        assertTrue("an unbound ImageCapture cannot shoot, and that is reported, not hidden", result.isFailure)
-        assertTrue(result.exceptionOrNull() is ImageCaptureException)
-    }
-
     /**
      * **The sensor reads reverse portrait even though the window cannot occupy it.** Since
      * 2026-09-19 the camera's window asks for `SCREEN_ORIENTATION_SENSOR`, which the platform will
@@ -84,7 +77,7 @@ class CameraXCaptureSessionShotRotationTest {
      */
     @Test
     fun `the sensor still reports reverse portrait, which is the gill shot, whatever the window may occupy`() = runTest {
-        val session = CameraXCaptureSession(app, lockToPortrait = false)
+        val session = CameraXCaptureSession(app)
         val capture = imageCaptureAt(Surface.ROTATION_0)
         session.installImageCapture(capture)
         session.onDeviceOrientation(180) // held end over end
@@ -97,31 +90,23 @@ class CameraXCaptureSessionShotRotationTest {
 
     @Test
     fun `unlocked, the shot assigns the sensor's rotation`() = runTest {
-        val session = CameraXCaptureSession(app, lockToPortrait = false)
+        val session = CameraXCaptureSession(app)
         val capture = imageCaptureAt(Surface.ROTATION_0)
         session.installImageCapture(capture)
         session.onDeviceOrientation(270)
         assertEquals("precondition", Surface.ROTATION_0, capture.targetRotation)
 
-        session.capture(destination())
+        val result = session.capture(destination())
 
         assertEquals(Surface.ROTATION_90, capture.targetRotation)
-    }
-
-    @Test
-    fun `locked before any reading, the shot still assigns ROTATION_0`() = runTest {
-        val session = CameraXCaptureSession(app, lockToPortrait = true)
-        val capture = imageCaptureAt(Surface.ROTATION_270)
-        session.installImageCapture(capture)
-
-        session.capture(destination())
-
-        assertEquals(Surface.ROTATION_0, capture.targetRotation)
+        // Moved here from the removed locked test (dispatch 2026-10-13-03), which was the only one asserting it.
+        assertTrue("an unbound ImageCapture cannot shoot, and that is reported, not hidden", result.isFailure)
+        assertTrue(result.exceptionOrNull() is ImageCaptureException)
     }
 
     @Test
     fun `unlocked with no reading and no viewfinder, nothing is assigned`() = runTest {
-        val session = CameraXCaptureSession(app, lockToPortrait = false)
+        val session = CameraXCaptureSession(app)
         val capture = imageCaptureAt(Surface.ROTATION_270)
         session.installImageCapture(capture)
 
@@ -132,7 +117,7 @@ class CameraXCaptureSessionShotRotationTest {
 
     @Test
     fun `an unknown orientation from the listener is not a reading`() {
-        val session = CameraXCaptureSession(app, lockToPortrait = false)
+        val session = CameraXCaptureSession(app)
         session.onDeviceOrientation(OrientationEventListener.ORIENTATION_UNKNOWN)
         assertNull(session.deviceRotation)
         session.onDeviceOrientation(0)

@@ -119,7 +119,6 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedOfflinePickerNightModeLoaded: Boolean? = null
     private var capturedThemeMode: AppThemeMode? = null
     private var capturedAutoSaveLocation: Boolean? = null
-    private var capturedLockCamera: Boolean? = null
 
     /** See this class's doc comment for why the two map instances are told apart by content. */
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
@@ -209,10 +208,6 @@ class AvailabilityScreenSettingsPanelTest {
                 onAutoSaveLocationToPhotosChanged = { enabled ->
                     current = current.copy(autoSaveLocationToPhotos = enabled)
                     capturedAutoSaveLocation = enabled
-                },
-                onLockCameraToPortraitChanged = { enabled ->
-                    current = current.copy(lockCameraToPortrait = enabled)
-                    capturedLockCamera = enabled
                 },
                 onThemeModeChanged = { mode ->
                     current = current.copy(themeMode = mode)
@@ -819,9 +814,9 @@ class AvailabilityScreenSettingsPanelTest {
     /**
      * Dispatch 2026-09-28-707 (the owner: "Move the two camera options at the bottom to a settings
      * menu inside the camera itself"): Settings no longer shows "Automatically Save Location to
-     * Photos" or "Lock camera to portrait", nor their explanations. They are the camera's gear panel's
-     * now, where `InAppCameraSettingsPanelTest` holds what these two tests held here: the defaults
-     * (location on, lock off), the explanations, and that a touch writes the value.
+     * Photos" or "Lock camera to portrait", nor their explanations. They were the camera's gear panel's
+     * until dispatch 2026-10-13-03 removed both (RECORD -968, -972); photo location is now set from the
+     * camera strip's Location chip alone, and the lock is gone. This test's own check is unchanged.
      *
      * Replaces `the photo-location checkbox starts on, explains itself, and toggles` and `the
      * lock-camera checkbox starts off, explains that sideways photos save portrait, and toggles`,
@@ -835,11 +830,16 @@ class AvailabilityScreenSettingsPanelTest {
 
         // Settings is the page showing: its own rows are there.
         composeRule.onNodeWithText("Night Maps").assertIsDisplayed()
-        for (text in listOf(PHOTO_LOCATION_SETTING_LABEL, PHOTO_LOCATION_SETTING_EXPLANATION, LOCK_CAMERA_SETTING_LABEL, LOCK_CAMERA_SETTING_EXPLANATION)) {
+        // Dispatch 2026-10-13-03 removed the four string constants with the gear panel's rows; the strings are written out.
+        for (text in listOf(
+            "Automatically Save Location to Photos",
+            "When saving photos, metadata is stripped of the location data. Enabling this option captures your current position, and saves it to the Journal entry instead. This allows you to share your photos outside the app without the location being revealed.",
+            "Lock camera to portrait",
+            "Keeps the camera and its controls still when you turn the phone. Photos are always saved in portrait, even when you hold the phone sideways.",
+        )) {
             assertEquals("'$text' is not in Settings", 0, composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size)
         }
         assertEquals("nothing is written just by opening Settings", null, capturedAutoSaveLocation)
-        assertEquals(null, capturedLockCamera)
     }
 }
 

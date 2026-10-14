@@ -91,7 +91,6 @@ class InAppCameraTimerTest {
                 InAppCameraDialog(
                     session = session,
                     cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                    lockToPortrait = false,
                     onPhotoCaptured = { captured += it },
                     onDismiss = { dismissals += 1; shown = false },
                     gridMode = GridMode.Off,

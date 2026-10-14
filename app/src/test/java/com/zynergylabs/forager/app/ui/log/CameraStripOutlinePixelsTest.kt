@@ -79,7 +79,6 @@ class CameraStripOutlinePixelsTest {
             InAppCameraDialog(
                 session = FakeCameraCaptureSession(),
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                lockToPortrait = false,
                 onPhotoCaptured = {},
                 onDismiss = {},
                 gridMode = gridMode,

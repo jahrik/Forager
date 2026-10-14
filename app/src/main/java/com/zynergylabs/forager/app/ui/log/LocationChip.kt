@@ -15,10 +15,12 @@ import androidx.compose.ui.platform.testTag
 /**
  * The strip's Location chip (decision B8 / Closed decision D, 2026-09-26): shows and sets Settings'
  * "Automatically Save Location to Photos" — the one stored value, not a per-shot override. The B3
- * mirror: the camera and Settings are two views of the same setting.
+ * mirror: the camera and Settings are two views of the same setting. Since dispatch 2026-10-13-03
+ * the chip is the only one: Settings' row moved to the camera's gear panel (dispatch 2026-09-28-707),
+ * and the panel's row was removed (RECORD -972).
  *
  * **[autoSaveLocationToPhotos] is the stored value**, handed down from `AvailabilityScreen`'s
- * `uiState` the way "Lock camera to portrait" is. A tap calls [onAutoSaveLocationToPhotosChanged]
+ * `uiState` the way "Lock camera to portrait" was until its removal. A tap calls [onAutoSaveLocationToPhotosChanged]
  * with the toggled value — the same handler Settings' checkbox calls — and changes nothing here;
  * the chip shows the new value when the screen's state has it. It never writes the repository.
  *
