@@ -132,6 +132,28 @@ internal const val COMPASS_STRIP_ELEVATION_TAG = "compass-strip-elevation"
 /** The compass strip's coordinates, the tap that switches their format (dispatch 2026-09-28-685, Amendment 2). */
 internal const val COMPASS_STRIP_COORDINATES_TAG = "compass-strip-coordinates"
 
+/** The compass strip's north arrow's fixed slot (dispatch 2026-10-13-02, RECORD -983), for tests. */
+internal const val COMPASS_STRIP_NEEDLE_TAG = "compass-strip-needle"
+
+/**
+ * Dispatch 2026-10-13-02, RECORD -983 (the owner: "Another thing for the landscape mode UI, have the telemetry centered between
+ * the compass arrow and the three dot menu. Right now it's way too close to the arrow"): how far the landscape strip's readout
+ * moves toward the three-dot button so that its centre is midway between the arrow and the dots.
+ *
+ * The readout's slot runs from the arrow's trailing edge (or, navigating, with no arrow (RECORD -950), from the line's leading
+ * padding, [Spacing.sm] in from the strip's leading edge) to [Spacing.sm] short of the button, and the readout is centred in it.
+ * The dots start [QUICK_SETTINGS_DOTS_INSET] inside the button. So the slot's centre is off the wanted midpoint by half the
+ * difference between what lies beyond each end: [Spacing.sm] plus the dots' inset after it, and nothing (the arrow) or
+ * [Spacing.sm] (the strip's leading edge, navigating) before it. A placement only: nothing is measured differently, so the
+ * readout's width, the fit rules (RECORD -699, -713) and the strip's width (RECORD -951) are untouched. At most it overlaps
+ * the button's tap target by that half difference less the slack left of its slot, short of the dots.
+ */
+internal fun stripReadoutShiftToMenu(navigating: Boolean): Dp {
+    val beyondEnd = Spacing.sm + QUICK_SETTINGS_DOTS_INSET
+    val beforeStart = if (navigating) Spacing.sm else 0.dp
+    return (beyondEnd - beforeStart) / 2
+}
+
 
 /**
  * RECORD -728, the owner: "Go up to 14 sp". The compass strip's readout line (heading, altitude and its label, coordinates,
@@ -474,6 +496,11 @@ internal fun CompassElevationStrip(
      * grows down with the card. `null` draws none.
      */
     outlineSides: MapChromeOutlineSides? = null,
+    /**
+     * Dispatch 2026-10-13-02, RECORD -983: in landscape, the readout centred between the arrow (navigating, the strip's leading
+     * edge) and the three-dot button's dots ([stripReadoutShiftToMenu]). False keeps it centred in its slot, as in portrait.
+     */
+    readoutCentredOnMenu: Boolean = false,
 ) {
     // Dispatch 2026-10-12-08: while navigating the line shows no heading, so the heading State is not read here then, and only the
     // navigation info's leaf reads it at sensor rate, as when the strip was removed while navigating.
@@ -498,6 +525,7 @@ internal fun CompassElevationStrip(
         fill = fill,
         navigationInfo = navigationInfo,
         outlineSides = outlineSides,
+        readoutCentredOnMenu = readoutCentredOnMenu,
     )
 }
 
@@ -539,6 +567,7 @@ private fun CompassElevationStripContent(
     fill: Color? = null,
     navigationInfo: (@Composable () -> Unit)? = null,
     outlineSides: MapChromeOutlineSides? = null,
+    readoutCentredOnMenu: Boolean = false,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -627,7 +656,7 @@ private fun CompassElevationStripContent(
                 // gone, and holding this box at 48dp anyway would defeat item 1's height revert by
                 // becoming the Row's own tallest child in the vehicle box's place.
                 // Dispatch 2026-10-12-08 (RECORD -948): navigating, the line drops the north arrow with the heading.
-                if (!navigating) Box(contentAlignment = Alignment.Center) {
+                if (!navigating) Box(contentAlignment = Alignment.Center, modifier = Modifier.testTag(COMPASS_STRIP_NEEDLE_TAG)) {
                     Icon(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
@@ -652,7 +681,10 @@ private fun CompassElevationStripContent(
                 val readoutFade = MotionTokens.wordSwapSpec<Float>()
                 AnimatedContent(
                     targetState = readoutKind,
-                    modifier = if (contentWidth) Modifier else Modifier.weight(1f),
+                    modifier = (if (contentWidth) Modifier else Modifier.weight(1f))
+                        // Dispatch 2026-10-13-02, RECORD -983: landscape, centred between the arrow and the dots (see
+                        // stripReadoutShiftToMenu); drawn and touched where it is placed, measured as before.
+                        .then(if (readoutCentredOnMenu && quickSettings != null) Modifier.offset(x = stripReadoutShiftToMenu(navigating)) else Modifier),
                     transitionSpec = { (fadeIn(animationSpec = readoutFade) togetherWith fadeOut(animationSpec = readoutFade)).using(null) },
                     contentAlignment = Alignment.Center,
                     label = "stripReadout",
