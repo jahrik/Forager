@@ -1491,3 +1491,35 @@ internal class GatedFakeCameraCaptureSession(
 ```kotlin
         assertEquals("the host hands the setting to the slot unchanged", false, slotSawLockToPortrait)
 ```
+
+## Added 2026-10-13, RECORD -980 to -982: the camera keeps a held portrait screen, with no setting
+
+**What the owner found.** Testing PR #223, the owner reported: "the camera rotates completely". Then: "I never asked the
+lock to be removed. I only wanted the keep in portrait feature removed. The camera is to remain as is." Then (-981): "The
+camera is to never, ever, rotate like this. This is a cardinal sin." The owner's wish was to drop the *setting*, not the
+held screen. The removal above made the camera follow the phone, which was the setting-off default. That reading was
+wrong, and this section corrects it. Nothing above is edited.
+
+**What was decided (-982).** The owner: "Tablets can lock portrait and rotate based on accelerometer position rather than
+screen orientation". The planner read this as:
+- the window is held portrait;
+- the icons turn in place by the phone's own sensor;
+- photos follow the phone.
+
+**What is built** (`21fcb413`, tests first in `fe213eed`):
+- `CAMERA_WINDOW_ORIENTATION` is `SCREEN_ORIENTATION_PORTRAIT`, always, with no setting.
+- The session's device rotation is still the sensor's reading. So the controls turn in place, and a photo taken sideways
+  saves the right way up, in landscape.
+
+**What is not restored, on purpose.** The old lock's `effectiveDeviceRotation` gate pinned rotation to `ROTATION_0`. That
+is why, with the lock on, nothing turned and a sideways photo saved portrait (the option's own text: "Photos are always
+saved in portrait, even when you hold the phone sideways"). The fixed behaviour keeps the lock's held screen and leaves
+out that pin. If the setting is ever restored, its "on" state is now the default for every install, and the steps under
+"How to put it back" apply only to the pin and the toggle.
+
+**The freeze stays impossible.** Nothing changes the session while the camera is open. The viewfinder is still not keyed
+on its session, so the note under "How to put it back" stands for anything that would rebuild the session.
+
+**Large screens are not handled yet.** With `targetSdk` 37 (`app/build.gradle.kts:249`), Android 17 ignores orientation
+requests on displays 600 dp or wider. There the window still turns, and the arrangement switches to the landscape
+layout. The owner's rule (-981) says it must not. How to hold the layout there is proposed to the planner first.
