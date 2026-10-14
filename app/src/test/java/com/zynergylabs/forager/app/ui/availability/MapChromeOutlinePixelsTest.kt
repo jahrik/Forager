@@ -369,31 +369,33 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
      * RECORD -990 (the owner: "there's still a slight gap in the outline in landscape mode"). Read from the owner's S26 Ultra
      * screenshot: where the strip's rounded end meets the rail, its corner arcs ended one stroke inside the strip while the rail's
      * line runs one stroke inside the rail, so between the two arcs the outline stepped out by a stroke (3 px at xxhdpi) and the
-     * strip's fill showed through the step. No map pixels show there, so a check for map pixels on the outline cannot see it;
-     * this one follows the line instead. Row by row down the piece's end, it finds the innermost run of outline pixels (the one
-     * nearest the piece) and requires its centre to move by at most [MAX_STEP_PX] from one row to the next.
+     * strip's fill showed through the step. No map pixels show there, so a check for map pixels on the outline cannot see it.
+     * This one follows the outline's inner edge instead: row by row down the piece's end, from inside its fill outward, the first
+     * pixel that is not the fill (more than 0.12 from it), and that edge may move by at most [MAX_STEP_PX] from one row to the
+     * next. Inside the fill nothing but the outline lies between the piece and the map, so the first such pixel is the line.
+     * (A first version classified line pixels by colour and tracked the innermost run; over the stand-in map's grey the arc's
+     * outer half and, at night, the map itself read as line, CI run 38528961935, so it is not used.)
      */
     private fun assertEndOutlineContinuous(what: String, piece: DpRect, rail: DpRect, pieceFill: Color, railFill: Color, fromY: Dp, toY: Dp) {
         val x0 = px(piece.right) - px(8.dp)
         val x1 = px(rail.left) + px(4.dp)
-        var last: Float? = null
-        val centres = mutableListOf<Float>()
+        var last: Int? = null
+        val edges = mutableListOf<Int>()
         for (y in px(fromY)..px(toY)) {
-            val line = (x0..x1).filter { x -> isJoinLine(at(x, y), pieceFill, railFill) }
-            assertTrue("$what: the outline is there at row $y px (x $x0..$x1)", line.isNotEmpty())
-            val run = line.takeWhile { it - line.first() < 4 && (it == line.first() || line.contains(it - 1)) }
-            val centre = run.average().toFloat()
-            centres += centre
+            assertTrue("$what: the row starts inside the piece's fill at ($x0, $y): ${rgb(at(x0, y))}, fill ${rgb(pieceFill)}", abs(lum(at(x0, y)) - lum(pieceFill)) < 0.05f)
+            val edge = (x0..x1).firstOrNull { x -> abs(lum(at(x, y)) - lum(pieceFill)) > 0.12f }
+            assertTrue("$what: an outline at row $y px between x $x0 and $x1", edge != null)
+            edges += edge!!
             last?.let { prev ->
                 assertTrue(
-                    "$what: the outline steps by ${"%.1f".format(abs(centre - prev))} px between rows ${y - 1} and $y (from $prev to $centre); " +
-                        "centres ${centres.joinToString { "%.1f".format(it) }}",
-                    abs(centre - prev) <= MAX_STEP_PX,
+                    "$what: the outline's inner edge steps by ${abs(edge - prev)} px between rows ${y - 1} and $y (from $prev to $edge); " +
+                        "edges ${edges.joinToString()}",
+                    abs(edge - prev) <= MAX_STEP_PX,
                 )
             }
-            last = centre
+            last = edge
         }
-        println("MEASURED $orientation $theme $what: centres ${centres.joinToString { "%.1f".format(it) }}")
+        println("MEASURED $orientation $theme $what: inner edges ${edges.joinToString()} (piece right ${px(piece.right)}, rail left ${px(rail.left)})")
     }
 
     /**
