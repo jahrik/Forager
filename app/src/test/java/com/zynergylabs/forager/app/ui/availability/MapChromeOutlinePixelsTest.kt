@@ -410,6 +410,33 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertTrue("$what: every run across the outline holds a line pixel; ${broken.size} of ${runs.size} do not, first at ${broken.firstOrNull()?.firstOrNull()}", broken.isEmpty())
     }
 
+    /**
+     * The runs that walk a piece's rounded right end: along each 16 dp corner, every 3 degrees, the 5 x 5 px square round the
+     * point on the line's path (15.5 dp from the corner's centre, so a line drawn a stroke further out, as the shared one is,
+     * still falls inside); and down the straight stretch between the corners, a run of 4 px either side of the piece's edge.
+     * A first version walked rows down the piece's edge alone, which misses the line wherever the corners curve away from it
+     * (CI run 38530371018: 26 of 106 rows "without a line", all in the corners, before and after the fix alike).
+     */
+    private fun roundedEndRuns(piece: DpRect): List<List<Pair<Int, Int>>> {
+        val r = 16.dp
+        val path = 15.5.dp
+        val cx = px(piece.right - r)
+        val corners = listOf(px(piece.top + r) to -1, px(piece.bottom - r) to 1)
+        val arcs = corners.flatMap { (cy, dir) ->
+            (0..90 step 3).map { deg ->
+                val a = Math.toRadians(deg.toDouble())
+                val x = cx + (px(path) * kotlin.math.cos(a)).roundToInt()
+                val y = cy + dir * (px(path) * kotlin.math.sin(a)).roundToInt()
+                (x - 2..x + 2).flatMap { xx -> (y - 2..y + 2).map { yy -> xx to yy } }
+                    .filter { (xx, yy) -> xx in 0 until image.width && yy in 0 until image.height }
+            }
+        }
+        val straight = (px(piece.top + r)..px(piece.bottom - r)).map { y ->
+            (px(piece.right) - 4..px(piece.right) + 4).filter { it in 0 until image.width }.map { it to y }
+        }
+        return arcs + straight
+    }
+
     protected fun landscapeOutlineUnbroken() {
         setScreen(navigating = false, shot = "pill-strip-rail")
         val pill = bounds(SEARCH_ENTRY_BAR_TAG)
@@ -428,7 +455,7 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertWalkFindsLine("the pill's outer end", (px(pill.top + r)..px(pill.bottom - r)).map { down(it, px(pill.left) + 1) }, pillFill, pillFill)
         // The stretch the owner located the gap in ("It's on the right part of the telemetry pill"): the strip's end against the
         // rail, its full height, walked across and followed down.
-        assertWalkFindsLine("the strip's end against the rail", (px(strip.top) + 1..px(strip.bottom) - 2).map { down(it, px(strip.right)) }, stripFill, railFill)
+        assertWalkFindsLine("the strip's end against the rail", roundedEndRuns(strip), stripFill, railFill)
         assertEndOutlineContinuous("the strip's end against the rail", strip, rail.left, stripFill, strip.top + 6.dp, strip.bottom - 6.dp)
     }
 
@@ -487,10 +514,7 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         // RECORD -988: the strip all the way round, so its far end on the window's edge carries the line too (was assertNoLine).
         assertLine("the strip's far end, on the window's edge", inEnd(strip.right), px(mid), at(strip.right - 4.dp, mid))
         // RECORD -990: the stretch the owner located the gap in, with the rail slid away: walked across and followed down.
-        val walk = (px(strip.top) + 1..px(strip.bottom) - 2).map { y -> (px(strip.right) - 5 until px(strip.right)).map { it to y } }
-        val broken = walk.filter { run -> run.none { (x, y) -> isLine(at(x, y), fill) } }
-        println("MEASURED $orientation $theme walk the strip's far end in fullscreen: ${walk.size} runs, ${broken.size} without a line")
-        assertTrue("the strip's far end in fullscreen: every run across it holds a line pixel; ${broken.size} of ${walk.size} do not", broken.isEmpty())
+        assertWalkFindsLine("the strip's far end in fullscreen", roundedEndRuns(strip), fill, fill)
         assertEndOutlineContinuous("the strip's far end in fullscreen", strip, strip.right, fill, strip.top + 6.dp, strip.bottom - 6.dp)
     }
 
