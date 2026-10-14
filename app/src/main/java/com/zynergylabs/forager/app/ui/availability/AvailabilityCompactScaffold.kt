@@ -1342,11 +1342,13 @@ internal fun CompactMainScaffold(
                                                     MapCardCorners.ALL
                                                 },
                                                 // Dispatch 2026-10-13-02 (RECORD -966, -967): the pill's outline. Its bottom always (in portrait
-                                                // the one line between it and the strip tucked under it); never its top, the top of the map's
-                                                // area. In portrait its sides are on the screen's edges. In landscape it draws its join with the
-                                                // strip, and a side with room between it and the screen's edge (a system bar or the cut-out).
+                                                // the one line between it and the strip tucked under it). In landscape it draws its join with the
+                                                // strip, and a side with room between it and the screen's edge (a system bar or the cut-out);
+                                                // never its top, the top of the map's area. Portrait (RECORD -976, the owner: "In portrait mode:
+                                                // Have the outlines follow the entire pill at top"): all the way round, its sides on the screen's
+                                                // edges and its top included, replacing -967's "no line on the screen's own edge" for this pill.
                                                 pillOutlineSides = if (landscapeSearchWidth == null) {
-                                                    MapChromeOutlineSides(left = false, top = false, right = false, bottom = true)
+                                                    MapChromeOutlineSides(left = true, top = true, right = true, bottom = true)
                                                 } else {
                                                     val roomLeft = mapControlsPadding.calculateLeftPadding(searchLayoutDirection) > 0.dp
                                                     val roomRight = mapControlsPadding.calculateRightPadding(searchLayoutDirection) > 0.dp

@@ -63,15 +63,18 @@ import org.robolectric.shadows.ShadowDisplay
  *
  * - **Present** on each piece's sides that face the map and on its rounded corners: the pill, the compass strip (and its card
  *   grown down while navigating), the bottom bar, the rail and the landscape navigation card.
- * - **Absent** on every side that lies on the screen's own edge (RECORD -967, the owner: "2 yes").
+ * - **Absent** on every side that lies on the screen's own edge (RECORD -967, the owner: "2 yes"), **except the portrait top
+ *   pills** (RECORD -976, the owner: "In portrait mode: Have the outlines follow the entire pill at top. The bottom bar can stay
+ *   as is."): the pill all the way round, the strip on its sides and bottom, its top open under the pill and its sides clipped
+ *   there. The bottom bar's sides stay without one.
  * - **One line where two pieces touch** (the owner: "1 C one line between the two like there is now"): across each join the
  *   run of outline-coloured pixels is one line wide (2 to 4 px at xxhdpi, 1 dp being 3 px), not two (6 px), and not none.
  *
  * What counts as the outline: a pixel within 0.07 of the luminance the outline colour ([MAP_ICON_STACK_BORDER_COLOR_LIGHT] /
  * [MAP_ICON_STACK_BORDER_COLOR_DARK], its own 0.4 alpha) composites to over the piece's own fill, read at a reference point on
- * the same piece, and at least 0.12 from that fill. The fill, the cast shadows (a few percent) and the pill's shadow stepped
- * onto the strip (about 17% at its darkest) all fall outside that band; the line is about 0.26 from the fill by day and 0.3 at
- * night. Robolectric reports zero insets, so every side here that would sit beside a system bar sits on the window's edge;
+ * the same piece, and at least 0.12 from that fill. The fill and the cast shadows (a few percent) fall outside that band; the
+ * line is about 0.26 from the fill by day and 0.3 at night. The pill's shadow stepped onto the strip does not, by day, against
+ * the pill's fill: across a join a pixel also has to be clear of both fills ([isJoinLine]). Robolectric reports zero insets, so every side here that would sit beside a system bar sits on the window's edge;
  * against real system bars the sides beside them are device items.
  *
  * Each state is also written as a PNG under the build's test-results directory, which CI uploads; nothing goes into the
@@ -246,9 +249,11 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertLine("the pill's bottom", px(pill.left + 24.dp), inEnd(pill.bottom), fill)
         assertLineNear("the pill's rounded top-left corner", px(pill.left + arcInset), px(pill.top + arcInset), fill)
         assertLineNear("the pill's rounded bottom-right corner", px(pill.right - arcInset), px(pill.bottom - arcInset), fill)
-        assertNoLine("the pill's left side, on the screen's edge", inStart(pill.left), px(mid), fill)
-        assertNoLine("the pill's right side, on the screen's edge", inEnd(pill.right), px(mid), at(pill.right - 4.dp, mid))
-        assertNoLine("the pill's top, the top of the map's area", px(pill.right - 30.dp), inStart(pill.top), at(pill.right - 30.dp, pill.top + 4.dp))
+        // RECORD -976 (the owner: "Have the outlines follow the entire pill at top"): its sides on the screen's edges and its top
+        // carry the line too. Until -976 these three were assertNoLine (RECORD -967: no line on the screen's own edge).
+        assertLine("the pill's left side, on the screen's edge", inStart(pill.left), px(mid), fill)
+        assertLine("the pill's right side, on the screen's edge", inEnd(pill.right), px(mid), at(pill.right - 4.dp, mid))
+        assertLine("the pill's top", px(pill.right - 30.dp), inStart(pill.top), at(pill.right - 30.dp, pill.top + 4.dp))
     }
 
     protected fun portraitStrip(navigating: Boolean) {
@@ -259,8 +264,26 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         val pillFill = at(pill.left + 4.dp, (pill.top + pill.bottom) / 2)
         assertLine("the strip's card's bottom", px(strip.left + 24.dp), inEnd(strip.bottom), stripFill)
         assertLineNear("the strip's card's rounded bottom-left corner", px(strip.left + arcInset), px(strip.bottom - arcInset), stripFill)
-        assertNoLine("the strip's left side, on the screen's edge", inStart(strip.left), px(strip.top + 10.dp), stripFill)
-        assertNoLine("the strip's right side, on the screen's edge", inEnd(strip.right), px(strip.top + 10.dp), at(strip.right - 4.dp, strip.top + 10.dp))
+        // RECORD -976: the strip's sides, on the screen's edges, carry the line (until -976 these two were assertNoLine), read
+        // just below the pill and low on the card, which grows down while navigating.
+        val low = strip.bottom - 24.dp
+        assertLine("the strip's left side, on the screen's edge", inStart(strip.left), px(strip.top + 10.dp), stripFill)
+        assertLine("the strip's right side, on the screen's edge", inEnd(strip.right), px(strip.top + 10.dp), at(strip.right - 4.dp, strip.top + 10.dp))
+        assertLine("the strip's left side, low on its card", inStart(strip.left), px(low), at(strip.left + 4.dp, low))
+        assertLine("the strip's right side, low on its card", inEnd(strip.right), px(low), at(strip.right - 4.dp, low))
+        // The tuck. The strip's sides run up into the wedges under the pill's rounded lower corners: 4 dp above the pill's
+        // bottom, at the screen's edge, is the strip's fill below the pill's curve, and its side line is there.
+        assertLine("the strip's left side, under the pill's rounded corner", inStart(strip.left), px(pill.bottom - 4.dp), stripFill)
+        assertLine("the strip's right side, under the pill's rounded corner", inEnd(strip.right), px(pill.bottom - 4.dp), at(strip.right - 4.dp, strip.top + 10.dp))
+        // Clipped at the pill: 14 dp above the pill's bottom, 1 px in from the screen's edge, lies on the pill's own corner line,
+        // inside the pill. The strip is drawn over the pill (later in z-order), so a side line run on up the tuck would lay a
+        // second line on it there; it reads as the pill's single line at its side, not darker (day) or lighter (night).
+        val pillSide = at(inStart(pill.left), px((pill.top + pill.bottom) / 2))
+        val onCorner = at(inStart(pill.left), px(pill.bottom - 14.dp))
+        assertTrue(
+            "the pill's corner line under the tuck is one line, the pill's: read ${rgb(onCorner)}, the pill's side line ${rgb(pillSide)}",
+            abs(lum(onCorner) - lum(pillSide)) < 0.05f,
+        )
         // The tuck: the strip's top lies under the pill's lower edge. One line there, the pill's; none from the strip showing
         // through the pill or laid beside it.
         val x = px(pill.right - 30.dp)
@@ -385,11 +408,11 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
 }
 
 abstract class MapChromeOutlinePortraitTests(dark: Boolean) : MapChromeOutlinePixelsTests(dark, rotation = null) {
-    @Test fun `the pill is outlined on its bottom and rounded corners, not on its sides or top`() = portraitPill()
+    @Test fun `the pill is outlined all the way round, its sides and top included`() = portraitPill()
 
-    @Test fun `the strip is outlined on its bottom and rounded corners, not on its sides, and the pill's edge is the one line between them`() = portraitStrip(navigating = false)
+    @Test fun `the strip is outlined on its sides and bottom, up into the tuck but not over the pill, and the pill's edge is the one line between them`() = portraitStrip(navigating = false)
 
-    @Test fun `navigating, the strip's card is outlined at its grown bottom, and the pill's edge is still the one line`() = portraitStrip(navigating = true)
+    @Test fun `navigating, the strip's card is outlined on its sides and grown bottom, and the pill's edge is still the one line`() = portraitStrip(navigating = true)
 
     @Test fun `the bottom bar is outlined on its top and rounded corners, not on its sides`() = portraitBottomBar()
 }

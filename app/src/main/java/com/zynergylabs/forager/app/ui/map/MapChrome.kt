@@ -401,8 +401,11 @@ internal val MAP_CHROME_OUTLINE_WIDTH = 1.dp
  * Which sides of a piece of map chrome carry the outline (RECORD -967, the owner: "1 C one line between the two like there is
  * now" and "2 yes"). Absolute sides, since the pieces sit against absolute screen edges.
  *
- * - **A side on the screen's own edge carries none**: the bottom bar's two sides, the portrait pill's and strip's sides, the
- *   rail's outer side, the top of the pill and strip (the top of the map's area) and the landscape card's bottom.
+ * - **A side on the screen's own edge carries none**: the bottom bar's two sides, the rail's outer side, the top of the landscape
+ *   pill and strip (the top of the map's area) and the landscape card's bottom.
+ * - **Except the portrait top pills** (RECORD -976, the owner: "In portrait mode: Have the outlines follow the entire pill at
+ *   top. The bottom bar can stay as is."): the search pill is outlined all the way round, its sides and top included, and the
+ *   compass strip on its sides and bottom, its top left open under the pill.
  * - **Where two outlined pieces touch, one line is drawn, by the bar**: the search pill draws its join with the compass strip
  *   (its bottom in portrait, its inner side in landscape), and the rail draws its inner edge where the landscape strip and the
  *   navigation card sit against it. The strip and the card leave that side open while the bar beside them is shown; with the

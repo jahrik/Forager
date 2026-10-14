@@ -1338,7 +1338,8 @@ private fun BoxScope.CompactMapTopStrip(
     // landscape, where the two sit side by side, or once the pill has slid away in fullscreen (mapCardTuck).
     val stripTuck = if (railPortEdge == null) mapCardTuck(topInset) else 0.dp
     val isDarkTheme = LocalForagerDarkTheme.current
-    // Dispatch 2026-10-13-02 (RECORD -966, -967): the strip's outline. Portrait: its bottom only. Landscape: its bottom; its side
+    // Dispatch 2026-10-13-02 (RECORD -966, -967, -976): the strip's outline. Portrait: its bottom and its two sides, its top open
+    // under the pill (portraitStripOutlineSides; the sides since -976). Landscape: its bottom; its side
     // by the pill once the pill has slid away (the pill draws that join while shown); its rail side once the rail has, unless
     // that side is then on the screen's edge.
     val stripLayoutDirection = LocalLayoutDirection.current
