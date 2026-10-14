@@ -158,8 +158,6 @@ import kotlinx.coroutines.withContext
  */
 internal class CameraXCaptureSession(
     private val appContext: Context,
-    /** Settings' "Lock camera to portrait": the one gate, see [effectiveDeviceRotation]. */
-    private val lockToPortrait: Boolean = false,
 ) : CameraCaptureSession {
 
     override var state: CameraSessionState by mutableStateOf(CameraSessionState.Opening)
@@ -184,11 +182,12 @@ internal class CameraXCaptureSession(
     private var sensorRotation: Int? by mutableStateOf(null)
 
     /**
-     * **The one gate.** Both the screen's control angle and this class's own [capture] read this,
-     * never [sensorRotation] directly, so "Lock camera to portrait" pins one value and both
-     * effects — nothing turns, a sideways photo saves portrait — fall out of that one place.
+     * The sensor's reading, as the screen's control angle and this class's own [capture] both read it.
+     * Until dispatch 2026-10-13-03 this went through a gate, `effectiveDeviceRotation`, that pinned it
+     * to `ROTATION_0` with "Lock camera to portrait" on; the option and the gate were removed together
+     * (RECORD -968), and the off branch was already this pass-through.
      */
-    override val deviceRotation: Int? get() = effectiveDeviceRotation(lockToPortrait, sensorRotation)
+    override val deviceRotation: Int? get() = sensorRotation
     private var loggedDisplayFallback = false
 
     /** Bumped by every [open] and [close]; a provider callback whose captured epoch has moved on does nothing. */
@@ -316,7 +315,7 @@ internal class CameraXCaptureSession(
         val capture = imageCapture
             ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
         // Per shot, from the device's own orientation — see the class doc for why not the display.
-        // Read through the gate (deviceRotation), not the field: see effectiveDeviceRotation.
+        // Read through deviceRotation, the one value the controls' angle reads too.
         val rotation = deviceRotation ?: previewView?.display?.rotation?.also {
             if (!loggedDisplayFallback) {
                 loggedDisplayFallback = true
@@ -474,11 +473,30 @@ internal class CameraXCaptureSession(
      * viewfinder as a slot precisely so a test can pass a plain `Box`.
      */
     @Composable
-    fun Viewfinder(modifier: Modifier = Modifier) {
+    fun Viewfinder(
+        modifier: Modifier = Modifier,
+        /**
+         * The camera's content is held in the device's natural frame inside a turned window (`NaturalOrientationHold`,
+         * RECORD -985). Then the picture must turn with that layer, and must be laid out for the natural frame:
+         *
+         * - **`COMPATIBLE` mode, a `TextureView`**, because a `SurfaceView` is its own surface and does not follow a
+         *   Compose layer's turn.
+         * - **`Preview.targetRotation` = `ROTATION_0`**, the natural frame. Read in camera-view 1.6.2 (sources jar):
+         *   with a target rotation specified and a `TextureView`, `PreviewView` does **not** substitute the display's
+         *   rotation (`PreviewView.java:231-239`, `mUseDisplayRotation` false), and its `TextureView` correction is
+         *   `-target` (`PreviewTransformation.java:182-193`), here 0. So it does not correct for the turned display a
+         *   second time; the layer's turn is the only one.
+         *
+         * Not held (every phone, and split screen), nothing here changes: `PERFORMANCE`, and CameraX's own target
+         * rotation. Leaving the hold puts back `PERFORMANCE` and the display's rotation. Whether the picture is the
+         * right way up on a tablet is device-only: CameraX does not run under Robolectric.
+         */
+        held: Boolean = false,
+    ) {
         val context = LocalContext.current
         val view = remember { PreviewView(context) }
 
-        DisposableEffect(view) {
+        DisposableEffect(view, held) {
             previewView = view
             val bound = preview
             if (bound == null) {
@@ -486,10 +504,20 @@ internal class CameraXCaptureSession(
                 // assumed: if it ever happens, this is where the spinner-forever bug would hide.
                 Log.w(TAG, "Viewfinder composed before the camera was bound; nothing to draw into it yet.")
             } else {
+                if (held) {
+                    // Before the surface provider: the mode is read when the next surface is requested.
+                    view.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    bound.targetRotation = Surface.ROTATION_0
+                    Log.i(TAG, "Viewfinder held in the natural frame: COMPATIBLE, Preview targetRotation=ROTATION_0, display=${view.display?.rotation}.")
+                }
                 bound.setSurfaceProvider(view.surfaceProvider)
             }
             onDispose {
                 preview?.setSurfaceProvider(null)
+                if (held) {
+                    view.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+                    preview?.targetRotation = view.display?.rotation ?: Surface.ROTATION_0
+                }
                 previewView = null
             }
         }
@@ -521,13 +549,3 @@ private fun standardPhotoSizeSelector(): ResolutionSelector =
     ResolutionSelector.Builder()
         .setResolutionStrategy(ResolutionStrategy(STANDARD_PHOTO_SIZE, ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER))
         .build()
-
-/**
- * The device rotation the camera acts on — for the controls' angle and for each shot's
- * `targetRotation` alike. With "Lock camera to portrait" off it is the sensor's reading (`null`
- * until there is one); on, it is `Surface.ROTATION_0` and the sensor is ignored. One function so
- * the setting is one gate: there is no second place where either effect could be decided
- * differently. Pure, and tested as such.
- */
-internal fun effectiveDeviceRotation(lockToPortrait: Boolean, sensorRotation: Int?): Int? =
-    if (lockToPortrait) Surface.ROTATION_0 else sensorRotation

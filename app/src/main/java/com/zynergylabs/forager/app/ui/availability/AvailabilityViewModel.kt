@@ -124,9 +124,6 @@ class AvailabilityViewModel(
      */
     private val getAutoSaveLocationToPhotos: suspend () -> Result<Boolean> = { Result.success(true) },
     private val setAutoSaveLocationToPhotos: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
-    /** Settings' "Lock camera to portrait" — the same borrowed-capability shape as the pair above, defaulted off, the repository's own default. */
-    private val getLockCameraToPortrait: suspend () -> Result<Boolean> = { Result.success(false) },
-    private val setLockCameraToPortrait: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
     /**
      * Settings' "Sundown" section (dispatch 2026-09-28-592, plan task T4): the alerts switch and the
      * darkness margin, from [com.zynergylabs.forager.app.domain.SundownPreferencesRepository], the
@@ -241,7 +238,6 @@ class AvailabilityViewModel(
         loadUnitSystemPreference()
         loadNightModePreferences()
         loadAutoSaveLocationToPhotos()
-        loadLockCameraToPortrait()
         loadSundownPreferences()
         loadOffTrackReminder()
         loadBatterySaver()
@@ -1482,33 +1478,6 @@ class AvailabilityViewModel(
             setDarknessMarginMinutes(minutes).fold(
                 onSuccess = { onDarknessMarginStored(minutes) },
                 onFailure = { error -> errorLog.w(TAG, "Couldn't store the darkness margin; the line and the alerts keep the one stored.", error) },
-            )
-        }
-    }
-
-    /** Restores "Lock camera to portrait" — same read-failure treatment as [loadAutoSaveLocationToPhotos]: log, and leave the off-by-default state alone. */
-    private fun loadLockCameraToPortrait() {
-        viewModelScope.launch {
-            getLockCameraToPortrait().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(lockCameraToPortrait = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the camera-orientation preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * Settings' "Lock camera to portrait" checkbox. Reflects the value in state immediately and
-     * persists in the background, the same shape as [onAutoSaveLocationToPhotosChanged]. The
-     * camera reads the value from this state when it opens, through `AvailabilityScreen`'s host,
-     * so a change here reaches the next camera session and never a running one — the dialog
-     * covers Settings, so there is no running one to reach.
-     */
-    fun onLockCameraToPortraitChanged(enabled: Boolean) {
-        _uiState.update { it.copy(lockCameraToPortrait = enabled) }
-        viewModelScope.launch {
-            setLockCameraToPortrait(enabled).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the camera-orientation preference.", error) },
             )
         }
     }

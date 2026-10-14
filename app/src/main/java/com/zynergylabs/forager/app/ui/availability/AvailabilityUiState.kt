@@ -260,12 +260,6 @@ data class AvailabilityUiState(
      * repository's own default so the checkbox does not visibly flip on itself at startup.
      */
     val autoSaveLocationToPhotos: Boolean = true,
-    /**
-     * Settings' "Lock camera to portrait" — see
-     * [com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository] for the one gate it
-     * throws. `false` until the stored preference loads, matching that repository's default.
-     */
-    val lockCameraToPortrait: Boolean = false,
     /** Settings' "Sundown alerts" (dispatch 2026-09-28-592): on until the stored value loads, the repository's default. */
     val sundownAlertsEnabled: Boolean = true,
     /** Settings' "Off-track reminder" (dispatch 2026-09-28-626): on until the stored value loads, the repository's default. */

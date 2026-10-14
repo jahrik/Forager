@@ -99,9 +99,9 @@ import kotlinx.coroutines.launch
  *
  * ## Three arrangements, re-derived as the window turns; a region model with two bands
  *
- * The window follows the device with the setting off and is forced portrait with it on
- * ([RequestWindowOrientation]: `FULL_SENSOR` off, `PORTRAIT` on), and the arrangement is derived
- * from the setting, the window's shape and its rotation ([cameraArrangement]) and re-derived on
+ * The window follows the device ([RequestWindowOrientation]: `SENSOR`; until dispatch 2026-10-13-03
+ * "Lock camera to portrait" could force `PORTRAIT` instead), and the arrangement is derived
+ * from the window's shape and its rotation ([cameraArrangement]) and re-derived on
  * every change of those — the keyed `remember` below. The turn carries no animation, because the
  * Activity's window asks for seamless rotation while the camera is open ([RequestSeamlessRotation]):
  * it is re-laid out in the new rotation and the next frame is simply the new layout. *Superseded (2026-09-19):* this paragraph read
@@ -140,17 +140,15 @@ import kotlinx.coroutines.launch
 internal fun InAppCameraDialog(
     session: CameraCaptureSession,
     cameraCaptureFiles: CameraCaptureFiles,
-    /** "Lock camera to portrait": decides the window lock and, with the window's shape at open, the arrangement; the gear panel shows it. */
-    lockToPortrait: Boolean,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
     /** The grid chip's mode, persisted by `CameraGridModeViewModel`; the grid and level draw from it. */
     gridMode: GridMode,
     /** Asks for a new grid mode; the chip shows it once it is stored, not before. */
     onGridModeChanged: (GridMode) -> Unit,
-    /** "Automatically Save Location to Photos", from `AvailabilityUiState`; the Location chip and the gear panel show it. */
+    /** "Automatically Save Location to Photos", from `AvailabilityUiState`; the Location chip shows it. */
     autoSaveLocationToPhotos: Boolean,
-    /** The screen's handler for that value; the Location chip and the gear panel call it. */
+    /** The screen's handler for that value; the Location chip calls it. */
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     /** The level line's roll; collected only while the level is shown. */
     levelProvider: LevelProvider,
@@ -158,12 +156,6 @@ internal fun InAppCameraDialog(
     /** Hides the status bar on the Activity's window and puts it back on leaving; a test injects a fake to see which window was asked, and that it was restored. */
     statusBarHider: StatusBarHider = SystemStatusBarHider,
     viewfinder: @Composable (Modifier) -> Unit,
-    /**
-     * The gear panel's "Lock camera to portrait" handler (dispatch 2026-09-28-707), the screen's own,
-     * which stores the value and hands it back as [lockToPortrait]. Defaulted so the camera tests that
-     * do not exercise the panel need no argument for it; the production slot passes it explicitly.
-     */
-    onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
 ) {
     // rememberSaveable: a rotation mid-session must not reset the user's sense of how many they
     // have taken. The photos themselves are already handed over and safe either way.
@@ -189,13 +181,13 @@ internal fun InAppCameraDialog(
         onDispose { session.close() }
     }
 
-    // The window follows the device, or is forced portrait, by the setting; reasoning on
-    // RequestWindowOrientation. Outside the Dialog so the context here is the Activity's, not the
-    // dialog window's.
-    RequestWindowOrientation(lockToPortrait)
+    // The window follows the device; reasoning on RequestWindowOrientation. Outside the Dialog so
+    // the context here is the Activity's, not the dialog window's.
+    RequestWindowOrientation()
 
-    // The arrangement follows the window: it is derived from the setting, the window's shape and
-    // the window's rotation, and re-derived whenever any of the three changes (owner, 2026-09-18).
+    // The arrangement follows the window: it is derived from the window's shape and the window's
+    // rotation, and re-derived whenever either changes (owner, 2026-09-18). Until dispatch
+    // 2026-10-13-03 "Lock camera to portrait" was a third input and a third key.
     //
     // Until 2026-09-18 the `remember` was keyed on the setting alone, so the arrangement was
     // computed at first composition and held for the dialog's life, on the reasoning that the lock
@@ -211,15 +203,13 @@ internal fun InAppCameraDialog(
     // hold, and the re-derived layout appears in the same frame as the turned window because the
     // window rotates seamlessly (RequestSeamlessRotation). Do not restore a setting-only key:
     // that is this bug.
-    val windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val windowIsLandscapeInWindow = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     // The window's rotation decides which physical edge the shutter goes on, because the two
     // landscapes are mirror images and only one has the charger port on the screen's right — see
     // CameraArrangement. currentDisplayRotation reads LocalConfiguration so it recomposes when the
     // window turns, and the key below carries the new value into the arrangement.
-    val displayRotation = currentDisplayRotation()
-    val arrangement = remember(lockToPortrait, windowIsLandscape, displayRotation) {
-        cameraArrangement(lockToPortrait, windowIsLandscape, displayRotation)
-    }
+    val windowDisplayRotation = currentDisplayRotation()
+    val fullScreen = currentWindowIsFullScreen()
 
     // Back is the only way out, and on the Activity's window it is the Activity's own dispatcher
     // rather than a dialog's — it reaches the same `onDismiss` that `onDismissRequest` used to, so
@@ -260,6 +250,17 @@ internal fun InAppCameraDialog(
             .background(Color.Black)
             .testTag(IN_APP_CAMERA_TAG),
     ) {
+        // RECORD -981 and -985: the camera never appears to rotate. Where the window turns anyway (Android 17 ignores the
+        // portrait request on displays wider than 600 dp for targetSdk 37), the content is laid out in the device's natural
+        // frame and turned back; inside, windowIsLandscape and displayRotation are the natural frame's. See NaturalOrientationHold.
+        HoldNaturalOrientation(
+            windowIsLandscape = windowIsLandscapeInWindow,
+            displayRotation = windowDisplayRotation,
+            fullScreen = fullScreen,
+        ) { windowIsLandscape, displayRotation ->
+        val arrangement = remember(windowIsLandscape, displayRotation) {
+            cameraArrangement(windowIsLandscape, displayRotation)
+        }
         // Motion Part 3, Amendment 2 (RECORD -682; scout K2): the opening spinner, the viewfinder and the unavailable message
         // crossfade instead of swapping in one frame (motion/StateCrossfade.kt), keyed on which of the three, so a reason that
         // changes updates in place. The camera's own rotation stays the system's, untouched (the owner's exception, RECORD -681).
@@ -390,12 +391,9 @@ internal fun InAppCameraDialog(
                 stripEdge = punchHoleEdge(arrangement),
                 deviceRotation = session.deviceRotation,
                 displayRotation = displayRotation,
-                autoSaveLocationToPhotos = autoSaveLocationToPhotos,
-                onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-                lockToPortrait = lockToPortrait,
-                onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                 onClose = { showCameraSettings = false },
             )
+        }
         }
     }
 }
