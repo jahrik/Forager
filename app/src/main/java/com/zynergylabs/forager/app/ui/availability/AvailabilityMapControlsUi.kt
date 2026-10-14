@@ -89,6 +89,8 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
 import com.zynergylabs.forager.app.ui.map.MapBarHighlight
 import com.zynergylabs.forager.app.ui.map.MapIconBar
@@ -129,6 +131,29 @@ internal const val COMPASS_STRIP_ELEVATION_TAG = "compass-strip-elevation"
 
 /** The compass strip's coordinates, the tap that switches their format (dispatch 2026-09-28-685, Amendment 2). */
 internal const val COMPASS_STRIP_COORDINATES_TAG = "compass-strip-coordinates"
+
+/** The compass strip's north arrow's fixed slot (dispatch 2026-10-13-02, RECORD -983), for tests. */
+internal const val COMPASS_STRIP_NEEDLE_TAG = "compass-strip-needle"
+
+/**
+ * Dispatch 2026-10-13-02, RECORD -983 (the owner: "Another thing for the landscape mode UI, have the telemetry centered between
+ * the compass arrow and the three dot menu. Right now it's way too close to the arrow"), and RECORD -984 for portrait (the owner:
+ * "Have portrait more centered also. This will matter most to people with OCD"): how far the strip's readout moves toward the
+ * three-dot button so that its centre is midway between the arrow and the dots.
+ *
+ * The readout's slot runs from the arrow's trailing edge (or, navigating, with no arrow (RECORD -950), from the line's leading
+ * padding, [Spacing.sm] in from the strip's leading edge) to [Spacing.sm] short of the button, and the readout is centred in it.
+ * The dots start [QUICK_SETTINGS_DOTS_INSET] inside the button. So the slot's centre is off the wanted midpoint by half the
+ * difference between what lies beyond each end: [Spacing.sm] plus the dots' inset after it, and nothing (the arrow) or
+ * [Spacing.sm] (the strip's leading edge, navigating) before it. A placement only: nothing is measured differently, so the
+ * readout's width, the fit rules (RECORD -699, -713) and the strip's width (RECORD -951) are untouched. At most it overlaps
+ * the button's tap target by that half difference less the slack left of its slot, short of the dots.
+ */
+internal fun stripReadoutShiftToMenu(navigating: Boolean): Dp {
+    val beyondEnd = Spacing.sm + QUICK_SETTINGS_DOTS_INSET
+    val beforeStart = if (navigating) Spacing.sm else 0.dp
+    return (beyondEnd - beforeStart) / 2
+}
 
 
 /**
@@ -466,6 +491,24 @@ internal fun CompassElevationStrip(
      * draws nothing, and the strip is the height it was.
      */
     navigationInfo: (@Composable () -> Unit)? = null,
+    /**
+     * Dispatch 2026-10-13-02 (RECORD -966, -967): the sides of the strip's card that carry the map chrome outline
+     * ([portraitStripOutlineSides], [landscapeColumnOutlineSides]); drawn at the card's size, so while navigating in portrait it
+     * grows down with the card. `null` draws none.
+     */
+    outlineSides: MapChromeOutlineSides? = null,
+    /**
+     * Dispatch 2026-10-13-02, RECORD -983 and -984: the readout centred between the arrow (navigating, the strip's leading edge)
+     * and the three-dot button's dots ([stripReadoutShiftToMenu]), in both orientations. False keeps it centred in its slot, as
+     * before; the map screen passes true.
+     */
+    readoutCentredOnMenu: Boolean = false,
+    /**
+     * Dispatch 2026-10-13-02, RECORD -987: the readouts give way as if the wider of the two coordinate forms were showing
+     * ([coordinatesBothFormsWidthPx]), as the landscape strip is sized for it, so tapping the coordinates changes only them.
+     * False measures the form showing, as before (portrait, whose strip is the window's width whichever form shows).
+     */
+    coordinatesSizedForBothForms: Boolean = false,
 ) {
     // Dispatch 2026-10-12-08: while navigating the line shows no heading, so the heading State is not read here then, and only the
     // navigation info's leaf reads it at sensor rate, as when the strip was removed while navigating.
@@ -489,6 +532,9 @@ internal fun CompassElevationStrip(
         navigating = navigating,
         fill = fill,
         navigationInfo = navigationInfo,
+        outlineSides = outlineSides,
+        readoutCentredOnMenu = readoutCentredOnMenu,
+        coordinatesSizedForBothForms = coordinatesSizedForBothForms,
     )
 }
 
@@ -529,6 +575,9 @@ private fun CompassElevationStripContent(
     navigating: Boolean = false,
     fill: Color? = null,
     navigationInfo: (@Composable () -> Unit)? = null,
+    outlineSides: MapChromeOutlineSides? = null,
+    readoutCentredOnMenu: Boolean = false,
+    coordinatesSizedForBothForms: Boolean = false,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -556,6 +605,8 @@ private fun CompassElevationStripContent(
                     fill = fill ?: if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     corners = cardCorners,
                     tuck = tuck,
+                    outline = mapChromeOutline(),
+                    outlineSides = outlineSides,
                 )
                 // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
                 // AnchoredAtScreenPoint's minY and the taxon filter chip's top padding both need to
@@ -615,7 +666,7 @@ private fun CompassElevationStripContent(
                 // gone, and holding this box at 48dp anyway would defeat item 1's height revert by
                 // becoming the Row's own tallest child in the vehicle box's place.
                 // Dispatch 2026-10-12-08 (RECORD -948): navigating, the line drops the north arrow with the heading.
-                if (!navigating) Box(contentAlignment = Alignment.Center) {
+                if (!navigating) Box(contentAlignment = Alignment.Center, modifier = Modifier.testTag(COMPASS_STRIP_NEEDLE_TAG)) {
                     Icon(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
@@ -640,7 +691,10 @@ private fun CompassElevationStripContent(
                 val readoutFade = MotionTokens.wordSwapSpec<Float>()
                 AnimatedContent(
                     targetState = readoutKind,
-                    modifier = if (contentWidth) Modifier else Modifier.weight(1f),
+                    modifier = (if (contentWidth) Modifier else Modifier.weight(1f))
+                        // Dispatch 2026-10-13-02, RECORD -983, -984: centred between the arrow and the dots (see
+                        // stripReadoutShiftToMenu); drawn and touched where it is placed, measured as before.
+                        .then(if (readoutCentredOnMenu && quickSettings != null) Modifier.offset(x = stripReadoutShiftToMenu(navigating)) else Modifier),
                     transitionSpec = { (fadeIn(animationSpec = readoutFade) togetherWith fadeOut(animationSpec = readoutFade)).using(null) },
                     contentAlignment = Alignment.Center,
                     label = "stripReadout",
@@ -695,6 +749,7 @@ private fun CompassElevationStripContent(
                             }
                         } else if (kind == StripReadout.NAVIGATING && lastLocation != null) {
                             StripNavigatingReadout(
+                                coordinatesSizedForBothForms = coordinatesSizedForBothForms,
                                 elevationMeters = elevationMeters,
                                 unitSystem = unitSystem,
                                 location = lastLocation,
@@ -752,7 +807,13 @@ private fun CompassElevationStripContent(
                                 fun widthOf(text: String, style: TextStyle) = readoutMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
                                 fun labelPx(label: String?) = label?.let { widthOf(it, readoutLabelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0
                                 val availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE
-                                val coordinatesPx = widthOf(coordinatesText, readoutStyle)
+                                // RECORD -987: in landscape the readouts give way as if the wider coordinate form were showing, so
+                                // switching forms changes only the coordinates, never which readouts or labels are shown.
+                                val coordinatesPx = if (coordinatesSizedForBothForms) {
+                                    coordinatesBothFormsWidthPx(lastLocation, ::widthOf, readoutStyle)
+                                } else {
+                                    widthOf(coordinatesText, readoutStyle)
+                                }
                                 val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.sm.roundToPx() }
                                 // RECORD -713 (the owner: "Drop labels, then values (Recommended)"): labels go first, then facing,
                                 // then altitude; whatever is shown is whole. See readoutsFitBeside.
@@ -907,6 +968,8 @@ private fun CompassElevationStripContent(
  */
 @Composable
 private fun StripNavigatingReadout(
+    /** RECORD -987: give way as if the wider coordinate form were showing (landscape); see [coordinatesBothFormsWidthPx]. */
+    coordinatesSizedForBothForms: Boolean,
     elevationMeters: Double?,
     unitSystem: UnitSystem,
     location: LatLng,
@@ -924,7 +987,7 @@ private fun StripNavigatingReadout(
         fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
         val fit = readoutsFitBeside(
             availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE,
-            coordinatesPx = widthOf(coordinatesText, readoutStyle),
+            coordinatesPx = if (coordinatesSizedForBothForms) coordinatesBothFormsWidthPx(location, ::widthOf, readoutStyle) else widthOf(coordinatesText, readoutStyle),
             labelsPx = listOf(elevationLabel?.let { widthOf(it, labelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0),
             valuesPx = listOf(widthOf(elevationText, readoutStyle)),
             separatorPx = widthOf("·", labelStyle) + with(density) { 2 * Spacing.sm.roundToPx() },
@@ -1013,13 +1076,18 @@ internal const val STRIP_EVENING_PIECE_TAG = "strip-evening-piece"
  * coordinates, each after its separator). The heading is measured as its widest form ("000°" and the widest compass point,
  * tabular figures), not its current one, so the join does not move as the phone turns. With no fix, the no-fix line. Read by
  * [landscapeStripFit]; the coordinates-only figure is the narrowest the strip may be (coordinates never drop).
+ *
+ * Dispatch 2026-10-13-02, RECORD -987 (the owner: "tapping the coordinates in the strip changes it as expected, but the change
+ * causes strip to change size, and the navigation HUD at the bottom changes along with it ... can the strip stay the same
+ * size?"): the coordinates are measured as the wider of their two forms at this position, the grid reference and the decimal
+ * latitude/longitude ([coordinatesBothFormsWidthPx]), not the one showing, so switching between them leaves the strip's width,
+ * and the bar's and the navigation card's with it, where they were. It no longer reads which form is showing.
  */
 @Composable
 internal fun rememberLandscapeStripNeed(
     elevationMeters: Double?,
     unitSystem: UnitSystem,
     location: LatLng?,
-    showDecimalDegrees: Boolean,
     hasQuickSettings: Boolean,
 ): LandscapeStripNeed {
     val measurer = rememberTextMeasurer()
@@ -1033,7 +1101,7 @@ internal fun rememberLandscapeStripNeed(
             val noFix = chrome + widthOf(NO_FIX_MESSAGE, labelStyle)
             LandscapeStripNeed(noFix, noFix)
         } else {
-            val coordinates = widthOf(coordinatesStripText(location, showDecimalDegrees), readoutStyle)
+            val coordinates = coordinatesBothFormsWidthPx(location, ::widthOf, readoutStyle)
             val separator = widthOf("·", labelStyle) + 2 * Spacing.sm.roundToPx()
             val heading = landscapeHeadingValueWidthPx(::widthOf, readoutStyle)
             val elevation = widthOf(elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT, readoutStyle)
@@ -1041,6 +1109,14 @@ internal fun rememberLandscapeStripNeed(
         }
     }
 }
+
+/**
+ * Dispatch 2026-10-13-02, RECORD -987: the coordinates' width at [location] in whichever of their two forms is wider, the grid
+ * reference or the decimal latitude/longitude, in tabular figures as the strip draws them. The landscape strip is sized from
+ * this and gives way by it, so switching forms moves nothing.
+ */
+internal fun coordinatesBothFormsWidthPx(location: LatLng, widthOf: (String, TextStyle) -> Int, readoutStyle: TextStyle): Int =
+    maxOf(widthOf(coordinatesStripText(location, false), readoutStyle), widthOf(coordinatesStripText(location, true), readoutStyle))
 
 /**
  * RECORD -732, -733: the width the landscape strip keeps for its heading, its widest value form ("000°" and the widest compass

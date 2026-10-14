@@ -34,6 +34,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -318,6 +320,8 @@ internal fun NavigationHud(
     tuck: Dp = 0.dp,
     /** Dispatch 2026-10-12-08: the corners of the piece the card is tucked under (the landscape compass strip). */
     upperCorners: MapCardCorners = MapCardCorners.ALL,
+    /** Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outlined sides ([landscapeColumnOutlineSides]); `null` draws none. */
+    outlineSides: MapChromeOutlineSides? = null,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
@@ -327,7 +331,7 @@ internal fun NavigationHud(
         // covers the map is what it shows, and only its controls (the X and Try again) take touches.
         Box(
             modifier = modifier
-                .mapCardSurface(fill = fill, corners = cardCorners, tuck = tuck, upperCorners = upperCorners)
+                .mapCardSurface(fill = fill, corners = cardCorners, tuck = tuck, upperCorners = upperCorners, outline = mapChromeOutline(), outlineSides = outlineSides)
                 .testTag(NAVIGATION_HUD_TAG)
                 .mapChromeContainerColor(fill),
         ) {

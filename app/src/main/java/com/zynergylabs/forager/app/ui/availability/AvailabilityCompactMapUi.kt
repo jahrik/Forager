@@ -813,6 +813,7 @@ internal fun CompactMapTab(
                     uiState = uiState,
                     navigation = navigation,
                     landscape = landscape,
+                    isFullscreen = isFullscreen,
                     controlsPadding = controlsPadding,
                     topInset = topInset,
                     showDecimalDegrees = showDecimalDegrees,
@@ -847,6 +848,7 @@ internal fun CompactMapTab(
                     uiState = uiState,
                     navigation = navigation,
                     landscape = landscape,
+                    isFullscreen = isFullscreen,
                     cluster = cluster,
                     controlsPadding = controlsPadding,
                     trueHeading = trueHeading,
@@ -1306,6 +1308,8 @@ private fun BoxScope.CompactMapTopStrip(
     uiState: AvailabilityUiState,
     navigation: CompactMapNavigation,
     landscape: CompactMapLandscape,
+    /** Dispatch 2026-10-13-02 (RECORD -967): whether the pill and the rail have slid away, leaving the strip's sides by them facing the map. */
+    isFullscreen: Boolean,
     controlsPadding: PaddingValues,
     topInset: Dp,
     showDecimalDegrees: Boolean,
@@ -1334,6 +1338,31 @@ private fun BoxScope.CompactMapTopStrip(
     // landscape, where the two sit side by side, or once the pill has slid away in fullscreen (mapCardTuck).
     val stripTuck = if (railPortEdge == null) mapCardTuck(topInset) else 0.dp
     val isDarkTheme = LocalForagerDarkTheme.current
+    // Dispatch 2026-10-13-02 (RECORD -966, -967, -976): the strip's outline. Portrait: its bottom and its two sides, its top open
+    // under the pill (portraitStripOutlineSides; the sides since -976). Landscape (its top and far end since -988): its bottom; its side
+    // by the pill once the pill has slid away (the pill draws that join while shown); its rail side once the rail has, unless
+    // that side is then on the screen's edge.
+    val stripLayoutDirection = LocalLayoutDirection.current
+    val stripOutlineSides = if (railPortEdge == null) {
+        portraitStripOutlineSides()
+    } else {
+        landscapeColumnOutlineSides(
+            railPortEdge = railPortEdge,
+            railShown = !isFullscreen,
+            railSideInset = if (railPortEdge == ScreenEdge.Left) {
+                controlsPadding.calculateLeftPadding(stripLayoutDirection)
+            } else {
+                controlsPadding.calculateRightPadding(stripLayoutDirection)
+            },
+            innerSideDrawn = isFullscreen,
+            // RECORD -988 (the owner: "The pill in landscape isn't fully outlined"): the strip too, all the way round: its top,
+            // and its far end once the rail has slid away. Its side by the pill stays open while the pill is shown (the pill draws
+            // that join) and its side by the rail while the rail is (the rail draws it). Until -988 its top was never drawn.
+            top = true,
+            bottom = true,
+            railSideOnScreenEdgeDrawn = true,
+        )
+    }
     CompassElevationStrip(
         heading = trueHeading,
         elevationMeters = uiState.liveAltitudeMeters,
@@ -1356,7 +1385,7 @@ private fun BoxScope.CompactMapTopStrip(
                 .landscapeStripFit(
                     railPortEdge,
                     punchHoleEdge,
-                    rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, showDecimalDegrees, quickSettings != null),
+                    rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, quickSettings != null),
                     rememberLandscapeBarFloorPx(uiState, uiState.distanceUnit),
                 )
                 // RECORD -729: its measured height and width go up to the scaffold, which gives the bar that height and the rest
@@ -1393,6 +1422,12 @@ private fun BoxScope.CompactMapTopStrip(
         // RECORD -946, -951: in landscape the strip and the pill are the top bar, both in the pill's lighter shade.
         fill = if (railPortEdge != null) (if (isDarkTheme) MapPillColorDark else MapPillColorLight) else null,
         navigationInfo = if (railPortEdge == null) portraitNavigationInfo else null,
+        outlineSides = stripOutlineSides,
+        // Dispatch 2026-10-13-02, RECORD -983 (landscape) and -984 (the owner: "Have portrait more centered also. This will
+        // matter most to people with OCD"): both orientations.
+        readoutCentredOnMenu = true,
+        // Dispatch 2026-10-13-02, RECORD -987: landscape, where the strip is sized for the wider coordinate form.
+        coordinatesSizedForBothForms = railPortEdge != null,
     )
     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
     // The portrait strip's measured height goes the moment navigation starts, as it did when the strip left then (see above).
@@ -1411,7 +1446,10 @@ private fun BoxScope.CompactMapTopStrip(
     // RECORD -729, item 4 drew a 1 dp vertical line where the bar and the strip meet in landscape. Dispatch 2026-10-12-06
     // (RECORD -934, the owner's answer confirming "in landscape, the pill and card touch edge to edge (no join line)"): the
     // line is gone; the two meet square on their joined side and round on their outer sides (landscapeStripCorners, the bar's
-    // pillCorners in the scaffold). LANDSCAPE_BAR_STRIP_LINE_TAG is kept so a test can say no such line is drawn.
+    // pillCorners in the scaffold). LANDSCAPE_BAR_STRIP_LINE_TAG is kept so a test can say no such line is drawn. Dispatch
+    // 2026-10-13-02 (RECORD -967, the owner: "1 C one line between the two like there is now") replaces -934's "no join line":
+    // the pill's map chrome outline runs down the join, one 1 dp line drawn by the pill (MapChromeOutlineSides); no node of its
+    // own, so that tag is still never composed.
 }
 
 /** Landscape: rounded on its outer side and square where it meets the pill, edge to edge, no join line (RECORD -934); portrait, its lower two. */
@@ -1635,6 +1673,8 @@ private fun BoxScope.CompactMapNavigationDisplay(
     uiState: AvailabilityUiState,
     navigation: CompactMapNavigation,
     landscape: CompactMapLandscape,
+    /** Dispatch 2026-10-13-02 (RECORD -967): whether the rail has slid away, leaving the card's side by it facing the map. */
+    isFullscreen: Boolean,
     /** T11 fixes (RECORD -766, P4): told the display's bottom edge while navigating, so the landscape L can slide below it. */
     cluster: MapIconClusterState,
     controlsPadding: PaddingValues,
@@ -1654,6 +1694,21 @@ private fun BoxScope.CompactMapNavigationDisplay(
     val stripHeightPx by landscapeStripHeight
     val stripWidthPx by landscapeStripWidth
     val (bottomEnter, bottomExit) = navigationChromeFromBottomTransitions()
+    // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline: its top and rounded top corners and its side facing the
+    // map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the screen's.
+    val cardLayoutDirection = LocalLayoutDirection.current
+    val cardOutlineSides = landscapeColumnOutlineSides(
+        railPortEdge = railPortEdge,
+        railShown = !isFullscreen,
+        railSideInset = if (railPortEdge == ScreenEdge.Left) {
+            controlsPadding.calculateLeftPadding(cardLayoutDirection)
+        } else {
+            controlsPadding.calculateRightPadding(cardLayoutDirection)
+        },
+        innerSideDrawn = true,
+        top = true,
+        bottom = false,
+    )
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
     LaunchedEffect(Unit) { cluster.navigationDisplayBottomInRootPx = null }
@@ -1699,6 +1754,7 @@ private fun BoxScope.CompactMapNavigationDisplay(
             eveningLineTopLimitInRootPx = cardTopLimitInRootPx(cluster, density),
             // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
             cardCorners = MapCardCorners.TOP,
+            outlineSides = cardOutlineSides,
             modifier = Modifier
                 .fillMaxWidth()
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
