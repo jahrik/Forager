@@ -32,9 +32,17 @@ internal object SettingsPageHarness {
     private val stubMap: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
     fun openSettings(composeRule: AndroidComposeTestRule<*, ComponentActivity>) {
+        setScreen(composeRule, AvailabilityUiState(region = Region(lat = 45.0, lng = -122.0, radiusKm = 15)))
+        composeRule.onNodeWithText("Tools").performClick()
+        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.waitForIdle()
+    }
+
+    /** The real screen showing [uiState], before any tap (dispatch 2026-10-13-05 added it, for the Open-Meteo credit's tests). */
+    fun setScreen(composeRule: AndroidComposeTestRule<*, ComponentActivity>, uiState: AvailabilityUiState) {
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(region = Region(lat = 45.0, lng = -122.0, radiusKm = 15)),
+                uiState = uiState,
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},
@@ -62,8 +70,6 @@ internal object SettingsPageHarness {
                 mapSlot = stubMap,
             )
         }
-        composeRule.onNodeWithText("Tools").performClick()
-        composeRule.onNodeWithText("Settings").performClick()
         composeRule.waitForIdle()
     }
 
