@@ -99,4 +99,4 @@ internal object SoftwareCredits {
  * is [text] again, less trailing whitespace.
  */
 internal fun licenceParagraphs(text: String): List<String> =
-    text.replace("\r\n", "\n").trimEnd().split(Regex("\n[ \t]*\n")).filter { it.isNotBlank() }
+    text.replace("\r\n", "\n").trimEnd().split(Regex("\n(?:[ \t]*\n)+")).filter { it.isNotBlank() }
