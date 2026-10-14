@@ -376,9 +376,9 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
      * (A first version classified line pixels by colour and tracked the innermost run; over the stand-in map's grey the arc's
      * outer half and, at night, the map itself read as line, CI run 38528961935, so it is not used.)
      */
-    private fun assertEndOutlineContinuous(what: String, piece: DpRect, rail: DpRect, pieceFill: Color, railFill: Color, fromY: Dp, toY: Dp) {
+    private fun assertEndOutlineContinuous(what: String, piece: DpRect, beyondX: Dp, pieceFill: Color, fromY: Dp, toY: Dp) {
         val x0 = px(piece.right) - px(8.dp)
-        val x1 = px(rail.left) + px(4.dp)
+        val x1 = minOf(px(beyondX) + px(4.dp), image.width - 1)
         var last: Int? = null
         val edges = mutableListOf<Int>()
         for (y in px(fromY)..px(toY)) {
@@ -395,7 +395,7 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
             }
             last = edge
         }
-        println("MEASURED $orientation $theme $what: inner edges ${edges.joinToString()} (piece right ${px(piece.right)}, rail left ${px(rail.left)})")
+        println("MEASURED $orientation $theme $what: inner edges ${edges.joinToString()} (piece right ${px(piece.right)}, scanned to $x1)")
     }
 
     /**
@@ -426,7 +426,10 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertWalkFindsLine("the rail's inner edge", (px(rail.top + r)..px(rail.bottom - r) step 3).map { down(it, px(rail.left) + 1) }, railFill, stripFill)
         assertWalkFindsLine("the rail's top and bottom", (px(rail.left + r)..px(rail.right) - 1 step 3).flatMap { listOf(across(it, px(rail.top) + 1), across(it, px(rail.bottom) - 2)) }, railFill, railFill)
         assertWalkFindsLine("the pill's outer end", (px(pill.top + r)..px(pill.bottom - r)).map { down(it, px(pill.left) + 1) }, pillFill, pillFill)
-        assertEndOutlineContinuous("the strip's end against the rail", strip, rail, stripFill, railFill, strip.top + 6.dp, strip.bottom - 6.dp)
+        // The stretch the owner located the gap in ("It's on the right part of the telemetry pill"): the strip's end against the
+        // rail, its full height, walked across and followed down.
+        assertWalkFindsLine("the strip's end against the rail", (px(strip.top) + 1..px(strip.bottom) - 2).map { down(it, px(strip.right)) }, stripFill, railFill)
+        assertEndOutlineContinuous("the strip's end against the rail", strip, rail.left, stripFill, strip.top + 6.dp, strip.bottom - 6.dp)
     }
 
     protected fun landscapeCardEndUnbroken() {
@@ -436,7 +439,7 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         val y = card.top + 30.dp
         val cardFill = at(card.left + 4.dp, y)
         val railFill = at(rail.left + 6.dp, y)
-        assertEndOutlineContinuous("the navigation card's end against the rail", card, rail, cardFill, railFill, card.top + 6.dp, card.top + 40.dp)
+        assertEndOutlineContinuous("the navigation card's end against the rail", card, rail.left, cardFill, card.top + 6.dp, card.top + 40.dp)
     }
 
     protected fun landscapeCard() {
@@ -483,6 +486,12 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertEquals("the strip's other side is on the window's edge", window.right.value, strip.right.value, 0.5f)
         // RECORD -988: the strip all the way round, so its far end on the window's edge carries the line too (was assertNoLine).
         assertLine("the strip's far end, on the window's edge", inEnd(strip.right), px(mid), at(strip.right - 4.dp, mid))
+        // RECORD -990: the stretch the owner located the gap in, with the rail slid away: walked across and followed down.
+        val walk = (px(strip.top) + 1..px(strip.bottom) - 2).map { y -> (px(strip.right) - 5 until px(strip.right)).map { it to y } }
+        val broken = walk.filter { run -> run.none { (x, y) -> isLine(at(x, y), fill) } }
+        println("MEASURED $orientation $theme walk the strip's far end in fullscreen: ${walk.size} runs, ${broken.size} without a line")
+        assertTrue("the strip's far end in fullscreen: every run across it holds a line pixel; ${broken.size} of ${walk.size} do not", broken.isEmpty())
+        assertEndOutlineContinuous("the strip's far end in fullscreen", strip, strip.right, fill, strip.top + 6.dp, strip.bottom - 6.dp)
     }
 
     private class FixedCompass(degrees: Float) : CompassProvider {
