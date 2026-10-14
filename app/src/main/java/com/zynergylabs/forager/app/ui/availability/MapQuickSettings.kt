@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.BACK_BY_QUICK_HOURS
 import com.zynergylabs.forager.app.domain.BackByChoice
@@ -111,6 +112,17 @@ internal const val MAP_QUICK_SETTINGS_BUTTON_TAG = "map-quick-settings-button"
  * guideline by the owner's choice, for a thinner strip.
  */
 internal val QUICK_SETTINGS_TAP_TARGET = 36.dp
+
+/** The three-dot icon's size inside [QUICK_SETTINGS_TAP_TARGET]. */
+internal val QUICK_SETTINGS_ICON_SIZE = 20.dp
+
+/**
+ * How far the three dots' leading edge sits inside the button's leading edge: the icon is centred in the tap target, and
+ * Material's MoreVert draws its dots as circles of radius 2 about x = 12 on its 24-unit grid, so they start at 10/24 of the
+ * icon. Dispatch 2026-10-13-02, RECORD -983: the landscape strip centres its readout on the dots the eye sees, not on the
+ * button's invisible tap target.
+ */
+internal val QUICK_SETTINGS_DOTS_INSET: Dp = (QUICK_SETTINGS_TAP_TARGET - QUICK_SETTINGS_ICON_SIZE) / 2 + QUICK_SETTINGS_ICON_SIZE * (10f / 24f)
 
 internal const val MAP_QUICK_SETTINGS_DOT_TAG = "map-quick-settings-dot"
 /** The three-dot button's round press (motion Part 1), for tests. */
@@ -183,7 +195,7 @@ internal fun MapQuickSettingsButton(
         Icon(
             imageVector = Icons.Filled.MoreVert,
             contentDescription = if (backBy != null) "$MAP_QUICK_SETTINGS_DESCRIPTION, Back by set" else MAP_QUICK_SETTINGS_DESCRIPTION,
-            modifier = Modifier.size(20.dp).pressBounce(interactionSource),
+            modifier = Modifier.size(QUICK_SETTINGS_ICON_SIZE).pressBounce(interactionSource),
         )
         PressHighlight(interactionSource = interactionSource, shape = CircleShape, testTag = MAP_QUICK_SETTINGS_PRESS_HIGHLIGHT_TAG)
         if (backBy != null) {

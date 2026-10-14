@@ -16,6 +16,11 @@ package com.zynergylabs.forager.app.ui.availability
 // recorded in the Understory amendment merged in #130.
 
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
@@ -58,6 +63,9 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
+import com.zynergylabs.forager.app.ui.map.mapChromeEdges
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 
 /**
@@ -173,6 +181,20 @@ internal fun ForagerBottomNav(
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .then(if (topCornerRadius > 0.dp) Modifier.clip(RoundedCornerShape(topStart = topCornerRadius, topEnd = topCornerRadius)) else Modifier)
+            // Dispatch 2026-10-13-02 (RECORD -966, -967): over the map (rounded, the Map tab's instance), the icon bar's outline
+            // along the bar's top edge and its two rounded corners. RECORD -989 (the owner: "give the side of the bottom navigation
+            // strip the outline too. All the way down. Just not the bottom since it's supposed to meld into the android navbar"):
+            // down both sides to the bar's bottom as well; its bottom edge carries none. Until -989 its sides carried none either.
+            .then(
+                if (topCornerRadius > 0.dp) {
+                    Modifier.mapChromeEdges(
+                        mapChromeOutline(), topCornerRadius, topCornerRadius, 0.dp, 0.dp,
+                        MapChromeOutlineSides(left = true, top = true, right = true, bottom = false),
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .testTag(COMPACT_BOTTOM_NAV_TAG)
             .mapChromeContainerColor(containerColor),
     ) {
@@ -254,20 +276,92 @@ internal fun ForagerNavigationRail(
         modifier = modifier
             .fillMaxHeight()
             .then(if (innerCornerRadius > 0.dp) Modifier.clip(innerCorners) else Modifier)
+            // Dispatch 2026-10-13-02 (RECORD -966, -967): over the map, the icon bar's outline along the rail's inner edge and its
+            // two rounded corners there. The inner edge is the one line between the rail and the landscape strip and navigation
+            // card beside it, which leave that side open while the rail is shown (MapChromeOutlineSides). RECORD -990 (the owner:
+            // "can landscape get the same navigation bar outline treatment?", -989's for the bottom bar): along its top and bottom
+            // too, out to the screen's edge; its outer side, which meets the system's navigation buttons, carries none. Until -990
+            // its top and bottom carried none either.
+            .then(
+                if (innerCornerRadius > 0.dp) {
+                    if (portEdge == ScreenEdge.Left) {
+                        Modifier.mapChromeEdges(
+                            mapChromeOutline(), 0.dp, innerCornerRadius, innerCornerRadius, 0.dp,
+                            MapChromeOutlineSides(left = false, top = true, right = true, bottom = true),
+                        )
+                    } else {
+                        Modifier.mapChromeEdges(
+                            mapChromeOutline(), innerCornerRadius, 0.dp, 0.dp, innerCornerRadius,
+                            MapChromeOutlineSides(left = true, top = true, right = false, bottom = true),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .testTag(COMPACT_NAVIGATION_RAIL_TAG)
             .mapChromeContainerColor(containerColor),
     ) {
-        CompactTab.entries.forEach { tab ->
-            NavigationRailItem(
-                selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
-                onClick = { onTabSelected(tab) },
-                icon = { Icon(tab.icon(), contentDescription = null) },
-                label = { Text(tab.label) },
-                colors = NavigationRailItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                ),
-            )
+        // Dispatch 2026-10-13-02, RECORD -976 (the owner: "Landscape: the side navigation buttons (list, seasonal, maps, journal,
+        // tools) is crammed on the bar, unevenly stacked between the top and the bottom. Can the buttons be evenly spaced?"):
+        // Material's NavigationRail stacks its items from the top, 4 dp apart (a Column with no arrangement parameter), which
+        // left the free height all below Tools. The items now sit in one inner column over the rail's whole height, arranged by
+        // RailItemsEvenly: the free height shared out equally before, between and after them. In the rail's own content, so it
+        // holds wherever the rail is shown: over the map and beside the other tabs.
+        // Rejected, from CI: equal weighted spacers between the items (this branch's first version, b85b0af3). Each spacer is a
+        // child of Material's 4 dp-spaced Column, so six more 4 dp gaps; on a rail too short for its items they pushed the
+        // items into each other (AvailabilityScreenShortLandscapeTest, run 38513414352: Tools' top inside Journal's bounds),
+        // where main's stack only squeezed the last. Rejected too: weighting the items themselves, which would stretch each
+        // item's touch area and indicator over its share of the height.
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = RailItemsEvenly,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            CompactTab.entries.forEach { tab ->
+                NavigationRailItem(
+                    selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
+                    onClick = { onTabSelected(tab) },
+                    icon = { Icon(tab.icon(), contentDescription = null) },
+                    label = { Text(tab.label) },
+                    colors = NavigationRailItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+            }
+        }
+    }
+}
+
+/** The least gap between two rail items: Material's NavigationRail spaces its items 4 dp apart. Declared before
+ * [RailItemsEvenly], whose initializer reads it: a top-level property is initialised in file order (CI run 38515463361 at
+ * 7fcff2f7 failed to compile with it after). */
+private val RAIL_ITEM_MIN_GAP = 4.dp
+
+/**
+ * Dispatch 2026-10-13-02, RECORD -976: the rail's items spread evenly over its height. With room, the free height is shared
+ * equally before the first item, between each two and after the last. With less room than that at [RAIL_ITEM_MIN_GAP] apiece,
+ * the items keep that gap between them, Material's own, and the stack is centred; with no room at all they stack from the
+ * top that gap apart, as Material's rail did before.
+ */
+private val RailItemsEvenly: Arrangement.Vertical = object : Arrangement.Vertical {
+    override val spacing: Dp = RAIL_ITEM_MIN_GAP
+
+    override fun Density.arrange(totalSize: Int, sizes: IntArray, outPositions: IntArray) {
+        if (sizes.isEmpty()) return
+        val minGap = RAIL_ITEM_MIN_GAP.toPx()
+        val slack = (totalSize - sizes.sum()).toFloat()
+        val (endMargin, gap) = if (slack >= (sizes.size + 1) * minGap) {
+            val even = slack / (sizes.size + 1)
+            even to even
+        } else {
+            ((slack - (sizes.size - 1) * minGap) / 2).coerceAtLeast(0f) to minGap
+        }
+        var y = endMargin
+        sizes.forEachIndexed { i, size ->
+            outPositions[i] = y.roundToInt()
+            y += size + gap
         }
     }
 }
