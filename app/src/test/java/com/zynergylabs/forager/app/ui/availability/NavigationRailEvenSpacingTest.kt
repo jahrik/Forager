@@ -61,7 +61,7 @@ import org.robolectric.shadows.ShadowDisplay
  *   items were stacked a fixed gap apart from the top), so it is not the claim on its own.
  * - **Spread over the height:** the margin above the first item and the margin below the last are equal within 1 dp, and each
  *   at least [MIN_END_MARGIN]. Before the change the free height was all below the last item; this is the check that tells the
- *   two apart.
+ *   two apart. (The end margins include the rail's own 4 dp padding, so they are that much more than the gaps between items.)
  * - **Still touchable:** real touches at screen coordinates, several per item across its own bounds (a finger is not a
  *   point), each selecting that item.
  *

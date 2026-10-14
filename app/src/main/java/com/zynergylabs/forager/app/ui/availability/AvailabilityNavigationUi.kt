@@ -16,7 +16,11 @@ package com.zynergylabs.forager.app.ui.availability
 // recorded in the Understory amendment merged in #130.
 
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
-import androidx.compose.foundation.layout.Spacer
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
@@ -296,27 +300,65 @@ internal fun ForagerNavigationRail(
     ) {
         // Dispatch 2026-10-13-02, RECORD -976 (the owner: "Landscape: the side navigation buttons (list, seasonal, maps, journal,
         // tools) is crammed on the bar, unevenly stacked between the top and the bottom. Can the buttons be evenly spaced?"):
-        // Material's NavigationRail stacks its items from the top (a Column a fixed small gap apart, no arrangement parameter), which
-        // left the free height all below Tools. An equal weighted spacer before each item and after the last shares that height
-        // out evenly, so the gaps between the items, and above the first and below the last, are equal. In the rail's own
-        // content, so it holds wherever the rail is shown: over the map and beside the other tabs. Rejected: weighting the
-        // items themselves, which would stretch each item's touch area and indicator over its share of the height.
-        Spacer(Modifier.weight(1f))
-        CompactTab.entries.forEach { tab ->
-            NavigationRailItem(
-                selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
-                onClick = { onTabSelected(tab) },
-                icon = { Icon(tab.icon(), contentDescription = null) },
-                label = { Text(tab.label) },
-                colors = NavigationRailItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                ),
-            )
-            Spacer(Modifier.weight(1f))
+        // Material's NavigationRail stacks its items from the top, 4 dp apart (a Column with no arrangement parameter), which
+        // left the free height all below Tools. The items now sit in one inner column over the rail's whole height, arranged by
+        // RailItemsEvenly: the free height shared out equally before, between and after them. In the rail's own content, so it
+        // holds wherever the rail is shown: over the map and beside the other tabs.
+        // Rejected, from CI: equal weighted spacers between the items (this branch's first version, b85b0af3). Each spacer is a
+        // child of Material's 4 dp-spaced Column, so six more 4 dp gaps; on a rail too short for its items they pushed the
+        // items into each other (AvailabilityScreenShortLandscapeTest, run 38513414352: Tools' top inside Journal's bounds),
+        // where main's stack only squeezed the last. Rejected too: weighting the items themselves, which would stretch each
+        // item's touch area and indicator over its share of the height.
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = RailItemsEvenly,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            CompactTab.entries.forEach { tab ->
+                NavigationRailItem(
+                    selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
+                    onClick = { onTabSelected(tab) },
+                    icon = { Icon(tab.icon(), contentDescription = null) },
+                    label = { Text(tab.label) },
+                    colors = NavigationRailItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+            }
         }
     }
 }
+
+/**
+ * Dispatch 2026-10-13-02, RECORD -976: the rail's items spread evenly over its height. With room, the free height is shared
+ * equally before the first item, between each two and after the last. With less room than that at [RAIL_ITEM_MIN_GAP] apiece,
+ * the items keep that gap between them, Material's own, and the stack is centred; with no room at all they stack from the
+ * top that gap apart, as Material's rail did before.
+ */
+private val RailItemsEvenly: Arrangement.Vertical = object : Arrangement.Vertical {
+    override val spacing: Dp = RAIL_ITEM_MIN_GAP
+
+    override fun Density.arrange(totalSize: Int, sizes: IntArray, outPositions: IntArray) {
+        if (sizes.isEmpty()) return
+        val minGap = RAIL_ITEM_MIN_GAP.toPx()
+        val slack = (totalSize - sizes.sum()).toFloat()
+        val (endMargin, gap) = if (slack >= (sizes.size + 1) * minGap) {
+            val even = slack / (sizes.size + 1)
+            even to even
+        } else {
+            ((slack - (sizes.size - 1) * minGap) / 2).coerceAtLeast(0f) to minGap
+        }
+        var y = endMargin
+        sizes.forEachIndexed { i, size ->
+            outPositions[i] = y.roundToInt()
+            y += size + gap
+        }
+    }
+}
+
+/** The least gap between two rail items: Material's NavigationRail spaces its items 4 dp apart. */
+private val RAIL_ITEM_MIN_GAP = 4.dp
 
 /**
  * The Scaffold content insets for every tab but Map in a short landscape window (landscape B1,
