@@ -353,14 +353,16 @@ class AvailabilityScreenInAppCameraTest {
 
     /**
      * Dispatch 2026-10-13-03 (RECORD -968): an install that had "Lock camera to portrait" on before the option was removed
-     * gets the default, a camera whose window follows the device. The old value is put where the removed repository kept
+     * gets the camera every install gets: since RECORD -980 and -981 its window is held portrait (was: "a camera whose window
+     * follows the device", asserting SENSOR, before the owner's correction). The old value is put where the removed repository kept
      * it (`camera_orientation_preferences`, key `camera.lock_to_portrait`) and read back first, so the install this
      * describes is the one on disk. Nothing reads that file any more, so this cannot fail on this build; it states the
      * case. Written first against the code that still had the option, where it handed the screen the on value the
-     * ViewModel loaded and failed (PORTRAIT).
+     * ViewModel loaded and failed (PORTRAIT). Its PORTRAIT form was then written first against `cdf8b8b1`, where it failed
+     * with SENSOR.
      */
     @Test
-    fun `an install that had the portrait lock on gets a camera that follows the device`() {
+    fun `an install that had the portrait lock on gets the held portrait camera`() {
         val app = ApplicationProvider.getApplicationContext<Application>()
         val oldFile = app.preferencesDataStoreFile("camera_orientation_preferences")
         oldFile.delete()
@@ -377,8 +379,8 @@ class AvailabilityScreenInAppCameraTest {
             setScreen()
             openEditorCamera()
             assertEquals(
-                "the camera's window follows the device: SENSOR, not the old forced PORTRAIT",
-                ActivityInfo.SCREEN_ORIENTATION_SENSOR,
+                "the camera's window is held portrait, as every install's is (RECORD -980, -981)",
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
                 composeRule.activity.requestedOrientation,
             )
         } finally {

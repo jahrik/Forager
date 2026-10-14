@@ -38,7 +38,8 @@ import org.robolectric.annotation.Config
  * to `ROTATION_0` (`locked, the shot assigns ROTATION_0 whatever the sensor said` and `locked before
  * any reading, the shot still assigns ROTATION_0`); they are recorded in
  * `docs/archive/camera-portrait-lock.md`. The unlocked tests below were the setting-off case and are
- * now the only case. "Unlocked" in their names is kept so the history above still reads.
+ * now the only case; since RECORD -980 and -981 they are named for it (the window held portrait, the photo following
+ * the phone), and "unlocked" is gone from their names.
  *
  * ## What a coincident default would hide, and how it is kept out
  *
@@ -89,7 +90,10 @@ class CameraXCaptureSessionShotRotationTest {
     }
 
     @Test
-    fun `unlocked, the shot assigns the sensor's rotation`() = runTest {
+    fun `held sideways while the window stays portrait, the shot assigns the sensor's rotation, so the photo saves upright`() = runTest {
+        // RECORD -980, -981: the window is held portrait and the photo still follows the phone, because nothing in this path
+        // reads the window. Was `unlocked, the shot assigns the sensor's rotation`, same assertions. Not the old lock's
+        // ROTATION_0, which saved a sideways photo portrait (docs/archive/camera-portrait-lock.md).
         val session = CameraXCaptureSession(app)
         val capture = imageCaptureAt(Surface.ROTATION_0)
         session.installImageCapture(capture)
@@ -105,7 +109,7 @@ class CameraXCaptureSessionShotRotationTest {
     }
 
     @Test
-    fun `unlocked with no reading and no viewfinder, nothing is assigned`() = runTest {
+    fun `with no reading and no viewfinder, nothing is assigned`() = runTest {
         val session = CameraXCaptureSession(app)
         val capture = imageCaptureAt(Surface.ROTATION_270)
         session.installImageCapture(capture)

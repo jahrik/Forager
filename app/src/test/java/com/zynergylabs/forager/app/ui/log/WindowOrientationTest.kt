@@ -24,7 +24,6 @@ import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -85,21 +84,22 @@ class WindowOrientationTest {
         }
     }
 
+    /**
+     * RECORD -980 and -981 (the owner: "The camera is to never, ever, rotate like this. This is a cardinal sin"): the camera's
+     * window is held portrait while it is open, always, with no setting. Was `setting off, the window follows the device but
+     * never into reverse portrait, SENSOR, ...`, asserting SENSOR and not FULL_SENSOR; before dispatch 2026-10-13-03 the
+     * setting-on test asserted this same PORTRAIT. The controls turning in place in that held window is
+     * `the count keeps its centre when the device turns, and turns its bounds in place`, below.
+     */
     @Test
-    fun `setting off, the window follows the device but never into reverse portrait, SENSOR, and the previous request is put back after`() {
-        // A non-default previous value, so "restored" is distinguishable from "reset to unspecified". (Moved here from the
-        // setting-on test, removed with "Lock camera to portrait" in dispatch 2026-10-13-03; "setting off" is now the only case.)
+    fun `the window is held portrait while the camera is open, and the previous request is put back after`() {
+        // A non-default previous value, so "restored" is distinguishable from "reset to unspecified".
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
         setDialog()
 
         assertEquals(
-            "setting off: SENSOR, so the window takes portrait and both landscapes and the platform will not resolve it to reverse portrait on a phone — a half turn leaves the window, and the status bar, where they were",
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR,
-            composeRule.activity.requestedOrientation,
-        )
-        assertNotEquals(
-            "FULL_SENSOR is what would admit reverse portrait, and it is what this replaced; putting it back reintroduces the inverted-bands arrangement (CameraArrangement)",
-            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR,
+            "PORTRAIT: the camera's window never turns on a phone; not SENSOR, which turned it with the device",
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
             composeRule.activity.requestedOrientation,
         )
 
