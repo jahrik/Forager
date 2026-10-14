@@ -2,10 +2,10 @@ package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FlashAuto
-import androidx.compose.material.icons.filled.FlashOff
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.FlashlightOn
+import androidx.compose.material.icons.outlined.FlashAuto
+import androidx.compose.material.icons.outlined.FlashOff
+import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.runtime.Composable
 import com.zynergylabs.forager.app.ui.motion.IconSwap
 import androidx.compose.ui.semantics.semantics
@@ -34,7 +34,7 @@ import com.zynergylabs.forager.app.photo.next
  * - Built from [OverlayIcon], so it takes the outline rule, and turned in place by
  *   [rotateWithDevice], the same rule as every other camera glyph.
  *
- * **Glyphs:** `Icons.Filled.FlashOff` for Off, `FlashAuto` for Auto, `FlashOn` for On and
+ * **Glyphs:** `Icons.Outlined.FlashOff` (Filled until dispatch 2026-10-13-03, RECORD -970) for Off, `FlashAuto` for Auto, `FlashOn` for On and
  * `FlashlightOn` for Torch, from `material-icons-extended`, which the app already ships. Whether
  * each reads at a glance over a scene is the owner's verdict on the device. Open Camera's own icons for these two
  * states are a crossed-out bolt and a flashlight; that mapping is from memory and was not checked
@@ -62,10 +62,10 @@ internal fun FlashChip(session: CameraCaptureSession, deviceRotation: Int?, disp
 internal data class FlashGlyph(val icon: ImageVector, val label: String)
 
 internal fun flashGlyph(mode: FlashMode): FlashGlyph = when (mode) {
-    FlashMode.Off -> FlashGlyph(Icons.Filled.FlashOff, FLASH_OFF_LABEL)
-    FlashMode.Auto -> FlashGlyph(Icons.Filled.FlashAuto, FLASH_AUTO_LABEL)
-    FlashMode.On -> FlashGlyph(Icons.Filled.FlashOn, FLASH_ON_LABEL)
-    FlashMode.Torch -> FlashGlyph(Icons.Filled.FlashlightOn, TORCH_ON_LABEL)
+    FlashMode.Off -> FlashGlyph(Icons.Outlined.FlashOff, FLASH_OFF_LABEL)
+    FlashMode.Auto -> FlashGlyph(Icons.Outlined.FlashAuto, FLASH_AUTO_LABEL)
+    FlashMode.On -> FlashGlyph(Icons.Outlined.FlashOn, FLASH_ON_LABEL)
+    FlashMode.Torch -> FlashGlyph(Icons.Outlined.FlashlightOn, TORCH_ON_LABEL)
 }
 
 internal const val CAMERA_FLASH_CHIP_TAG = "in-app-camera-flash-chip"

@@ -5,8 +5,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOff
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.outlined.LocationOff
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -27,7 +27,7 @@ import androidx.compose.ui.platform.testTag
  * Built like [GridChip]: [OverlayIcon] for the outline rule, [rotateWithDevice] to turn in place,
  * one mapping so icon and label cannot disagree. Always present, last in the strip.
  *
- * **Glyphs:** `LocationOn` (material-icons-core) and `LocationOff` (material-icons-extended), both
+ * **Glyphs (the Outlined style since dispatch 2026-10-13-03, RECORD -970):** `LocationOn` (material-icons-core) and `LocationOff` (material-icons-extended), both
  * already on the app's classpath. Whether each reads at a glance over a scene is the owner's
  * verdict on the device.
  */
@@ -55,8 +55,8 @@ internal fun LocationChip(
 internal data class LocationGlyph(val icon: ImageVector, val label: String)
 
 internal fun locationGlyph(autoSaveLocationToPhotos: Boolean): LocationGlyph =
-    if (autoSaveLocationToPhotos) LocationGlyph(Icons.Filled.LocationOn, LOCATION_ON_LABEL)
-    else LocationGlyph(Icons.Filled.LocationOff, LOCATION_OFF_LABEL)
+    if (autoSaveLocationToPhotos) LocationGlyph(Icons.Outlined.LocationOn, LOCATION_ON_LABEL)
+    else LocationGlyph(Icons.Outlined.LocationOff, LOCATION_OFF_LABEL)
 
 internal const val CAMERA_LOCATION_CHIP_TAG = "in-app-camera-location-chip"
 internal const val LOCATION_ON_LABEL = "Save location: On"
