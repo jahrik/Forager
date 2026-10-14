@@ -204,10 +204,22 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         )
     }
 
-    /** The outline-coloured pixels in a run across a join, read against the fill on either side. */
+    /**
+     * A pixel on the line across a join: the outline over either piece's fill ([isLine]), and more than [JOIN_CLEAR_OF_FILLS]
+     * from both fills. The second condition is from CI run 38507319758 at bac9de39, the first run of this class: by day the first
+     * rows of the pill's shadow stepped onto the portrait strip read 0.678 to 0.725 (strip fill 0.832, pill fill 0.902). That is
+     * within 0.07 of the outline over the pill's fill, so [isLine] alone counted them as a second line (6 px, not 3). They are
+     * 0.11 to 0.15 from the strip's own fill; the line itself measured 0.235 or more from both fills at every join that run read
+     * (day and night, portrait and landscape).
+     */
+    private fun isJoinLine(p: Color, fillA: Color, fillB: Color) =
+        (isLine(p, fillA) || isLine(p, fillB)) &&
+            abs(lum(p) - lum(fillA)) > JOIN_CLEAR_OF_FILLS && abs(lum(p) - lum(fillB)) > JOIN_CLEAR_OF_FILLS
+
+    /** The outline-coloured pixels in a run across a join, read against the fill on either side ([isJoinLine]). */
     private fun lineRun(what: String, pixels: List<Pair<Int, Int>>, fillA: Color, fillB: Color): Int {
         val read = pixels.map { (x, y) -> at(x, y) }
-        val count = read.count { isLine(it, fillA) || isLine(it, fillB) }
+        val count = read.count { isJoinLine(it, fillA, fillB) }
         println("MEASURED $orientation $theme $what: $count outline pixels across ${read.joinToString { "%.3f".format(lum(it)) }}")
         return count
     }
@@ -318,14 +330,19 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertEquals("the card meets the rail", card.right.value, rail.left.value, 0.5f)
         val low = card.bottom - 4.dp
         val fill = at(card.left + 4.dp, low)
-        val railFill = at(rail.left + 6.dp, low)
+        // The join is read 30 dp below the card's top, on the rail's straight inner edge. CI run 38507319758 read it at `low`,
+        // 4 dp above the screen's bottom, which is inside the rail's rounded inner bottom corner: the run beside the card read
+        // the map (0.502), not the rail.
+        val joinY = card.top + 30.dp
+        val joinFill = at(card.left + 4.dp, joinY)
+        val railFill = at(rail.left + 6.dp, joinY)
         assertLine("the card's top", px(card.left + 40.dp), inStart(card.top), fill)
         assertLineNear("the card's rounded top-left corner", px(card.left + arcInset), px(card.top + arcInset), fill)
         assertLine("the card's inner side, facing the map", inStart(card.left), px(low), fill)
         assertNoLine("the card's bottom, on the screen's edge", px(card.left + 4.dp), inEnd(card.bottom), fill)
-        val y = px(low)
+        val y = px(joinY)
         val join = px(card.right)
-        assertOneLine("the card and the rail", (join - 9..join + 9).map { it to y }, fill, railFill)
+        assertOneLine("the card and the rail", (join - 9..join + 9).map { it to y }, joinFill, railFill)
     }
 
     /**
@@ -361,6 +378,9 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
     private companion object {
         const val STRIP_TAG = "compass-elevation-strip"
         const val MAP_TAG = "map-chrome-outline-map"
+
+        /** See [isJoinLine]. */
+        const val JOIN_CLEAR_OF_FILLS = 0.18f
     }
 }
 

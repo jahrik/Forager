@@ -115,11 +115,16 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
 
     private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
 
-    private fun controlsReach(): List<DpRect> = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
+    /** Each control's reach (its bounds and 6 dp round them), with what names it, so a skipped point says which control it was by. */
+    private fun controlsReach(): List<Pair<String, DpRect>> = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
         .filterNot { it.config.getOrNull(SemanticsProperties.TestTag) == MAP_TAG }
         .map { n ->
+            val name = n.config.getOrNull(SemanticsProperties.TestTag)
+                ?: n.config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString()
+                ?: n.config.getOrNull(SemanticsProperties.Text)?.joinToString()
+                ?: "node ${n.id}"
             with(composeRule.density) {
-                DpRect(n.boundsInRoot.left.toDp() - 6.dp, n.boundsInRoot.top.toDp() - 6.dp, n.boundsInRoot.right.toDp() + 6.dp, n.boundsInRoot.bottom.toDp() + 6.dp)
+                name to DpRect(n.boundsInRoot.left.toDp() - 6.dp, n.boundsInRoot.top.toDp() - 6.dp, n.boundsInRoot.right.toDp() + 6.dp, n.boundsInRoot.bottom.toDp() + 6.dp)
             }
         }
 
@@ -142,8 +147,9 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
         var reached = 0
         val skipped = mutableListOf<String>()
         for ((x, y) in points) {
-            if (reach.any { x >= it.left && x <= it.right && y >= it.top && y <= it.bottom }) {
-                skipped += "(${x.value}, ${y.value})"
+            val by = reach.firstOrNull { (_, it) -> x >= it.left && x <= it.right && y >= it.top && y <= it.bottom }
+            if (by != null) {
+                skipped += "(${x.value}, ${y.value}) by ${by.first}"
                 continue
             }
             val before = longPresses
@@ -160,7 +166,11 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
         val pill = bounds(SEARCH_ENTRY_BAR_TAG)
         val strip = bounds(STRIP_TAG)
         val bar = bounds(COMPACT_BOTTOM_NAV_TAG)
-        assertGapsReachMap("the pill's top corners", gap(pill.left, pill.top, 1, 1) + gap(pill.right, pill.top, -1, 1), atLeast = 6)
+        // CI run 38507319758 at bac9de39, this test's first run: 5 of the pill's 6 top-corner points lie within reach of a
+        // control (the run printed only coordinates; the skipped list now names the control), so they are skipped, as a finger
+        // there goes to that control on a device too, before and after the outline; 1 reached the map. atLeast was 6 here,
+        // which no build could meet. In landscape all 6 of the pill's outer-corner points reached the map in that run.
+        assertGapsReachMap("the pill's top corners", gap(pill.left, pill.top, 1, 1) + gap(pill.right, pill.top, -1, 1), atLeast = 1)
         assertGapsReachMap("the strip's bottom corners", gap(strip.left, strip.bottom, 1, -1) + gap(strip.right, strip.bottom, -1, -1), atLeast = 3)
         assertGapsReachMap("the bottom bar's top corners", gap(bar.left, bar.top, 1, 1) + gap(bar.right, bar.top, -1, 1), atLeast = 6)
     }
