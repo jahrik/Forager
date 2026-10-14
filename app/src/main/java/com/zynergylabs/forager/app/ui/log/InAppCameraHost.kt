@@ -72,7 +72,7 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, gridMod
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
         levelProvider = levelProvider,
-        viewfinder = { modifier -> session.Viewfinder(modifier) },
+        viewfinder = { modifier -> session.Viewfinder(modifier, held = LocalNaturalOrientationHold.current) },
     )
 }
 

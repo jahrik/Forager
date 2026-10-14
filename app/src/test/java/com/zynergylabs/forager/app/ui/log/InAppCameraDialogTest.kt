@@ -666,6 +666,9 @@ class InAppCameraDialogTest {
         val frame = bounds(IN_APP_CAMERA_TAG)
         assertEquals("precondition: portrait arrangement, shutter at the bottom", (frame.bottom - Spacing.lg).value, bounds(CAMERA_SHUTTER_TAG).bottom.value, 0.51f)
 
+        // RECORD -985: a full-screen window turned under the camera is now held in the natural frame
+        // (InAppCameraLargeScreenHoldTest); following the window is what a split-screen or freeform window does. Setup only.
+        Shadows.shadowOf(composeRule.activity).setInMultiWindowMode(true)
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
         assertEquals("the harness must report the pinned rotation", Surface.ROTATION_90, ShadowDisplay.getDefaultDisplay().rotation)
         orientation = Configuration.ORIENTATION_LANDSCAPE

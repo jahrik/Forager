@@ -29,6 +29,7 @@ import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -76,6 +77,17 @@ class InAppCameraDialogLandscapeTest {
 
     private val session = FakeCameraCaptureSession()
     private var setOrientation: (Int) -> Unit = {}
+
+    /**
+     * RECORD -985: a full-screen window whose display is turned is now held in the device's natural frame
+     * (`NaturalOrientationHold`, tested in `InAppCameraLargeScreenHoldTest`), so the landscape arrangement this class
+     * measures, at a turned display, is reached only in split screen or a freeform window. Every test here runs in one.
+     * Setup only: no assertion in this class changed. Before RECORD -985 the window was full screen.
+     */
+    @Before
+    fun inAMultiWindowWindow() {
+        Shadows.shadowOf(composeRule.activity).setInMultiWindowMode(true)
+    }
 
     /** The dialog under a configuration this test controls, so "the window turned underneath it" can be simulated. */
     private fun setDialog(session: CameraCaptureSession = this.session) {

@@ -250,6 +250,9 @@ class InAppCameraSettingsPanelTest {
     }
 
     private fun assertPanelBesideStripInLandscape(rotation: Int) {
+        // RECORD -985: full screen, a turned display is held in the natural frame (InAppCameraLargeScreenHoldTest); the
+        // landscape arrangement this measures is reached in a multi-window window. Setup only, assertions unchanged.
+        Shadows.shadowOf(composeRule.activity).setInMultiWindowMode(true)
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         @Suppress("DEPRECATION") val reported = composeRule.activity.windowManager.defaultDisplay.rotation
         assertEquals("the harness reports the rotation this test is about", rotation, reported)

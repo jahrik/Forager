@@ -31,9 +31,10 @@ import androidx.compose.ui.platform.LocalContext
  * stays on the portrait window's bottom edge.
  *
  * **Large screens.** With `targetSdk` 37, Android 17 ignores orientation requests on displays whose
- * smallest width is 600 dp or more, so there the window still turns. The arrangement follows the
+ * smallest width is greater than 600 dp, so there the window still turns. The arrangement follows the
  * window ([cameraArrangement]) and the glyphs cancel the turn, so the camera keeps working, but it
- * does visibly rotate there. Keeping it still on those screens is a separate, not yet built step.
+ * would visibly rotate there. Since RECORD -985 it does not: `NaturalOrientationHold` lays the camera out in the device's
+ * natural frame and turns it back, in a full-screen window.
  *
  * Everything from here down is the history it replaces, left as written.
  *

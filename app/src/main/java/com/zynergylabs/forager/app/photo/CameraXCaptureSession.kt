@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import android.util.Size
 import android.view.OrientationEventListener
+import android.view.Surface
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraSelector
@@ -472,11 +473,30 @@ internal class CameraXCaptureSession(
      * viewfinder as a slot precisely so a test can pass a plain `Box`.
      */
     @Composable
-    fun Viewfinder(modifier: Modifier = Modifier) {
+    fun Viewfinder(
+        modifier: Modifier = Modifier,
+        /**
+         * The camera's content is held in the device's natural frame inside a turned window (`NaturalOrientationHold`,
+         * RECORD -985). Then the picture must turn with that layer, and must be laid out for the natural frame:
+         *
+         * - **`COMPATIBLE` mode, a `TextureView`**, because a `SurfaceView` is its own surface and does not follow a
+         *   Compose layer's turn.
+         * - **`Preview.targetRotation` = `ROTATION_0`**, the natural frame. Read in camera-view 1.6.2 (sources jar):
+         *   with a target rotation specified and a `TextureView`, `PreviewView` does **not** substitute the display's
+         *   rotation (`PreviewView.java:231-239`, `mUseDisplayRotation` false), and its `TextureView` correction is
+         *   `-target` (`PreviewTransformation.java:182-193`), here 0. So it does not correct for the turned display a
+         *   second time; the layer's turn is the only one.
+         *
+         * Not held (every phone, and split screen), nothing here changes: `PERFORMANCE`, and CameraX's own target
+         * rotation. Leaving the hold puts back `PERFORMANCE` and the display's rotation. Whether the picture is the
+         * right way up on a tablet is device-only: CameraX does not run under Robolectric.
+         */
+        held: Boolean = false,
+    ) {
         val context = LocalContext.current
         val view = remember { PreviewView(context) }
 
-        DisposableEffect(view) {
+        DisposableEffect(view, held) {
             previewView = view
             val bound = preview
             if (bound == null) {
@@ -484,10 +504,20 @@ internal class CameraXCaptureSession(
                 // assumed: if it ever happens, this is where the spinner-forever bug would hide.
                 Log.w(TAG, "Viewfinder composed before the camera was bound; nothing to draw into it yet.")
             } else {
+                if (held) {
+                    // Before the surface provider: the mode is read when the next surface is requested.
+                    view.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    bound.targetRotation = Surface.ROTATION_0
+                    Log.i(TAG, "Viewfinder held in the natural frame: COMPATIBLE, Preview targetRotation=ROTATION_0, display=${view.display?.rotation}.")
+                }
                 bound.setSurfaceProvider(view.surfaceProvider)
             }
             onDispose {
                 preview?.setSurfaceProvider(null)
+                if (held) {
+                    view.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+                    preview?.targetRotation = view.display?.rotation ?: Surface.ROTATION_0
+                }
                 previewView = null
             }
         }

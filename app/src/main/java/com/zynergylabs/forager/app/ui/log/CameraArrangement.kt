@@ -90,6 +90,13 @@ package com.zynergylabs.forager.app.ui.log
  * `remember` as setting off. It is not protected: the moment either input stops being constant —
  * a platform that ignores the portrait request, say — it is on the same path as everything else.
  *
+ * **Since RECORD -985 the inputs are the device's natural frame, not the window's**, whenever the window is full screen:
+ * `NaturalOrientationHold` passes the natural frame's shape and `ROTATION_0` while it holds a turned window. So "portrait"
+ * below means the device's own upright, the shutter goes on the natural bottom, and a landscape-natural tablet (the owner,
+ * "Option A") gets the landscape arrangement at its natural rotation and keeps it however it is held. Which physical edge a
+ * landscape-natural tablet's charger port is on is not known here; its shutter is on the right as in RECORD -958. The
+ * window's own values reach this function only in split screen or a freeform window.
+ *
  * **Since RECORD -980 and -981** the window is held portrait (`SCREEN_ORIENTATION_PORTRAIT`, no
  * setting), so on a phone this returns [CameraArrangement.Portrait]. The window inputs stay, because a
  * display 600 dp or wider under Android 17 ignores the request and turns the window anyway.
