@@ -203,15 +203,13 @@ internal fun InAppCameraDialog(
     // hold, and the re-derived layout appears in the same frame as the turned window because the
     // window rotates seamlessly (RequestSeamlessRotation). Do not restore a setting-only key:
     // that is this bug.
-    val windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val windowIsLandscapeInWindow = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     // The window's rotation decides which physical edge the shutter goes on, because the two
     // landscapes are mirror images and only one has the charger port on the screen's right — see
     // CameraArrangement. currentDisplayRotation reads LocalConfiguration so it recomposes when the
     // window turns, and the key below carries the new value into the arrangement.
-    val displayRotation = currentDisplayRotation()
-    val arrangement = remember(windowIsLandscape, displayRotation) {
-        cameraArrangement(windowIsLandscape, displayRotation)
-    }
+    val windowDisplayRotation = currentDisplayRotation()
+    val fullScreen = currentWindowIsFullScreen()
 
     // Back is the only way out, and on the Activity's window it is the Activity's own dispatcher
     // rather than a dialog's — it reaches the same `onDismiss` that `onDismissRequest` used to, so
@@ -252,6 +250,17 @@ internal fun InAppCameraDialog(
             .background(Color.Black)
             .testTag(IN_APP_CAMERA_TAG),
     ) {
+        // RECORD -981 and -985: the camera never appears to rotate. Where the window turns anyway (Android 17 ignores the
+        // portrait request on displays wider than 600 dp for targetSdk 37), the content is laid out in the device's natural
+        // frame and turned back; inside, windowIsLandscape and displayRotation are the natural frame's. See NaturalOrientationHold.
+        HoldNaturalOrientation(
+            windowIsLandscape = windowIsLandscapeInWindow,
+            displayRotation = windowDisplayRotation,
+            fullScreen = fullScreen,
+        ) { windowIsLandscape, displayRotation ->
+        val arrangement = remember(windowIsLandscape, displayRotation) {
+            cameraArrangement(windowIsLandscape, displayRotation)
+        }
         // Motion Part 3, Amendment 2 (RECORD -682; scout K2): the opening spinner, the viewfinder and the unavailable message
         // crossfade instead of swapping in one frame (motion/StateCrossfade.kt), keyed on which of the three, so a reason that
         // changes updates in place. The camera's own rotation stays the system's, untouched (the owner's exception, RECORD -681).
@@ -384,6 +393,7 @@ internal fun InAppCameraDialog(
                 displayRotation = displayRotation,
                 onClose = { showCameraSettings = false },
             )
+        }
         }
     }
 }
