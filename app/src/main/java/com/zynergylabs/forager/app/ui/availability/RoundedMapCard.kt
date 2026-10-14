@@ -276,8 +276,13 @@ internal fun landscapeColumnOutlineSides(
     innerSideDrawn: Boolean,
     top: Boolean,
     bottom: Boolean,
+    /**
+     * RECORD -988: draw the rail side once the rail has gone even when it then lies on the screen's edge (the compass strip,
+     * outlined all the way round). False keeps -967's rule for the navigation card, which -988 leaves unchanged.
+     */
+    railSideOnScreenEdgeDrawn: Boolean = false,
 ): MapChromeOutlineSides {
-    val railSide = !railShown && railSideInset > 0.dp
+    val railSide = !railShown && (railSideInset > 0.dp || railSideOnScreenEdgeDrawn)
     return if (railPortEdge == ScreenEdge.Left) {
         MapChromeOutlineSides(left = railSide, top = top, right = innerSideDrawn, bottom = bottom)
     } else {

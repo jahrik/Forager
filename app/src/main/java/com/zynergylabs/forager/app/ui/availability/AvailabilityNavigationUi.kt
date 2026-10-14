@@ -182,12 +182,14 @@ internal fun ForagerBottomNav(
         modifier = modifier
             .then(if (topCornerRadius > 0.dp) Modifier.clip(RoundedCornerShape(topStart = topCornerRadius, topEnd = topCornerRadius)) else Modifier)
             // Dispatch 2026-10-13-02 (RECORD -966, -967): over the map (rounded, the Map tab's instance), the icon bar's outline
-            // along the bar's top edge and its two rounded corners; its sides and bottom lie on the screen's edges and carry none.
+            // along the bar's top edge and its two rounded corners. RECORD -989 (the owner: "give the side of the bottom navigation
+            // strip the outline too. All the way down. Just not the bottom since it's supposed to meld into the android navbar"):
+            // down both sides to the bar's bottom as well; its bottom edge carries none. Until -989 its sides carried none either.
             .then(
                 if (topCornerRadius > 0.dp) {
                     Modifier.mapChromeEdges(
                         mapChromeOutline(), topCornerRadius, topCornerRadius, 0.dp, 0.dp,
-                        MapChromeOutlineSides(left = false, top = true, right = false, bottom = false),
+                        MapChromeOutlineSides(left = true, top = true, right = true, bottom = false),
                     )
                 } else {
                     Modifier

@@ -66,7 +66,9 @@ import org.robolectric.shadows.ShadowDisplay
  * - **Absent** on every side that lies on the screen's own edge (RECORD -967, the owner: "2 yes"), **except the portrait top
  *   pills** (RECORD -976, the owner: "In portrait mode: Have the outlines follow the entire pill at top. The bottom bar can stay
  *   as is."): the pill all the way round, the strip on its sides and bottom, its top open under the pill and its sides clipped
- *   there. The bottom bar's sides stay without one.
+ *   there; **the landscape top pills** (RECORD -988): the pill all the way round, the strip on its top, bottom and any end not
+ *   joined to the pill or the rail; and **the bottom bar's sides** (RECORD -989), down to its bottom, its bottom edge still
+ *   without one.
  * - **One line where two pieces touch** (the owner: "1 C one line between the two like there is now"): across each join the
  *   run of outline-coloured pixels is one line wide (2 to 4 px at xxhdpi, 1 dp being 3 px), not two (6 px), and not none.
  *
@@ -299,8 +301,16 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertLine("the bottom bar's top", px(bar.left + 24.dp), inStart(bar.top), fill)
         assertLineNear("the bottom bar's rounded top-left corner", px(bar.left + arcInset), px(bar.top + arcInset), fill)
         assertLineNear("the bottom bar's rounded top-right corner", px(bar.right - arcInset), px(bar.top + arcInset), fill)
-        assertNoLine("the bottom bar's left side, on the screen's edge", inStart(bar.left), px(mid), fill)
-        assertNoLine("the bottom bar's right side, on the screen's edge", inEnd(bar.right), px(mid), at(bar.right - 4.dp, mid))
+        // RECORD -989 (the owner: "give the side of the bottom navigation strip the outline too. All the way down. Just not the
+        // bottom since it's supposed to meld into the android navbar"): its sides carry the line from the corners to its bottom,
+        // and its bottom edge none. Until -989 the two side checks here were assertNoLine.
+        val low = bar.bottom - 2.dp
+        assertLine("the bottom bar's left side", inStart(bar.left), px(mid), fill)
+        assertLine("the bottom bar's right side", inEnd(bar.right), px(mid), at(bar.right - 4.dp, mid))
+        assertLine("the bottom bar's left side, at its bottom", inStart(bar.left), px(low), at(bar.left + 4.dp, low))
+        assertLine("the bottom bar's right side, at its bottom", inEnd(bar.right), px(low), at(bar.right - 4.dp, low))
+        assertNoLine("the bottom bar's bottom edge, which melds into the system bar", px(bar.left + 24.dp), inEnd(bar.bottom), at(bar.left + 24.dp, bar.bottom - 4.dp))
+        assertNoLine("the bottom bar's bottom edge, right", px(bar.right - 24.dp), inEnd(bar.bottom), at(bar.right - 24.dp, bar.bottom - 4.dp))
     }
 
     // ── Landscape ──
@@ -320,11 +330,14 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
 
         assertLine("the pill's bottom", px(pill.left + 40.dp), inEnd(pill.bottom), pillFill)
         assertLineNear("the pill's rounded bottom-left corner", px(pill.left + arcInset), px(pill.bottom - arcInset), pillFill)
-        assertNoLine("the pill's outer side, on the screen's edge", inStart(pill.left), px(pillMid), pillFill)
-        assertNoLine("the pill's top, the top of the map's area", px(pill.left + 60.dp), inStart(pill.top), at(pill.left + 60.dp, pill.top + 3.dp))
+        // RECORD -988 (the owner: "The pill in landscape isn't fully outlined"): the pill's outer end and top, and the strip's
+        // top, carry the line. Until -988 these three were assertNoLine (RECORD -967: no line on the screen's own edge).
+        assertLine("the pill's outer end", inStart(pill.left), px(pillMid), pillFill)
+        assertLine("the pill's top", px(pill.left + 60.dp), inStart(pill.top), at(pill.left + 60.dp, pill.top + 3.dp))
+        assertLineNear("the pill's rounded top-left corner", px(pill.left + arcInset), px(pill.top + arcInset), pillFill)
 
         assertLine("the strip's bottom", px(strip.left + 24.dp), inEnd(strip.bottom), stripFill)
-        assertNoLine("the strip's top, the top of the map's area", px(strip.left + 24.dp), inStart(strip.top), stripFill)
+        assertLine("the strip's top", px(strip.left + 24.dp), inStart(strip.top), at(strip.left + 24.dp, strip.top + 6.dp))
 
         val y = px(strip.top + 3.dp)
         val join = px(strip.left)
@@ -370,7 +383,7 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
 
     /**
      * Fullscreen: the pill and the rail slide away, so the strip's side by the pill faces the map and the strip draws it; its
-     * side by the rail is then on the window's edge (Robolectric's zero insets) and carries none.
+     * side by the rail is then on the window's edge (Robolectric's zero insets) and, since RECORD -988, carries the line too.
      */
     protected fun landscapeFullscreenStrip() {
         setScreen(navigating = false, shot = "pill-strip-rail")
@@ -383,11 +396,12 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         val strip = bounds(STRIP_TAG)
         val window = composeRule.onRoot().getUnclippedBoundsInRoot()
         println("MEASURED $orientation $theme fullscreen: strip $strip, window $window")
-        val fill = at(strip.left + 24.dp, strip.top + 3.dp)
-        assertLine("the strip's side by the slid-away pill", inStart(strip.left), px(strip.top + 3.dp), fill)
-        assertEquals("the strip's other side is on the window's edge", window.right.value, strip.right.value, 0.5f)
         val mid = (strip.top + strip.bottom) / 2
-        assertNoLine("the strip's side on the window's edge", inEnd(strip.right), px(mid), at(strip.right - 4.dp, mid))
+        val fill = at(strip.left + 24.dp, mid)
+        assertLine("the strip's side by the slid-away pill", inStart(strip.left), px(mid), fill)
+        assertEquals("the strip's other side is on the window's edge", window.right.value, strip.right.value, 0.5f)
+        // RECORD -988: the strip all the way round, so its far end on the window's edge carries the line too (was assertNoLine).
+        assertLine("the strip's far end, on the window's edge", inEnd(strip.right), px(mid), at(strip.right - 4.dp, mid))
     }
 
     private class FixedCompass(degrees: Float) : CompassProvider {
@@ -414,17 +428,17 @@ abstract class MapChromeOutlinePortraitTests(dark: Boolean) : MapChromeOutlinePi
 
     @Test fun `navigating, the strip's card is outlined on its sides and grown bottom, and the pill's edge is still the one line`() = portraitStrip(navigating = true)
 
-    @Test fun `the bottom bar is outlined on its top and rounded corners, not on its sides`() = portraitBottomBar()
+    @Test fun `the bottom bar is outlined on its top, rounded corners and sides down to its bottom, not along its bottom`() = portraitBottomBar()
 }
 
 abstract class MapChromeOutlineLandscapeTests(dark: Boolean) : MapChromeOutlinePixelsTests(dark, rotation = Surface.ROTATION_90) {
-    @Test fun `the pill and the strip are outlined where they face the map, with one line on each join`() = landscapePillAndStrip()
+    @Test fun `the pill and the strip are outlined all the way round, with one line on each join`() = landscapePillAndStrip()
 
     @Test fun `the rail is outlined on its inner edge and corners, not its outer side`() = landscapeRail()
 
     @Test fun `the navigation card is outlined on its top and inner side, not its bottom, with one line against the rail`() = landscapeCard()
 
-    @Test fun `in fullscreen the strip draws its side by the pill, and none on the window's edge`() = landscapeFullscreenStrip()
+    @Test fun `in fullscreen the strip draws its side by the pill and its far end on the window's edge`() = landscapeFullscreenStrip()
 }
 
 @RunWith(RobolectricTestRunner::class)

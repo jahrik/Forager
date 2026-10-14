@@ -1341,30 +1341,13 @@ internal fun CompactMainScaffold(
                                                 } else {
                                                     MapCardCorners.ALL
                                                 },
-                                                // Dispatch 2026-10-13-02 (RECORD -966, -967): the pill's outline. Its bottom always (in portrait
-                                                // the one line between it and the strip tucked under it). In landscape it draws its join with the
-                                                // strip, and a side with room between it and the screen's edge (a system bar or the cut-out);
-                                                // never its top, the top of the map's area. Portrait (RECORD -976, the owner: "In portrait mode:
-                                                // Have the outlines follow the entire pill at top"): all the way round, its sides on the screen's
-                                                // edges and its top included, replacing -967's "no line on the screen's own edge" for this pill.
-                                                pillOutlineSides = if (landscapeSearchWidth == null) {
-                                                    MapChromeOutlineSides(left = true, top = true, right = true, bottom = true)
-                                                } else {
-                                                    val roomLeft = mapControlsPadding.calculateLeftPadding(searchLayoutDirection) > 0.dp
-                                                    val roomRight = mapControlsPadding.calculateRightPadding(searchLayoutDirection) > 0.dp
-                                                    val joinOnLeft = if (barMeetsStrip && landscapeStripWidth > 0.dp) {
-                                                        portEdge == ScreenEdge.Left
-                                                    } else {
-                                                        // Before the strip is measured the bar sits on the punch-hole side, its other side over the map.
-                                                        punchHoleEdge != ScreenEdge.Left
-                                                    }
-                                                    MapChromeOutlineSides(
-                                                        left = joinOnLeft || roomLeft,
-                                                        top = false,
-                                                        right = !joinOnLeft || roomRight,
-                                                        bottom = true,
-                                                    )
-                                                },
+                                                // Dispatch 2026-10-13-02: the pill's outline, all the way round in both orientations. Portrait:
+                                                // RECORD -976 (the owner: "In portrait mode: Have the outlines follow the entire pill at top").
+                                                // Landscape: RECORD -988 (the owner: "The pill in landscape isn't fully outlined"), replacing
+                                                // -967's "no line on the screen's own edge" there; its join with the strip is still the one line
+                                                // between them, drawn by the pill (the strip leaves that side open). Until -988 landscape drew
+                                                // only its bottom, its join and a side with room beside it, never its top.
+                                                pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
                                             )
                                             // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
                                             // bar's bottom over this column, so the notice starts where the strip's own measured height ends.

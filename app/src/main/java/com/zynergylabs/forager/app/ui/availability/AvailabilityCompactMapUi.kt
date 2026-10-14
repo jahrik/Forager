@@ -1339,7 +1339,7 @@ private fun BoxScope.CompactMapTopStrip(
     val stripTuck = if (railPortEdge == null) mapCardTuck(topInset) else 0.dp
     val isDarkTheme = LocalForagerDarkTheme.current
     // Dispatch 2026-10-13-02 (RECORD -966, -967, -976): the strip's outline. Portrait: its bottom and its two sides, its top open
-    // under the pill (portraitStripOutlineSides; the sides since -976). Landscape: its bottom; its side
+    // under the pill (portraitStripOutlineSides; the sides since -976). Landscape (its top and far end since -988): its bottom; its side
     // by the pill once the pill has slid away (the pill draws that join while shown); its rail side once the rail has, unless
     // that side is then on the screen's edge.
     val stripLayoutDirection = LocalLayoutDirection.current
@@ -1355,8 +1355,12 @@ private fun BoxScope.CompactMapTopStrip(
                 controlsPadding.calculateRightPadding(stripLayoutDirection)
             },
             innerSideDrawn = isFullscreen,
-            top = false,
+            // RECORD -988 (the owner: "The pill in landscape isn't fully outlined"): the strip too, all the way round: its top,
+            // and its far end once the rail has slid away. Its side by the pill stays open while the pill is shown (the pill draws
+            // that join) and its side by the rail while the rail is (the rail draws it). Until -988 its top was never drawn.
+            top = true,
             bottom = true,
+            railSideOnScreenEdgeDrawn = true,
         )
     }
     CompassElevationStrip(
