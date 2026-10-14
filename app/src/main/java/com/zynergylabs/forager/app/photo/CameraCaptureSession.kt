@@ -1,12 +1,15 @@
 package com.zynergylabs.forager.app.photo
 
 import androidx.lifecycle.LifecycleOwner
+import com.zynergylabs.forager.app.domain.CameraCapabilities
+import com.zynergylabs.forager.app.domain.EncoderCapabilities
 import java.io.File
 
 /**
  * What the in-app camera screen needs from a camera, and nothing else — the interface this project
  * owns, per CLAUDE.md's rule that an external integration is wrapped rather than depended on
- * directly. [CameraXCaptureSession] is the only implementation that touches `androidx.camera`.
+ * directly. [CameraXCaptureSession] is the only implementation that touches `androidx.camera`
+ * (with its capability reader, `CameraXCapabilityReader.kt`, since dispatch 2026-10-13-04).
  *
  * ## Why this exists rather than the screen calling CameraX
  *
@@ -82,6 +85,22 @@ internal interface CameraCaptureSession {
      * than reporting a mode the hardware cannot be in.
      */
     fun setFlashMode(mode: FlashMode)
+
+    /**
+     * What the bound camera can do for the RAW pipeline (dispatch 2026-10-13-04): RAW output,
+     * manual exposure, the exposure-compensation fallback, the sensor's RAW geometry and its
+     * physical cameras, each supported, unsupported or unknown with a reason. Read once at bind and
+     * logged; `null` before [open] has bound a camera and after [close], as [hasFlashUnit] is false
+     * then. Observable. **Nothing a user sees reads it yet**: later stages decide what to show.
+     */
+    val capabilities: CameraCapabilities?
+
+    /**
+     * Whether the phone can encode HEIF and PNG (and has an HEVC video encoder). Read once per
+     * process off the main thread, so it lands after [capabilities]; `null` until it has, and after
+     * [close]. Observable. Not read by anything a user sees yet.
+     */
+    val encoderCapabilities: EncoderCapabilities?
 }
 
 /**

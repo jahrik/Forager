@@ -28,15 +28,42 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.zynergylabs.forager.app.domain.CameraCapabilities
+import com.zynergylabs.forager.app.domain.CameraFacing
+import com.zynergylabs.forager.app.domain.EncoderCapabilities
+import com.zynergylabs.forager.app.domain.mapCameraCapabilities
+import com.zynergylabs.forager.app.domain.mapEncoderCapabilities
+import com.zynergylabs.forager.app.domain.toLogLine
+import com.zynergylabs.forager.app.domain.toLogLines
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
 /**
- * The [CameraCaptureSession] backed by CameraX — the **only** file in this project that imports
- * `androidx.camera`. Everything else talks to the interface.
+ * The [CameraCaptureSession] backed by CameraX — one of the **two** files in this project that
+ * import `androidx.camera`, with `CameraXCapabilityReader.kt` beside it (since dispatch
+ * 2026-10-13-04, which keeps the RAW probe's reads and its experimental opt-in out of this file).
+ * Everything else talks to the interface.
+ *
+ * ## The capability probe (RAW pipeline stage 1, dispatch 2026-10-13-04)
+ *
+ * After the bind reaches `Ready`, [probeCapabilities] reads what the bound camera can do, logs it
+ * under [CAMERA_PROBE_LOG_TAG] and exposes it as [capabilities]; the front camera, when the bound
+ * one is the back, is read unbound and only logged; and the encoders are read once per process
+ * on a background dispatcher and logged when they land, with the same probe id and facing so the
+ * lines can be matched (planner, 2026-10-14). The probe runs after `Ready` and inside its own
+ * catch, so nothing it does can stop the camera opening. Nothing a user sees reads its result.
  *
  * ## Nothing here is exercised by any test, and that is structural
  *
@@ -202,6 +229,7 @@ internal class CameraXCaptureSession(
         isOpen = true
         val epoch = ++openEpoch
         state = CameraSessionState.Opening
+        probeScope = MainScope()
 
         val listener = object : OrientationEventListener(appContext) {
             override fun onOrientationChanged(orientation: Int) = onDeviceOrientation(orientation)
@@ -256,6 +284,10 @@ internal class CameraXCaptureSession(
                         // no view yet and the attachment happens in Viewfinder. If one exists, attach now.
                         previewView?.let { newPreview.setSurfaceProvider(it.surfaceProvider) }
                         state = CameraSessionState.Ready
+                        val facing = if (selector == CameraSelector.DEFAULT_FRONT_CAMERA) CameraFacing.Front else CameraFacing.Back
+                        runCatching { probeCapabilities(provider, boundCamera, facing) }.onFailure { error ->
+                            Log.w(CAMERA_PROBE_LOG_TAG, "The capability probe failed; the camera is unaffected and nothing is reported.", error)
+                        }
                     },
                     onFailure = { error ->
                         Log.w(TAG, "Binding the camera failed.", error)
@@ -276,6 +308,10 @@ internal class CameraXCaptureSession(
         torch = null
         boundHasFlashUnit = false
         currentFlashMode = FlashMode.Off
+        capabilities = null
+        encoderCapabilities = null
+        probeScope?.cancel()
+        probeScope = null
         if (!isOpen) return // never opened, never completed, or already closed: nothing to release
         isOpen = false
         openEpoch++
@@ -465,6 +501,65 @@ internal class CameraXCaptureSession(
         currentFlashMode = resynced
     }
 
+    override var capabilities: CameraCapabilities? by mutableStateOf(null)
+        private set
+
+    override var encoderCapabilities: EncoderCapabilities? by mutableStateOf(null)
+        private set
+
+    /** Created by [open], cancelled by [close]: the wait for the encoder line, so a closed session logs nothing more. */
+    private var probeScope: CoroutineScope? = null
+
+    /**
+     * The probe at bind (class doc). The bound camera first, then the front camera unbound when the
+     * bound one is the back and a front camera exists, then the wait for the encoders.
+     */
+    private fun probeCapabilities(provider: ProcessCameraProvider, boundCamera: Camera, facing: CameraFacing) {
+        val probeId = nextProbeId.incrementAndGet()
+        installCapabilities(probeId, mapCameraCapabilities(readCameraCapabilities(boundCamera.cameraInfo, facing)))
+        if (facing == CameraFacing.Back) {
+            runCatching {
+                if (provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)) {
+                    val front = mapCameraCapabilities(readCameraCapabilities(provider.getCameraInfo(CameraSelector.DEFAULT_FRONT_CAMERA), CameraFacing.Front))
+                    front.toLogLines(probeId, bound = false).forEach { Log.i(CAMERA_PROBE_LOG_TAG, it) }
+                } else {
+                    Log.i(CAMERA_PROBE_LOG_TAG, "probe=$probeId facing=front unbound: no front camera")
+                }
+            }.onFailure { error ->
+                Log.i(CAMERA_PROBE_LOG_TAG, "probe=$probeId facing=front unbound: unknown(the front camera could not be read: ${error::class.java.simpleName}: ${error.message})")
+            }
+        }
+        probeScope?.launch {
+            // Every read inside is already caught, so this should not throw; if it ever does, it is
+            // logged here rather than reaching the uncaught-exception handler from a launch.
+            val encoders = try {
+                processEncoderProbe.await()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w(CAMERA_PROBE_LOG_TAG, "probe=$probeId facing=${facing.name.lowercase()} encoders: unknown(the encoder probe failed)", error)
+                return@launch
+            }
+            installEncoders(probeId, facing, encoders)
+        }
+    }
+
+    /**
+     * The one place a camera's probe result is installed and logged: [probeCapabilities] calls it
+     * at bind, and `CameraXCaptureSessionCapabilitiesTest` calls it directly, since Robolectric has no
+     * camera to bind. A function for the same reason as [installFlash].
+     */
+    internal fun installCapabilities(probeId: Int, probed: CameraCapabilities) {
+        capabilities = probed
+        probed.toLogLines(probeId, bound = true).forEach { Log.i(CAMERA_PROBE_LOG_TAG, it) }
+    }
+
+    /** As [installCapabilities], for the encoder result that lands later from the once-per-process read. */
+    internal fun installEncoders(probeId: Int, facing: CameraFacing, probed: EncoderCapabilities) {
+        encoderCapabilities = probed
+        Log.i(CAMERA_PROBE_LOG_TAG, probed.toLogLine(probeId, facing))
+    }
+
     /**
      * The viewfinder: a [PreviewView], and the attachment of its surface provider to the [Preview]
      * that [open] bound. Nothing else — no fetching, no binding, no listener — since the deadlock
@@ -543,6 +638,21 @@ internal class CameraXCaptureSession(
  * the closest above it. Which size a given phone then picks is device-only and not checked here.
  */
 internal val STANDARD_PHOTO_SIZE = Size(4032, 3024)
+
+/** The capability probe's log tag (dispatch 2026-10-13-04): `adb logcat -s CameraProbe` shows every probe line and nothing else. */
+internal const val CAMERA_PROBE_LOG_TAG = "CameraProbe"
+
+/** Numbers each bind's probe within the process, so its lines, the front camera's and the later encoder line can be matched. */
+private val nextProbeId = AtomicInteger(0)
+
+/**
+ * The encoders, read once per process off the main thread (planner, 2026-10-14: listing the
+ * codecs is a platform query whose cost on a phone is unmeasured). Started by the first probe that
+ * asks; every later probe awaits the same result.
+ */
+private val processEncoderProbe: Deferred<EncoderCapabilities> by lazy {
+    CoroutineScope(SupervisorJob() + Dispatchers.IO).async { mapEncoderCapabilities(readEncoders()) }
+}
 
 /** The capture's [ResolutionSelector]: [STANDARD_PHOTO_SIZE] as the bound, the default 4:3 aspect kept. */
 private fun standardPhotoSizeSelector(): ResolutionSelector =
