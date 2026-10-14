@@ -21,6 +21,9 @@ package com.zynergylabs.forager.app.ui.availability
 //
 // Dispatch 2026-09-28-707: PhotoLocationSection and CameraPortraitLockSection, two more of the moved names, were removed when
 // the two camera settings moved into the camera's gear panel (ui/log/CameraSettingsPanel.kt); the list above is still history.
+// Dispatch 2026-10-13-03: LOCK_CAMERA_SETTING_LABEL, LOCK_CAMERA_SETTING_EXPLANATION, PHOTO_LOCATION_SETTING_LABEL and
+// PHOTO_LOCATION_SETTING_EXPLANATION were removed with the gear panel's two rows, and ExplainedSettingsCheckbox, which drew
+// only those rows, with them (docs/archive/camera-portrait-lock.md).
 
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.PageSlide
@@ -295,7 +298,10 @@ internal const val SETTINGS_SOURCES_ROW_TAG = "settings-sources-and-credits-row"
  * camera itself"). Sundown and Off-track are drawn by [ToolsSundownSection] at the top of the Tools
  * drawer; "Automatically Save Location to Photos" and "Lock camera to portrait" by the camera's
  * gear panel (`ui/log/CameraSettingsPanel.kt`). Only where the controls are drawn moved: the
- * values, their DataStore keys and the ViewModel functions they call are unchanged.
+ * values, their DataStore keys and the ViewModel functions they call are unchanged. Dispatch
+ * 2026-10-13-03 then removed both rows from that panel (RECORD -968, -972): the lock is gone, and
+ * photo location is set from the camera strip's Location chip alone. The rows' code, with
+ * `ExplainedSettingsCheckbox` and their strings, is in `docs/archive/camera-portrait-lock.md`.
  *
  * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
  * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
@@ -502,24 +508,6 @@ internal fun SettingsCheckboxRow(checked: Boolean, onCheckedChange: (Boolean) ->
 }
 
 /**
- * [SettingsCheckboxRow] with a supporting line under it: "Automatically Save Location to Photos" and
- * "Lock camera to portrait" share it. They were Settings' two explained rows; since dispatch
- * 2026-09-28-707 they are drawn by the camera's gear panel (`ui/log/CameraSettingsPanel.kt`), which is
- * why this and the row are `internal`. [tag] goes on the row, as [SettingsCheckboxRow] places it.
- */
-@Composable
-internal fun ExplainedSettingsCheckbox(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, explanation: String, tag: String? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        SettingsCheckboxRow(checked, onCheckedChange, label, tag = tag)
-        Text(
-            explanation,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/**
  * One Settings radio row: the whole row selects, with the radio button and its label in it. The one
  * copy (dispatch 2026-09-28-658, F6) of the row this panel had written out three times. Touch
  * target and [tag] as [SettingsCheckboxRow].
@@ -538,20 +526,6 @@ private fun SettingsRadioRow(selected: Boolean, onSelect: () -> Unit, label: Str
         Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
-
-internal const val LOCK_CAMERA_SETTING_LABEL = "Lock camera to portrait"
-
-internal const val LOCK_CAMERA_SETTING_EXPLANATION =
-    "Keeps the camera and its controls still when you turn the phone. Photos are always saved in " +
-        "portrait, even when you hold the phone sideways."
-
-/** Exposed at file scope so [com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettingsPanelTest] asserts the exact strings this panel draws, not a copy that can drift from them. */
-internal const val PHOTO_LOCATION_SETTING_LABEL = "Automatically Save Location to Photos"
-
-internal const val PHOTO_LOCATION_SETTING_EXPLANATION =
-    "When saving photos, metadata is stripped of the location data. Enabling this option captures " +
-        "your current position, and saves it to the Journal entry instead. This allows you to share " +
-        "your photos outside the app without the location being revealed."
 
 /**
  * Metric or imperial for everything this app displays with a unit — distances (search radius,

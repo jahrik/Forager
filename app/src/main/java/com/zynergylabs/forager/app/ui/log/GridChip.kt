@@ -2,9 +2,9 @@ package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GridOff
-import androidx.compose.material.icons.filled.GridOn
-import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.outlined.GridOff
+import androidx.compose.material.icons.outlined.GridOn
+import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.runtime.Composable
 import com.zynergylabs.forager.app.ui.motion.IconSwap
 import androidx.compose.ui.semantics.semantics
@@ -24,7 +24,7 @@ import com.zynergylabs.forager.app.domain.next
  * **[mode] is the stored mode.** A tap calls [onGridModeChanged] and changes nothing here; the chip
  * shows the next mode when `CameraGridModeViewModel` has stored it.
  *
- * **Glyphs:** `GridOff`, `GridOn` and `Straighten` (a ruler, for the level) from
+ * **Glyphs (the Outlined style since dispatch 2026-10-13-03, RECORD -970):** `GridOff`, `GridOn` and `Straighten` (a ruler, for the level) from
  * `material-icons-extended`. Material has no grid-with-level glyph; `Straighten` is the closest
  * this session found, chosen by name and not compared against any reference app's icon.
  */
@@ -47,9 +47,9 @@ internal fun GridChip(mode: GridMode, onGridModeChanged: (GridMode) -> Unit, dev
 internal data class GridGlyph(val icon: ImageVector, val label: String)
 
 internal fun gridGlyph(mode: GridMode): GridGlyph = when (mode) {
-    GridMode.Off -> GridGlyph(Icons.Filled.GridOff, GRID_OFF_LABEL)
-    GridMode.Grid -> GridGlyph(Icons.Filled.GridOn, GRID_ON_LABEL)
-    GridMode.GridLevel -> GridGlyph(Icons.Filled.Straighten, GRID_AND_LEVEL_LABEL)
+    GridMode.Off -> GridGlyph(Icons.Outlined.GridOff, GRID_OFF_LABEL)
+    GridMode.Grid -> GridGlyph(Icons.Outlined.GridOn, GRID_ON_LABEL)
+    GridMode.GridLevel -> GridGlyph(Icons.Outlined.Straighten, GRID_AND_LEVEL_LABEL)
 }
 
 internal const val CAMERA_GRID_CHIP_TAG = "in-app-camera-grid-chip"

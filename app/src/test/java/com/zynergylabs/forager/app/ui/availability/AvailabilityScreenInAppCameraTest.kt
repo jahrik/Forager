@@ -22,11 +22,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.hasAnySibling
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -47,9 +42,7 @@ import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import com.zynergylabs.forager.app.ui.log.CAMERA_GRID_CHIP_TAG
 import com.zynergylabs.forager.app.ui.log.CAMERA_LOCATION_CHIP_TAG
 import com.zynergylabs.forager.app.ui.log.CAMERA_SETTINGS_CHIP_TAG
-import com.zynergylabs.forager.app.ui.log.CAMERA_SETTINGS_LOCK_PORTRAIT_TAG
 import com.zynergylabs.forager.app.ui.log.CAMERA_SETTINGS_PANEL_TAG
-import com.zynergylabs.forager.app.ui.log.CAMERA_SETTINGS_PHOTO_LOCATION_TAG
 import com.zynergylabs.forager.app.ui.log.LOCATION_OFF_LABEL
 import com.zynergylabs.forager.app.ui.log.LOCATION_ON_LABEL
 import com.zynergylabs.forager.app.ui.log.CAMERA_SHUTTER_TAG
@@ -61,7 +54,18 @@ import com.zynergylabs.forager.app.ui.log.InAppCameraDialog
 import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import android.content.pm.ActivityInfo
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStoreFile
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -108,7 +112,6 @@ class AvailabilityScreenInAppCameraTest {
 
     private val opened = mutableListOf<InAppCameraTarget>()
     private var closed = 0
-    private var slotSawLockToPortrait: Boolean? = null
     private val cartographyPhotos = mutableListOf<PhotoSource>()
     private val albumPhotos = mutableListOf<PhotoSource>()
     private val logEntryPhotos = mutableListOf<PhotoSource>()
@@ -118,20 +121,17 @@ class AvailabilityScreenInAppCameraTest {
 
     private val boxMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onLockCameraToPortraitChanged, onPhotoCaptured, onDismiss ->
-        slotSawLockToPortrait = lockToPortrait
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
         val session = remember { FakeCameraCaptureSession() }
         InAppCameraDialog(
             session = session,
             cameraCaptureFiles = cameraCaptureFiles,
-            lockToPortrait = lockToPortrait,
             onPhotoCaptured = onPhotoCaptured,
             onDismiss = onDismiss,
             gridMode = gridMode,
             onGridModeChanged = onGridModeChanged,
             autoSaveLocationToPhotos = autoSaveLocationToPhotos,
             onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-            onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
             levelProvider = FakeLevelProvider(),
             viewfinder = { modifier -> Box(modifier) },
         )
@@ -147,12 +147,7 @@ class AvailabilityScreenInAppCameraTest {
     private var autoSaveLocation by mutableStateOf(true)
     private val autoSaveLocationRequests = mutableListOf<Boolean>()
 
-    /** "Lock camera to portrait" as the screen sees it, and every value its handler was asked for, stored the same way (dispatch 2026-09-28-707). */
-    private var lockCamera by mutableStateOf(false)
-    private val lockCameraRequests = mutableListOf<Boolean>()
-
-    private fun setScreen(cameraPermissionGranted: Boolean = true, lockCameraToPortrait: Boolean = false, cameraGridMode: GridMode = GridMode.Off) {
-        lockCamera = lockCameraToPortrait
+    private fun setScreen(cameraPermissionGranted: Boolean = true, cameraGridMode: GridMode = GridMode.Off) {
         if (cameraPermissionGranted) {
             Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>()).grantPermissions(Manifest.permission.CAMERA)
         }
@@ -165,7 +160,7 @@ class AvailabilityScreenInAppCameraTest {
             val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
                 AvailabilityScreen(
-                    uiState = SEARCHED_STATE.copy(lockCameraToPortrait = lockCamera, autoSaveLocationToPhotos = autoSaveLocation),
+                    uiState = SEARCHED_STATE.copy(autoSaveLocationToPhotos = autoSaveLocation),
                     onUseCurrentLocation = {},
                     onManualLatChanged = {},
                     onManualLngChanged = {},
@@ -193,10 +188,6 @@ class AvailabilityScreenInAppCameraTest {
                     onAutoSaveLocationToPhotosChanged = { requested ->
                         autoSaveLocationRequests += requested
                         autoSaveLocation = requested
-                    },
-                    onLockCameraToPortraitChanged = { requested ->
-                        lockCameraRequests += requested
-                        lockCamera = requested
                     },
                     mapSlot = boxMapSlot,
                     inAppCameraTarget = target,
@@ -360,19 +351,42 @@ class AvailabilityScreenInAppCameraTest {
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)
     }
 
-    /** Settings' "Lock camera to portrait" reaches the session through the host and the slot, unchanged, in both states. */
+    /**
+     * Dispatch 2026-10-13-03 (RECORD -968): an install that had "Lock camera to portrait" on before the option was removed
+     * gets the camera every install gets: since RECORD -980 and -981 its window is held portrait (was: "a camera whose window
+     * follows the device", asserting SENSOR, before the owner's correction). The old value is put where the removed repository kept
+     * it (`camera_orientation_preferences`, key `camera.lock_to_portrait`) and read back first, so the install this
+     * describes is the one on disk. Nothing reads that file any more, so this cannot fail on this build; it states the
+     * case. Written first against the code that still had the option, where it handed the screen the on value the
+     * ViewModel loaded and failed (PORTRAIT). Its PORTRAIT form was then written first against `cdf8b8b1`, where it failed
+     * with SENSOR.
+     */
     @Test
-    fun `the lock-camera setting reaches the camera slot as given`() {
-        setScreen(lockCameraToPortrait = true)
-        openEditorCamera()
-        assertEquals(true, slotSawLockToPortrait)
-    }
+    fun `an install that had the portrait lock on gets the held portrait camera`() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val oldFile = app.preferencesDataStoreFile("camera_orientation_preferences")
+        oldFile.delete()
+        val oldKey = booleanPreferencesKey("camera.lock_to_portrait")
+        val seedScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val oldStore = PreferenceDataStoreFactory.create(scope = seedScope) { oldFile }
+            runBlocking {
+                oldStore.edit { it[oldKey] = true }
+                assertEquals("precondition: the old on value is on disk", true, oldStore.data.first()[oldKey])
+            }
+            seedScope.cancel()
 
-    @Test
-    fun `with the setting off the slot is told off`() {
-        setScreen()
-        openEditorCamera()
-        assertEquals(false, slotSawLockToPortrait)
+            setScreen()
+            openEditorCamera()
+            assertEquals(
+                "the camera's window is held portrait, as every install's is (RECORD -980, -981)",
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
+                composeRule.activity.requestedOrientation,
+            )
+        } finally {
+            seedScope.cancel()
+            oldFile.delete()
+        }
     }
 
     /**
@@ -432,47 +446,23 @@ class AvailabilityScreenInAppCameraTest {
     }
 
     /**
-     * The chip and the gear panel are one value: turned off on the camera's strip, the panel's
-     * checkbox reads off. Until dispatch 2026-09-28-707 this closed the camera and read Settings'
-     * checkbox, which is where the row was; the row is the gear panel's now, so the claim, one value
-     * seen in two places, is read there.
+     * Dispatch 2026-09-28-707, through the screen: a real touch opens the gear panel, and Back closes the panel without
+     * closing the camera; a second Back closes the camera as before. Since dispatch 2026-10-13-03 the panel is empty
+     * (RECORD -968, -972), so this no longer touches its two rows; what it held for them, that each row wrote the screen's
+     * own handler, is recorded with the rows in `docs/archive/camera-portrait-lock.md`. The Location chip's write is
+     * `the photo-location setting reaches the camera's chip, and a tap reaches the screen's handler`, above.
      */
     @Test
-    fun `after a tap on the camera's chip, the gear panel's checkbox shows the same value`() {
+    fun `the gear opens the empty panel, and Back closes only the panel`() {
         autoSaveLocation = true
         setScreen()
-        openEditorCamera()
-        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).performClick()
-        composeRule.waitForIdle()
-
-        touchCentreOf(CAMERA_SETTINGS_CHIP_TAG)
-        composeRule.onNode(isToggleable() and hasAnySibling(hasText(PHOTO_LOCATION_SETTING_LABEL)), useUnmergedTree = true).assertIsOff()
-    }
-
-    /**
-     * Dispatch 2026-09-28-707, through the screen: real touches open the gear panel, its two rows reach
-     * the screen's own handlers with the toggled values (the ones `MainActivity` wires to
-     * `AvailabilityViewModel`), the value each shows is the screen's, and Back closes the panel
-     * without closing the camera; a second Back closes the camera as before.
-     */
-    @Test
-    fun `the gear opens the panel, its two rows write the screen's values, and Back closes only the panel`() {
-        autoSaveLocation = true
-        setScreen(lockCameraToPortrait = false)
         openEditorCamera()
         composeRule.onAllNodesWithTag(CAMERA_SETTINGS_PANEL_TAG).assertCountEquals(0)
 
         touchCentreOf(CAMERA_SETTINGS_CHIP_TAG)
         composeRule.onAllNodesWithTag(CAMERA_SETTINGS_PANEL_TAG).assertCountEquals(1)
-
-        touchCentreOf(CAMERA_SETTINGS_PHOTO_LOCATION_TAG)
-        assertEquals("the photo-location row asked for off", listOf(false), autoSaveLocationRequests)
-        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).assertContentDescriptionEquals(LOCATION_OFF_LABEL)
-
-        touchCentreOf(CAMERA_SETTINGS_LOCK_PORTRAIT_TAG)
-        assertEquals("the lock row asked for on", listOf(true), lockCameraRequests)
-        assertEquals("and the slot was handed the stored value", true, slotSawLockToPortrait)
-        composeRule.onNode(isToggleable() and hasAnySibling(hasText(LOCK_CAMERA_SETTING_LABEL)), useUnmergedTree = true).assertIsOn()
+        composeRule.onAllNodesWithText("No camera settings yet").assertCountEquals(1)
+        assertEquals("opening the panel wrote nothing", emptyList<Boolean>(), autoSaveLocationRequests)
 
         composeRule.pressBackOnCamera()
         composeRule.onAllNodesWithTag(CAMERA_SETTINGS_PANEL_TAG).assertCountEquals(0)
