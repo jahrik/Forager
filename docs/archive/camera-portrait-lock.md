@@ -1523,3 +1523,20 @@ on its session, so the note under "How to put it back" stands for anything that 
 **Large screens are not handled yet.** With `targetSdk` 37 (`app/build.gradle.kts:249`), Android 17 ignores orientation
 requests on displays 600 dp or wider. There the window still turns, and the arrangement switches to the landscape
 layout. The owner's rule (-981) says it must not. How to hold the layout there is proposed to the planner first.
+
+## Added 2026-10-14, RECORD -985: large screens hold the device's natural frame
+
+On displays whose smallest width is greater than 600 dp, Android 17 ignores the portrait request for this app's
+`targetSdk` 37, and there is no opt-out. The window turns with the tablet. The owner's rule (-981) is that the camera
+never appears to rotate. So in a full-screen window with the display turned, `HoldNaturalOrientation`
+(`ui/log/NaturalOrientationHold.kt`, `2c49232a`, tests first in `a4a75f24` and `3a804867`) does the following:
+- lays the camera out in the device's natural frame and turns it back by the display's rotation;
+- turns the insets into that frame for the bands;
+- tells the viewfinder to use a `TextureView`, with CameraX's preview targeted at `ROTATION_0`.
+
+The icons still turn by the sensor. Landscape-natural tablets hold their landscape (the owner: "Option A"). Split screen
+and freeform windows lay out to the window's own shape, as before. At `ROTATION_0` the hold does nothing, so phones are
+unchanged.
+
+The viewfinder note under "The freeze's cause" still holds. The hold switches the viewfinder's mode only when it enters
+or leaves the hold. It does not change the session, so no session is rebuilt.
