@@ -2,6 +2,9 @@ import java.security.KeyStore
 import java.security.MessageDigest
 import java.util.Properties
 import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
+import java.io.ByteArrayInputStream
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -724,7 +727,7 @@ fun normalisedNoticeText(text: String): String =
     text.replace("\r\n", "\n").lines().joinToString("\n") { it.trimEnd() }.trimEnd()
 
 /** Every entry in [zip] whose file name starts with NOTICE, keyed by its path; nested jars are opened too, as `outer!inner`. */
-fun noticesIn(zip: java.util.zip.ZipInputStream, prefix: String, into: MutableMap<String, String>) {
+fun noticesIn(zip: ZipInputStream, prefix: String, into: MutableMap<String, String>) {
     while (true) {
         val entry = zip.nextEntry ?: break
         if (entry.isDirectory) continue
@@ -733,7 +736,7 @@ fun noticesIn(zip: java.util.zip.ZipInputStream, prefix: String, into: MutableMa
             fileName.startsWith("NOTICE", ignoreCase = true) ->
                 into[prefix + entry.name] = zip.readBytes().toString(Charsets.UTF_8)
             fileName.endsWith(".jar") ->
-                noticesIn(java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(zip.readBytes())), prefix + entry.name + "!", into)
+                noticesIn(ZipInputStream(ByteArrayInputStream(zip.readBytes())), prefix + entry.name + "!", into)
         }
     }
 }
@@ -759,7 +762,7 @@ tasks.register("verifyCreditsCoverEveryDependency") {
 
         val runtime = configurations.getByName("releaseRuntimeClasspath")
         val resolved: Map<String, String> = runtime.incoming.resolutionResult.allComponents
-            .mapNotNull { it.id as? org.gradle.api.artifacts.component.ModuleComponentIdentifier }
+            .mapNotNull { it.id as? ModuleComponentIdentifier }
             .associate { "${it.group}:${it.module}" to it.version }
 
         @Suppress("UNCHECKED_CAST")
@@ -790,9 +793,9 @@ tasks.register("verifyCreditsCoverEveryDependency") {
         // NOTICE files, read from the artifacts themselves.
         val found = mutableMapOf<Pair<String, String>, String>()
         runtime.incoming.artifacts.artifacts.forEach { artifact ->
-            val id = artifact.id.componentIdentifier as? org.gradle.api.artifacts.component.ModuleComponentIdentifier ?: return@forEach
+            val id = artifact.id.componentIdentifier as? ModuleComponentIdentifier ?: return@forEach
             val notices = mutableMapOf<String, String>()
-            artifact.file.inputStream().use { noticesIn(java.util.zip.ZipInputStream(it), "", notices) }
+            artifact.file.inputStream().use { noticesIn(ZipInputStream(it), "", notices) }
             notices.forEach { (path, text) -> found["${id.group}:${id.module}" to path] = text }
         }
         @Suppress("UNCHECKED_CAST")
