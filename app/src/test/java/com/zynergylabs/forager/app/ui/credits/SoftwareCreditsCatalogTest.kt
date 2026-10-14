@@ -24,8 +24,8 @@ class SoftwareCreditsCatalogTest {
     private val libraries = groups.flatMap { it.libraries }
 
     private fun licenceOf(namePart: String): String {
-        val matches = libraries.filter { it.name.contains(namePart) }
-        assertEquals("exactly one library is named with \"$namePart\": ${matches.map { it.name }}", 1, matches.size)
+        val matches = libraries.filter { it.name.startsWith(namePart) }
+        assertEquals("exactly one library's name starts \"$namePart\": ${matches.map { it.name }}", 1, matches.size)
         return matches.single().licence
     }
 
@@ -39,7 +39,7 @@ class SoftwareCreditsCatalogTest {
         assertEquals("MIT", licenceOf("NGA Color"))
         assertEquals("OFL-1.1", licenceOf("Noto Sans"))
         assertEquals("Apache-2.0", licenceOf("Open Sans"))
-        assertEquals("MPL-2.0", licenceOf("Public Suffix List"))
+        assertEquals("MPL-2.0", licenceOf("The Public Suffix List"))
         listOf("AndroidX", "Retrofit", "OkHttp", "kotlinx").forEach { assertEquals(it, "Apache-2.0", licenceOf(it)) }
         listOf("Compose", "Room", "CameraX").forEach { part ->
             assertTrue("$part is named in the AndroidX entry", libraries.single { it.name.startsWith("AndroidX") }.name.contains(part))

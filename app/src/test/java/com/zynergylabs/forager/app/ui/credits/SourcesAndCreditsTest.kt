@@ -13,6 +13,7 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
@@ -81,9 +82,9 @@ class SourcesAndCreditsTest {
     fun `each source shows its credit and opens its own link, from anywhere across its row`() {
         openSources()
         registerBrowser()
-        composeRule.onNodeWithText("Sources & credits").assertIsDisplayed()
-        listOf("Maps", "Weather", "Sightings and species names").forEach { composeRule.onNodeWithText(it).performScrollTo().assertIsDisplayed() }
-        composeRule.onNodeWithText("Rain and soil figures in Forager are summaries calculated from this data.").performScrollTo().assertIsDisplayed()
+        onPage("Sources & credits").assertIsDisplayed()
+        listOf("Maps", "Weather", "Sightings and species names").forEach { onPage(it).performScrollTo().assertIsDisplayed() }
+        onPage("Rain and soil figures in Forager are summaries calculated from this data.").performScrollTo().assertIsDisplayed()
 
         EXPECTED.forEach { source ->
             val row = composeRule.onNodeWithTag(sourceCreditRowTag(source.key)).performScrollTo()
@@ -146,6 +147,10 @@ class SourcesAndCreditsTest {
         composeRule.onNodeWithTag(SOURCES_PAGE_TAG).assertDoesNotExist()
         composeRule.onNodeWithTag(SETTINGS_SOURCES_ROW_TAG).assertIsDisplayed()
     }
+
+    /** Text on the Sources & credits page itself: "Maps" is also the bottom bar's tab. */
+    private fun onPage(text: String): SemanticsNodeInteraction =
+        composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(SOURCES_PAGE_TAG)))
 
     private fun openSources() {
         SettingsPageHarness.openSettings(composeRule)
