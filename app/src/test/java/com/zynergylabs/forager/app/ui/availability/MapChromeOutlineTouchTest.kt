@@ -115,9 +115,16 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
 
     private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
 
-    /** Each control's reach (its bounds and 6 dp round them), with what names it, so a skipped point says which control it was by. */
-    private fun controlsReach(): List<Pair<String, DpRect>> = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
+    /**
+     * Each control's reach (its bounds and 6 dp round them), with what names it, so a skipped point says which control it was by.
+     * Controls inside [clippedBy] are left out: that piece clips its content to its rounded shape, touch area included (the pill
+     * is a `Surface`; the bottom bar clips, RECORD -937), so its own controls cannot take a touch in its corner gaps. CI run
+     * 38511944362 at 36e79dd9 counted them and skipped every bottom-bar corner point by its List and Tools items (0 of 6), where
+     * `RoundedMapCardTouchTest` long-presses the same corners on main, unskipped, and they reach the map.
+     */
+    private fun controlsReach(clippedBy: String?): List<Pair<String, DpRect>> = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
         .filterNot { it.config.getOrNull(SemanticsProperties.TestTag) == MAP_TAG }
+        .filterNot { n -> clippedBy != null && generateSequence(n.parent) { it.parent }.any { it.config.getOrNull(SemanticsProperties.TestTag) == clippedBy } }
         .map { n ->
             val name = n.config.getOrNull(SemanticsProperties.TestTag)
                 ?: n.config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString()
@@ -142,8 +149,8 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
     private fun gap(cornerX: Dp, cornerY: Dp, inX: Int, inY: Int): List<Pair<Dp, Dp>> =
         listOf(2 to 2, 4 to 1, 1 to 4).map { (dx, dy) -> cornerX + (dx * inX).dp to cornerY + (dy * inY).dp }
 
-    private fun assertGapsReachMap(what: String, points: List<Pair<Dp, Dp>>, atLeast: Int) {
-        val reach = controlsReach()
+    private fun assertGapsReachMap(what: String, points: List<Pair<Dp, Dp>>, atLeast: Int, clippedBy: String? = null) {
+        val reach = controlsReach(clippedBy)
         var reached = 0
         val skipped = mutableListOf<String>()
         for ((x, y) in points) {
@@ -166,13 +173,11 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
         val pill = bounds(SEARCH_ENTRY_BAR_TAG)
         val strip = bounds(STRIP_TAG)
         val bar = bounds(COMPACT_BOTTOM_NAV_TAG)
-        // CI run 38507319758 at bac9de39, this test's first run: 5 of the pill's 6 top-corner points lie within reach of a
-        // control (the run printed only coordinates; the skipped list now names the control), so they are skipped, as a finger
-        // there goes to that control on a device too, before and after the outline; 1 reached the map. atLeast was 6 here,
-        // which no build could meet. In landscape all 6 of the pill's outer-corner points reached the map in that run.
-        assertGapsReachMap("the pill's top corners", gap(pill.left, pill.top, 1, 1) + gap(pill.right, pill.top, -1, 1), atLeast = 1)
+        // CI runs 38507319758 and 38511944362 skipped 5 of these 6 points by the pill's own controls (Close search options,
+        // active-search-summary), which the pill clips to its shape: now left out of the reach (clippedBy).
+        assertGapsReachMap("the pill's top corners", gap(pill.left, pill.top, 1, 1) + gap(pill.right, pill.top, -1, 1), atLeast = 6, clippedBy = SEARCH_ENTRY_BAR_TAG)
         assertGapsReachMap("the strip's bottom corners", gap(strip.left, strip.bottom, 1, -1) + gap(strip.right, strip.bottom, -1, -1), atLeast = 3)
-        assertGapsReachMap("the bottom bar's top corners", gap(bar.left, bar.top, 1, 1) + gap(bar.right, bar.top, -1, 1), atLeast = 6)
+        assertGapsReachMap("the bottom bar's top corners", gap(bar.left, bar.top, 1, 1) + gap(bar.right, bar.top, -1, 1), atLeast = 6, clippedBy = COMPACT_BOTTOM_NAV_TAG)
     }
 
     protected fun portraitNavigatingCardCorners() {
