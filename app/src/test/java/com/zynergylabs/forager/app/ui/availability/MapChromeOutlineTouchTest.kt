@@ -125,6 +125,9 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
     private fun controlsReach(clippedBy: String?): List<Pair<String, DpRect>> = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes()
         .filterNot { it.config.getOrNull(SemanticsProperties.TestTag) == MAP_TAG }
         .filterNot { n -> clippedBy != null && generateSequence(n.parent) { it.parent }.any { it.config.getOrNull(SemanticsProperties.TestTag) == clippedBy } }
+        // Off the window entirely: the closed drawer's header ("Close search options") sits left of the screen, and run
+        // 38512455317 skipped the pill's top-left points by its 6 dp margin. A control off screen takes no touch.
+        .filter { n -> n.boundsInRoot.right > 0f && n.boundsInRoot.bottom > 0f && n.boundsInRoot.left < windowPx().first && n.boundsInRoot.top < windowPx().second }
         .map { n ->
             val name = n.config.getOrNull(SemanticsProperties.TestTag)
                 ?: n.config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString()
@@ -134,6 +137,8 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
                 name to DpRect(n.boundsInRoot.left.toDp() - 6.dp, n.boundsInRoot.top.toDp() - 6.dp, n.boundsInRoot.right.toDp() + 6.dp, n.boundsInRoot.bottom.toDp() + 6.dp)
             }
         }
+
+    private fun windowPx(): Pair<Float, Float> = composeRule.onAllNodes(isRoot()).onFirst().fetchSemanticsNode().size.let { it.width.toFloat() to it.height.toFloat() }
 
     private fun longPressAt(x: Dp, y: Dp) {
         val p = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
