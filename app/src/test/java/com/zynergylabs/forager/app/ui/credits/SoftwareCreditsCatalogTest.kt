@@ -66,7 +66,7 @@ class SoftwareCreditsCatalogTest {
         // Native components compiled into the SDK, which no POM names: two of them, by their own names.
         assertTrue("MapLibre's notices carry its native components", mapLibre.contains("earcut") && mapLibre.contains("FreeType"))
         assertTrue(notices.getValue("notices/okhttp-publicsuffix-NOTICE.txt").contains("Mozilla Public License, v. 2.0"))
-        assertTrue(notices.getValue("notices/androidx-concurrent-futures-ktx-NOTICE.txt").contains("NOTICE file corresponding to the section 4 d"))
+        assertTrue(notices.getValue("notices/jakarta-inject-api-NOTICE.md").startsWith("# Notices for Eclipse Jakarta Dependency Injection"))
     }
 
     @Test
