@@ -44,6 +44,7 @@ import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
 import com.zynergylabs.forager.app.ui.adaptive.WindowWidthClass
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowWidthClass
+import com.zynergylabs.forager.app.ui.credits.OpenMeteoCredit
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 
@@ -140,7 +141,7 @@ const val SEASONAL_CONTENT_TAG = "seasonal-content"
 
 @Composable
 private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+    Column(modifier = Modifier.testTag(FRUITING_LAG_SECTION_TAG), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text("Does rain predict fruiting?", style = MaterialTheme.typography.titleMedium)
         Text(
             "Testing whether ${distribution.filter.label} sightings actually cluster in the " +
@@ -154,6 +155,9 @@ private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
         SeasonalSampleSizeSummary(distribution)
         FruitingLagChart(distribution, modifier = Modifier.fillMaxWidth())
         FruitingLagBucketCounts(distribution.buckets)
+        // The lags above are counted from Open-Meteo's historical rainfall, so its credit sits beside them (dispatch
+        // 2026-10-13-05, the planner's answer Q3).
+        OpenMeteoCredit()
 
         HorizontalDivider()
         // The observer-effort caveat: not polish, per this feature's own honesty requirement —
@@ -282,7 +286,7 @@ private fun ConditionsCard(
     // Data part C (dispatch -668, the owner's "conditions are a small table"): the three facts are
     // labelled rows rather than sentences, and the 14 observed days are drawn as a bar chart under
     // them. The "Today's Forecast" heading went: its one figure is now the table's last row, labelled.
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth().testTag(CONDITIONS_CARD_TAG)) {
         Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text("Current Conditions", style = MaterialTheme.typography.titleSmall)
             val rows = buildList<TableRow> {
@@ -324,6 +328,15 @@ private fun ConditionsCard(
                 )
                 SeasonalBarChart(chart)
             }
+            // Open-Meteo's licence: a link next to any place their data are shown (dispatch 2026-10-13-05). Only while a
+            // figure of theirs is in the card; a loading or failed fetch shows none.
+            if (conditions != null || todaysForecast != null) {
+                OpenMeteoCredit()
+            }
         }
     }
 }
+
+/** The Seasonal tab's Current Conditions card, and its fruiting-lag section, for tests. */
+internal const val CONDITIONS_CARD_TAG = "conditions-card"
+internal const val FRUITING_LAG_SECTION_TAG = "fruiting-lag-section"

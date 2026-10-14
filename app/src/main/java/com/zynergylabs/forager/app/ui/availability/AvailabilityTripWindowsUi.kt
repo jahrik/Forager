@@ -19,12 +19,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatRainfall
 import com.zynergylabs.forager.app.domain.model.formatSoilTemperature
 import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
+import com.zynergylabs.forager.app.ui.credits.OpenMeteoCredit
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.format.displayDate
 
@@ -41,7 +43,7 @@ import com.zynergylabs.forager.app.ui.format.displayDate
  */
 @Composable
 internal fun TripWindowsCard(uiState: AvailabilityUiState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth().testTag(TRIP_WINDOWS_CARD_TAG)) {
         Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text("Trip Windows", style = MaterialTheme.typography.titleSmall)
 
@@ -57,7 +59,12 @@ internal fun TripWindowsCard(uiState: AvailabilityUiState) {
                     color = MaterialTheme.colorScheme.error,
                 )
 
-                uiState.tripWindowReport != null -> TripWindowReportContent(uiState.tripWindowReport, uiState.unitSystem)
+                uiState.tripWindowReport != null -> {
+                    TripWindowReportContent(uiState.tripWindowReport, uiState.unitSystem)
+                    // Every figure in a report, its "no window" message included, is Open-Meteo's rain, soil or
+                    // evaporation, or arithmetic on them: their credit sits beside them (dispatch 2026-10-13-05).
+                    OpenMeteoCredit()
+                }
             }
 
             // RECORD -727, the owner: "remove the block of text here labeled Rain and Fungi: the general pattern",
@@ -66,6 +73,9 @@ internal fun TripWindowsCard(uiState: AvailabilityUiState) {
         }
     }
 }
+
+/** The Trip Planner's Trip Windows card, for tests. */
+internal const val TRIP_WINDOWS_CARD_TAG = "trip-windows-card"
 
 @Composable
 private fun TripWindowReportContent(report: TripWindowReport, unitSystem: UnitSystem) {

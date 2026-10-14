@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -77,6 +78,10 @@ import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.backup.BackupControls
 import com.zynergylabs.forager.app.ui.backup.BackupSection
+import com.zynergylabs.forager.app.ui.credits.CreditsNavigationRow
+import com.zynergylabs.forager.app.ui.credits.OpenSourceSoftwarePage
+import com.zynergylabs.forager.app.ui.credits.SOURCES_AND_CREDITS_TITLE
+import com.zynergylabs.forager.app.ui.credits.SourcesAndCreditsPage
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -222,26 +227,67 @@ private fun CompactSettingsTab(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     backup: BackupControls,
     showBackupRequest: Int = 0,
+    /** Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): Settings' own first page, at the top. */
+    showSettingsOnlyRequest: Int = 0,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        SettingsContent(
-            modifier = Modifier.weight(1f),
-            distanceUnit = distanceUnit,
-            onDistanceUnitSelected = onDistanceUnitSelected,
-            nightModeMaps = isNightMode,
-            onNightModeMapsChanged = onNightModeMapsChanged,
-            themeMode = themeMode,
-            onThemeModeChanged = onThemeModeChanged,
-            backup = backup,
-            showBackupRequest = showBackupRequest,
-        )
-        BuildIdentityFooter()
+    // Dispatch 2026-10-13-05: Sources & credits, and Open-source software under it, are pages of Settings, one step
+    // deeper each. Back retraces the way in: Software to Sources, Sources to Settings, each its own handler, composed after
+    // the Tools drawer's own showSettings handler so the deepest page unwinds first.
+    var page by remember { mutableStateOf(SettingsDrawerPage.SETTINGS) }
+    BackHandler(enabled = page == SettingsDrawerPage.SOFTWARE) { page = SettingsDrawerPage.SOURCES }
+    BackHandler(enabled = page == SettingsDrawerPage.SOURCES) { page = SettingsDrawerPage.SETTINGS }
+    // A notification's "open Backup" and the snackbar's "open Settings" both mean Settings' own page (the planner's answer Q8).
+    LaunchedEffect(showBackupRequest) { if (showBackupRequest > 0) page = SettingsDrawerPage.SETTINGS }
+    LaunchedEffect(showSettingsOnlyRequest) { if (showSettingsOnlyRequest > 0) page = SettingsDrawerPage.SETTINGS }
+    // Hoisted out of SettingsContent so that Back from Sources & credits returns to Settings where it was left, scrolled
+    // to the row that was tapped, rather than at its top: the page itself is disposed while a deeper one shows.
+    val settingsScroll = rememberScrollState()
+
+    // The same push from the left as the Tools drawer's own step into Settings (RECORD -682), and no fill of their own.
+    PageSlide(
+        targetState = page,
+        depthOf = { it.ordinal },
+        modifier = modifier.fillMaxSize(),
+        pageColor = Color.Transparent,
+        style = PageSlideStyle.PUSH_FROM_LEFT,
+    ) { shownPage ->
+        when (shownPage) {
+            SettingsDrawerPage.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
+                SettingsContent(
+                    modifier = Modifier.weight(1f),
+                    distanceUnit = distanceUnit,
+                    onDistanceUnitSelected = onDistanceUnitSelected,
+                    nightModeMaps = isNightMode,
+                    onNightModeMapsChanged = onNightModeMapsChanged,
+                    themeMode = themeMode,
+                    onThemeModeChanged = onThemeModeChanged,
+                    backup = backup,
+                    showBackupRequest = showBackupRequest,
+                    onOpenSourcesAndCredits = { page = SettingsDrawerPage.SOURCES },
+                    scrollState = settingsScroll,
+                )
+                BuildIdentityFooter()
+            }
+
+            SettingsDrawerPage.SOURCES -> SourcesAndCreditsPage(
+                onOpenSoftware = { page = SettingsDrawerPage.SOFTWARE },
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            SettingsDrawerPage.SOFTWARE -> OpenSourceSoftwarePage(modifier = Modifier.fillMaxSize())
+        }
     }
 }
 
+/** Which page of [CompactSettingsTab] shows, in order of depth: one value, so the pages slide between each other. */
+private enum class SettingsDrawerPage { SETTINGS, SOURCES, SOFTWARE }
+
+/** Settings' last row (dispatch 2026-10-13-05; the owner: "Bottom of settings page makes sense"), for tests. */
+internal const val SETTINGS_SOURCES_ROW_TAG = "settings-sources-and-credits-row"
+
 /**
- * The Settings panel's body: [DistanceUnitSection], theme, night maps, and Backup.
+ * The Settings panel's body: [DistanceUnitSection], theme, night maps, Backup, and the "Sources & credits" row.
  *
  * **No longer has the Sundown section, the Off-track reminder, or the two camera settings**
  * (dispatch 2026-09-28-707; the owner: "move the Sundown area to the Tools so that it's one button
@@ -278,11 +324,14 @@ internal fun SettingsContent(
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
     showBackupRequest: Int = 0,
+    /** The "Sources & credits" row's tap (dispatch 2026-10-13-05). */
+    onOpenSourcesAndCredits: () -> Unit = {},
+    /** Hoisted by [CompactSettingsTab], so a return from Sources & credits lands where Settings was left. */
+    scrollState: ScrollState = rememberScrollState(),
 ) {
     // Scrolls to the Backup section when a notification's tap asks (dispatch 2026-09-28-153): its top is measured as it is
     // laid out, and the scroll waits for that measurement, so a section that is not yet laid out (the drawer still opening)
     // is not scrolled to a position it does not have yet.
-    val scrollState = rememberScrollState()
     var backupTop by remember { mutableIntStateOf(-1) }
     LaunchedEffect(showBackupRequest) {
         if (showBackupRequest > 0) {
@@ -301,8 +350,11 @@ internal fun SettingsContent(
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
-        // Settings ends at Backup, with no divider under it (dispatch 2026-10-11, RECORD -830).
         BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
+        // Settings ends at Sources & credits, the very bottom (dispatch 2026-10-13-05; the owner: "Bottom of settings page
+        // makes sense"), with no divider under it (dispatch 2026-10-11, RECORD -830, when Backup was last).
+        HorizontalDivider()
+        CreditsNavigationRow(SOURCES_AND_CREDITS_TITLE, tag = SETTINGS_SOURCES_ROW_TAG, onClick = onOpenSourcesAndCredits)
     }
 }
 
@@ -613,6 +665,7 @@ internal fun CompactToolsDrawerContent(
             onThemeModeChanged = onThemeModeChanged,
             backup = backup,
             showBackupRequest = openSettingsRequest,
+            showSettingsOnlyRequest = openSettingsOnlyRequest,
             modifier = Modifier.fillMaxSize(),
         )
     } else {

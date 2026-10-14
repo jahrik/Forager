@@ -678,3 +678,152 @@ fun indexOfBytes(haystack: ByteArray, needle: ByteArray): Int {
 tasks.matching { it.name == "assembleDebug" }
     .configureEach { finalizedBy("verifyNothingTestOnlyReachesTheApk") }
 
+
+/**
+ * Fails the build when Settings > Sources & credits > Open-source software stops describing what
+ * the app actually ships (dispatch 2026-10-13-05; the planner's answer Q1: a hand-kept list, checked
+ * here). The list is `src/main/assets/credits/software.json`, the same file the page reads, so there
+ * is one source and this checks it against the artifact rather than trusting it. Five refusals:
+ *
+ * - a module on `releaseRuntimeClasspath` (what ships, not the debug extras) that no library in the
+ *   list covers: a new dependency arrived without its credit;
+ * - a library whose module patterns match nothing on that classpath: a credit for something that no
+ *   longer ships;
+ * - a library's pinned `versions` entry that differs from the resolved version: its notice text was
+ *   taken from that version's own source, so a version bump means re-taking it;
+ * - a NOTICE file anywhere inside a shipped artifact (nested jars in an AAR included) that the list
+ *   does not reproduce word for word, or a reproduced one no artifact carries any more. Apache 2.0
+ *   section 4(d) obliges a redistributor to pass NOTICE text on, and a NOTICE is not always at
+ *   `META-INF/` (OkHttp's sits beside the Public Suffix List it ships), so every entry whose file
+ *   name starts with NOTICE is read, not only `META-INF/NOTICE*`;
+ * - a licence or notice file the list names that is missing or blank.
+ *
+ * What it cannot see: native code compiled into an AAR, and fonts. Those carry no POM or module of
+ * their own, so MapLibre Native's third-party notices and the two fonts are kept by hand; the
+ * MapLibre version in `gradle/libs.versions.toml` carries the reminder.
+ *
+ * Wired after `assembleDebug`, as [verifyNothingTestOnlyReachesTheApk] is, so CI runs it on every push.
+ */
+val creditsCatalogFile = file("src/main/assets/credits/software.json")
+
+/** [pattern] is `group:name`; a group ending in `.*` covers that group and every group under it, and a name of `*` any name. */
+fun creditPatternMatches(pattern: String, module: String): Boolean {
+    val (patternGroup, patternName) = pattern.split(":", limit = 2).let { it[0] to it.getOrElse(1) { "*" } }
+    val (group, name) = module.split(":", limit = 2).let { it[0] to it[1] }
+    val groupMatches = if (patternGroup.endsWith(".*")) {
+        val stem = patternGroup.removeSuffix(".*")
+        group == stem || group.startsWith("$stem.")
+    } else {
+        group == patternGroup
+    }
+    return groupMatches && (patternName == "*" || patternName == name)
+}
+
+/** Line endings and trailing whitespace are not content; everything else is compared exactly. */
+fun normalisedNoticeText(text: String): String =
+    text.replace("\r\n", "\n").lines().joinToString("\n") { it.trimEnd() }.trimEnd()
+
+/** Every entry in [zip] whose file name starts with NOTICE, keyed by its path; nested jars are opened too, as `outer!inner`. */
+fun noticesIn(zip: java.util.zip.ZipInputStream, prefix: String, into: MutableMap<String, String>) {
+    while (true) {
+        val entry = zip.nextEntry ?: break
+        if (entry.isDirectory) continue
+        val fileName = entry.name.substringAfterLast('/')
+        when {
+            fileName.startsWith("NOTICE", ignoreCase = true) ->
+                into[prefix + entry.name] = zip.readBytes().toString(Charsets.UTF_8)
+            fileName.endsWith(".jar") ->
+                noticesIn(java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(zip.readBytes())), prefix + entry.name + "!", into)
+        }
+    }
+}
+
+tasks.register("verifyCreditsCoverEveryDependency") {
+    inputs.file(creditsCatalogFile)
+    doLast {
+        val creditsDir = creditsCatalogFile.parentFile
+        @Suppress("UNCHECKED_CAST")
+        val catalog = groovy.json.JsonSlurper().parse(creditsCatalogFile) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val licences = catalog["licences"] as List<Map<String, Any?>>
+        @Suppress("UNCHECKED_CAST")
+        val libraries = catalog["libraries"] as List<Map<String, Any?>>
+        val problems = mutableListOf<String>()
+
+        fun requireReadable(relativePath: String, what: String) {
+            val file = File(creditsDir, relativePath)
+            if (!file.isFile || file.readText().isBlank()) problems += "$what names credits/$relativePath, which is missing or blank"
+        }
+        val licenceIds = licences.map { it["id"] as String }.toSet()
+        licences.forEach { requireReadable(it["file"] as String, "Licence ${it["id"]}") }
+
+        val runtime = configurations.getByName("releaseRuntimeClasspath")
+        val resolved: Map<String, String> = runtime.incoming.resolutionResult.allComponents
+            .mapNotNull { it.id as? org.gradle.api.artifacts.component.ModuleComponentIdentifier }
+            .associate { "${it.group}:${it.module}" to it.version }
+
+        @Suppress("UNCHECKED_CAST")
+        fun patternsOf(library: Map<String, Any?>) = (library["modules"] as List<String>?).orEmpty()
+        libraries.forEach { library ->
+            val name = library["name"] as String
+            if ((library["licence"] as String?) !in licenceIds) problems += "Library \"$name\" names licence ${library["licence"]}, which is not in the list's licences"
+            val patterns = patternsOf(library)
+            if (patterns.isNotEmpty() && resolved.keys.none { module -> patterns.any { creditPatternMatches(it, module) } }) {
+                problems += "Library \"$name\" (${patterns.joinToString()}) matches no module on releaseRuntimeClasspath: it no longer ships"
+            }
+            @Suppress("UNCHECKED_CAST")
+            val versions = (library["versions"] as Map<String, String>?).orEmpty()
+            versions.forEach { (module, version) ->
+                val actual = resolved[module]
+                if (actual != version) problems += "Library \"$name\" was credited at $module $version, and $actual resolves now: re-take its notice text from that version"
+            }
+            @Suppress("UNCHECKED_CAST")
+            val notices = (library["notices"] as List<Map<String, Any?>>?).orEmpty()
+            notices.forEach { requireReadable(it["file"] as String, "A notice of \"$name\"") }
+        }
+        resolved.keys.sorted().forEach { module ->
+            if (libraries.none { library -> patternsOf(library).any { creditPatternMatches(it, module) } }) {
+                problems += "$module ${resolved[module]} ships and no library in credits/software.json covers it"
+            }
+        }
+
+        // NOTICE files, read from the artifacts themselves.
+        val found = mutableMapOf<Pair<String, String>, String>()
+        runtime.incoming.artifacts.artifacts.forEach { artifact ->
+            val id = artifact.id.componentIdentifier as? org.gradle.api.artifacts.component.ModuleComponentIdentifier ?: return@forEach
+            val notices = mutableMapOf<String, String>()
+            artifact.file.inputStream().use { noticesIn(java.util.zip.ZipInputStream(it), "", notices) }
+            notices.forEach { (path, text) -> found["${id.group}:${id.module}" to path] = text }
+        }
+        @Suppress("UNCHECKED_CAST")
+        val declared: Map<Pair<String, String>, String> = libraries
+            .flatMap { (it["notices"] as List<Map<String, Any?>>?).orEmpty() }
+            .filter { it["module"] != null && it["path"] != null }
+            .associate { (it["module"] as String to it["path"] as String) to (it["file"] as String) }
+        found.forEach { (key, text) ->
+            val file = declared[key]
+            if (file == null) {
+                problems += "${key.first} ships a NOTICE at ${key.second} that credits/software.json does not reproduce:\n" + text.prependIndent("      ")
+            } else {
+                val reproduced = File(creditsDir, file).takeIf { it.isFile }?.readText()
+                if (reproduced == null || normalisedNoticeText(reproduced) != normalisedNoticeText(text)) {
+                    problems += "${key.first}'s NOTICE at ${key.second} differs from credits/$file: copy it from the artifact again"
+                }
+            }
+        }
+        (declared.keys - found.keys).forEach { key ->
+            problems += "credits/software.json reproduces a NOTICE at ${key.second} in ${key.first}, and no shipped artifact carries it now"
+        }
+
+        if (problems.isNotEmpty()) {
+            error("The open-source credits no longer match what ships:\n" + problems.joinToString("\n") { "  - $it" })
+        }
+        logger.lifecycle(
+            "Verified: credits/software.json covers all ${resolved.size} modules on releaseRuntimeClasspath, " +
+                "and reproduces all ${found.size} NOTICE files they carry.",
+        )
+    }
+}
+
+tasks.matching { it.name == "assembleDebug" }
+    .configureEach { finalizedBy("verifyCreditsCoverEveryDependency") }
