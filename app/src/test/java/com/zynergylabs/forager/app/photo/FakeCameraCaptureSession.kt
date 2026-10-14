@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.LifecycleOwner
+import com.zynergylabs.forager.app.domain.CameraCapabilities
+import com.zynergylabs.forager.app.domain.EncoderCapabilities
 import java.io.File
 
 /**
@@ -29,12 +31,20 @@ import java.io.File
  *   then [flashUnitOnOpen]; [setFlashMode] is counted in [setFlashModeCalls] and changes nothing
  *   without a unit; [close] puts the mode back to `Off` and drops the unit. A fake more permissive
  *   than the contract would let the screen pass on behaviour the real session refuses.
+ * - **Capabilities** (dispatch 2026-10-13-04), as the real session sets them: [capabilities] and
+ *   [encoderCapabilities] are null until [open] reaches `Ready`, then [capabilitiesOnOpen] and
+ *   [encodersOnOpen]; [close] drops both. Settable, so a test can land them after composition as
+ *   the real bind and the real background encoder read do.
  */
 internal class FakeCameraCaptureSession(
     state: CameraSessionState = CameraSessionState.Ready,
     private val readyOnOpen: Boolean = true,
     /** Whether the camera [open] binds has a flash unit. On by default, so the flash chip is there as on most phones. */
     private val flashUnitOnOpen: Boolean = true,
+    /** What [open] reports the bound camera can do; null by default, as before the probe existed. */
+    private val capabilitiesOnOpen: CameraCapabilities? = null,
+    /** What [open] reports the encoders can do; null by default. */
+    private val encodersOnOpen: EncoderCapabilities? = null,
 ) : CameraCaptureSession {
 
     override var state: CameraSessionState by mutableStateOf(state)
@@ -44,6 +54,10 @@ internal class FakeCameraCaptureSession(
 
     /** Settable so a test can take the unit away mid-session; [open] and [close] set it as the real session does. */
     override var hasFlashUnit: Boolean by mutableStateOf(false)
+
+    override var capabilities: CameraCapabilities? by mutableStateOf(null)
+
+    override var encoderCapabilities: EncoderCapabilities? by mutableStateOf(null)
 
     var setFlashModeCalls = 0
         private set
@@ -73,13 +87,19 @@ internal class FakeCameraCaptureSession(
     override fun open(lifecycleOwner: LifecycleOwner) {
         openCalls += 1
         if (readyOnOpen && state == CameraSessionState.Opening) state = CameraSessionState.Ready
-        if (state == CameraSessionState.Ready) hasFlashUnit = flashUnitOnOpen
+        if (state == CameraSessionState.Ready) {
+            hasFlashUnit = flashUnitOnOpen
+            capabilities = capabilitiesOnOpen
+            encoderCapabilities = encodersOnOpen
+        }
     }
 
     override fun close() {
         closeCalls += 1
         currentFlashMode = FlashMode.Off
         hasFlashUnit = false
+        capabilities = null
+        encoderCapabilities = null
     }
 
     override suspend fun capture(destination: File): Result<Unit> {
