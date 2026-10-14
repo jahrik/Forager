@@ -1419,8 +1419,9 @@ private fun BoxScope.CompactMapTopStrip(
         fill = if (railPortEdge != null) (if (isDarkTheme) MapPillColorDark else MapPillColorLight) else null,
         navigationInfo = if (railPortEdge == null) portraitNavigationInfo else null,
         outlineSides = stripOutlineSides,
-        // Dispatch 2026-10-13-02, RECORD -983: landscape only; portrait unchanged.
-        readoutCentredOnMenu = railPortEdge != null,
+        // Dispatch 2026-10-13-02, RECORD -983 (landscape) and -984 (the owner: "Have portrait more centered also. This will
+        // matter most to people with OCD"): both orientations.
+        readoutCentredOnMenu = true,
     )
     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
     // The portrait strip's measured height goes the moment navigation starts, as it did when the strip left then (see above).

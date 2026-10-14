@@ -48,8 +48,9 @@ import org.robolectric.shadows.ShadowDisplay
 
 /**
  * Dispatch 2026-10-13-02, RECORD -983 (the owner: "Another thing for the landscape mode UI, have the telemetry centered between
- * the compass arrow and the three dot menu. Right now it's way too close to the arrow"), through the real [AvailabilityScreen]
- * in landscape at 780 and 823 dp, font scale 1.0 and 2.0.
+ * the compass arrow and the three dot menu. Right now it's way too close to the arrow") and -984 (the owner: "Have portrait more
+ * centered also. This will matter most to people with OCD"), through the real [AvailabilityScreen]: landscape at 780 and 823 dp,
+ * portrait at 320, 360, 384 and 412 dp, font scale 1.0 and 2.0.
  *
  * - **Not navigating:** the readout's centre is the midpoint of the arrow's trailing edge and the three dots' leading edge,
  *   within 1 dp.
@@ -57,8 +58,9 @@ import org.robolectric.shadows.ShadowDisplay
  *   dots' leading edge.
  *
  * What is measured, from the semantics tree:
- * - **The readout:** the span of every text node on the strip's line (labels, values and the "·" separators; nothing else on
- *   the strip is text here: no evening lines, the compass reading fixed).
+ * - **The readout:** the span of every text node on the strip's line (labels, values and the "·" separators): the text nodes
+ *   inside the strip whose vertical centre lies within the three-dot button's height, which leaves out the navigation info
+ *   drawn under the line in portrait while navigating. No evening lines here; the compass reading is fixed.
  * - **The arrow:** its fixed 18 dp slot (COMPASS_STRIP_NEEDLE_TAG), which the needle turns inside.
  * - **The dots:** the three-dot icon's own bounds, 10/24 of the way in, where Material's MoreVert draws them (a reading of
  *   "the three dot menu" as what is seen, not the 36 dp tap target round it, which starts 8.3 dp before the dots).
@@ -66,7 +68,7 @@ import org.robolectric.shadows.ShadowDisplay
  * Before RECORD -983 the readout was centred in its slot, which ends 8 dp short of the tap target, so not navigating it sat
  * 12.2 dp toward the arrow from this midpoint, and navigating 8.2 dp.
  */
-abstract class LandscapeStripReadoutCentredTests(private val name: String) {
+abstract class StripReadoutCentredTests(private val name: String, private val rotation: Int?) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -79,7 +81,7 @@ abstract class LandscapeStripReadoutCentredTests(private val name: String) {
     private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
     private fun setScreen(navigating: Boolean) {
-        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
+        if (rotation != null) Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
@@ -133,8 +135,10 @@ abstract class LandscapeStripReadoutCentredTests(private val name: String) {
     /** The text on the strip's line: every unmerged text node inside the strip, outside the three-dot button. */
     private fun readoutSpan(): Pair<Dp, Dp> {
         val strip = composeRule.onNodeWithTag(STRIP_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        val button = composeRule.onNodeWithTag(MAP_QUICK_SETTINGS_BUTTON_TAG, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val texts = descendants(strip)
             .filter { it.config.getOrNull(SemanticsProperties.Text) != null }
+            .filter { it.boundsInRoot.center.y in button.top..button.bottom }
             .filterNot { n -> generateSequence(n.parent) { it.parent }.any { it.config.getOrNull(SemanticsProperties.TestTag) == MAP_QUICK_SETTINGS_BUTTON_TAG } }
         assertTrue("the strip's line has text on it", texts.isNotEmpty())
         println("MEASURED $name readout texts: ${texts.map { "'${it.config.getOrNull(SemanticsProperties.Text)?.joinToString()}' ${it.boundsInRoot.left.pxToDp().value}..${it.boundsInRoot.right.pxToDp().value}" }}")
@@ -179,7 +183,7 @@ abstract class LandscapeStripReadoutCentredTests(private val name: String) {
             composeRule.onAllNodes(hasTestTag(COMPASS_STRIP_NEEDLE_TAG), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
         )
         val strip = composeRule.onNodeWithTag(STRIP_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
-        // The rail is on the right at both rotations (RECORD -956), the strip beside it, so its leading edge is its left.
+        // The strip's leading edge is its left: in landscape the rail is on the right at both rotations (RECORD -956).
         assertCentred("navigating", strip.left)
     }
 
@@ -196,7 +200,7 @@ abstract class LandscapeStripReadoutCentredTests(private val name: String) {
     }
 }
 
-abstract class LandscapeStripReadoutCentredCases(name: String) : LandscapeStripReadoutCentredTests(name) {
+abstract class LandscapeStripReadoutCentredCases(name: String) : StripReadoutCentredTests(name, Surface.ROTATION_90) {
     @Test fun `the readout is centred between the arrow and the three dots`() = notNavigating()
 
     @Test fun `navigating, the readout is centred between the strip's leading edge and the three dots`() = navigating()
@@ -221,3 +225,49 @@ class LandscapeStripReadoutCentred823Font1Test : LandscapeStripReadoutCentredCas
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class LandscapeStripReadoutCentred823Font2Test : LandscapeStripReadoutCentredCases("823-font2")
+
+abstract class PortraitStripReadoutCentredCases(name: String) : StripReadoutCentredTests(name, rotation = null) {
+    @Test fun `the readout is centred between the arrow and the three dots`() = notNavigating()
+
+    @Test fun `navigating, the readout is centred between the strip's leading edge and the three dots`() = navigating()
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w320dp-h640dp-port-xxhdpi", fontScale = 1.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class PortraitStripReadoutCentred320Font1Test : PortraitStripReadoutCentredCases("portrait-320-font1")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w320dp-h640dp-port-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class PortraitStripReadoutCentred320Font2Test : PortraitStripReadoutCentredCases("portrait-320-font2")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w360dp-h780dp-port-xxhdpi", fontScale = 1.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class PortraitStripReadoutCentred360Font1Test : PortraitStripReadoutCentredCases("portrait-360-font1")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w360dp-h780dp-port-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class PortraitStripReadoutCentred360Font2Test : PortraitStripReadoutCentredCases("portrait-360-font2")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w384dp-h823dp-port-xxhdpi", fontScale = 1.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class PortraitStripReadoutCentred384Font1Test : PortraitStripReadoutCentredCases("portrait-384-font1")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w384dp-h823dp-port-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class PortraitStripReadoutCentred384Font2Test : PortraitStripReadoutCentredCases("portrait-384-font2")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w412dp-h915dp-port-xxhdpi", fontScale = 1.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class PortraitStripReadoutCentred412Font1Test : PortraitStripReadoutCentredCases("portrait-412-font1")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w412dp-h915dp-port-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class PortraitStripReadoutCentred412Font2Test : PortraitStripReadoutCentredCases("portrait-412-font2")

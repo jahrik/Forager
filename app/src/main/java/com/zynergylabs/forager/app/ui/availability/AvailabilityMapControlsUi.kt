@@ -137,8 +137,9 @@ internal const val COMPASS_STRIP_NEEDLE_TAG = "compass-strip-needle"
 
 /**
  * Dispatch 2026-10-13-02, RECORD -983 (the owner: "Another thing for the landscape mode UI, have the telemetry centered between
- * the compass arrow and the three dot menu. Right now it's way too close to the arrow"): how far the landscape strip's readout
- * moves toward the three-dot button so that its centre is midway between the arrow and the dots.
+ * the compass arrow and the three dot menu. Right now it's way too close to the arrow"), and RECORD -984 for portrait (the owner:
+ * "Have portrait more centered also. This will matter most to people with OCD"): how far the strip's readout moves toward the
+ * three-dot button so that its centre is midway between the arrow and the dots.
  *
  * The readout's slot runs from the arrow's trailing edge (or, navigating, with no arrow (RECORD -950), from the line's leading
  * padding, [Spacing.sm] in from the strip's leading edge) to [Spacing.sm] short of the button, and the readout is centred in it.
@@ -497,8 +498,9 @@ internal fun CompassElevationStrip(
      */
     outlineSides: MapChromeOutlineSides? = null,
     /**
-     * Dispatch 2026-10-13-02, RECORD -983: in landscape, the readout centred between the arrow (navigating, the strip's leading
-     * edge) and the three-dot button's dots ([stripReadoutShiftToMenu]). False keeps it centred in its slot, as in portrait.
+     * Dispatch 2026-10-13-02, RECORD -983 and -984: the readout centred between the arrow (navigating, the strip's leading edge)
+     * and the three-dot button's dots ([stripReadoutShiftToMenu]), in both orientations. False keeps it centred in its slot, as
+     * before; the map screen passes true.
      */
     readoutCentredOnMenu: Boolean = false,
 ) {
@@ -682,7 +684,7 @@ private fun CompassElevationStripContent(
                 AnimatedContent(
                     targetState = readoutKind,
                     modifier = (if (contentWidth) Modifier else Modifier.weight(1f))
-                        // Dispatch 2026-10-13-02, RECORD -983: landscape, centred between the arrow and the dots (see
+                        // Dispatch 2026-10-13-02, RECORD -983, -984: centred between the arrow and the dots (see
                         // stripReadoutShiftToMenu); drawn and touched where it is placed, measured as before.
                         .then(if (readoutCentredOnMenu && quickSettings != null) Modifier.offset(x = stripReadoutShiftToMenu(navigating)) else Modifier),
                     transitionSpec = { (fadeIn(animationSpec = readoutFade) togetherWith fadeOut(animationSpec = readoutFade)).using(null) },
