@@ -16,6 +16,7 @@ package com.zynergylabs.forager.app.ui.availability
 // recorded in the Understory amendment merged in #130.
 
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
@@ -293,6 +294,14 @@ internal fun ForagerNavigationRail(
             .testTag(COMPACT_NAVIGATION_RAIL_TAG)
             .mapChromeContainerColor(containerColor),
     ) {
+        // Dispatch 2026-10-13-02, RECORD -976 (the owner: "Landscape: the side navigation buttons (list, seasonal, maps, journal,
+        // tools) is crammed on the bar, unevenly stacked between the top and the bottom. Can the buttons be evenly spaced?"):
+        // Material's NavigationRail stacks its items from the top (a Column a fixed small gap apart, no arrangement parameter), which
+        // left the free height all below Tools. An equal weighted spacer before each item and after the last shares that height
+        // out evenly, so the gaps between the items, and above the first and below the last, are equal. In the rail's own
+        // content, so it holds wherever the rail is shown: over the map and beside the other tabs. Rejected: weighting the
+        // items themselves, which would stretch each item's touch area and indicator over its share of the height.
+        Spacer(Modifier.weight(1f))
         CompactTab.entries.forEach { tab ->
             NavigationRailItem(
                 selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
@@ -304,6 +313,7 @@ internal fun ForagerNavigationRail(
                     selectedTextColor = MaterialTheme.colorScheme.primary,
                 ),
             )
+            Spacer(Modifier.weight(1f))
         }
     }
 }
