@@ -16,7 +16,9 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasAnySibling
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -185,6 +187,33 @@ class InAppCameraSettingsPanelTest {
         checkbox(PHOTO_LOCATION_SETTING_LABEL).assertIsOn()
         checkbox(LOCK_CAMERA_SETTING_LABEL).assertIsOff()
         assertEquals("nothing is written just by opening the panel", emptyList<String>(), calls)
+    }
+
+    /**
+     * Dispatch 2026-10-13-03 (RECORD -968, -971, -972; the owner: "Remove save location from the settings, empty it out
+     * completely"): the gear stays and opens the panel, and the panel holds no rows. It says so in one plain line (the
+     * planner's call, -972) rather than opening blank. The two old rows' labels and explanation are written out here as
+     * literals, not through the constants that drew them, so this test does not depend on code the removal deletes.
+     */
+    @Test
+    fun `the panel holds no settings and says so`() {
+        setDialog()
+        openPanel()
+
+        assertEquals("the empty line shows once", 1, composeRule.onAllNodesWithText("No camera settings yet").fetchSemanticsNodes().size)
+        for (text in listOf(
+            "Lock camera to portrait",
+            "Keeps the camera and its controls still when you turn the phone. Photos are always saved in portrait, even when you hold the phone sideways.",
+            "Automatically Save Location to Photos",
+        )) {
+            assertEquals("'$text' is not in the panel", 0, composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size)
+        }
+        assertEquals(
+            "no checkbox in the panel",
+            0,
+            composeRule.onAllNodes(isToggleable() and hasAnyAncestor(hasTestTag(CAMERA_SETTINGS_PANEL_TAG)), useUnmergedTree = true).fetchSemanticsNodes().size,
+        )
+        assertEquals("nothing is written by opening it", emptyList<String>(), calls)
     }
 
     /**

@@ -376,6 +376,22 @@ class AvailabilityScreenInAppCameraTest {
     }
 
     /**
+     * Dispatch 2026-10-13-03 (RECORD -968): an install that had "Lock camera to portrait" on before the option was removed
+     * gets the default, a camera whose window follows the device. Written first against the code that still has the
+     * option, with the screen handed the on value the ViewModel loaded from storage, so it fails there (PORTRAIT).
+     */
+    @Test
+    fun `an install that had the portrait lock on gets a camera that follows the device`() {
+        setScreen(lockCameraToPortrait = true)
+        openEditorCamera()
+        assertEquals(
+            "the camera's window follows the device: SENSOR, not the old forced PORTRAIT",
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR,
+            composeRule.activity.requestedOrientation,
+        )
+    }
+
+    /**
      * The grid mode reaches the camera through the screen, the host and the slot, and a tap on the
      * grid chip reaches the screen's callback — the path `MainActivity` wires to
      * `CameraGridModeViewModel`. Without this, a screen that dropped either would pass every camera
