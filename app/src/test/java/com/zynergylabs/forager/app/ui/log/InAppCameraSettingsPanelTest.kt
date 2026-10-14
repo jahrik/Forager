@@ -10,14 +10,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
-import androidx.compose.ui.test.hasAnySibling
-import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -36,10 +33,6 @@ import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
-import com.zynergylabs.forager.app.ui.availability.LOCK_CAMERA_SETTING_EXPLANATION
-import com.zynergylabs.forager.app.ui.availability.LOCK_CAMERA_SETTING_LABEL
-import com.zynergylabs.forager.app.ui.availability.PHOTO_LOCATION_SETTING_EXPLANATION
-import com.zynergylabs.forager.app.ui.availability.PHOTO_LOCATION_SETTING_LABEL
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -60,9 +53,12 @@ import org.robolectric.shadows.ShadowDisplay
  * handed in the way `AvailabilityScreen` hands them down, and the handlers store what they are asked,
  * as `AvailabilityViewModel` does; the path from the screen is `AvailabilityScreenInAppCameraTest`'s.
  *
- * Holds what Settings' own tests held for these two rows until they moved here: the defaults
- * (location on, lock off, `AvailabilityUiState`'s own), the explanations, and a touch anywhere
- * across a row writing the toggled value. Window size is a phone's (the S22 Ultra's, 384 x 823 dp);
+ * Held what Settings' own tests held for its two rows until dispatch 2026-10-13-03 emptied the panel
+ * (RECORD -968, -972): the defaults, the explanations, and a touch anywhere across a row writing the
+ * toggled value. Those two tests, `the panel shows both settings with their explanations, location
+ * on and lock off by default` and `a real touch anywhere across each row writes the toggled value`,
+ * were removed with the rows and are recorded in `docs/archive/camera-portrait-lock.md`; the empty
+ * panel's own test replaces them, and the Location chip's tests hold the value. Window size is a phone's (the S22 Ultra's, 384 x 823 dp);
  * Robolectric reports zero insets (CLAUDE.md), so nothing here is evidence about the cut-out.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -83,7 +79,6 @@ class InAppCameraSettingsPanelTest {
 
     private val defaults = AvailabilityUiState()
     private var saveLocation by mutableStateOf(defaults.autoSaveLocationToPhotos)
-    private var lockPortrait by mutableStateOf(defaults.lockCameraToPortrait)
     private val calls = mutableListOf<String>()
     private val captured = mutableListOf<PhotoSource>()
     private var dismissals = 0
@@ -94,7 +89,6 @@ class InAppCameraSettingsPanelTest {
             InAppCameraDialog(
                 session = session,
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                lockToPortrait = lockPortrait,
                 onPhotoCaptured = { captured += it },
                 onDismiss = { dismissals += 1 },
                 gridMode = GridMode.Off,
@@ -103,10 +97,6 @@ class InAppCameraSettingsPanelTest {
                 onAutoSaveLocationToPhotosChanged = { requested ->
                     calls += "photo location $requested"
                     saveLocation = requested
-                },
-                onLockCameraToPortraitChanged = { requested ->
-                    calls += "camera lock $requested"
-                    lockPortrait = requested
                 },
                 levelProvider = FakeLevelProvider(),
                 viewfinder = { modifier -> Box(modifier.fillMaxSize()) },
@@ -133,9 +123,6 @@ class InAppCameraSettingsPanelTest {
         touchCentreOf(CAMERA_SETTINGS_CHIP_TAG)
         assertEquals("the gear opened the panel", 1, panelCount())
     }
-
-    private fun checkbox(label: String): SemanticsNodeInteraction =
-        composeRule.onNode(isToggleable() and hasAnySibling(hasText(label)), useUnmergedTree = true)
 
     @Test
     fun `the gear is in the strip, and the panel is closed until it is touched`() {
@@ -171,46 +158,31 @@ class InAppCameraSettingsPanelTest {
         assertEquals("nothing was written by opening and closing", emptyList<String>(), calls)
     }
 
-    /** The two rows, their existing strings and explanations, showing `AvailabilityUiState`'s defaults: location on, lock off. */
-    @Test
-    fun `the panel shows both settings with their explanations, location on and lock off by default`() {
-        assertEquals("the screen's default for photo location is on", true, defaults.autoSaveLocationToPhotos)
-        assertEquals("and for the lock, off", false, defaults.lockCameraToPortrait)
-        setDialog()
-        openPanel()
-
-        for (text in listOf(PHOTO_LOCATION_SETTING_LABEL, PHOTO_LOCATION_SETTING_EXPLANATION, LOCK_CAMERA_SETTING_LABEL, LOCK_CAMERA_SETTING_EXPLANATION)) {
-            assertEquals("'$text' shows once", 1, composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size)
-        }
-        checkbox(PHOTO_LOCATION_SETTING_LABEL).assertIsOn()
-        checkbox(LOCK_CAMERA_SETTING_LABEL).assertIsOff()
-        assertEquals("nothing is written just by opening the panel", emptyList<String>(), calls)
-    }
-
     /**
-     * Three real touches across each row (what `SettingsRowsTouchTest` held for these rows in
-     * Settings): each reaches the screen's handler with the toggled value, and the row then shows
-     * the stored value. The panel stays open throughout: a touch on it is not a touch outside it.
+     * Dispatch 2026-10-13-03 (RECORD -968, -971, -972; the owner: "Remove save location from the settings, empty it out
+     * completely"): the gear stays and opens the panel, and the panel holds no rows. It says so in one plain line (the
+     * planner's call, -972) rather than opening blank. The two old rows' labels and explanation are written out here as
+     * literals, not through the constants that drew them, so this test does not depend on code the removal deletes.
      */
     @Test
-    fun `a real touch anywhere across each row writes the toggled value`() {
+    fun `the panel holds no settings and says so`() {
         setDialog()
         openPanel()
-        for ((tag, name) in listOf(CAMERA_SETTINGS_PHOTO_LOCATION_TAG to "photo location", CAMERA_SETTINGS_LOCK_PORTRAIT_TAG to "camera lock")) {
-            for (fraction in listOf(0.05f, 0.5f, 0.95f)) {
-                val before = if (name == "photo location") saveLocation else lockPortrait
-                calls.clear()
-                val b = bounds(tag)
-                touchAt(b.left.value + b.width.value * fraction, ((b.top + b.bottom) / 2).value)
-                assertEquals("a touch at $fraction across the $name row", listOf("$name ${!before}"), calls)
-                assertEquals("the panel is still open", 1, panelCount())
-            }
+
+        assertEquals("the empty line shows once", 1, composeRule.onAllNodesWithText("No camera settings yet").fetchSemanticsNodes().size)
+        for (text in listOf(
+            "Lock camera to portrait",
+            "Keeps the camera and its controls still when you turn the phone. Photos are always saved in portrait, even when you hold the phone sideways.",
+            "Automatically Save Location to Photos",
+        )) {
+            assertEquals("'$text' is not in the panel", 0, composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size)
         }
-        assertEquals("three flips from on is off", false, saveLocation)
-        assertEquals("three flips from off is on", true, lockPortrait)
-        checkbox(PHOTO_LOCATION_SETTING_LABEL).assertIsOff()
-        checkbox(LOCK_CAMERA_SETTING_LABEL).assertIsOn()
-        composeRule.onNodeWithTag(CAMERA_LOCATION_CHIP_TAG).assertContentDescriptionEquals(LOCATION_OFF_LABEL)
+        assertEquals(
+            "no checkbox in the panel",
+            0,
+            composeRule.onAllNodes(isToggleable() and hasAnyAncestor(hasTestTag(CAMERA_SETTINGS_PANEL_TAG)), useUnmergedTree = true).fetchSemanticsNodes().size,
+        )
+        assertEquals("nothing is written by opening it", emptyList<String>(), calls)
     }
 
     /** Back closes the panel and nothing else; the next Back closes the camera, as it always has. */
@@ -278,6 +250,9 @@ class InAppCameraSettingsPanelTest {
     }
 
     private fun assertPanelBesideStripInLandscape(rotation: Int) {
+        // RECORD -985: full screen, a turned display is held in the natural frame (InAppCameraLargeScreenHoldTest); the
+        // landscape arrangement this measures is reached in a multi-window window. Setup only, assertions unchanged.
+        Shadows.shadowOf(composeRule.activity).setInMultiWindowMode(true)
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         @Suppress("DEPRECATION") val reported = composeRule.activity.windowManager.defaultDisplay.rotation
         assertEquals("the harness reports the rotation this test is about", rotation, reported)

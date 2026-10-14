@@ -120,7 +120,6 @@ class SettingsRowsTouchTest {
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = { calls += "night maps $it" },
                 onAutoSaveLocationToPhotosChanged = { calls += "photo location $it" },
-                onLockCameraToPortraitChanged = { calls += "camera lock $it" },
                 onThemeModeChanged = { calls += "theme $it" },
                 onDistanceUnitSelected = { unit: DistanceUnit -> calls += "units $unit" },
                 mapSlot = map,

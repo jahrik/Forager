@@ -446,10 +446,8 @@ fun AvailabilityScreen(
     onDeleteOfflineRegion: (Long) -> Unit,
     /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
     onNightModeMapsChanged: (Boolean) -> Unit,
-    /** "Automatically Save Location to Photos" — see [AvailabilityUiState.autoSaveLocationToPhotos]; set from the camera's Location chip and its gear panel (Settings until dispatch 2026-09-28-707). Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
+    /** "Automatically Save Location to Photos" — see [AvailabilityUiState.autoSaveLocationToPhotos]; set from the camera's Location chip (Settings until dispatch 2026-09-28-707, then also the camera's gear panel until dispatch 2026-10-13-03). Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
-    /** "Lock camera to portrait" — see [AvailabilityUiState.lockCameraToPortrait]; set from the camera's gear panel (Settings until dispatch 2026-09-28-707). Defaulted like the one above. */
-    onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
     /** Settings' "Sundown alerts" (dispatch 2026-09-28-592) — see [AvailabilityUiState.sundownAlertsEnabled]. */
     onSundownAlertsEnabledChanged: (Boolean) -> Unit = {},
     /** Settings' "Dark under trees" (dispatch 2026-09-28-592) — see [AvailabilityUiState.darknessMarginMinutes]. */
@@ -2026,12 +2024,10 @@ fun AvailabilityScreen(
     InAppCameraHost(
         target = inAppCameraTarget,
         cameraCaptureFiles = cameraCaptureFiles,
-        lockToPortrait = uiState.lockCameraToPortrait,
         gridMode = cameraGridMode,
         onGridModeChanged = onCameraGridModeChanged,
         autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-        onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
         onLogEntryPhoto = onAddLogPhoto,
         onAlbumPhoto = onAddGalleryPhoto,
         onCartographyEntryPhoto = onAcquirePhotoForCartographyEntry,

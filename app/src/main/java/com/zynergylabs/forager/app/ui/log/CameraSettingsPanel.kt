@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -27,11 +28,6 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.ui.availability.ExplainedSettingsCheckbox
-import com.zynergylabs.forager.app.ui.availability.LOCK_CAMERA_SETTING_EXPLANATION
-import com.zynergylabs.forager.app.ui.availability.LOCK_CAMERA_SETTING_LABEL
-import com.zynergylabs.forager.app.ui.availability.PHOTO_LOCATION_SETTING_EXPLANATION
-import com.zynergylabs.forager.app.ui.availability.PHOTO_LOCATION_SETTING_LABEL
 import com.zynergylabs.forager.app.ui.theme.DarkColors
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -40,26 +36,21 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * that closes it: Back, or a tap anywhere outside it. Composed by [InAppCameraDialog] after the
  * strip and the shutter band, only while open, so it draws and hit-tests above both.
  *
- * ## What it holds
+ * ## What it holds: nothing yet, and it says so
  *
- * The two rows that were at the bottom of Settings, with their existing strings and explanations,
- * drawn by Settings' own shared row ([ExplainedSettingsCheckbox]) so the touch target, the
- * checkbox and the supporting line are the ones Settings had. The values are the screen's
- * (`AvailabilityUiState`), and a tap calls the same `AvailabilityViewModel` handlers Settings
- * called: no new key, value or meaning.
+ * Dispatch 2026-10-13-03 emptied it. "Lock camera to portrait" was removed (RECORD -968; the owner:
+ * "Seems pretty useless to be honest", then "Go ahead and remove it"), and the photo-location row
+ * with it (RECORD -972; the owner: "Remove save location from the settings, empty it out
+ * completely"); the strip's Location chip still shows and sets that value. The gear and this panel
+ * stay (RECORD -971, "Don't remove the settings yet"): the owner expects to fill it before the
+ * update ships. Until then it shows one plain line, [CAMERA_SETTINGS_EMPTY_TEXT], rather than
+ * opening blank, which could read as broken (the planner's call, -972). Both removed rows, and
+ * how to put either back, are in `docs/archive/camera-portrait-lock.md`.
  *
- * - **"Automatically Save Location to Photos"** (owner request, 2026-09-14): see
- *   [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what the one flag
- *   gates and why it defaults on. It carries its explanation because it changes what is written to
- *   a record the user cannot see from here; the wording is the owner's own. The strip's Location
- *   chip shows and sets the same value, so the two always agree.
- * - **"Lock camera to portrait"** (owner request, 2026-09-15): its supporting line is there because
- *   the consequence, a sideways photo saved portrait, is not obvious from the label. What it gates
- *   is on [com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository]. **New since
- *   this panel:** it can now change while the camera is open. The window's orientation request,
- *   the arrangement and the capture session are all keyed on it and follow (`RequestWindowOrientation`,
- *   `cameraArrangement`, `CameraXInAppCamera`); that a real CameraX session rebinds cleanly on the
- *   change is a device check.
+ * Toggling the lock row with the camera open froze the picture: the capture session was keyed on
+ * the setting and rebuilt, and the viewfinder stayed attached to the closed one. A row added here
+ * later whose value the session or the viewfinder reads must not repeat that; the archive document
+ * says what to do instead.
  *
  * ## Where it sits, and what it covers
  *
@@ -93,10 +84,6 @@ internal fun BoxScope.CameraSettingsPanelLayer(
     stripEdge: ScreenEdge,
     deviceRotation: Int?,
     displayRotation: Int,
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    lockToPortrait: Boolean,
-    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     onClose: () -> Unit,
 ) {
     // Composed after the camera's own BackHandler, so this one wins while the panel is open: Back
@@ -134,23 +121,15 @@ internal fun BoxScope.CameraSettingsPanelLayer(
         }
         Box(modifier = clearOfStrip.padding(Spacing.sm)) {
             CameraSettingsPanel(
-                autoSaveLocationToPhotos = autoSaveLocationToPhotos,
-                onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-                lockToPortrait = lockToPortrait,
-                onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                 modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation),
             )
         }
     }
 }
 
-/** The panel itself: the two rows on the dark scheme's container, see [CameraSettingsPanelLayer]. */
+/** The panel itself, on the dark scheme's container, see [CameraSettingsPanelLayer]: empty, so one line saying so. */
 @Composable
 internal fun CameraSettingsPanel(
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    lockToPortrait: Boolean,
-    onLockCameraToPortraitChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     MaterialTheme(colorScheme = DarkColors, typography = MaterialTheme.typography, shapes = MaterialTheme.shapes) {
@@ -169,20 +148,7 @@ internal fun CameraSettingsPanel(
                     .padding(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                ExplainedSettingsCheckbox(
-                    checked = autoSaveLocationToPhotos,
-                    onCheckedChange = onAutoSaveLocationToPhotosChanged,
-                    label = PHOTO_LOCATION_SETTING_LABEL,
-                    explanation = PHOTO_LOCATION_SETTING_EXPLANATION,
-                    tag = CAMERA_SETTINGS_PHOTO_LOCATION_TAG,
-                )
-                ExplainedSettingsCheckbox(
-                    checked = lockToPortrait,
-                    onCheckedChange = onLockCameraToPortraitChanged,
-                    label = LOCK_CAMERA_SETTING_LABEL,
-                    explanation = LOCK_CAMERA_SETTING_EXPLANATION,
-                    tag = CAMERA_SETTINGS_LOCK_PORTRAIT_TAG,
-                )
+                Text(CAMERA_SETTINGS_EMPTY_TEXT, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
@@ -196,5 +162,6 @@ internal const val CAMERA_SETTINGS_PANEL_ALPHA = 0.8f
 
 internal const val CAMERA_SETTINGS_PANEL_TAG = "in-app-camera-settings-panel"
 internal const val CAMERA_SETTINGS_DISMISS_TAG = "in-app-camera-settings-dismiss"
-internal const val CAMERA_SETTINGS_PHOTO_LOCATION_TAG = "in-app-camera-settings-photo-location"
-internal const val CAMERA_SETTINGS_LOCK_PORTRAIT_TAG = "in-app-camera-settings-lock-portrait"
+
+/** What the empty panel says (the planner's wording, RECORD -972). */
+internal const val CAMERA_SETTINGS_EMPTY_TEXT = "No camera settings yet"

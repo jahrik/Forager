@@ -70,7 +70,6 @@ class InAppCameraShutterBounceTest {
                 InAppCameraDialog(
                     session = session,
                     cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                    lockToPortrait = false,
                     onPhotoCaptured = { captured += it },
                     onDismiss = {},
                     gridMode = GridMode.Off,
