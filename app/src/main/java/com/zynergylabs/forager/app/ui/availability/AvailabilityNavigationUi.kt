@@ -330,6 +330,11 @@ internal fun ForagerNavigationRail(
     }
 }
 
+/** The least gap between two rail items: Material's NavigationRail spaces its items 4 dp apart. Declared before
+ * [RailItemsEvenly], whose initializer reads it: a top-level property is initialised in file order (CI run 38515463361 at
+ * 7fcff2f7 failed to compile with it after). */
+private val RAIL_ITEM_MIN_GAP = 4.dp
+
 /**
  * Dispatch 2026-10-13-02, RECORD -976: the rail's items spread evenly over its height. With room, the free height is shared
  * equally before the first item, between each two and after the last. With less room than that at [RAIL_ITEM_MIN_GAP] apiece,
@@ -356,9 +361,6 @@ private val RailItemsEvenly: Arrangement.Vertical = object : Arrangement.Vertica
         }
     }
 }
-
-/** The least gap between two rail items: Material's NavigationRail spaces its items 4 dp apart. */
-private val RAIL_ITEM_MIN_GAP = 4.dp
 
 /**
  * The Scaffold content insets for every tab but Map in a short landscape window (landscape B1,
