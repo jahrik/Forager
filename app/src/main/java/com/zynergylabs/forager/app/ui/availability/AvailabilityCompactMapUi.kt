@@ -1381,7 +1381,7 @@ private fun BoxScope.CompactMapTopStrip(
                 .landscapeStripFit(
                     railPortEdge,
                     punchHoleEdge,
-                    rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, showDecimalDegrees, quickSettings != null),
+                    rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, quickSettings != null),
                     rememberLandscapeBarFloorPx(uiState, uiState.distanceUnit),
                 )
                 // RECORD -729: its measured height and width go up to the scaffold, which gives the bar that height and the rest
@@ -1422,6 +1422,8 @@ private fun BoxScope.CompactMapTopStrip(
         // Dispatch 2026-10-13-02, RECORD -983 (landscape) and -984 (the owner: "Have portrait more centered also. This will
         // matter most to people with OCD"): both orientations.
         readoutCentredOnMenu = true,
+        // Dispatch 2026-10-13-02, RECORD -987: landscape, where the strip is sized for the wider coordinate form.
+        coordinatesSizedForBothForms = railPortEdge != null,
     )
     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
     // The portrait strip's measured height goes the moment navigation starts, as it did when the strip left then (see above).
