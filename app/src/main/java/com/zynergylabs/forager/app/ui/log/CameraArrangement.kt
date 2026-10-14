@@ -90,6 +90,10 @@ package com.zynergylabs.forager.app.ui.log
  * `remember` as setting off. It is not protected: the moment either input stops being constant —
  * a platform that ignores the portrait request, say — it is on the same path as everything else.
  *
+ * **Since RECORD -980 and -981** the window is held portrait (`SCREEN_ORIENTATION_PORTRAIT`, no
+ * setting), so on a phone this returns [CameraArrangement.Portrait]. The window inputs stay, because a
+ * display 600 dp or wider under Android 17 ignores the request and turns the window anyway.
+ *
  * **History since dispatch 2026-10-13-03:** "Lock camera to portrait" was removed (RECORD -968), and
  * with it this function's first input, `lockToPortrait`, which returned [CameraArrangement.Portrait]
  * whatever the window. "The setting" above, and "setting off" throughout, now describe the only case.
@@ -129,8 +133,10 @@ internal fun cameraArrangement(
     displayRotation: Int,
 ): CameraArrangement = when {
     // No reverse-portrait case on purpose: the camera's window cannot occupy ROTATION_180
-    // (RequestWindowOrientation asks for SCREEN_ORIENTATION_SENSOR, which the platform will not
-    // resolve to 180 on a phone), so this branch's portrait answer is never wrong in practice. It
+    // (RequestWindowOrientation asks for SCREEN_ORIENTATION_PORTRAIT since RECORD -980, which excludes
+    // it; SENSOR before that, which the platform would not resolve to 180 on a phone), so this branch's
+    // portrait answer is never wrong in practice. A landscape window is still handled below: on a
+    // display 600 dp or wider, Android 17 ignores the portrait request for this app's targetSdk 37. It
     // *would* be wrong there — shutter on the punch-hole edge, strip on the port edge, measured on
     // the emulator 2026-09-19 — so anything that makes 180 reachable again needs a fourth
     // arrangement built with it. See this function's doc comment.

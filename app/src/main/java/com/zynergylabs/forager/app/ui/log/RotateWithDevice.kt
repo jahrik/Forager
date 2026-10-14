@@ -41,7 +41,9 @@ import kotlin.math.max
  * rotation the capture session's orientation listener already snaps to
  * ([CameraCaptureSession.deviceRotation]), so the controls and the photo's own rotation tag agree
  * by construction. The display term is the window's own rotation, and it is what makes the
- * expression right whether or not the window moved: the window follows the
+ * expression right whether or not the window moved: since RECORD -980 the window is held portrait,
+ * so the display term is `ROTATION_0` on a phone and the controls turn by the sensor alone; before
+ * that the window followed the
  * device ([RequestWindowOrientation], since 2026-09-19 — before that it was locked and this branch
  * was written for the large screens where the platform ignores a lock), the two terms cancel in
  * every settled hold, and the controls stay put because the window carried them. Between the
