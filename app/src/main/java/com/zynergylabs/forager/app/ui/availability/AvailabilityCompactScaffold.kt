@@ -57,6 +57,7 @@ import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import androidx.activity.compose.BackHandler
@@ -1333,11 +1334,34 @@ internal fun CompactMainScaffold(
                                                 // RECORD -729: the strip's height in landscape, not navigating; null keeps the bar's own.
                                                 landscapeHeight = mapSearchBarHeight.takeIf { barMeetsStrip && landscapeStripHeight > 0.dp },
                                                 // Dispatch 2026-10-12-06: the rounded pill. Beside the landscape strip it rounds its outer side
-                                                // only and meets the strip square, edge to edge with no join line (RECORD -934).
+                                                // only and meets the strip square, edge to edge (RECORD -934; its "no join line" is replaced by
+                                                // -967's one line, the pill's outline, below).
                                                 pillCorners = if (landscapeSearchWidth != null && barMeetsStrip && landscapeStripWidth > 0.dp) {
                                                     MapCardCorners.outerSide(if (portEdge == ScreenEdge.Left) ScreenEdge.Right else ScreenEdge.Left)
                                                 } else {
                                                     MapCardCorners.ALL
+                                                },
+                                                // Dispatch 2026-10-13-02 (RECORD -966, -967): the pill's outline. Its bottom always (in portrait
+                                                // the one line between it and the strip tucked under it); never its top, the top of the map's
+                                                // area. In portrait its sides are on the screen's edges. In landscape it draws its join with the
+                                                // strip, and a side with room between it and the screen's edge (a system bar or the cut-out).
+                                                pillOutlineSides = if (landscapeSearchWidth == null) {
+                                                    MapChromeOutlineSides(left = false, top = false, right = false, bottom = true)
+                                                } else {
+                                                    val roomLeft = mapControlsPadding.calculateLeftPadding(searchLayoutDirection) > 0.dp
+                                                    val roomRight = mapControlsPadding.calculateRightPadding(searchLayoutDirection) > 0.dp
+                                                    val joinOnLeft = if (barMeetsStrip && landscapeStripWidth > 0.dp) {
+                                                        portEdge == ScreenEdge.Left
+                                                    } else {
+                                                        // Before the strip is measured the bar sits on the punch-hole side, its other side over the map.
+                                                        punchHoleEdge != ScreenEdge.Left
+                                                    }
+                                                    MapChromeOutlineSides(
+                                                        left = joinOnLeft || roomLeft,
+                                                        top = false,
+                                                        right = !joinOnLeft || roomRight,
+                                                        bottom = true,
+                                                    )
                                                 },
                                             )
                                             // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the

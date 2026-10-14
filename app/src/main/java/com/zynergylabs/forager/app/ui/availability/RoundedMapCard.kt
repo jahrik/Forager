@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.ui.Modifier
@@ -16,6 +17,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
+import com.zynergylabs.forager.app.ui.map.mapChromeEdges
 
 /**
  * Dispatch 2026-10-12-06 (RECORD -932, -934): the rounded, tucked look of the map's top chrome, shared by the search pill
@@ -62,7 +65,9 @@ internal val MAP_CARD_SHADOW_ELEVATION = 2.dp
 /**
  * Which corners of a top-chrome piece round. Portrait: the pill rounds all four; the card rounds its lower two (its upper
  * two run into the tuck, under the pill). Landscape, side by side (RECORD -934: "the pill and card touch edge to edge (no
- * join line)"): each rounds its outer side's two corners and keeps the joined side square, so the two read as one bar.
+ * join line)"): each rounds its outer side's two corners and keeps the joined side square, so the two read as one bar. RECORD
+ * -967 replaces "no join line" (the owner: "1 C one line between the two like there is now"): the pill's outline is the one line
+ * on the join.
  */
 internal data class MapCardCorners(val topLeft: Dp, val topRight: Dp, val bottomRight: Dp, val bottomLeft: Dp) {
     fun shape(): Shape = AbsoluteRoundedCornerShape(
@@ -114,6 +119,13 @@ internal fun Modifier.mapCardSurface(
      * is square on the side where it meets the pill (RECORD -934), so its inner lower corner cuts nothing round.
      */
     upperCorners: MapCardCorners = MapCardCorners.ALL,
+    /**
+     * Dispatch 2026-10-13-02 (RECORD -966, -967): the map chrome outline ([com.zynergylabs.forager.app.ui.map.mapChromeOutline])
+     * along [outlineSides] and every rounded corner of [corners], drawn on the card's own bounds over its content. Never along
+     * the tuck: the tucked top is a side the pill draws ([portraitStripOutlineSides]). `null` draws none.
+     */
+    outline: BorderStroke? = null,
+    outlineSides: MapChromeOutlineSides? = null,
 ): Modifier = this
     .graphicsLayer {
         shadowElevation = MAP_CARD_SHADOW_ELEVATION.toPx()
@@ -164,6 +176,13 @@ internal fun Modifier.mapCardSurface(
             }
         }
     }
+    .then(
+        if (outline != null && outlineSides != null) {
+            Modifier.mapChromeEdges(outline, corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft, outlineSides)
+        } else {
+            Modifier
+        },
+    )
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOutlineFill(outline: Outline, fill: Color) {
     when (outline) {
@@ -175,3 +194,38 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOutlineFill(out
 
 /** The tuck for a card whose top is [topInset] below the map's top: none once the pill has slid away (fullscreen), and never more than the pill's corner. */
 internal fun mapCardTuck(topInset: Dp): Dp = topInset.coerceIn(0.dp, MAP_CARD_TUCK)
+
+/**
+ * Dispatch 2026-10-13-02, RECORD -967 (see [MapChromeOutlineSides]): the portrait compass strip's outlined sides. Only its
+ * bottom, with its rounded lower corners: its two sides lie on the screen's edges, and its top is either tucked under the pill,
+ * whose own lower edge is the one line between them, or, once the pill has slid away in fullscreen, the top of the map's area.
+ * So nothing is drawn along the tuck, and no line can show through the pill there.
+ */
+internal fun portraitStripOutlineSides(): MapChromeOutlineSides = MapChromeOutlineSides(left = false, top = false, right = false, bottom = true)
+
+/**
+ * Dispatch 2026-10-13-02, RECORD -967 (see [MapChromeOutlineSides]): the outlined sides of a landscape piece in the rail's
+ * column, the compass strip at the top or the navigation card on the bottom edge.
+ *
+ * - Its rail side: open while the rail is shown, since the rail draws its inner edge, the one line between them. With the rail
+ *   gone (fullscreen) it faces the map and is drawn, unless nothing is left between it and the screen's edge ([railSideInset]
+ *   0: Robolectric's zero insets, or no system bar on that side).
+ * - Its other side: drawn when [innerSideDrawn]: the card's always faces the map; the strip's meets the search pill, which
+ *   draws that join, so the strip draws it only once the pill has slid away.
+ * - [top] and [bottom] as the caller says: the strip's top is the top of the map's area, the card's bottom the screen's.
+ */
+internal fun landscapeColumnOutlineSides(
+    railPortEdge: ScreenEdge,
+    railShown: Boolean,
+    railSideInset: Dp,
+    innerSideDrawn: Boolean,
+    top: Boolean,
+    bottom: Boolean,
+): MapChromeOutlineSides {
+    val railSide = !railShown && railSideInset > 0.dp
+    return if (railPortEdge == ScreenEdge.Left) {
+        MapChromeOutlineSides(left = railSide, top = top, right = innerSideDrawn, bottom = bottom)
+    } else {
+        MapChromeOutlineSides(left = innerSideDrawn, top = top, right = railSide, bottom = bottom)
+    }
+}

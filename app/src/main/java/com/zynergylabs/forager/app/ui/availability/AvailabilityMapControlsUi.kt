@@ -89,6 +89,8 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
 import com.zynergylabs.forager.app.ui.map.MapBarHighlight
 import com.zynergylabs.forager.app.ui.map.MapIconBar
@@ -466,6 +468,12 @@ internal fun CompassElevationStrip(
      * draws nothing, and the strip is the height it was.
      */
     navigationInfo: (@Composable () -> Unit)? = null,
+    /**
+     * Dispatch 2026-10-13-02 (RECORD -966, -967): the sides of the strip's card that carry the map chrome outline
+     * ([portraitStripOutlineSides], [landscapeColumnOutlineSides]); drawn at the card's size, so while navigating in portrait it
+     * grows down with the card. `null` draws none.
+     */
+    outlineSides: MapChromeOutlineSides? = null,
 ) {
     // Dispatch 2026-10-12-08: while navigating the line shows no heading, so the heading State is not read here then, and only the
     // navigation info's leaf reads it at sensor rate, as when the strip was removed while navigating.
@@ -489,6 +497,7 @@ internal fun CompassElevationStrip(
         navigating = navigating,
         fill = fill,
         navigationInfo = navigationInfo,
+        outlineSides = outlineSides,
     )
 }
 
@@ -529,6 +538,7 @@ private fun CompassElevationStripContent(
     navigating: Boolean = false,
     fill: Color? = null,
     navigationInfo: (@Composable () -> Unit)? = null,
+    outlineSides: MapChromeOutlineSides? = null,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -556,6 +566,8 @@ private fun CompassElevationStripContent(
                     fill = fill ?: if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     corners = cardCorners,
                     tuck = tuck,
+                    outline = mapChromeOutline(),
+                    outlineSides = outlineSides,
                 )
                 // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
                 // AnchoredAtScreenPoint's minY and the taxon filter chip's top padding both need to

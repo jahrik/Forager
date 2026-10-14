@@ -58,6 +58,9 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
+import com.zynergylabs.forager.app.ui.map.mapChromeEdges
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 
 /**
@@ -173,6 +176,18 @@ internal fun ForagerBottomNav(
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .then(if (topCornerRadius > 0.dp) Modifier.clip(RoundedCornerShape(topStart = topCornerRadius, topEnd = topCornerRadius)) else Modifier)
+            // Dispatch 2026-10-13-02 (RECORD -966, -967): over the map (rounded, the Map tab's instance), the icon bar's outline
+            // along the bar's top edge and its two rounded corners; its sides and bottom lie on the screen's edges and carry none.
+            .then(
+                if (topCornerRadius > 0.dp) {
+                    Modifier.mapChromeEdges(
+                        mapChromeOutline(), topCornerRadius, topCornerRadius, 0.dp, 0.dp,
+                        MapChromeOutlineSides(left = false, top = true, right = false, bottom = false),
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .testTag(COMPACT_BOTTOM_NAV_TAG)
             .mapChromeContainerColor(containerColor),
     ) {
@@ -254,6 +269,27 @@ internal fun ForagerNavigationRail(
         modifier = modifier
             .fillMaxHeight()
             .then(if (innerCornerRadius > 0.dp) Modifier.clip(innerCorners) else Modifier)
+            // Dispatch 2026-10-13-02 (RECORD -966, -967): over the map, the icon bar's outline along the rail's inner edge and its
+            // two rounded corners there. The inner edge is the one line between the rail and the landscape strip and navigation
+            // card beside it, which leave that side open while the rail is shown (MapChromeOutlineSides). Its outer side, top
+            // and bottom lie on the screen's edges and carry none.
+            .then(
+                if (innerCornerRadius > 0.dp) {
+                    if (portEdge == ScreenEdge.Left) {
+                        Modifier.mapChromeEdges(
+                            mapChromeOutline(), 0.dp, innerCornerRadius, innerCornerRadius, 0.dp,
+                            MapChromeOutlineSides(left = false, top = false, right = true, bottom = false),
+                        )
+                    } else {
+                        Modifier.mapChromeEdges(
+                            mapChromeOutline(), innerCornerRadius, 0.dp, 0.dp, innerCornerRadius,
+                            MapChromeOutlineSides(left = true, top = false, right = false, bottom = false),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .testTag(COMPACT_NAVIGATION_RAIL_TAG)
             .mapChromeContainerColor(containerColor),
     ) {

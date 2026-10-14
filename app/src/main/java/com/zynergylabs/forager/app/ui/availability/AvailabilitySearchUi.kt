@@ -119,6 +119,9 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapPillColorDark
 import com.zynergylabs.forager.app.ui.map.MapPillColorLight
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
+import com.zynergylabs.forager.app.ui.map.mapChromeEdges
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
@@ -193,6 +196,12 @@ internal fun SearchEntryBar(
      * keeps the square bar with its divider, unchanged (RECORD -934: "the pill is over the map only").
      */
     pillCorners: MapCardCorners? = null,
+    /**
+     * Dispatch 2026-10-13-02 (RECORD -966, -967): with [pillCorners], the pill's sides that carry the map chrome outline (the icon
+     * bar's, [mapChromeOutline]), and every rounded corner. The pill draws its join with the compass strip, the one line between
+     * them: its bottom in portrait, where the strip tucks under it, and its inner side in landscape. `null` draws none.
+     */
+    pillOutlineSides: MapChromeOutlineSides? = null,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = mapChromeContentColor(isDarkTheme)
@@ -258,7 +267,15 @@ internal fun SearchEntryBar(
         tonalElevation = 0.dp,
         shadowElevation = if (pillCorners != null) MAP_CARD_SHADOW_ELEVATION else 0.dp,
         shape = pillCorners?.shape() ?: RectangleShape,
-        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(barFill),
+        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(barFill).then(
+            if (pillCorners != null && pillOutlineSides != null) {
+                Modifier.mapChromeEdges(
+                    mapChromeOutline(), pillCorners.topLeft, pillCorners.topRight, pillCorners.bottomRight, pillCorners.bottomLeft, pillOutlineSides,
+                )
+            } else {
+                Modifier
+            },
+        ),
     ) {
         // RECORD -728 (the owner: "There is a slightly hang down of chrome from the search menu that extends into the strip
         // zone, making it look taller than it is"): the bottom padding sat below the divider, so 4 dp of this bar's fill hung
