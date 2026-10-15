@@ -13,7 +13,7 @@ import java.nio.ByteOrder
 
 /**
  * Lays out one DNG 1.4 file: a little-endian TIFF with a single IFD, IFD 0, which is the raw CFA image itself
- * (NewSubFileType 0), in 256 x 256 tiles of lossless JPEG (Compression 7). No preview or thumbnail IFD.
+ * (NewSubFileType 0), in tiles of lossless JPEG, 256 x 256 or the image's size if smaller ([tileSide]), (Compression 7). No preview or thumbnail IFD.
  *
  * It writes only the tags listed in [entriesFor], each from a value it was given. Make, Model, Software, DateTime,
  * DateTimeOriginal, location and any EXIF or GPS IFD are never among them (RECORD -975, -1008); the check that follows
@@ -66,6 +66,16 @@ internal object DngFileWriter {
     private const val COMPRESSION_JPEG = 7
     private const val PHOTOMETRIC_CFA = 32803
 
+    /**
+     * A tile side: [TILE_SIZE], or the image's own side rounded up to a multiple of 16 (TIFF 6.0 requires multiples of
+     * 16) when that is smaller. A tile wider than the image is legal TIFF, but one common raw library wraps a tile's
+     * rows at the image width in that case and scrambles the image from its second row on (LibRaw 0.22.1, seen on a
+     * CI-written 64 x 48 file; `lossless_dng_load_raw` in its src/decoders/dng.cpp). Phone sensors are far wider than
+     * 256, so this matters only for small images, and for a width that is not a multiple of 16 below 256 that library
+     * can still misplace samples: recorded in the dispatch's completion report, not worked around.
+     */
+    private fun tileSide(imageSide: Int): Int = minOf(TILE_SIZE, (imageSide + 15) / 16 * 16)
+
     /** The 2x2 CFA cell's colours, row-major, TIFF-EP codes 0 red, 1 green, 2 blue. */
     fun cfaColours(cfa: CfaPattern): IntArray = when (cfa) {
         CfaPattern.RGGB -> intArrayOf(0, 1, 1, 2)
@@ -78,18 +88,20 @@ internal object DngFileWriter {
 
     /** Writes [image] to [destination] and returns the number of bytes written. Throws on I/O failure. */
     fun write(image: DngImage, destination: File): Long {
-        val across = (image.width + TILE_SIZE - 1) / TILE_SIZE
-        val down = (image.height + TILE_SIZE - 1) / TILE_SIZE
+        val tileWidth = tileSide(image.width)
+        val tileLength = tileSide(image.height)
+        val across = (image.width + tileWidth - 1) / tileWidth
+        val down = (image.height + tileLength - 1) / tileLength
         val tiles = ArrayList<ByteArray>(across * down)
         for (ty in 0 until down) {
             for (tx in 0 until across) {
                 tiles += LosslessJpegEncoder.encodeTile(
-                    image.samples, image.width, image.height, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE,
+                    image.samples, image.width, image.height, tx * tileWidth, ty * tileLength, tileWidth, tileLength,
                 )
             }
         }
 
-        val entries = entriesFor(image, tiles).sortedBy { it.tag }
+        val entries = entriesFor(image, tiles, tileWidth, tileLength).sortedBy { it.tag }
         val ifdOffset = 8L
         val ifdSize = 2L + 12L * entries.size + 4L
         // Out-of-line values follow the IFD, each on an even offset (TIFF 6.0: values begin on a word boundary).
@@ -149,7 +161,7 @@ internal object DngFileWriter {
         return counter.written
     }
 
-    private fun entriesFor(image: DngImage, tiles: List<ByteArray>): List<Entry> {
+    private fun entriesFor(image: DngImage, tiles: List<ByteArray>, tileWidth: Int, tileLength: Int): List<Entry> {
         val e = mutableListOf<Entry>()
         val colours = cfaColours(image.cfa)
         e += longs(NEW_SUBFILE_TYPE, 0)
@@ -161,8 +173,8 @@ internal object DngFileWriter {
         e += shorts(ORIENTATION, image.orientation)
         e += shorts(SAMPLES_PER_PIXEL, 1)
         e += shorts(PLANAR_CONFIGURATION, 1)
-        e += longs(TILE_WIDTH, TILE_SIZE.toLong())
-        e += longs(TILE_LENGTH, TILE_SIZE.toLong())
+        e += longs(TILE_WIDTH, tileWidth.toLong())
+        e += longs(TILE_LENGTH, tileLength.toLong())
         e += Entry(TILE_OFFSETS, TiffEntry.TYPE_LONG, tiles.size, ByteArray(4 * tiles.size))
         e += longs(TILE_BYTE_COUNTS, *LongArray(tiles.size) { tiles[it].size.toLong() })
         e += shorts(CFA_REPEAT_PATTERN_DIM, 2, 2)
