@@ -21,7 +21,6 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.espresso.Espresso
 import com.zynergylabs.forager.app.data.repository.FakeCameraFormatRepository
 import com.zynergylabs.forager.app.domain.CameraCapabilities
 import com.zynergylabs.forager.app.domain.CameraCapabilityFixtures
@@ -211,7 +210,7 @@ class CameraFormatChipTest {
     }
 
     @Test
-    fun `a RAW the camera cannot bind leaves the chip honest: it reads JPG`() {
+    fun `a RAW the camera cannot bind leaves the chip honest, reading JPG`() {
         val session = FakeCameraCaptureSession(capabilitiesOnOpen = s22Raw).apply { rawBinds = false }
         open(session = session)
 
@@ -257,8 +256,7 @@ class CameraFormatChipTest {
         composeRule.waitForIdle()
         touch(CAMERA_FORMAT_CHIP_TAG)
 
-        Espresso.pressBack()
-        composeRule.waitForIdle()
+        composeRule.pressBackOnCamera()
 
         composeRule.onNodeWithTag(CAMERA_FORMAT_MENU_TAG).assertDoesNotExist()
         assertEquals("the camera stays open", 0, dismissed)
