@@ -85,6 +85,23 @@ class ForagerDngWriterTest {
         assertEquals(ints(file, 323).single().toInt(), frame.height)
     }
 
+    @Test
+    fun `an image narrower or shorter than one full tile gets tiles no larger than itself, rounded up to 16`() {
+        // One common raw library places a tile's samples by wrapping at the image width when the tile is wider than
+        // the image, so a 64-wide image in 256-wide tiles reads back scrambled there from its second row on (seen on a
+        // CI-written file, dispatch 2026-10-15-02 completion report). TIFF 6.0 requires tile sizes in multiples of 16.
+        val small = writeOk(SyntheticDng.minimal(width = 64, height = 48), dest("small.dng"))
+        assertEquals(listOf(64L), ints(small, 322))
+        assertEquals(listOf(48L), ints(small, 323))
+        val odd = writeOk(SyntheticDng.minimal(width = 70, height = 34), dest("odd.dng"))
+        assertEquals(listOf(80L), ints(odd, 322))
+        assertEquals(listOf(48L), ints(odd, 323))
+        assertArrayEquals(SyntheticDng.minimal(width = 70, height = 34).samples, decodeDngSamples(odd, TableDecoder::decode))
+        val large = writeOk(SyntheticDng.minimal(width = 520, height = 300), dest("large.dng"))
+        assertEquals(listOf(256L), ints(large, 322))
+        assertEquals(listOf(256L), ints(large, 323))
+    }
+
     // ---- 2. Required tags ----
 
     @Test
