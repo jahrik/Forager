@@ -21,7 +21,6 @@ internal object DngImageLimits {
         val w = image.width
         val h = image.height
         if (w <= 0 || h <= 0) return "dimensions $w x $h are not positive"
-        if (w.toLong() * h > MAX_PIXELS) return "image is $w x $h, above the 12.6 MP operating limit"
         if (image.samples.size.toLong() != w.toLong() * h) {
             return "samples holds ${image.samples.size} values, $w x $h needs ${w.toLong() * h}"
         }
