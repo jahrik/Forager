@@ -84,3 +84,30 @@ camera slots gained the format parameters.
 7. Export sends the DNG to the Gallery, and the Gallery accepts it. Delete removes both files.
 8. A JPG shot is unchanged from before.
 9. The planner reads the DNG's metadata: no make, model, time or location.
+
+## Amendment 2 (RECORD -1024), added 2026-10-15; supersedes the sections above where they differ
+
+The text above describes the branch before part B merged and is kept as written. These points are no longer true of it:
+the writer placeholder (`WriterNotOnThisBranch`) is gone, and the -1003 message is no longer shown for every writer
+failure.
+
+- **The real writer is on.** `productionDngWriter` returns `ForagerDngWriter(forbiddenStrings)`, part B's writer, merged
+  at `2057bc9f`.
+- **Messages by cause.** The contract gained one field: `DngWriteResult.Failed.stage`, a nullable `DngFailureStage`
+  (Refused, Writing, Check) that defaults to null. `ForagerDngWriter` sets it. Only `Check` shows -1003's words. A check
+  that could not run, or a file that could not be re-read, also counts as `Check`: the file is then not confirmed clean.
+  Everything else, including a writer that throws or does not say, shows RECORD -1018's words.
+- **Colour.** Fallback notices have their own line, drawn in the normal colour (RECORD -1019). Real failures keep the
+  error colour.
+- **Adapter against part B's reading.** `cfa` and `blackLevel` are now re-phased to the active area's top-left when it
+  starts on an odd row or column. On the two test phones the active array starts at 0,0, so nothing changes there. The
+  black-level cell is row-major and the lens-shading layout is `(row*columns+col)*4+channel`; both already matched, and the
+  test for the second passes before and after by design, as a pin.
+- **Evidence.**
+  - Failing-first: run 38680140863 on `bc119bbe` (tests only). 11 failed, each for its stated reason. The colour test's
+    positive control passed, so the pixel check can see the error colour.
+  - Fixed: run 38681188084 on `dcb4ad2d`. 4923 tests, 0 failures, 24 skipped.
+  - Revert checks off `dcb4ad2d`: each compiled (zero `e: file` lines), each head was the revert commit, and each failed
+    on its own tests. The branches are `raw-stage2-revert-a1-writer` through `a5-phase`. The a5 diff also drops a
+    trailing blank line.
+- **Index.** Both parts' rows were added to `docs/audits/README.md`. Part B has no report file, and its row says so.
