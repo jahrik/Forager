@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
@@ -34,18 +35,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.GridMode
+import com.zynergylabs.forager.app.domain.rawCaptureSize
 import com.zynergylabs.forager.app.domain.LevelProvider
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
+import com.zynergylabs.forager.app.photo.RawShotOutcome
+import com.zynergylabs.forager.app.photo.RawShotSaver
+import com.zynergylabs.forager.app.photo.rawShotSaverFor
 import com.zynergylabs.forager.app.photo.CaptureCountdown
 import com.zynergylabs.forager.app.photo.TimerMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -155,6 +162,12 @@ internal fun InAppCameraDialog(
     modifier: Modifier = Modifier,
     /** Hides the status bar on the Activity's window and puts it back on leaving; a test injects a fake to see which window was asked, and that it was restored. */
     statusBarHider: StatusBarHider = SystemStatusBarHider,
+    /** The format chip's remembered choice, from `CameraFormatViewModel` (RECORD -1005); JPG where nothing passes one. */
+    cameraFormat: CameraFormat = CameraFormat.Jpg,
+    /** Asks for a new format; the chip shows it once the camera is taking shots in it. */
+    onCameraFormatChanged: (CameraFormat) -> Unit = {},
+    /** The RAW shot step (dispatch 2026-10-15-01); the production one unless a test passes its own. */
+    rawShotSaver: RawShotSaver? = null,
     viewfinder: @Composable (Modifier) -> Unit,
 ) {
     // rememberSaveable: a rotation mid-session must not reset the user's sense of how many they
@@ -172,14 +185,22 @@ internal fun InAppCameraDialog(
     // The gear panel (dispatch 2026-09-28-707): closed when the camera opens, and kept across a
     // rotation like the count, since turning the phone to read it must not close it.
     var showCameraSettings by rememberSaveable { mutableStateOf(false) }
+    // The format menu (dispatch 2026-10-15-01): closed when the camera opens, kept across a rotation like the gear panel.
+    var showFormatMenu by rememberSaveable { mutableStateOf(false) }
+    val appContext = LocalContext.current.applicationContext
+    val saver = rawShotSaver ?: remember(cameraCaptureFiles) { rawShotSaverFor(appContext, cameraCaptureFiles) }
 
     // The screen opens the session, not the viewfinder — the deadlock fix of 2026-09-15, see
     // CameraCaptureSession.open. Enter opens, leave closes; the `when` below never changes.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(session, lifecycleOwner) {
+        // Before opening, so a remembered RAW binds once (Amendment 1, item 1).
+        session.requestOutputFormat(cameraFormat)
         session.open(lifecycleOwner)
         onDispose { session.close() }
     }
+    // A choice made while the camera is open is applied in this same session (never a new one; InAppCameraHost.kt).
+    LaunchedEffect(session, cameraFormat) { session.requestOutputFormat(cameraFormat) }
 
     // The window follows the device; reasoning on RequestWindowOrientation. Outside the Dialog so
     // the context here is the Activity's, not the dialog window's.
@@ -316,6 +337,24 @@ internal fun InAppCameraDialog(
                 captureError = null
                 scope.launch {
                     val capture = cameraCaptureFiles.newCapture()
+                    // A RAW shot is its own path (dispatch 2026-10-15-01; CLAUDE.md, building); the JPG shot below is as it was.
+                    if (session.outputFormat == CameraFormat.Raw) {
+                        takeRawShot(session, saver, capture).let { outcome ->
+                            when (outcome) {
+                                is RawShotScreenOutcome.Saved -> {
+                                    photosTaken += 1
+                                    outcome.notice?.let { captureError = it }
+                                    onPhotoCaptured(outcome.source)
+                                }
+                                RawShotScreenOutcome.Failed -> {
+                                    cameraCaptureFiles.deleteCapture(capture)
+                                    captureError = CAPTURE_FAILED_MESSAGE
+                                }
+                            }
+                        }
+                        isCapturing = false
+                        return@launch
+                    }
                     session.capture(capture.file).fold(
                         onSuccess = {
                             photosTaken += 1
@@ -370,6 +409,7 @@ internal fun InAppCameraDialog(
                 autoSaveLocationToPhotos,
                 onAutoSaveLocationToPhotosChanged,
                 onOpenCameraSettings = { showCameraSettings = true },
+                onOpenFormatMenu = { showFormatMenu = true },
             ),
         )
         CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
@@ -392,6 +432,21 @@ internal fun InAppCameraDialog(
                 deviceRotation = session.deviceRotation,
                 displayRotation = displayRotation,
                 onClose = { showCameraSettings = false },
+            )
+        }
+        val rawSize = rawCaptureSize(session.capabilities)
+        if (showFormatMenu && rawSize != null) {
+            FormatMenuLayer(
+                stripEdge = punchHoleEdge(arrangement),
+                deviceRotation = session.deviceRotation,
+                displayRotation = displayRotation,
+                current = session.outputFormat,
+                rawSize = rawSize,
+                onChoose = { chosen ->
+                    showFormatMenu = false
+                    onCameraFormatChanged(chosen)
+                },
+                onClose = { showFormatMenu = false },
             )
         }
         }
@@ -552,6 +607,25 @@ internal const val CANCEL_TIMER_DESCRIPTION = "Cancel timer"
 internal const val CAMERA_COUNTDOWN_TAG = "in-app-camera-countdown"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
 
+/** What a RAW shot came to, for the screen: a photo (with a [notice] when it was kept as JPG only), or no photo at all. */
+internal sealed interface RawShotScreenOutcome {
+    data class Saved(val source: CameraCapturePhotoSource, val notice: String?) : RawShotScreenOutcome
+    data object Failed : RawShotScreenOutcome
+}
+
+/**
+ * One RAW shot through the shot step (Amendment 1, item 3): the camera writes the JPG and hands back the sensor data, and
+ * [saver] writes and checks the DNG, or says why the JPG is the whole photo. A shot whose JPG did not save is a failed
+ * shot, exactly as a JPG shot's is.
+ */
+internal suspend fun takeRawShot(session: CameraCaptureSession, saver: RawShotSaver, capture: CameraCaptureFiles.Capture): RawShotScreenOutcome {
+    val shot = session.captureRaw(capture.file).getOrElse { return RawShotScreenOutcome.Failed }
+    return when (val outcome = saver.save(shot)) {
+        is RawShotOutcome.Kept -> RawShotScreenOutcome.Saved(CameraCapturePhotoSource(capture, rawFile = outcome.dng), notice = null)
+        is RawShotOutcome.JpgOnly -> RawShotScreenOutcome.Saved(CameraCapturePhotoSource(capture), notice = outcome.message)
+    }
+}
+
 /**
  * The strip's chips for this session, in order along the edge: Flash, Timer, Grid, Location
  * (decision B8, Closed decision A), then the gear (dispatch 2026-09-28-707), always present. The flash chip only when the bound camera has a flash unit: it
@@ -569,8 +643,14 @@ private fun stripChips(
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     onOpenCameraSettings: () -> Unit,
+    onOpenFormatMenu: () -> Unit,
 ): List<StripChip> = buildList {
     if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
+    // The format chip, after the flash as the owner's mockup draws it (dispatch 2026-10-15-01), only where the probe
+    // offers RAW within the operating limit; elsewhere there is no chip and nothing changes (RECORD -974).
+    if (rawCaptureSize(session.capabilities) != null) {
+        add { deviceRotation, displayRotation -> FormatChip(session.outputFormat, onOpenFormatMenu, deviceRotation, displayRotation) }
+    }
     add { deviceRotation, displayRotation -> TimerChip(timerMode, onTimerModeChanged, deviceRotation, displayRotation) }
     add { deviceRotation, displayRotation -> GridChip(gridMode, onGridModeChanged, deviceRotation, displayRotation) }
     add { deviceRotation, displayRotation ->

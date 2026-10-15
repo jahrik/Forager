@@ -25,6 +25,7 @@ import android.util.Log
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
 import com.zynergylabs.forager.app.data.repository.DataStoreAppThemePreferenceRepository
+import com.zynergylabs.forager.app.data.repository.DataStoreCameraFormatRepository
 import com.zynergylabs.forager.app.data.repository.DataStoreCameraGridModeRepository
 import com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepository
 import com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepository
@@ -127,6 +128,7 @@ import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionDayIndex
+import com.zynergylabs.forager.app.domain.CameraFormatRepository
 import com.zynergylabs.forager.app.domain.CameraGridModeRepository
 import com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository
 import com.zynergylabs.forager.app.domain.PhotoStore
@@ -299,6 +301,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val waypointNavigationRepository: WaypointNavigationRepository = DataStoreWaypointNavigationRepository(context, settingsReset = settingsResetNotice)
     val photoLocationPreferenceRepository: PhotoLocationPreferenceRepository = DataStorePhotoLocationPreferenceRepository(context, settingsReset = settingsResetNotice)
     val cameraGridModeRepository: CameraGridModeRepository = DataStoreCameraGridModeRepository(context, settingsReset = settingsResetNotice)
+    /** Dispatch 2026-10-15-01: the format chip's choice, remembered across restarts (RECORD -1005). */
+    val cameraFormatRepository: CameraFormatRepository = DataStoreCameraFormatRepository(context, settingsReset = settingsResetNotice)
 
     val photoStore: PhotoStore = FilePhotoStore(context)
     val cameraCaptureFiles = CameraCaptureFiles(context)

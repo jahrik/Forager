@@ -5,7 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.LifecycleOwner
 import com.zynergylabs.forager.app.domain.CameraCapabilities
+import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.EncoderCapabilities
+import com.zynergylabs.forager.app.domain.raw.CfaPattern
+import com.zynergylabs.forager.app.domain.raw.DngCalibration
+import com.zynergylabs.forager.app.domain.raw.DngImage
+import com.zynergylabs.forager.app.domain.raw.SRational
+import com.zynergylabs.forager.app.domain.raw.URational
 import java.io.File
 
 /**
@@ -100,6 +106,38 @@ internal class FakeCameraCaptureSession(
         hasFlashUnit = false
         capabilities = null
         encoderCapabilities = null
+        outputFormat = CameraFormat.Jpg
+    }
+
+    // ── RAW stage 2 (dispatch 2026-10-15-01) ──────────────────────────────────────────────────────────────────
+
+    override var outputFormat: CameraFormat by mutableStateOf(CameraFormat.Jpg)
+        private set
+
+    /** Every format the screen asked for, in order. */
+    val requestedFormats = mutableListOf<CameraFormat>()
+
+    /** When false, a RAW request leaves the session on JPG, as the real one does when RAW will not bind. */
+    var rawBinds: Boolean = true
+
+    var captureRawCalls = 0
+        private set
+
+    /** What the next RAW shot's sensor data maps to; a small, valid input by default. */
+    var nextRawShot: () -> Result<RawShot> = { Result.success(RawShot(dng = fakeDngImage(), dngUnavailable = null)) }
+
+    override fun requestOutputFormat(format: CameraFormat) {
+        requestedFormats += format
+        outputFormat = if (format == CameraFormat.Raw && !rawBinds) CameraFormat.Jpg else format
+    }
+
+    override suspend fun captureRaw(jpegDestination: File): Result<RawShot> {
+        captureRawCalls += 1
+        if (outputFormat != CameraFormat.Raw) return Result.failure(IllegalStateException("not bound for RAW"))
+        jpegDestination.parentFile?.mkdirs()
+        if (failing) return Result.failure(IllegalStateException("the camera said no"))
+        jpegDestination.writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte()))
+        return nextRawShot()
     }
 
     override suspend fun capture(destination: File): Result<Unit> {
@@ -113,3 +151,16 @@ internal class FakeCameraCaptureSession(
         return Result.success(Unit)
     }
 }
+
+/** A small, well-formed DNG input: 4x4 GRBG, one illuminant. Only its shape matters to the camera side; the writer is faked. */
+internal fun fakeDngImage(width: Int = 4, height: Int = 4): DngImage = DngImage(
+    width = width,
+    height = height,
+    samples = ShortArray(width * height) { (it * 37 % 1023).toShort() },
+    cfa = CfaPattern.GRBG,
+    blackLevel = listOf(64f, 64f, 64f, 64f),
+    whiteLevel = 1023,
+    calibration1 = DngCalibration(illuminant = 21, colorMatrix = List(9) { SRational(if (it % 4 == 0) 1 else 0, 1) }),
+    asShotNeutral = listOf(URational(1, 2), URational(1, 1), URational(1, 2)),
+    orientation = 1,
+)

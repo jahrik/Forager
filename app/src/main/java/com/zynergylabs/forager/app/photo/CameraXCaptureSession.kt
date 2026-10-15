@@ -1,6 +1,17 @@
 package com.zynergylabs.forager.app.photo
 
 import android.content.Context
+import android.graphics.ImageFormat
+import androidx.camera.core.CameraState
+import androidx.camera.core.ImageProxy
+import androidx.exifinterface.media.ExifInterface
+import androidx.lifecycle.Observer
+import com.zynergylabs.forager.app.domain.CameraFormat
+import com.zynergylabs.forager.app.domain.RawFrameMapping
+import com.zynergylabs.forager.app.domain.mapRawFrame
+import com.zynergylabs.forager.app.domain.rawCaptureSize
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import android.util.Log
 import android.util.Size
 import android.view.OrientationEventListener
@@ -262,29 +273,36 @@ internal class CameraXCaptureSession(
                     state = CameraSessionState.Unavailable("This device has no camera available.")
                     return@addListener
                 }
+                val facing = if (selector == CameraSelector.DEFAULT_FRONT_CAMERA) CameraFacing.Front else CameraFacing.Back
+                // RAW stage 2 (Amendment 1, item 1): a remembered RAW is checked against the camera before the first
+                // bind, in its own catch, so it binds once; anything short of a yes binds JPG, logged.
+                val wantRaw = requestedFormat == CameraFormat.Raw && rawBindableBeforeBind(provider, selector, facing)
+                val newPreview = runCatching { Preview.Builder().build() }
                 runCatching {
-                    val newPreview = Preview.Builder().build()
-                    val capture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        // Dispatch 2026-09-28-658: the phone's standard photo size, never its
-                        // largest mode. See STANDARD_PHOTO_SIZE.
-                        .setResolutionSelector(standardPhotoSizeSelector())
-                        .build()
-                    provider.unbindAll()
-                    val boundCamera = provider.bindToLifecycle(lifecycleOwner, selector, newPreview, capture)
-                    Triple(newPreview, capture, boundCamera)
+                    val previewUseCase = newPreview.getOrThrow()
+                    runCatching { bindWithCapture(provider, lifecycleOwner, selector, previewUseCase, raw = wantRaw) }
+                        .recoverCatching { error ->
+                            if (!wantRaw) throw error
+                            // Never a dead camera (dispatch abort condition): a RAW+JPEG capture that will not bind beside
+                            // the preview gives way to today's JPG capture.
+                            Log.w(TAG, "RAW+JPEG would not bind beside the preview; binding JPG instead.", error)
+                            bindWithCapture(provider, lifecycleOwner, selector, previewUseCase, raw = false)
+                        }.getOrThrow()
                 }.fold(
-                    onSuccess = { (newPreview, capture, boundCamera) ->
-                        preview = newPreview
+                    onSuccess = { (capture, boundCamera, boundFormat) ->
+                        preview = newPreview.getOrThrow()
                         installImageCapture(capture)
                         camera = boundCamera
+                        boundLifecycleOwner = lifecycleOwner
+                        boundSelector = selector
+                        outputFormat = boundFormat
+                        watchForStreamConfigErrors(boundCamera, lifecycleOwner)
                         installFlash(boundCamera.cameraInfo.hasFlashUnit()) { on -> enableTorch(boundCamera, on) }
                         boundProvider = provider
                         // The screen composes the viewfinder only once Ready, so normally there is
                         // no view yet and the attachment happens in Viewfinder. If one exists, attach now.
-                        previewView?.let { newPreview.setSurfaceProvider(it.surfaceProvider) }
+                        previewView?.let { view -> preview?.setSurfaceProvider(view.surfaceProvider) }
                         state = CameraSessionState.Ready
-                        val facing = if (selector == CameraSelector.DEFAULT_FRONT_CAMERA) CameraFacing.Front else CameraFacing.Back
                         runCatching { probeCapabilities(provider, boundCamera, facing) }.onFailure { error ->
                             Log.w(CAMERA_PROBE_LOG_TAG, "The capability probe failed; the camera is unaffected and nothing is reported.", error)
                         }
@@ -315,6 +333,10 @@ internal class CameraXCaptureSession(
         if (!isOpen) return // never opened, never completed, or already closed: nothing to release
         isOpen = false
         openEpoch++
+        stopWatchingStreamConfig()
+        outputFormat = CameraFormat.Jpg
+        boundLifecycleOwner = null
+        boundSelector = null
         orientationListener?.disable()
         orientationListener = null
         sensorRotation = null
@@ -416,6 +438,221 @@ internal class CameraXCaptureSession(
             }
         }
         return saved
+    }
+
+    // ── RAW stage 2 (dispatch 2026-10-15-01, as amended by RECORD -1009 and -1011) ───────────────────────────────────
+
+    /** What the next bind, or a rebind now, should use; see [CameraCaptureSession.requestOutputFormat]. Not stored: the chip's choice is (RECORD -1005). */
+    private var requestedFormat: CameraFormat = CameraFormat.Jpg
+
+    override var outputFormat: CameraFormat by mutableStateOf(CameraFormat.Jpg)
+        private set
+
+    private var boundLifecycleOwner: LifecycleOwner? = null
+    private var boundSelector: CameraSelector? = null
+
+    /** The capture results the RAW frames are matched with; one per RAW capture use case. */
+    private var rawResults: CaptureResultCollector? = null
+
+    /** The in-memory RAW callback copies a 12 MP frame; off the main thread, one shot at a time. */
+    private val rawCallbackExecutor: ExecutorService by lazy { Executors.newSingleThreadExecutor() }
+
+    private var cameraStateObserver: Observer<CameraState>? = null
+    private var observedCamera: Camera? = null
+
+    override fun requestOutputFormat(format: CameraFormat) {
+        requestedFormat = format
+        val provider = boundProvider ?: return // not bound yet: the next bind uses it
+        if (format == outputFormat) return
+        val raw = format == CameraFormat.Raw && rawCaptureSize(capabilities) != null
+        if (format == CameraFormat.Raw && !raw) {
+            Log.w(TAG, "RAW asked for, but this camera's probe does not offer it within the operating limit; staying on JPG.")
+            return
+        }
+        rebindCapture(provider, raw)
+    }
+
+    /**
+     * Swaps the capture use case in this same session: the preview stays bound and attached, which is why the owner's
+     * accepted cost is a single blink, not a new camera (Amendment 1, item 2). A RAW rebind that fails gives way to JPG; a
+     * JPG rebind that fails leaves the camera unavailable with its reason, never silently capture-less.
+     */
+    private fun rebindCapture(provider: ProcessCameraProvider, raw: Boolean) {
+        val owner = boundLifecycleOwner ?: return
+        val selector = boundSelector ?: return
+        imageCapture?.let { old -> runCatching { provider.unbind(old) }.onFailure { Log.w(TAG, "Unbinding the old capture failed.", it) } }
+        imageCapture = null
+        val bound = runCatching { bindCaptureOnly(provider, owner, selector, raw) }
+            .recoverCatching { error ->
+                if (!raw) throw error
+                Log.w(TAG, "RAW+JPEG would not bind beside the preview; back to JPG.", error)
+                bindCaptureOnly(provider, owner, selector, raw = false)
+            }
+        bound.fold(
+            onSuccess = { (capture, format) ->
+                installImageCapture(capture)
+                capture.flashMode = currentFlashMode.imageCaptureFlashMode()
+                outputFormat = format
+                Log.i(TAG, "Capture rebound as $format.")
+            },
+            onFailure = { error ->
+                Log.w(TAG, "Rebinding the capture failed; the camera cannot take photos.", error)
+                outputFormat = CameraFormat.Jpg
+                state = CameraSessionState.Unavailable("The camera is in use by another app, or could not be bound.")
+            },
+        )
+    }
+
+    /** The first bind: the preview and one capture, RAW+JPEG or today's JPG. Returns the capture, the camera and the format bound. */
+    private fun bindWithCapture(
+        provider: ProcessCameraProvider,
+        owner: LifecycleOwner,
+        selector: CameraSelector,
+        preview: Preview,
+        raw: Boolean,
+    ): Triple<ImageCapture, Camera, CameraFormat> {
+        val (capture, format) = newCaptureUseCase(raw)
+        provider.unbindAll()
+        val boundCamera = provider.bindToLifecycle(owner, selector, preview, capture)
+        return Triple(capture, boundCamera, format)
+    }
+
+    /** A capture alone, beside the preview that is already bound. */
+    private fun bindCaptureOnly(provider: ProcessCameraProvider, owner: LifecycleOwner, selector: CameraSelector, raw: Boolean): Pair<ImageCapture, CameraFormat> {
+        val (capture, format) = newCaptureUseCase(raw)
+        provider.bindToLifecycle(owner, selector, capture)
+        return capture to format
+    }
+
+    private fun newCaptureUseCase(raw: Boolean): Pair<ImageCapture, CameraFormat> =
+        if (raw) {
+            val results = CaptureResultCollector()
+            rawResults = results
+            buildRawJpegImageCapture(results) to CameraFormat.Raw
+        } else {
+            rawResults = null
+            jpegImageCapture() to CameraFormat.Jpg
+        }
+
+    /** Whether the camera [selector] names offers RAW within the operating limit, read before binding. Any failure is a no, logged. */
+    private fun rawBindableBeforeBind(provider: ProcessCameraProvider, selector: CameraSelector, facing: CameraFacing): Boolean =
+        runCatching { rawCaptureSize(mapCameraCapabilities(readCameraCapabilities(provider.getCameraInfo(selector), facing))) != null }
+            .onFailure { Log.w(TAG, "Couldn't read the camera's RAW support before binding; binding JPG.", it) }
+            .getOrDefault(false)
+            .also { ok -> if (!ok) Log.i(TAG, "RAW was asked for but this camera does not offer it within the operating limit; binding JPG.") }
+
+    /**
+     * A camera that cannot configure the RAW+JPEG streams reports it after the bind has returned
+     * (`CameraState.ERROR_STREAM_CONFIG`, read from the 1.6.2 artifact). Then the capture goes back to JPG, logged: never a
+     * dead camera. Whether a phone ever does this is device-only.
+     */
+    private fun watchForStreamConfigErrors(boundCamera: Camera, owner: LifecycleOwner) {
+        stopWatchingStreamConfig()
+        val observer = Observer<CameraState> { cameraState ->
+            if (cameraState.error?.code == CameraState.ERROR_STREAM_CONFIG && outputFormat == CameraFormat.Raw) {
+                Log.w(TAG, "The camera could not configure the RAW+JPEG streams; back to JPG.")
+                boundProvider?.let { rebindCapture(it, raw = false) }
+            }
+        }
+        boundCamera.cameraInfo.cameraState.observe(owner, observer)
+        cameraStateObserver = observer
+        observedCamera = boundCamera
+    }
+
+    private fun stopWatchingStreamConfig() {
+        val observer = cameraStateObserver ?: return
+        observedCamera?.cameraInfo?.cameraState?.removeObserver(observer)
+        cameraStateObserver = null
+        observedCamera = null
+    }
+
+    override suspend fun captureRaw(jpegDestination: File): Result<RawShot> {
+        val capture = imageCapture
+            ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
+        val results = rawResults
+        val boundCamera = camera
+        if (outputFormat != CameraFormat.Raw || results == null || boundCamera == null) {
+            return Result.failure(IllegalStateException("The camera is not set up for RAW."))
+        }
+        // The shot's rotation, exactly as capture() sets it: the device's own orientation, the display only as a fallback.
+        val rotation = deviceRotation ?: previewView?.display?.rotation?.also {
+            if (!loggedDisplayFallback) {
+                loggedDisplayFallback = true
+                Log.i(TAG, "No orientation reading yet; this shot's rotation comes from the display, which is wrong if auto-rotate is off.")
+            }
+        }
+        rotation?.let { capture.targetRotation = it }
+        val intended = capture.resolutionInfo
+        Log.i(TAG, "RAW shot: deviceRotation=$rotation targetRotation=${capture.targetRotation} requestDegrees=${intended?.rotationDegrees} resolution=${intended?.resolution}")
+
+        val plane = suspendCancellableCoroutine<Result<RawPlane>> { continuation ->
+            var raw: RawPlane? = null
+            var jpegWritten = false
+            var finished = false
+            fun finish(result: Result<RawPlane>) {
+                if (finished) return
+                finished = true
+                if (continuation.isActive) continuation.resume(result)
+            }
+            capture.takePicture(
+                rawCallbackExecutor,
+                object : ImageCapture.OnImageCapturedCallback() {
+                    override fun onCaptureSuccess(image: ImageProxy) {
+                        try {
+                            when (image.format) {
+                                ImageFormat.RAW_SENSOR -> raw = copyRawPlane(image)
+                                ImageFormat.JPEG -> {
+                                    writeJpegImage(image, jpegDestination)
+                                    jpegWritten = true
+                                }
+                                else -> error("an image of format ${image.format} in a RAW+JPEG shot")
+                            }
+                        } catch (error: Exception) {
+                            Log.w(TAG, "A RAW+JPEG shot's image could not be kept.", error)
+                            finish(Result.failure(error))
+                        } finally {
+                            image.close()
+                        }
+                        val frame = raw
+                        if (frame != null && jpegWritten) finish(Result.success(frame))
+                    }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        Log.w(TAG, "A RAW+JPEG capture failed; no photo was kept for it.", exception)
+                        finish(Result.failure(exception))
+                    }
+                },
+            )
+        }
+        val frame = plane.getOrElse { return Result.failure(it) }
+
+        // The JPG gets the shot's intended orientation exactly as capture()'s does, and the DNG gets the JPG's final tag
+        // (Amendment 1, item 4), when the JPG's pixels are the unrotated frame the RAW is in.
+        val dngOrientation = withContext(Dispatchers.IO) {
+            if (intended == null) {
+                Log.w(TAG, "No resolution info for this RAW shot; the JPG keeps the HAL's tag and the DNG is written upright.")
+                ExifInterface.ORIENTATION_NORMAL
+            } else {
+                rawOrientationFor(reapplyIntendedOrientation(jpegDestination, intended.rotationDegrees, intended.resolution), intended.rotationDegrees)
+            }
+        }
+
+        val result = results.await(frame.timestampNanos)
+        if (result == null) {
+            return Result.success(RawShot(dng = null, dngUnavailable = "no capture result arrived for the RAW frame at ${frame.timestampNanos}"))
+        }
+        val mapping = withContext(Dispatchers.Default) {
+            runCatching { mapRawFrame(readRawFrame(boundCamera.cameraInfo, frame, result, dngOrientation)) }
+        }.getOrElse { error -> RawFrameMapping.Unsupported("reading the frame's metadata threw ${error::class.java.simpleName}: ${error.message}") }
+        return Result.success(
+            when (mapping) {
+                is RawFrameMapping.Mapped -> {
+                    if (mapping.notes.isNotEmpty()) Log.i(TAG, "RAW shot's DNG input: ${mapping.notes.joinToString("; ")}.")
+                    RawShot(dng = mapping.image, dngUnavailable = null)
+                }
+                is RawFrameMapping.Unsupported -> RawShot(dng = null, dngUnavailable = mapping.reason)
+            },
+        )
     }
 
     private var boundHasFlashUnit: Boolean by mutableStateOf(false)
@@ -654,8 +891,22 @@ private val processEncoderProbe: Deferred<EncoderCapabilities> by lazy {
     CoroutineScope(SupervisorJob() + Dispatchers.IO).async { mapEncoderCapabilities(readEncoders()) }
 }
 
+/**
+ * Today's JPG capture, exactly as it has been built since dispatch 2026-09-28-658: minimise latency, the phone's standard
+ * photo size, never its largest mode (see [STANDARD_PHOTO_SIZE]). Moved out of [CameraXCaptureSession.open] unchanged when
+ * the RAW capture arrived beside it (dispatch 2026-10-15-01), so the JPG path's builder is one function that nothing else
+ * edits; its output is unchanged by construction.
+ */
+internal fun jpegImageCapture(): ImageCapture =
+    ImageCapture.Builder()
+        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+        // Dispatch 2026-09-28-658: the phone's standard photo size, never its
+        // largest mode. See STANDARD_PHOTO_SIZE.
+        .setResolutionSelector(standardPhotoSizeSelector())
+        .build()
+
 /** The capture's [ResolutionSelector]: [STANDARD_PHOTO_SIZE] as the bound, the default 4:3 aspect kept. */
-private fun standardPhotoSizeSelector(): ResolutionSelector =
+internal fun standardPhotoSizeSelector(): ResolutionSelector =
     ResolutionSelector.Builder()
         .setResolutionStrategy(ResolutionStrategy(STANDARD_PHOTO_SIZE, ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER))
         .build()

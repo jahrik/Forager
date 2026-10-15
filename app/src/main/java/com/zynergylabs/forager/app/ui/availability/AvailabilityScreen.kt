@@ -173,6 +173,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
+import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import kotlinx.coroutines.launch
@@ -515,6 +516,9 @@ fun AvailabilityScreen(
     /** The camera's persisted grid mode and the way to change it, from `CameraGridModeViewModel`. Defaulted like the camera's other inputs. */
     cameraGridMode: GridMode = GridMode.Off,
     onCameraGridModeChanged: (GridMode) -> Unit = {},
+    /** The camera's remembered format and the way to change it, from `CameraFormatViewModel` (dispatch 2026-10-15-01). Defaulted like the camera's other inputs. */
+    cameraFormat: CameraFormat = CameraFormat.Jpg,
+    onCameraFormatChanged: (CameraFormat) -> Unit = {},
     /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
     onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
     onOpenLogEntry: (String) -> Unit = {},
@@ -2026,6 +2030,8 @@ fun AvailabilityScreen(
         cameraCaptureFiles = cameraCaptureFiles,
         gridMode = cameraGridMode,
         onGridModeChanged = onCameraGridModeChanged,
+        cameraFormat = cameraFormat,
+        onCameraFormatChanged = onCameraFormatChanged,
         autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
         onLogEntryPhoto = onAddLogPhoto,
