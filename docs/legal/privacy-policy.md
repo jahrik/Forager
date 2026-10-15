@@ -1,6 +1,6 @@
 # Forager — privacy policy
 
-**Last updated: 2026-10-07.** Applies to the Forager Android app (package `com.zynergylabs.forager.app`),
+**Last updated: 2026-10-15.** Applies to the Forager Android app (package `com.zynergylabs.forager.app`),
 including its Google Play closed test.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
@@ -38,15 +38,13 @@ None of this is transmitted by the app. It is deleted when you uninstall the app
 `android:allowBackup="false"` (`app/src/main/AndroidManifest.xml`), which turns off both Android
 Auto Backup and the device-to-device transfer that runs during a new phone's setup. Your phone
 therefore does not copy Forager's data to your Google account, and does not hand it to another
-device on your behalf. This is a permanent decision, not a setting for the closed test: moving your
-data belongs to the app rather than to the operating system. The design is an export you trigger
-inside Forager, writing a single file that goes only where you send it — a cable, Bluetooth, a
-folder or cloud drive you pick — and an import that reads that file and rebuilds tracks, entries,
-waypoints and photos from it. Nothing sends that file anywhere on its own.
-
-**That export and import are not built yet**, and this policy will not describe them as if they
-were. As of the date at the top of this document, data recorded in Forager stays on the device that
-recorded it until you have an app version that can export it.
+device on your behalf. Moving your data belongs to the app rather than to the operating system, so
+Forager has its own **Backup**, in Tools, then Settings (`BackupSection.kt`). "Back up now" writes a
+single file, containing your tracks, journal entries, waypoints and photos, to a place you choose with
+Android's own file picker. "Automatic backup" can repeat this daily, weekly or monthly into a folder you
+choose. The file is not encrypted and goes only where you put it: if you choose a cloud folder, that
+service's own terms apply to it. "Restore from backup" reads a file you pick and either replaces what is
+on the phone or merges it in. Forager never sends a backup anywhere on its own.
 
 ## What is transmitted, to whom, and why
 
@@ -115,6 +113,12 @@ narrower than it may sound, and is stated here as it actually is (`FilePhotoStor
   thumbnails, keeping only its orientation, its colour profile and what is needed to display it
   (`PhotoMetadataScrub.kt`). If that step cannot complete, the photo is stored as it was, with its
   metadata, rather than lost.
+- When the camera is set to **RAW**, Forager also stores the sensor's raw image as a DNG file beside
+  the photo. Forager writes that file itself, and writes no location, time, or camera make or model
+  into it. It keeps the sensor's calibration data, which describes how the sensor records colour. If
+  Forager cannot confirm the file is clean of those details, the RAW file is deleted and the photo is
+  kept as a JPG (`RawShotSaver.kt`, `ForagerDngWriter.kt`). RAW files are included in backup, restore,
+  export and delete, like the photo they belong to.
 - For a **gallery import**, Forager does not run a metadata-stripping step over the copy it stores.
   On Android 10 (API 29) and later, the platform itself redacts GPS tags
   from the copy the app reads, because the app does not opt in to the original via
@@ -170,7 +174,8 @@ what is described above.
 Everything Forager stores is on your device and can be deleted from inside the app, item by item —
 journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips.
 Uninstalling removes all of it, including the database and the photo files; with
-`allowBackup="false"` there is no cloud copy to survive and reappear. Nothing is held on a server, so
+`allowBackup="false"` there is no Android cloud copy to survive and reappear. A backup file you made with
+Forager's Backup is yours: it stays wherever you saved it, and you delete it there. Nothing is held on a server, so
 there is no deletion request to make. Full detail is at <https://www.zynergy-labs.com/delete-data/>,
 generated from `docs/legal/delete-data.md`, and that page is the URL given in the Play Data safety
 declaration.
