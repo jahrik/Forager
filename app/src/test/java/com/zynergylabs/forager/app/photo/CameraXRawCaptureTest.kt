@@ -46,7 +46,7 @@ class CameraXRawCaptureTest {
         }
         buffer.rewind()
 
-        val plane = copyRawPlane(FakeImage(ImageFormat.RAW_SENSOR, width, height, buffer, rowStride, pixelStride = 2, timestamp = 42L))
+        val plane = copyRawPlane(FakeImage(ImageFormat.RAW_SENSOR, width, height, buffer, rowStride, step = 2, time = 42L))
 
         assertArrayEquals(expected, plane.samples)
         assertEquals(42L, plane.timestampNanos)
@@ -79,10 +79,10 @@ private class FakeImage(
     private val imageFormat: Int,
     private val w: Int,
     private val h: Int,
-    private val buffer: ByteBuffer,
-    private val rowStride: Int,
-    private val pixelStride: Int,
-    private val timestamp: Long,
+    private val data: ByteBuffer,
+    private val stride: Int,
+    private val step: Int,
+    private val time: Long,
 ) : ImageProxy {
     override fun close() = Unit
     override fun getCropRect(): Rect = Rect(0, 0, w, h)
@@ -92,14 +92,14 @@ private class FakeImage(
     override fun getWidth(): Int = w
     override fun getPlanes(): Array<ImageProxy.PlaneProxy> = arrayOf(
         object : ImageProxy.PlaneProxy {
-            override fun getRowStride(): Int = rowStride
-            override fun getPixelStride(): Int = pixelStride
-            override fun getBuffer(): ByteBuffer = buffer
+            override fun getRowStride(): Int = stride
+            override fun getPixelStride(): Int = step
+            override fun getBuffer(): ByteBuffer = data
         },
     )
     override fun getImageInfo(): ImageInfo = object : ImageInfo {
         override fun getTagBundle(): TagBundle = TagBundle.emptyBundle()
-        override fun getTimestamp(): Long = timestamp
+        override fun getTimestamp(): Long = time
         override fun getRotationDegrees(): Int = 0
         override fun populateExifData(exifBuilder: ExifData.Builder) = Unit
     }

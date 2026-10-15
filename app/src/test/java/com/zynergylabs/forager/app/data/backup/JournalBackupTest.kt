@@ -742,13 +742,15 @@ class JournalBackupTest {
         val b = phone().apply { insert("waypoints", "id" to "own-w") }
         val rows = b.dump(); val files = b.files()
         val entries = readZip(a.backUp())
-        val manifest = JSONObject(String(entries.getValue("manifest.json"))).put("schemaVersion", 22)
+        // One past this build's schema, whatever that is (it was a literal 22 until version 22 arrived, RAW stage 2).
+        val newer = com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION + 1
+        val manifest = JSONObject(String(entries.getValue("manifest.json"))).put("schemaVersion", newer)
         entries["manifest.json"] = manifest.toString().toByteArray()
 
         val result = b.restore(writeZip(entries), RestoreMode.REPLACE)
 
         assertRefused(result, "a backup from a newer schema")
-        assertTrue("the reason is logged: ${b.logged}", b.logged.any { "22" in it && "newer" in it })
+        assertTrue("the reason is logged: ${b.logged}", b.logged.any { "$newer" in it && "newer" in it })
         assertUnchanged(b, rows, files)
     }
 

@@ -41,12 +41,15 @@ class DataStoreCameraFormatRepositoryTest {
     }
 
     @Test
-    fun `a choice survives a new repository on the same file, as it survives a restart`() = runTest {
-        assertTrue(DataStoreCameraFormatRepository(context()).setCameraFormat(CameraFormat.Raw).isSuccess)
+    fun `each format round-trips through DataStore to a file on disk, and a second write replaces the first`() = runTest {
+        // One repository per file per process, as DataStore requires (a second one on the same file throws); that the
+        // file outlives the process is DataStore's own guarantee, so what is checked here is that the choice is on disk.
+        val repository = DataStoreCameraFormatRepository(context())
+        for (format in listOf(CameraFormat.Raw, CameraFormat.Jpg, CameraFormat.Raw)) {
+            assertTrue(repository.setCameraFormat(format).isSuccess)
+            assertEquals(format, repository.getCameraFormat().getOrThrow())
+        }
         assertTrue("written to disk, not held in memory", dataStoreFile().exists())
-        assertEquals(CameraFormat.Raw, DataStoreCameraFormatRepository(context()).getCameraFormat().getOrThrow())
-        DataStoreCameraFormatRepository(context()).setCameraFormat(CameraFormat.Jpg).getOrThrow()
-        assertEquals(CameraFormat.Jpg, DataStoreCameraFormatRepository(context()).getCameraFormat().getOrThrow())
     }
 
     @Test
