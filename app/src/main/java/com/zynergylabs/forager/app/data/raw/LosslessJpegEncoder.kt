@@ -58,7 +58,7 @@ internal object LosslessJpegEncoder {
                 val prediction = when {
                     r == 0 && c < 2 -> 1 shl (PRECISION - 1)
                     c < 2 -> tile[k - tileWidth]
-                    else -> tile[k - 2]
+                    else -> tile[k - 1]
                 }
                 var diff = (tile[k] - prediction) and 0xFFFF
                 if (diff >= 32768) diff -= 65536
