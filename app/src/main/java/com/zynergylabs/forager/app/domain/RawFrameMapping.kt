@@ -166,13 +166,20 @@ fun mapRawFrame(r: RawFrameReadings): RawFrameMapping {
     }
     if (r.orientation !in 1..8) return unsupported("the orientation ${r.orientation} is not a TIFF orientation")
 
+    // Part B's reading of the contract (Amendment 2, item 4): `cfa` and `blackLevel` describe the 2x2 cell at the
+    // top-left of the active area, where the DNG specification starts the pattern. The camera reports both for the cell
+    // at the top-left of its buffer, so an active area starting on an odd row or column moves the phase by one.
+    val rowShift = (activeArea?.get(0) ?: 0) % 2
+    val colShift = (activeArea?.get(1) ?: 0) % 2
+    if (rowShift != 0 || colShift != 0) notes += "active area starts at an odd row or column; CFA and black levels re-phased"
+
     return RawFrameMapping.Mapped(
         DngImage(
             width = r.width,
             height = r.height,
             samples = r.samples,
-            cfa = cfa,
-            blackLevel = blackLevel,
+            cfa = cfa.shifted(rowShift, colShift),
+            blackLevel = blackLevel.shifted(rowShift, colShift),
             whiteLevel = whiteLevel,
             activeArea = activeArea,
             calibration1 = calibration1,
@@ -186,3 +193,22 @@ fun mapRawFrame(r: RawFrameReadings): RawFrameMapping {
         notes,
     )
 }
+
+/** The colours of a 2x2 CFA cell, row-major. */
+private fun CfaPattern.cell(): String = when (this) {
+    CfaPattern.RGGB -> "RGGB"
+    CfaPattern.GRBG -> "GRBG"
+    CfaPattern.GBRG -> "GBRG"
+    CfaPattern.BGGR -> "BGGR"
+}
+
+/** The pattern whose cell starts [rowShift] rows and [colShift] columns into this one's. */
+private fun CfaPattern.shifted(rowShift: Int, colShift: Int): CfaPattern {
+    val cell = cell().toList().shifted(rowShift, colShift).joinToString("")
+    return CfaPattern.entries.first { it.cell() == cell }
+}
+
+/** A row-major 2x2 cell, read from [rowShift] rows and [colShift] columns in. */
+private fun <T> List<T>.shifted(rowShift: Int, colShift: Int): List<T> =
+    List(4) { i -> this[((i / 2 + rowShift) % 2) * 2 + (i % 2 + colShift) % 2] }
+

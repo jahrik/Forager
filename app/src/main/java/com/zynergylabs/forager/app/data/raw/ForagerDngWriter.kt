@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.data.raw
 
+import com.zynergylabs.forager.app.domain.raw.DngFailureStage
 import com.zynergylabs.forager.app.domain.raw.DngImage
 import com.zynergylabs.forager.app.domain.raw.DngWriteResult
 import com.zynergylabs.forager.app.domain.raw.DngWriter
@@ -36,14 +37,14 @@ class ForagerDngWriter internal constructor(
         } catch (e: Exception) {
             "the input could not be validated: $e"
         }
-        if (refusal != null) return failed(destination, "refused before writing: $refusal")
+        if (refusal != null) return failed(destination, "refused before writing: $refusal", DngFailureStage.Refused)
 
         try {
             DngFileWriter.write(image, destination)
         } catch (e: Exception) {
-            return failed(destination, "the DNG could not be written: $e")
+            return failed(destination, "the DNG could not be written: $e", DngFailureStage.Writing)
         } catch (e: OutOfMemoryError) {
-            return failed(destination, "the DNG could not be written: out of memory")
+            return failed(destination, "the DNG could not be written: out of memory", DngFailureStage.Writing)
         }
 
         val problem = try {
@@ -54,17 +55,21 @@ class ForagerDngWriter internal constructor(
         } catch (e: OutOfMemoryError) {
             "the check could not run: out of memory"
         }
-        if (problem != null) return failed(destination, "the written DNG failed its check: $problem")
+        if (problem != null) return failed(destination, "the written DNG failed its check: $problem", DngFailureStage.Check)
 
         return DngWriteResult.Written(destination.length())
     }
 
-    private fun failed(destination: File, reason: String): DngWriteResult.Failed {
+    /**
+     * [stage] (Amendment 2) is what the camera shows the user by: only [DngFailureStage.Check], the file written and not
+     * confirmed clean (including a check that could not run), gets the owner's -1003 words.
+     */
+    private fun failed(destination: File, reason: String, stage: DngFailureStage): DngWriteResult.Failed {
         val gone = try {
             !destination.exists() || destination.delete()
         } catch (e: SecurityException) {
             false
         }
-        return DngWriteResult.Failed(if (gone) reason else "$reason; the file could not be deleted")
+        return DngWriteResult.Failed(if (gone) reason else "$reason; the file could not be deleted", stage)
     }
 }

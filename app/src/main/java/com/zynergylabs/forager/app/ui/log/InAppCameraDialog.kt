@@ -174,6 +174,8 @@ internal fun InAppCameraDialog(
     // have taken. The photos themselves are already handed over and safe either way.
     var photosTaken by rememberSaveable { mutableIntStateOf(0) }
     var captureError by rememberSaveable { mutableStateOf<String?>(null) }
+    // A RAW shot kept as JPG says so in the same slot, in the normal message colour: the photo was saved (RECORD -1019).
+    var captureNotice by rememberSaveable { mutableStateOf<String?>(null) }
     var isCapturing by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     // The self-timer (decision B8 / Closed decision C): the setting lasts this camera session,
@@ -335,6 +337,7 @@ internal fun InAppCameraDialog(
             if (!isCapturing) {
                 isCapturing = true
                 captureError = null
+                captureNotice = null
                 scope.launch {
                     val capture = cameraCaptureFiles.newCapture()
                     // A RAW shot is its own path (dispatch 2026-10-15-01; CLAUDE.md, building); the JPG shot below is as it was.
@@ -343,7 +346,7 @@ internal fun InAppCameraDialog(
                             when (outcome) {
                                 is RawShotScreenOutcome.Saved -> {
                                     photosTaken += 1
-                                    outcome.notice?.let { captureError = it }
+                                    captureNotice = outcome.notice
                                     onPhotoCaptured(outcome.source)
                                 }
                                 RawShotScreenOutcome.Failed -> {
@@ -418,6 +421,7 @@ internal fun InAppCameraDialog(
                 deviceRotation = session.deviceRotation,
                 displayRotation = displayRotation,
                 captureError = captureError,
+                captureNotice = captureNotice,
                 photosTaken = photosTaken,
                 shutterEnabled = shutterEnabled,
                 shutterDescription = if (countdownSeconds != null) CANCEL_TIMER_DESCRIPTION else SHUTTER_DESCRIPTION,
@@ -493,6 +497,8 @@ private fun ShutterCluster(
     /** The dialog-level window rotation, not read here — see the CameraStrip call site for why. */
     displayRotation: Int,
     captureError: String?,
+    /** A notice about a photo that was saved (a RAW shot kept as JPG): the normal colour, not the error colour (RECORD -1019). */
+    captureNotice: String?,
     photosTaken: Int,
     shutterEnabled: Boolean,
     /** "Take photo", or "Cancel timer" while a countdown runs. */
@@ -501,6 +507,13 @@ private fun ShutterCluster(
 ) {
     val readout: @Composable (horizontalAlignment: Alignment.Horizontal) -> Unit = { alignment ->
         Column(horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            captureNotice?.let { message ->
+                OverlayText(
+                    message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_NOTICE_TAG),
+                )
+            }
             captureError?.let { message ->
                 OverlayText(
                     message,
@@ -606,6 +619,7 @@ internal const val SHUTTER_DESCRIPTION = "Take photo"
 internal const val CANCEL_TIMER_DESCRIPTION = "Cancel timer"
 internal const val CAMERA_COUNTDOWN_TAG = "in-app-camera-countdown"
 internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
+internal const val CAMERA_NOTICE_TAG = "in-app-camera-notice"
 
 /** What a RAW shot came to, for the screen: a photo (with a [notice] when it was kept as JPG only), or no photo at all. */
 internal sealed interface RawShotScreenOutcome {
