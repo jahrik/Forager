@@ -174,7 +174,8 @@ what is described above.
 Everything Forager stores is on your device and can be deleted from inside the app, item by item —
 journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips.
 Uninstalling removes all of it, including the database and the photo files; with
-`allowBackup="false"` there is no cloud copy to survive and reappear. Nothing is held on a server, so
+`allowBackup="false"` there is no Android cloud copy to survive and reappear. A backup file you made with
+Forager's Backup is yours: it stays wherever you saved it, and you delete it there. Nothing is held on a server, so
 there is no deletion request to make. Full detail is at <https://www.zynergy-labs.com/delete-data/>,
 generated from `docs/legal/delete-data.md`, and that page is the URL given in the Play Data safety
 declaration.

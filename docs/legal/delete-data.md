@@ -1,9 +1,9 @@
 # Deleting your Forager data
 
-**Last updated: 2026-10-07.**
+**Last updated: 2026-10-15.**
 
 Forager stores everything on your own device. There is no account, no server, and no copy of your
-data anywhere except the phone in your hand. That shapes what deletion means here: there is nothing
+data anywhere except the phone in your hand and any backup files you choose to make. That shapes what deletion means here: there is nothing
 to request, because there is no one holding a copy to ask.
 
 ## Delete individual items in the app
@@ -22,12 +22,12 @@ immediately:
 ## Uninstalling removes everything
 
 Uninstalling Forager deletes all of it: the database, the photo files, downloaded map regions and saved
-preferences. Nothing is left behind on the device.
+preferences. Nothing is left behind in the app's own storage.
 
 Forager also sets `allowBackup="false"`, which means Android does **not** copy your Forager data into
-Google's automatic backup. There is no cloud copy to survive the uninstall and reappear on your next
-phone. That is a deliberate choice: it costs you the convenience of a restore, and it means
-uninstalling really is the end of the data.
+Google's automatic backup. The only copies off the phone are backup files you make yourself with
+Forager's Backup, saved where you choose. Uninstalling does not touch them; delete them wherever you
+saved them.
 
 ## There is nothing stored on a server
 
