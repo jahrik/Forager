@@ -14,6 +14,7 @@ import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -858,6 +859,46 @@ class JournalBackupTest {
             assertEquals("the older backup holds a search", 1L, it.rawQuery("SELECT COUNT(*) FROM cached_searches", null).use { c -> c.moveToFirst(); c.getLong(0) })
         }
         return old.archive
+    }
+
+    // ---- a RAW shot travels whole (dispatch 2026-10-15-01: "Backup and restore carry the DNG") ----------------
+
+    private fun Phone.addRawPhoto(id: String, jpg: ByteArray, dng: ByteArray) {
+        insert("log_photos", "id" to id, "relativePath" to "photos/$id.jpg", "rawRelativePath" to "photos/$id.dng")
+        writePhotoFile(id, jpg)
+        java.io.File(filesDir, "photos/$id.dng").writeBytes(dng)
+    }
+
+    private val rawJpg = ByteArray(32) { (it * 3).toByte() }
+    private val rawDng = ByteArray(48) { (it * 7 + 1).toByte() }
+
+    @Test
+    fun `a backup carries a RAW shot's DNG beside its JPG`() {
+        val a = phone().apply { addRawPhoto("r1", rawJpg, rawDng) }
+        val zip = readZip(a.backUp())
+        assertArrayEquals(rawJpg, zip.getValue("photos/r1.jpg"))
+        assertArrayEquals(rawDng, zip.getValue("photos/r1.dng"))
+    }
+
+    @Test
+    fun `Replace and Merge each restore a RAW shot whole, row and both files`() {
+        val a = phone().apply { addRawPhoto("r1", rawJpg, rawDng) }
+        val backup = a.backUp()
+        for (mode in listOf(RestoreMode.REPLACE, RestoreMode.MERGE)) {
+            val b = phone()
+            b.restore(backup, mode).getOrThrow()
+            assertEquals("$mode: the row names its DNG", "photos/r1.dng", b.scalar("SELECT rawRelativePath FROM log_photos WHERE id = 'r1'"))
+            assertEquals("$mode: both files, byte for byte", a.files(), b.files())
+        }
+    }
+
+    @Test
+    fun `Replace removes a RAW shot's DNG with its JPG when the backup does not have the shot`() {
+        val a = phone().apply { addPhoto("p1", rawJpg) }
+        val b = phone().apply { addRawPhoto("r9", rawJpg, rawDng) }
+        b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+        assertFalse("the old DNG is gone", java.io.File(b.filesDir, "photos/r9.dng").exists())
+        assertFalse("and its JPG", java.io.File(b.filesDir, "photos/r9.jpg").exists())
     }
 
     // ---- what the table list is ----------------------------------------------------------------

@@ -91,6 +91,7 @@ internal class FakeCameraCaptureSession(
     fun recover() { failing = false }
 
     override fun open(lifecycleOwner: LifecycleOwner) {
+        events += "open"
         openCalls += 1
         if (readyOnOpen && state == CameraSessionState.Opening) state = CameraSessionState.Ready
         if (state == CameraSessionState.Ready) {
@@ -126,7 +127,11 @@ internal class FakeCameraCaptureSession(
     /** What the next RAW shot's sensor data maps to; a small, valid input by default. */
     var nextRawShot: () -> Result<RawShot> = { Result.success(RawShot(dng = fakeDngImage(), dngUnavailable = null)) }
 
+    /** Requests and opens, in the order they reached the session. */
+    val events = mutableListOf<String>()
+
     override fun requestOutputFormat(format: CameraFormat) {
+        events += "request $format"
         requestedFormats += format
         outputFormat = if (format == CameraFormat.Raw && !rawBinds) CameraFormat.Jpg else format
     }

@@ -47,6 +47,12 @@ import org.robolectric.annotation.Config
  * edit that shows something on the screen when RAW is supported, it must fail. That control's run
  * is recorded in the PR. Its job from here on is to fail the first time a later stage puts a
  * capability on the screen, so that change is made on purpose and this test is updated with it.
+ *
+ * ## Updated by RAW stage 2, on purpose (dispatch 2026-10-15-01; RECORD -1002, "Show it now")
+ *
+ * Stage 2 is that first time: where the probe reports RAW, the format chip appears. So "everything supported" now
+ * checks that the format chip is the one thing added, by test tag, and nothing else on the screen is gone; "nothing
+ * supported" and "the encoders alone" still compare the whole tree. The chip's own behaviour is `CameraFormatChipTest`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -117,14 +123,24 @@ class InAppCameraCapabilitiesInvisibleTest {
         // Not an empty comparison: the screen is up, shutter and all.
         assertTrue("the camera screen is composed", beforeProbe.any { "TestTag=$CAMERA_SHUTTER_TAG" in it })
 
-        session.capabilities = CameraCapabilityFixtures.everythingSupported
         session.encoderCapabilities = CameraCapabilityFixtures.everyEncoder
         composeRule.waitForIdle()
-        assertEquals("everything supported", beforeProbe, screen())
+        assertEquals("the encoders alone change nothing", beforeProbe, screen())
+
+        session.capabilities = CameraCapabilityFixtures.everythingSupported
+        composeRule.waitForIdle()
+        assertEquals(
+            "everything supported adds the format chip and nothing else (RAW stage 2, RECORD -1002)",
+            testTags(beforeProbe) + CAMERA_FORMAT_CHIP_TAG,
+            testTags(screen()),
+        )
 
         session.capabilities = CameraCapabilityFixtures.nothingSupported
         session.encoderCapabilities = CameraCapabilityFixtures.noEncoder
         composeRule.waitForIdle()
         assertEquals("nothing supported", beforeProbe, screen())
     }
+
+    private fun testTags(lines: List<String>): Set<String> =
+        lines.mapNotNull { line -> Regex("TestTag=(\\S+)").find(line)?.groupValues?.get(1) }.toSet()
 }
