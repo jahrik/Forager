@@ -203,15 +203,27 @@ class SchemaMigrationTest {
             assertEquals("the index is back", 1L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_track_points_trackId'"))
         }
 
+    // RAW stage 2 (dispatch 2026-10-15-01): the log_photos rebuild. Every seeded column is carried, the location included
+    // (assertEverySeededValueSurvived compares them all by name), an old photo's new rawRelativePath is NULL (nothing before
+    // this version saved a DNG), and the column takes a value.
+    @Test fun `21 to 22 - the log_photos rebuild adds rawRelativePath null, every value carried`() =
+        migrate(21, 22, MIGRATION_21_22, overrides = mapOf("log_photos" to mapOf("relativePath" to "photos/p1.jpg", "latitude" to 45.43, "longitude" to -122.29))) { db ->
+            assertEquals("photos/p1.jpg", db.scalar("SELECT relativePath FROM log_photos"))
+            assertEquals(45.43, db.scalar("SELECT latitude FROM log_photos"))
+            assertNull("an old photo has no DNG", db.scalar("SELECT rawRelativePath FROM log_photos"))
+            db.execSQL("UPDATE log_photos SET rawRelativePath = 'photos/p1.dng'")
+            assertEquals("photos/p1.dng", db.scalar("SELECT rawRelativePath FROM log_photos"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // The chain now ends at 21, the current version (RECORD -867; it ended at 20 before MIGRATION_20_21).
-    @Test fun `4 to 21 - the full chain, validated against 21_json, every seeded value survives`() {
+    // The chain now ends at 22, the current version (dispatch 2026-10-15-01; it ended at 21 before MIGRATION_21_22).
+    @Test fun `4 to 22 - the full chain, validated against 22_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 21, true, *ForagerDatabase.ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 22, true, *ForagerDatabase.ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 21)
+            assertEverySeededValueSurvived(db, seeded, 4, 22)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }

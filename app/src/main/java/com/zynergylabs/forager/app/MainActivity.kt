@@ -45,6 +45,7 @@ import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
 import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
+import com.zynergylabs.forager.app.ui.log.CameraFormatViewModel
 import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
@@ -196,6 +197,19 @@ class MainActivity : ComponentActivity() {
                 CameraGridModeViewModel(
                     getGridMode = container.cameraGridModeRepository::getGridMode,
                     setGridMode = container.cameraGridModeRepository::setGridMode,
+                    errorLog = androidErrorLog,
+                )
+            }
+        }
+    }
+
+    /** The camera's format chip, persisted in DataStore (dispatch 2026-10-15-01, RECORD -1005); read once, written by the format menu. */
+    private val cameraFormatViewModel: CameraFormatViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                CameraFormatViewModel(
+                    getCameraFormat = container.cameraFormatRepository::getCameraFormat,
+                    setCameraFormat = container.cameraFormatRepository::setCameraFormat,
                     errorLog = androidErrorLog,
                 )
             }
@@ -433,6 +447,7 @@ class MainActivity : ComponentActivity() {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()
+                val cameraFormat by cameraFormatViewModel.format.collectAsState()
 
                 // Four minutes away with the camera open closes it — see CameraAbsence.kt for the
                 // number, the clock and why this is a threshold rather than close-on-background.
@@ -576,6 +591,8 @@ class MainActivity : ComponentActivity() {
                     onCloseCamera = inAppCameraViewModel::close,
                     cameraGridMode = cameraGridMode,
                     onCameraGridModeChanged = cameraGridModeViewModel::onGridModeChanged,
+                    cameraFormat = cameraFormat,
+                    onCameraFormatChanged = cameraFormatViewModel::onCameraFormatChanged,
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
                     onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
                     onCloseLogEntry = mushroomLogViewModel::onCloseEntry,

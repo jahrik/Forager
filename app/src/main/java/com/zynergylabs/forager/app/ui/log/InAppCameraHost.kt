@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
@@ -38,6 +39,9 @@ typealias InAppCameraSlot = @Composable (
     /** The persisted grid mode and the way to change it — see `CameraGridModeViewModel`. */
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    /** The format chip's remembered choice and the way to change it — see `CameraFormatViewModel` (dispatch 2026-10-15-01). */
+    cameraFormat: CameraFormat,
+    onCameraFormatChanged: (CameraFormat) -> Unit,
     /** Settings' "Automatically Save Location to Photos" and its handler — see `AvailabilityViewModel.onAutoSaveLocationToPhotosChanged`. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
@@ -51,7 +55,7 @@ typealias InAppCameraSlot = @Composable (
  * viewfinder it draws into. Moved here from `PhotoAcquisitionLaunchers` on 2026-09-15 when the
  * dialog was hoisted; unchanged otherwise.
  */
-internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
+internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, cameraFormat, onCameraFormatChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
     val context = LocalContext.current.applicationContext
     // One provider per open camera; it registers a sensor listener only while the level is shown.
     val levelProvider = remember { AndroidLevelProvider(context) }
@@ -69,6 +73,8 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, gridMod
         onDismiss = onDismiss,
         gridMode = gridMode,
         onGridModeChanged = onGridModeChanged,
+        cameraFormat = cameraFormat,
+        onCameraFormatChanged = onCameraFormatChanged,
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
         levelProvider = levelProvider,
@@ -105,6 +111,9 @@ internal fun InAppCameraHost(
     /** The persisted grid mode, from `CameraGridModeViewModel`; passed straight to the slot. */
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    /** The persisted format choice, from `CameraFormatViewModel`; passed straight to the slot. */
+    cameraFormat: CameraFormat = CameraFormat.Jpg,
+    onCameraFormatChanged: (CameraFormat) -> Unit = {},
     /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`, and Settings' own handler; passed straight to the slot. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
@@ -120,5 +129,5 @@ internal fun InAppCameraHost(
         InAppCameraTarget.ALBUM -> onAlbumPhoto
         InAppCameraTarget.CARTOGRAPHY_ENTRY -> onCartographyEntryPhoto
     }
-    camera(cameraCaptureFiles, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss)
+    camera(cameraCaptureFiles, gridMode, onGridModeChanged, cameraFormat, onCameraFormatChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss)
 }

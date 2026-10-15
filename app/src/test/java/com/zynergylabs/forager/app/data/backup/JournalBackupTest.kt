@@ -14,6 +14,7 @@ import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -76,7 +77,7 @@ class JournalBackupTest {
         val manifest = JSONObject(String(zip.getValue("manifest.json")))
         assertEquals(1, manifest.getInt("formatVersion"))
         assertEquals(42L, manifest.getLong("appVersionCode"))
-        assertEquals(21, manifest.getInt("schemaVersion"))
+        assertEquals(22, manifest.getInt("schemaVersion"))
         assertTrue("created time is stamped", manifest.getLong("createdAtEpochMillis") > 0)
         val files = manifest.getJSONArray("files")
         assertEquals(5, files.length())
@@ -95,7 +96,7 @@ class JournalBackupTest {
         val db = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY)
         db.use {
             assertEquals("ok", it.rawQuery("PRAGMA integrity_check", null).use { c -> c.moveToFirst(); c.getString(0) })
-            assertEquals(21, it.version)
+            assertEquals(22, it.version)
             assertEquals(a.count("track_points"), it.rawQuery("SELECT COUNT(*) FROM track_points", null).use { c -> c.moveToFirst(); c.getLong(0) })
         }
     }
@@ -741,13 +742,15 @@ class JournalBackupTest {
         val b = phone().apply { insert("waypoints", "id" to "own-w") }
         val rows = b.dump(); val files = b.files()
         val entries = readZip(a.backUp())
-        val manifest = JSONObject(String(entries.getValue("manifest.json"))).put("schemaVersion", 22)
+        // One past this build's schema, whatever that is (it was a literal 22 until version 22 arrived, RAW stage 2).
+        val newer = com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION + 1
+        val manifest = JSONObject(String(entries.getValue("manifest.json"))).put("schemaVersion", newer)
         entries["manifest.json"] = manifest.toString().toByteArray()
 
         val result = b.restore(writeZip(entries), RestoreMode.REPLACE)
 
         assertRefused(result, "a backup from a newer schema")
-        assertTrue("the reason is logged: ${b.logged}", b.logged.any { "22" in it && "newer" in it })
+        assertTrue("the reason is logged: ${b.logged}", b.logged.any { "$newer" in it && "newer" in it })
         assertUnchanged(b, rows, files)
     }
 
@@ -789,7 +792,7 @@ class JournalBackupTest {
 
         b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
 
-        assertEquals("the live database stayed at the app's own version throughout", 21, liveVersionDuringRestore)
+        assertEquals("the live database stayed at the app's own version throughout", 22, liveVersionDuringRestore)
     }
 
     // ---- recent searches are left out (F5, dispatch 2026-09-28-216; owner, "2 A") ------------------
@@ -860,6 +863,46 @@ class JournalBackupTest {
         return old.archive
     }
 
+    // ---- a RAW shot travels whole (dispatch 2026-10-15-01: "Backup and restore carry the DNG") ----------------
+
+    private fun Phone.addRawPhoto(id: String, jpg: ByteArray, dng: ByteArray) {
+        insert("log_photos", "id" to id, "relativePath" to "photos/$id.jpg", "rawRelativePath" to "photos/$id.dng")
+        writePhotoFile(id, jpg)
+        java.io.File(filesDir, "photos/$id.dng").writeBytes(dng)
+    }
+
+    private val rawJpg = ByteArray(32) { (it * 3).toByte() }
+    private val rawDng = ByteArray(48) { (it * 7 + 1).toByte() }
+
+    @Test
+    fun `a backup carries a RAW shot's DNG beside its JPG`() {
+        val a = phone().apply { addRawPhoto("r1", rawJpg, rawDng) }
+        val zip = readZip(a.backUp())
+        assertArrayEquals(rawJpg, zip.getValue("photos/r1.jpg"))
+        assertArrayEquals(rawDng, zip.getValue("photos/r1.dng"))
+    }
+
+    @Test
+    fun `Replace and Merge each restore a RAW shot whole, row and both files`() {
+        val a = phone().apply { addRawPhoto("r1", rawJpg, rawDng) }
+        val backup = a.backUp()
+        for (mode in listOf(RestoreMode.REPLACE, RestoreMode.MERGE)) {
+            val b = phone()
+            b.restore(backup, mode).getOrThrow()
+            assertEquals("$mode: the row names its DNG", "photos/r1.dng", b.scalar("SELECT rawRelativePath FROM log_photos WHERE id = 'r1'"))
+            assertEquals("$mode: both files, byte for byte", a.files(), b.files())
+        }
+    }
+
+    @Test
+    fun `Replace removes a RAW shot's DNG with its JPG when the backup does not have the shot`() {
+        val a = phone().apply { addPhoto("p1", rawJpg) }
+        val b = phone().apply { addRawPhoto("r9", rawJpg, rawDng) }
+        b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+        assertFalse("the old DNG is gone", java.io.File(b.filesDir, "photos/r9.dng").exists())
+        assertFalse("and its JPG", java.io.File(b.filesDir, "photos/r9.jpg").exists())
+    }
+
     // ---- what the table list is ----------------------------------------------------------------
 
     @Test
@@ -871,7 +914,7 @@ class JournalBackupTest {
         assertEquals(emptyList<String>(), journal.intersect(JournalTables.excluded.keys).toList())
         val pk = schemaPrimaryKeys(Phone.SCHEMA)
         for (spec in JournalTables.journal) assertEquals("${spec.name}'s key columns", pk.getValue(spec.name), spec.keyColumns)
-        assertEquals("the schema version this build restores up to is the one the database declares", 21, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
+        assertEquals("the schema version this build restores up to is the one the database declares", 22, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
         assertEquals(com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION, phone().database.openHelper.readableDatabase.version)
     }
 

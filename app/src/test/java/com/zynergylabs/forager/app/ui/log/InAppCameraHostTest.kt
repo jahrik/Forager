@@ -60,7 +60,7 @@ class InAppCameraHostTest {
     private var dismissed = 0
 
     /** The test's slot: the real dialog over the fake session, viewfinder a plain box. */
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, cameraFormat, onCameraFormatChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
         val session = FakeCameraCaptureSession()
         InAppCameraDialog(
             session = session,
@@ -69,6 +69,8 @@ class InAppCameraHostTest {
             onDismiss = onDismiss,
             gridMode = gridMode,
             onGridModeChanged = onGridModeChanged,
+            cameraFormat = cameraFormat,
+            onCameraFormatChanged = onCameraFormatChanged,
             autoSaveLocationToPhotos = autoSaveLocationToPhotos,
             onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
             levelProvider = FakeLevelProvider(),

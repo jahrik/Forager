@@ -1227,3 +1227,40 @@ val MIGRATION_20_21: Migration = object : Migration(20, 21) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_track_points_trackId` ON `track_points` (`trackId`)")
     }
 }
+
+/**
+ * Adds nullable `rawRelativePath` to `log_photos` — RAW pipeline stage 2 (dispatch 2026-10-15-01, Amendment 1 item 6: "the
+ * nullable `log_photos` column, version 22, `MIGRATION_21_22`"). A RAW shot's DNG, beside its JPG under `photos/`; the JPG
+ * stays in `relativePath` and is what every screen shows (RECORD -1004). Its readers land with it (CLAUDE.md): export
+ * (`LogPhoto.exportRelativePath`), backup and restore (`RoomJournalBackup`) and delete (`FilePhotoStore.delete`). Every
+ * existing row gets `NULL`: nothing before this version saved a DNG.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_11_12] records: [LogPhotoEntity] is
+ * declared directly by `LegacyForagerDatabaseVn` fixtures, so their generated tables already carry the column and an
+ * `ADD COLUMN` would fail against them; the explicit source column list below ignores it. Version 22 was checked unclaimed
+ * on every remote branch (2026-10-15); re-check before merge.
+ */
+val MIGRATION_21_22: Migration = object : Migration(21, 22) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `log_photos_new` (
+            `id` TEXT NOT NULL,
+            `relativePath` TEXT NOT NULL,
+            `createdAtEpochMillis` INTEGER,
+            `latitude` REAL,
+            `longitude` REAL,
+            `rawRelativePath` TEXT,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `log_photos_new` (`id`, `relativePath`, `createdAtEpochMillis`, `latitude`, `longitude`, `rawRelativePath`)
+            SELECT `id`, `relativePath`, `createdAtEpochMillis`, `latitude`, `longitude`, NULL FROM `log_photos`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `log_photos`")
+        db.execSQL("ALTER TABLE `log_photos_new` RENAME TO `log_photos`")
+    }
+}

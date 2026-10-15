@@ -121,7 +121,7 @@ class AvailabilityScreenInAppCameraTest {
 
     private val boxMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, cameraFormat, onCameraFormatChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
         val session = remember { FakeCameraCaptureSession() }
         InAppCameraDialog(
             session = session,
@@ -130,6 +130,8 @@ class AvailabilityScreenInAppCameraTest {
             onDismiss = onDismiss,
             gridMode = gridMode,
             onGridModeChanged = onGridModeChanged,
+            cameraFormat = cameraFormat,
+            onCameraFormatChanged = onCameraFormatChanged,
             autoSaveLocationToPhotos = autoSaveLocationToPhotos,
             onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
             levelProvider = FakeLevelProvider(),
