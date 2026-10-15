@@ -165,6 +165,43 @@ class RawFrameMappingTest {
         assertTrue(unsupported(readings(preCorrection = intArrayOf(4, 4, 20, 20))).contains("does not fit"))
     }
 
+    /**
+     * Part B's reading of the contract (Amendment 2, item 4): `cfa` and `blackLevel` describe the 2x2 cell at the top-left
+     * of the active area, as the DNG specification has the pattern start there. The camera reports both for the cell at
+     * the top-left of the pixel array, so an active area that starts on an odd row or column moves the phase.
+     */
+    @Test
+    fun `an active area offset by an odd column or row moves the CFA phase and the black levels with it`() {
+        // A pixel-array buffer (8x6) whose active area is smaller, so the offsets apply. Sensor cell, row-major: G R / B G.
+        val black = intArrayOf(10, 11, 12, 13)
+        val oddColumn = mapped(readings(preCorrection = intArrayOf(1, 0, 7, 6), staticBlack = black)).image
+        assertEquals("one column in: R G / G B", CfaPattern.RGGB, oddColumn.cfa)
+        assertEquals(listOf(11f, 10f, 13f, 12f), oddColumn.blackLevel)
+
+        val oddRow = mapped(readings(preCorrection = intArrayOf(0, 1, 8, 5), staticBlack = black)).image
+        assertEquals("one row in: B G / G R", CfaPattern.BGGR, oddRow.cfa)
+        assertEquals(listOf(12f, 13f, 10f, 11f), oddRow.blackLevel)
+
+        val both = mapped(readings(preCorrection = intArrayOf(1, 1, 7, 5), staticBlack = black, dynamicBlack = floatArrayOf(20f, 21f, 22f, 23f))).image
+        assertEquals("one of each: G B / R G", CfaPattern.GBRG, both.cfa)
+        assertEquals("the frame's own levels move the same way", listOf(23f, 22f, 21f, 20f), both.blackLevel)
+
+        val even = mapped(readings(preCorrection = intArrayOf(2, 2, 6, 4), staticBlack = black)).image
+        assertEquals("an even offset changes nothing", CfaPattern.GRBG, even.cfa)
+        assertEquals(listOf(10f, 11f, 12f, 13f), even.blackLevel)
+    }
+
+    @Test
+    fun `the lens-shading gains go through in the layout part B reads, point by point with four channels each`() {
+        // (row * columns + col) * 4 + channel, as the platform's copyGainFactors lays them out.
+        val gains = FloatArray(2 * 3 * 4) { it.toFloat() }
+        val image = mapped(readings(shadingColumns = 3, shadingRows = 2, shadingGains = gains)).image
+        assertEquals(3, image.lensShading?.columns)
+        assertEquals(2, image.lensShading?.rows)
+        assertEquals("row 1, column 2, channel 3", ((1 * 3 + 2) * 4 + 3).toFloat(), image.lensShading!!.gains[(1 * 3 + 2) * 4 + 3])
+        assertSame(gains, image.lensShading!!.gains)
+    }
+
     @Test
     fun `baseline exposure is the post-RAW boost in EV, hundredths`() {
         assertEquals("200 is one stop", SRational(100, 100), mapped(readings(boost = 200)).image.baselineExposure)

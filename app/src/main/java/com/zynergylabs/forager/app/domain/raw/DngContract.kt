@@ -41,10 +41,30 @@ data class DngImage(
 
 sealed interface DngWriteResult {
     data class Written(val bytes: Long) : DngWriteResult
-    data class Failed(val reason: String) : DngWriteResult
+    /**
+     * [stage] says where the write failed, so the camera can tell the user why without reading [reason]'s free text
+     * (dispatch 2026-10-15-01, Amendment 2; RECORD -1003, -1018). Added after the contract was agreed, nullable and null
+     * by default, so every existing caller is unchanged; null means a writer that does not say.
+     */
+    data class Failed(val reason: String, val stage: DngFailureStage? = null) : DngWriteResult
 }
 
 interface DngWriter {
     /** Writes [image] to [destination], then re-reads it and checks it. On any failure the file is deleted and Failed returned. Never throws. */
     fun write(image: DngImage, destination: java.io.File): DngWriteResult
+}
+
+/**
+ * Where a DNG write failed (Amendment 2). Only [Check] means the file was written and could not be confirmed clean of
+ * camera details, which is what the owner's -1003 message says; the others are a file that could not be made at all.
+ */
+enum class DngFailureStage {
+    /** The input was refused before a byte was written: over the operating limit, or arrays that do not match. */
+    Refused,
+
+    /** Writing the file failed: an I/O error, or memory. */
+    Writing,
+
+    /** The file was written, and the check after writing failed or could not run: it is not confirmed clean. */
+    Check,
 }

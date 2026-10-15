@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.domain.Probed
 import com.zynergylabs.forager.app.domain.approximateShotBytes
 import com.zynergylabs.forager.app.domain.approximateSizeLabel
 import com.zynergylabs.forager.app.domain.model.PhotoSource
+import com.zynergylabs.forager.app.domain.raw.DngFailureStage
 import com.zynergylabs.forager.app.domain.raw.DngWriteResult
 import com.zynergylabs.forager.app.domain.worstCaseRawShotBytes
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
@@ -314,8 +315,8 @@ class CameraFormatChipTest {
     }
 
     @Test
-    fun `a DNG the writer refuses is discarded, the shot is kept as JPG, and the -1003 message shows`() {
-        val refusing = FakeDngWriter { _, destination -> destination.delete(); DngWriteResult.Failed("planted make string") }
+    fun `a DNG that fails its clean check is discarded, the shot is kept as JPG, and the -1003 message shows`() {
+        val refusing = FakeDngWriter { _, destination -> destination.delete(); DngWriteResult.Failed("planted make string", DngFailureStage.Check) }
         open(FakeCameraFormatRepository(CameraFormat.Raw), writer = refusing)
         shoot()
 
@@ -324,6 +325,17 @@ class CameraFormatChipTest {
         assertTrue("the JPG is the photo", source.capture.file.isFile)
         assertTrue("no DNG left in captures/", scratchDngs().isEmpty())
         composeRule.onNodeWithText(RAW_NOT_CLEAN_MESSAGE).assertExists()
+    }
+
+    @Test
+    fun `a DNG the writer could not write is discarded, the shot is kept as JPG, and couldn't be saved shows, not -1003`() {
+        val failing = FakeDngWriter { _, destination -> destination.delete(); DngWriteResult.Failed("disk full", DngFailureStage.Writing) }
+        open(FakeCameraFormatRepository(CameraFormat.Raw), writer = failing)
+        shoot()
+
+        assertNull((captured.single() as CameraCapturePhotoSource).rawFile)
+        composeRule.onNodeWithText(RAW_NOT_SAVED_MESSAGE).assertExists()
+        composeRule.onNodeWithText(RAW_NOT_CLEAN_MESSAGE).assertDoesNotExist()
     }
 
     @Test

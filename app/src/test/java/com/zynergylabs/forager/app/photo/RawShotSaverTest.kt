@@ -1,6 +1,10 @@
 package com.zynergylabs.forager.app.photo
 
 import com.zynergylabs.forager.app.domain.LOW_STORAGE_FLOOR_BYTES
+import com.zynergylabs.forager.app.data.raw.ForagerDngWriter
+import com.zynergylabs.forager.app.data.raw.SyntheticDng
+import com.zynergylabs.forager.app.data.raw.TiffPatch
+import com.zynergylabs.forager.app.domain.raw.DngFailureStage
 import com.zynergylabs.forager.app.domain.raw.DngImage
 import com.zynergylabs.forager.app.domain.raw.DngWriteResult
 import com.zynergylabs.forager.app.domain.raw.DngWriter
@@ -55,11 +59,11 @@ class RawShotSaverTest {
     }
 
     @Test
-    fun `a writer that refuses leaves no file, and the user is given the owner's -1003 words`() = runTest {
+    fun `a DNG that fails its clean check leaves no file, and the user is given the owner's -1003 words`() = runTest {
         ShadowLog.clear()
         val files = mutableListOf<File>()
         // A writer that leaves its file behind against the contract: this side still removes it.
-        val writer = FakeDngWriter { _, destination -> destination.writeBytes(byteArrayOf(1)); DngWriteResult.Failed("a planted Make tag") }
+        val writer = FakeDngWriter { _, destination -> destination.writeBytes(byteArrayOf(1)); DngWriteResult.Failed("a planted Make tag", DngFailureStage.Check) }
         val outcome = saver(writer, files = files).save(shot)
         assertEquals(RawShotOutcome.JpgOnly(RAW_NOT_CLEAN_MESSAGE, "the DNG writer refused the file: a planted Make tag"), outcome)
         assertEquals("The RAW file couldn't be cleaned of camera details, so this photo was saved as JPG.", RAW_NOT_CLEAN_MESSAGE)
@@ -67,19 +71,60 @@ class RawShotSaverTest {
         assertTrue("logged with its cause", ShadowLog.getLogsForTag("RawShotSaver").any { it.msg.contains("a planted Make tag") })
     }
 
+    /** RECORD -1018: every failure that is not the clean check gets "couldn't be saved", never the -1003 words. */
     @Test
-    fun `a writer that throws is treated as a refusal, and its file is not trusted`() = runTest {
+    fun `a refused input, a write error, or a writer that does not say why each show couldn't be saved, and leave no file`() = runTest {
+        assertEquals("The RAW file couldn't be saved, so this photo was saved as JPG.", RAW_NOT_SAVED_MESSAGE)
+        for (stage in listOf(DngFailureStage.Refused, DngFailureStage.Writing, null)) {
+            val files = mutableListOf<File>()
+            val writer = FakeDngWriter { _, destination -> destination.writeBytes(byteArrayOf(1)); DngWriteResult.Failed("why", stage) }
+            val outcome = saver(writer, files = files).save(shot)
+            assertTrue("$stage: $outcome", outcome is RawShotOutcome.JpgOnly && outcome.message == RAW_NOT_SAVED_MESSAGE)
+            assertFalse("$stage: no DNG left behind", files.single().exists())
+        }
+    }
+
+    @Test
+    fun `a writer that throws is treated as a failure to save, and its file is not trusted`() = runTest {
         val files = mutableListOf<File>()
         val writer = FakeDngWriter { _, destination -> destination.writeBytes(byteArrayOf(1)); throw IllegalStateException("boom") }
         val outcome = saver(writer, files = files).save(shot)
-        assertTrue(outcome is RawShotOutcome.JpgOnly && outcome.message == RAW_NOT_CLEAN_MESSAGE && outcome.cause.contains("boom"))
+        assertTrue("$outcome", outcome is RawShotOutcome.JpgOnly && outcome.message == RAW_NOT_SAVED_MESSAGE && outcome.cause.contains("boom"))
         assertFalse(files.single().exists())
     }
 
     @Test
     fun `a writer that reports success with no file is not believed`() = runTest {
         val outcome = saver(FakeDngWriter { _, _ -> DngWriteResult.Written(10) }).save(shot)
+        assertTrue("$outcome", outcome is RawShotOutcome.JpgOnly && outcome.message == RAW_NOT_SAVED_MESSAGE)
+    }
+
+    // ── With Forager's own writer (dispatch 2026-10-15-02), end to end ──────────────────────────────────────────────
+
+    @Test
+    fun `with the real writer, a planted Make tag fails the clean check and the -1003 words show`() = runTest {
+        val files = mutableListOf<File>()
+        val writer = ForagerDngWriter(listOf("sm-s908u"), beforeCheck = TiffPatch::plantMake)
+        val outcome = saver(writer, free = Long.MAX_VALUE, files = files).save(RawShot(SyntheticDng.full(), null))
         assertTrue("$outcome", outcome is RawShotOutcome.JpgOnly && outcome.message == RAW_NOT_CLEAN_MESSAGE)
+        assertFalse(files.single().exists())
+    }
+
+    @Test
+    fun `with the real writer, an input it refuses shows couldn't be saved`() = runTest {
+        val good = SyntheticDng.full()
+        val mismatched = good.copy(samples = ShortArray(good.samples.size - 1))
+        val outcome = saver(ForagerDngWriter(listOf("sm-s908u")), free = Long.MAX_VALUE).save(RawShot(mismatched, null))
+        assertTrue("$outcome", outcome is RawShotOutcome.JpgOnly && outcome.message == RAW_NOT_SAVED_MESSAGE)
+    }
+
+    @Test
+    fun `with the real writer, a file that cannot be written shows couldn't be saved`() = runTest {
+        // The destination is a directory, so the write itself fails.
+        val dir = File(tmp.root, "a-directory.dng").apply { mkdirs() }
+        val saver = RawShotSaver(newRawFile = { dir }, freeBytes = { Long.MAX_VALUE }, writer = ForagerDngWriter(listOf("sm-s908u")), ioDispatcher = Dispatchers.Unconfined)
+        val outcome = saver.save(RawShot(SyntheticDng.full(), null))
+        assertTrue("$outcome", outcome is RawShotOutcome.JpgOnly && outcome.message == RAW_NOT_SAVED_MESSAGE)
     }
 
     @Test
@@ -103,11 +148,13 @@ class RawShotSaverTest {
     }
 
     @Test
-    fun `until Forager's writer is on this branch, production refuses every file rather than write an unchecked one`() = runTest {
-        val target = File(tmp.root, "never.dng").apply { writeBytes(byteArrayOf(1)) }
-        val result = productionDngWriter(listOf("anything")).write(fakeDngImage(), target)
-        assertTrue("$result", result is DngWriteResult.Failed)
-        assertFalse(target.exists())
+    fun `production writes with Forager's own writer, which writes a real DNG and checks it`() = runTest {
+        val writer = productionDngWriter(listOf("sm-s908u", "samsung"))
+        assertTrue("the real writer, not a stand-in: ${writer::class.java.name}", writer is ForagerDngWriter)
+        val target = File(tmp.root, "real.dng")
+        val result = writer.write(SyntheticDng.full(), target)
+        assertTrue("$result", result is DngWriteResult.Written)
+        assertArrayEquals("a TIFF, little-endian", byteArrayOf(0x49, 0x49, 0x2A, 0x00), target.readBytes().copyOf(4))
     }
 }
 
