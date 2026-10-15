@@ -64,7 +64,7 @@ internal object DngCheck {
             ?: return "UniqueCameraModel (50708) is missing from IFD 0"
         if (model.asciiOrNull() != FORAGER) return "UniqueCameraModel (50708) is not \"$FORAGER\""
 
-        val needles = emptyList<ByteArray>()
+        val needles = forbiddenStrings.map { it.trim() }.filter { it.isNotEmpty() }.map { it.lowercase().toByteArray(Charsets.UTF_8) }
         if (needles.isNotEmpty()) {
             for (ifd in structure.ifds) {
                 for (entry in ifd.entries) {
