@@ -420,7 +420,7 @@ class RoomJournalBackup(
         }
         photos.commit()
         // A photo file was copied ahead of its row; if the row did not get inserted after all, the file goes.
-        for ((id, path) in candidatePhotos) if (!existsIn(sql, photoSpec.name, "id", id)) photos.deleteOld(path)
+        for ((id, paths) in candidatePhotos) if (!existsIn(sql, photoSpec.name, "id", id)) paths.forEach { photos.deleteOld(it) }
         return RestoreReport(RestoreMode.MERGE, rowsInserted = inserted, recordsSkipped = skipped, rowsDropped = dropped, photoFilesAdded = photos.placedCount)
     }
 
