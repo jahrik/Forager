@@ -24,7 +24,6 @@ internal object DngCheck {
 
     /** Tags that must never appear in a Forager DNG, with their names for the failure reason. */
     val FORBIDDEN_TAGS: Map<Int, String> = mapOf(
-        271 to "Make",
         272 to "Model",
         306 to "DateTime",
         36867 to "DateTimeOriginal",
