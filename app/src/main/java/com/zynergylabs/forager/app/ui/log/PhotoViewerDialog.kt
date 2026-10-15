@@ -269,7 +269,8 @@ private fun SaveControl(photo: LogPhoto, exporter: PhotoExporter, modifier: Modi
                 if (toFolder) {
                     exporter.describe(photo).fold(
                         onSuccess = { file ->
-                            pendingPath = photo.relativePath
+                            // The file the photo is: a RAW shot's DNG, otherwise the photo (LogPhoto.exportRelativePath).
+                            pendingPath = photo.exportRelativePath
                             pickDocument.launch(file)
                         },
                         onFailure = {

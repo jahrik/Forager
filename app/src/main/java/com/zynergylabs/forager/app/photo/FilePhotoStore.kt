@@ -138,19 +138,45 @@ class FilePhotoStore(
         // source `uri`, not from `destination`, so the scrub above cannot affect an import.
         val exifData = if (source is GalleryImportPhotoSource) readExifData(uri) else ExifData(null, null, null)
 
+        // A RAW shot's DNG, beside its JPG (dispatch 2026-10-15-01). Its own step, after the JPG's: nothing above changes.
+        val rawRelativePath = (source as? CameraCapturePhotoSource)?.rawFile?.let { raw -> persistRawCompanion(raw, id, destination) }
+
         return LogPhoto(
             id = id,
             relativePath = "$PHOTOS_SUBDIR/$id.jpg",
             createdAtEpochMillis = exifData.capturedAtEpochMillis ?: now(),
             latitude = exifData.latitude,
             longitude = exifData.longitude,
+            rawRelativePath = rawRelativePath,
         )
+    }
+
+    /**
+     * Copies a RAW shot's DNG to `photos/<id>.dng` and returns its relative path. The DNG is already Forager's own file,
+     * written and checked in the shot step (`RawShotSaver`), so it is copied as it is: nothing here reads or changes its
+     * metadata. A copy that fails fails the whole persist and removes what this persist wrote, the JPG included, rather
+     * than keeping a photo the user took as RAW as a JPG without saying so; the shot step's own fallback is the one that
+     * keeps a JPG, and it says so (RECORD -1003).
+     */
+    private fun persistRawCompanion(raw: File, id: String, jpegDestination: File): String {
+        val target = File(photosDir, "$id.$RAW_EXTENSION")
+        try {
+            check(raw.isFile) { "the RAW shot's DNG '${raw.name}' is not there to persist" }
+            raw.inputStream().use { input -> target.outputStream().use { input.copyTo(it) } }
+        } catch (failure: Throwable) {
+            target.delete()
+            jpegDestination.delete()
+            throw failure
+        }
+        return "$PHOTOS_SUBDIR/${target.name}"
     }
 
     override suspend fun delete(photo: LogPhoto): Result<Unit> = runCatchingCancellable {
         // delete() returning false (already gone) is a no-op, not a failure — mirrors
         // PlannedTripRepository.delete's "no-op if nothing to remove" convention.
         File(context.filesDir, photo.relativePath).delete()
+        // A RAW shot is one photo of two files (RECORD -1004); delete removes everything the shot saved.
+        photo.rawRelativePath?.let { File(context.filesDir, it).delete() }
         Unit
     }
 
@@ -199,5 +225,6 @@ class FilePhotoStore(
     private companion object {
         const val TAG = "FilePhotoStore"
         const val PHOTOS_SUBDIR = "photos"
+        const val RAW_EXTENSION = "dng"
     }
 }

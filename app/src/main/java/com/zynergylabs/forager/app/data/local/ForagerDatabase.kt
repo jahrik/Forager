@@ -156,6 +156,15 @@ import com.zynergylabs.forager.app.BuildConfig
  * after the same script reproduced the hashes of 15.json, 18.json, 19.json and 20.json exactly. (The note above says
  * 2.8.5; the version catalog pins Room at 2.8.4, and the rule is the jar's.)
  *
+ * [version] 22 adds nullable `rawRelativePath` to `log_photos` via a real [MIGRATION_21_22] — RAW pipeline stage 2
+ * (dispatch 2026-10-15-01, Amendment 1 item 6): a RAW shot's DNG beside its JPG, read by export, backup, restore and
+ * delete. Old rows stay null: every photo before it is a JPG or an import. A rebuild, like 11 to 12, because the legacy
+ * fixtures declare [LogPhotoEntity] directly. Version 22 was checked unclaimed on every remote branch on 2026-10-15
+ * (`git log --remotes -S "version = 22,"` and `-S "Migration(21, 22)"` find nothing; the only mention of
+ * `MIGRATION_21_22` is the dispatch's own draft, `eb6b5ae4`, a records commit); re-check before merge. `22.json` was made
+ * from `21.json` with the one column added, and its identity hash computed by hand with the same Room 2.8.4 rule, by a
+ * script that first reproduced 19.json's, 20.json's and 21.json's hashes exactly.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -194,7 +203,7 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryPhotoRefEntity::class,
         CartographyEntryTrackPathEntity::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -256,9 +265,10 @@ abstract class ForagerDatabase : RoomDatabase() {
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
             MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
+            MIGRATION_21_22,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 21
+        const val SCHEMA_VERSION = 22
     }
 }
