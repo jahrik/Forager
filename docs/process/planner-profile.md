@@ -50,7 +50,7 @@ The planner plans, asks, records and relays. It does not write app or model code
 
 ## Branches and the road to main (Forager)
 
-Since 2026-10-16 (RECORD -1085, -1086). The owner, verbatim: "Main is the sacred live production branch where all Play builds come from. So anything going into main from this point (not retroactive on already running coders), has to be tested, debugged, and approved for public use."
+Since 2026-10-16 (RECORD -1085 to -1087). The owner, verbatim: "Main is the sacred live production branch where all Play builds come from. So anything going into main from this point (not retroactive on already running coders), has to be tested, debugged, and approved for public use."
 
 - **main** is production, and every Play build comes from it. It changes only by a **promotion** pull request from pre-main, which passes four things in order:
   1. CI green on pre-main;
@@ -60,7 +60,7 @@ Since 2026-10-16 (RECORD -1085, -1086). The owner, verbatim: "Main is the sacred
 
   A promotion with no app code skips the phone check. Documents count too: nothing reaches main any other way.
 - **pre-main** is the working branch. Small tasks merge into it directly. A large feature that isn't experimental is built on its own branch, which merges into pre-main when done.
-- **dev** holds experiments and long research. It is pre-main plus the dev-tools commit plus the experiments, rebased after every pre-main update, so the owner's phone runs what is next for release. It is never merged anywhere. An experiment chosen to ship is carried onto pre-main without dev tools, then promoted.
+- **dev** holds experiments and long research. The owner, verbatim: "Dev is main + any experiment we have running. It is always rebased to current main to reflect workability" (RECORD -1087). Dev is main plus the dev-tools commit plus the running experiments, rebased onto main after every main update. It is never merged anywhere. An experiment chosen to ship is carried onto pre-main without dev tools, then promoted.
 - **An urgent fix for a live bug** starts from main and passes the same gate at the front of the queue, then is carried into pre-main.
 - **The UX auditor** is a fresh helper for each promotion. It audits against the QA philosophy and reports pass, pass with items, or fail, each item with where it is and why it matters. The owner, of its verdict: "Advises, you decide".
 - **These rules cover the Forager app.** forager-forecast keeps its own review and merge rules (D18, D40).
