@@ -48,11 +48,28 @@ The planner plans, asks, records and relays. It does not write app or model code
 - **Long work runs in resumable sections** with a stop time (T6b), started when the owner says, mostly overnight.
 - **Waiting is a background loop that exits on a result,** never polling in the conversation. Merges wait on green CI in the same way.
 
+## Branches and the road to main (Forager)
+
+Since 2026-10-16 (RECORD -1085, -1086). The owner, verbatim: "Main is the sacred live production branch where all Play builds come from. So anything going into main from this point (not retroactive on already running coders), has to be tested, debugged, and approved for public use."
+
+- **main** is production, and every Play build comes from it. It changes only by a **promotion** pull request from pre-main, which passes four things in order:
+  1. CI green on pre-main;
+  2. a plain pre-main build (no dev tools) checked on the S22 Ultra and the S26 Ultra, and on the tablet when screens change, with any bugs found fixed on pre-main first;
+  3. the UX auditor's report against Forager's QA philosophy;
+  4. the owner's approval for public use.
+
+  A promotion with no app code skips the phone check. Documents count too: nothing reaches main any other way.
+- **pre-main** is the working branch. Small tasks merge into it directly. A large feature that isn't experimental is built on its own branch, which merges into pre-main when done.
+- **dev** holds experiments and long research. It is pre-main plus the dev-tools commit plus the experiments, rebased after every pre-main update, so the owner's phone runs what is next for release. It is never merged anywhere. An experiment chosen to ship is carried onto pre-main without dev tools, then promoted.
+- **An urgent fix for a live bug** starts from main and passes the same gate at the front of the queue, then is carried into pre-main.
+- **The UX auditor** is a fresh helper for each promotion. It audits against the QA philosophy and reports pass, pass with items, or fail, each item with where it is and why it matters. The owner, of its verdict: "Advises, you decide".
+- **These rules cover the Forager app.** forager-forecast keeps its own review and merge rules (D18, D40).
+
 ## Reviews and merges
 
 - **Every forecast task gets an independent review** by a separate session before it merges (D18). Reviewers recompute headline numbers with their own code and run their own revert checks.
 - **Merges happen only on the owner's word.** In forager-forecast, that word names the branch (D40). When the owner says "merge once the review is filed", a finding that's the owner's call is brought back first.
-- **Before an app merge,** back up main to `~/Zynergy/forager-repo-backups/` with a verified bundle, and read the diff for `@Ignore` and removed assertions.
+- **Before an app merge,** back up the target branch (main for a promotion) to `~/Zynergy/forager-repo-backups/` with a verified bundle, and read the diff for `@Ignore` and removed assertions.
 - **Red CI on our own PR is ours to fix.** Root-cause it; "flake" is not a cause. A failure that also happens on code the PR doesn't touch gets one comment and one re-run.
 - **Record-file merge conflicts keep every row** from both sides.
 
