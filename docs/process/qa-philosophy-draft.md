@@ -19,7 +19,7 @@ Forager is a field instrument. It is used in the woods, often one-handed, offlin
 2. **It asks nothing of the user.** It does the sensible thing by itself, reads at a glance, and never leaves anyone wondering whether it broke.
 3. **It feels finished.** Smooth and consistent, from the first screen of a task to the last.
 
-The owner set the bar for main on 2026-10-16 (RECORD -1085): "Main is the sacred live production branch where all Play builds come from. So anything going into main from this point (not retroactive on already running coders), has to be tested, debugged, and approved for public use." This draft proposes what that means in practice.
+The owner set the bar for main on 2026-10-16 (RECORD -1085): "Main is the sacred live production branch where all Play builds come from. So anything going into main from this point (not retroactive on already running coders), has to be tested, debugged, and approved for public use." The planner recorded the promotion steps in -1086: CI green on pre-main, phone checks of a plain pre-main build, this auditor's report, then the owner's approval. This draft proposes what each step means in practice.
 
 ## 2. The principles
 
@@ -88,9 +88,9 @@ For each promotion from pre-main into main, the auditor reads:
 
 - **CI on pre-main**, green at the exact commit being promoted: build, version check, full test suite. No test skipped, deleted or weakened, and no growth in CI's list of allowed skips (CLAUDE.md, "Testing").
 - **Device checks of a plain build.** Since -930 main holds no developer tools, so every build of main is plain. Each check is written before it runs, with a pass condition and evidence for every step.
-  - The S22 Ultra test phone (no SIM, so GPS only): every promotion, starting with the launch check.
-  - The S26 Ultra, the owner's phone: every promotion.
-  - The tablet: when a screen changes, and always for the camera (-980).
+  - The S22 Ultra test phone (no SIM, so GPS only): every promotion that changes the app (-1086), starting with the launch check.
+  - The S26 Ultra, the owner's phone: every promotion that changes the app.
+  - The tablet: when a screen changes (-1086), including the camera, because newer Android ignores the portrait request on wide screens (-980).
   - An upgrade over the current Play version (A2).
 - **Known bugs**: the list in A6.
 - **Accessibility**: Appendix B.
@@ -116,7 +116,7 @@ For each promotion from pre-main into main, the auditor reads:
 
 **The owner decides.** "Advises, you decide" (-1085). Nothing reaches main without the owner's approval.
 
-**An urgent fix for a live bug:** "Same gate, front of queue" (-1085). The same evidence, scaled to what the fix touches, ahead of everything else waiting.
+**An urgent fix for a live bug:** "Same gate, front of queue" (-1085). The same evidence, scaled to what the fix touches, ahead of everything else waiting. The fix starts from main and is carried into pre-main afterwards (-1086).
 
 ## 5. What the auditor does not do
 
@@ -150,7 +150,7 @@ Answer by number. Each has a recommendation.
 18. **Battery, while battery work is deferred (-520).** *Recommended: the auditor reports the cost as an item, and never fails a promotion on battery alone until that work is taken up.*
 19. **Which known bugs may ship.** *Recommended: a bug that is listed, already in the live app, and not a crash, lost records, a wrong position, direction or time, or anything that reads as identification. A new bug of those kinds is a fail.*
 20. **Reverts.** When a live bug is fixed by undoing a change? *Recommended: a short audit, at the front of the queue: it matches the earlier approved state and starts on both phones.*
-21. **Public text alone.** A change to the privacy policy or store text with no app change? *Recommended: a copy-only audit against what the app does. Internal documents need none.*
+21. **Promotions with no app change.** Documents also reach main only by promotion, and those have no phone check (-1086). What should the auditor's report cover? *Recommended: public text (privacy policy, store text) is read against what the app does; anything else gets a one-line "no change a user would meet".*
 22. **The platform's own backup.** Android's quality guidelines expect an app's data to survive the platform's backup and phone-to-phone transfer. Your 2026-09-09 ruling keeps that off for good, with Forager's own Backup instead (-116). *Recommended: the auditor treats Forager's Backup as meeting the guideline's purpose and never flags the switch-off.*
 23. **The auditor's own checks.** May it run its own read-only walk-through on the S22 with a CI build, on the planner's go? Forecast reviews already recompute results with their own code (D18). *Recommended: yes; the S22 only, never over a running recording.*
 24. **This draft.** *Recommended: you answer 1 to 23, the auditor revises, and the ruled version goes into pre-main as docs/process/qa-philosophy.md on your word.*
@@ -174,6 +174,7 @@ Answer by number. Each has a recommendation.
 - -943, -963, -980, -981, -1005: honest framing; no identification; the camera; remembered choices.
 - -1059: the answers to Google Play, drafted by the planner and submitted by the owner.
 - -1085: this role and the gate on main.
+- -1086, -1087: the promotion steps and branch roles, recorded after the dispatch was written (read at records-after-173 `2e52449e`).
 
 **Files:** CLAUDE.md (all); docs/process/planner-profile.md; docs/audits/2026-09-26-pre-main-working-trunk.md; docs/plans/journal-redesign.md; docs/plans/mushroom-log.md; docs/beta/README.md; prompts/preserved/2026-10-15-08-pre-production-tidying-inventory.md (records-after-173); the field-instrument design rules and the mobile design-principles reference (the owner's synced skills); .github/workflows/ci.yml; scripts/s22-launch-check.sh; app/src/main/AndroidManifest.xml; app/src/main/java/com/zynergylabs/forager/app/data/local/ForagerDatabase.kt.
 
