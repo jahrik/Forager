@@ -100,6 +100,10 @@ For each promotion from pre-main into main, the auditor reads:
 
 **Only a phone can show:** whether the app starts at all; layouts against real system bars and cut-outs; whether a finger reaches the map or a control through what is drawn above it; the camera's fixed layout on phone and tablet; GPS, compass, height, alerts and recording with the screen off; legibility outdoors and at night; a screen reader and the largest font size; smoothness, heat and battery; an upgrade over a real install.
 
+**The auditor's own walk-through runs on a real phone.** That is the recommended way (-1094). Where a phone check isn't available, an emulator run is the allowed fallback. The emulator is a heavy job on this laptop: it runs only when no Gradle build or heavy forecast job is running, and only on the planner's go. Every result from it is marked "emulator, not a phone" in the audit report.
+
+**What an emulator can't stand in for:** real GPS and compass in the field; the phone's other sensors, such as the barometer; real system bars and cut-outs; a real finger's touch; heat and battery; legibility outdoors; the phone maker's own camera behaviour; an upgrade over a real Play install. A check that needs one of these stays "not seen on a phone" in the report, whatever the emulator showed.
+
 ## 4. How an audit runs and what it reports
 
 1. The planner names a pre-main commit and the changes since the last promotion.
@@ -112,7 +116,7 @@ For each promotion from pre-main into main, the auditor reads:
 - **Pass with items**: items listed, none of which, in the auditor's reading, risks a user's records, safety or trust. The owner ships or holds each one.
 - **Fail**: at least one item that would crash the app, lose records, mislead about position, direction or time, read as identification, break one of the owner's rulings, or ship something unfinished.
 
-**Each item says** where it is (the screen and step path), what the user would experience, why it matters (the principle), and the evidence, or "not seen on a phone".
+**Each item says** where it is (the screen and step path), what the user would experience, why it matters (the principle), and the evidence, or "not seen on a phone". Evidence from an emulator is marked "emulator, not a phone".
 
 **The owner decides.** "Advises, you decide" (-1085). Nothing reaches main without the owner's approval.
 
@@ -152,7 +156,7 @@ Answer by number. Each has a recommendation.
 20. **Reverts.** When a live bug is fixed by undoing a change? *Recommended: a short audit, at the front of the queue: it matches the earlier approved state and starts on both phones.*
 21. **Promotions with no app change.** Documents also reach main only by promotion, and those have no phone check (-1086). What should the auditor's report cover? *Recommended: public text (privacy policy, store text) is read against what the app does; anything else gets a one-line "no change a user would meet".*
 22. **The platform's own backup.** Android's quality guidelines expect an app's data to survive the platform's backup and phone-to-phone transfer. Your 2026-09-09 ruling keeps that off for good, with Forager's own Backup instead (-116). *Recommended: the auditor treats Forager's Backup as meeting the guideline's purpose and never flags the switch-off.*
-23. **The auditor's own checks.** May it run its own read-only walk-through on the S22 with a CI build, on the planner's go? Forecast reviews already recompute results with their own code (D18). *Recommended: yes; the S22 only, never over a running recording.*
+23. **The auditor's own checks. Answered (-1094):** "For the philosophy, running on a device is recommended. Also add an option for an emulator run it device check itself isn't available". The auditor's walk-through runs on a real phone. An emulator run is the fallback when no phone check is available, on the planner's go and never beside a Gradle build or heavy forecast job (section 3).
 24. **This draft.** *Recommended: you answer 1 to 22, the auditor revises, and the ruled version goes into pre-main as docs/process/qa-philosophy.md on your word.*
 
 ## Appendix A. Sources
