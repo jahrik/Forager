@@ -153,7 +153,7 @@ Answer by number. Each has a recommendation.
 21. **Promotions with no app change.** Documents also reach main only by promotion, and those have no phone check (-1086). What should the auditor's report cover? *Recommended: public text (privacy policy, store text) is read against what the app does; anything else gets a one-line "no change a user would meet".*
 22. **The platform's own backup.** Android's quality guidelines expect an app's data to survive the platform's backup and phone-to-phone transfer. Your 2026-09-09 ruling keeps that off for good, with Forager's own Backup instead (-116). *Recommended: the auditor treats Forager's Backup as meeting the guideline's purpose and never flags the switch-off.*
 23. **The auditor's own checks.** May it run its own read-only walk-through on the S22 with a CI build, on the planner's go? Forecast reviews already recompute results with their own code (D18). *Recommended: yes; the S22 only, never over a running recording.*
-24. **This draft.** *Recommended: you answer 1 to 23, the auditor revises, and the ruled version goes into pre-main as docs/process/qa-philosophy.md on your word.*
+24. **This draft.** *Recommended: you answer 1 to 22, the auditor revises, and the ruled version goes into pre-main as docs/process/qa-philosophy.md on your word.*
 
 ## Appendix A. Sources
 
@@ -174,6 +174,7 @@ Answer by number. Each has a recommendation.
 - -943, -963, -980, -981, -1005: honest framing; no identification; the camera; remembered choices.
 - -1059: the answers to Google Play, drafted by the planner and submitted by the owner.
 - -1085: this role and the gate on main.
+- -1094: the auditor's own checks on a real phone, with an emulator as the fallback.
 - -1086, -1087: the promotion steps and branch roles, recorded after the dispatch was written (read at records-after-173 `2e52449e`).
 
 **Files:** CLAUDE.md (all); docs/process/planner-profile.md; docs/audits/2026-09-26-pre-main-working-trunk.md; docs/plans/journal-redesign.md; docs/plans/mushroom-log.md; docs/beta/README.md; prompts/preserved/2026-10-15-08-pre-production-tidying-inventory.md (records-after-173); the field-instrument design rules and the mobile design-principles reference (the owner's synced skills); .github/workflows/ci.yml; scripts/s22-launch-check.sh; app/src/main/AndroidManifest.xml; app/src/main/java/com/zynergylabs/forager/app/data/local/ForagerDatabase.kt.
