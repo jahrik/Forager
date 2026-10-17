@@ -154,7 +154,7 @@ What the code talks to, and what each needs. No API key or token for any of them
 | `.../data/` | the Room database, the iNaturalist and Open-Meteo clients, repositories, backup |
 | `.../ui/` | Compose screens: `availability` (tabs, search, settings), `map`, `log` (Journal), `track`, `backup`, `credits`, `format`, `theme`, `motion`, `adaptive` |
 | `.../map/` | MapLibre set-up and the offline-region repository |
-| `.../photo/`, `.../location/`, `.../sensor/`, `.../service/`, `.../alert/`, `.../export/`, `.../crash/`, `.../net/` | camera and photo storage; location; compass and level; the recording service; alerts; GPX export; crash files; the HTTP user-agent |
+| `.../photo/`, `.../location/`, `.../sensor/`, `.../service/`, `.../alert/`, `.../export/`, `.../importgpx/`, `.../net/` | camera and photo storage; location; compass and level; the recording service; alerts; GPX export; GPX import; the HTTP user-agent |
 | `data/species-index/` | how the bundled species-name index is built, and its inputs |
 | `server/pmtiles-worker/` | the tile worker behind offline downloads |
 | `scripts/` | SDK set-up and the checks that probe outside services |
