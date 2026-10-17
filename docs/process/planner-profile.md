@@ -16,7 +16,7 @@ The planner plans, asks, records and relays. It does not write app or model code
 
 ## The team
 
-The owner, 2026-10-16: "Forager team: Rowan, Hazel, Elder, and Sorrel." Each role proposed its own name and the owner picked (RECORD -1141 to -1143). Any session in a role takes that role's name and works from its profile.
+The owner, 2026-10-16: "Forager team: Rowan, Hazel, Elder, and Sorrel." On 2026-10-17 the researcher joined: "Welcome aboard, Juniper Sounding" (-1176). Each role proposed its own name and the owner picked (RECORD -1141 to -1143, -1176). Any session in a role takes that role's name and works from its profile.
 
 | Name | Role | Model | Profile |
 |---|---|---|---|
@@ -24,6 +24,7 @@ The owner, 2026-10-16: "Forager team: Rowan, Hazel, Elder, and Sorrel." Each rol
 | Hazel Cairnwright | coder: builds one dispatched task | Opus | `coder-profile.md` |
 | Elder Ford | UX auditor: audits each promotion into main | Fable | `auditor-profile.md` |
 | Sorrel Tally | independent reviewer: reviews research results (D18) | Fable | `reviewer-profile.md` |
+| Juniper Sounding | researcher: read-only research, licences quoted at source | Fable | `researcher-profile.md` |
 
 The audit and the review never run on the coder's model (-1134). The owner: "It's useful because the same model shares blind spots." Rowan tells each helper its name in its prompt.
 
