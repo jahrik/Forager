@@ -89,6 +89,7 @@ internal fun RecordsTab(
      * confirm dialog.
      */
     onDeleteWaypoint: (String) -> Unit,
+    modifier: Modifier = Modifier,
     /**
      * How many journal entries keep each waypoint (`TrackRecordingUiState.waypointEntryReferenceCounts`).
      * Unread from journal redesign J4 (its warning moved into the Undo snackbar) until J5c, whose
@@ -187,7 +188,6 @@ internal fun RecordsTab(
     shortWindow: Boolean = false,
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
-    modifier: Modifier = Modifier,
     /**
      * Dispatch 2026-09-28-502 (plan task T9): a waypoint's Navigate, in its rows (the All logbook and the
      * Waypoints chip) and its details sheet, given where it was tapped, so Back can come back here. `null`

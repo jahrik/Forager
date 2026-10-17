@@ -81,6 +81,10 @@ builds the debug APK, reads the version back out of the built APK with `aapt2` t
 there, runs the unit tests, and checks the skipped ones against an exact list of allowed skips. It uploads
 two artifacts: `app-debug-apk` and `unit-test-report`.
 
+A second job, `lint`, runs Android lint on the debug variant (`./gradlew lintDebug`) and fails on any
+lint error, with no baseline (dispatch 2026-10-17-03, RECORD -1195). The checks switched off, each with its
+reason, are in the `lint {}` block of `app/build.gradle.kts`. It uploads `lint-reports`.
+
 ### Run this branch on CI
 
 When the laptop is busy, a coder builds and tests a pushed branch on CI instead (RECORD -865). The branch

@@ -10,6 +10,7 @@ import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.ImageCapture
+import androidx.core.graphics.createBitmap
 import com.zynergylabs.forager.app.domain.Camera2Readings
 import com.zynergylabs.forager.app.domain.CameraCapabilityReadings
 import com.zynergylabs.forager.app.domain.CameraFacing
@@ -126,7 +127,7 @@ internal fun readEncoders(): EncoderReadings = EncoderReadings(
 
 /** Compresses a real 1×1 bitmap and checks what came out starts with the PNG signature: evidence, not the platform's promise. */
 private fun probePng(): PngProbeReading {
-    val bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(1, 1, Bitmap.Config.ARGB_8888)
     try {
         val out = ByteArrayOutputStream()
         val returned = bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)

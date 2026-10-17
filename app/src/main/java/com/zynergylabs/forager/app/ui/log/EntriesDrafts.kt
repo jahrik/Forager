@@ -80,6 +80,7 @@ internal fun DraftsListScreen(
     /** The user's distance unit, for a card's track stat (J3, C1: the shared list's cards need it). */
     distanceUnit: DistanceUnit,
     columns: Int,
+    modifier: Modifier = Modifier,
     /** For a draft card's hero photo (J3, C2), as on the timeline. */
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     /** For a draft card's track thumbnail (J3, C3), as on the timeline. */
@@ -92,7 +93,6 @@ internal fun DraftsListScreen(
     onEditDraft: ((String) -> Unit)? = null,
     /** J5, L4: sideways cards with the long-press menu, in a short window. See [CartographyEntryListScreen]. */
     sideways: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.testTag(DRAFTS_LIST_TAG)) {
         Row(

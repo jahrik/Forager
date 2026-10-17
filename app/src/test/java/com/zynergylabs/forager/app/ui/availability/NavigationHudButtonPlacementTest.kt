@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.runtime.remember
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -80,7 +81,7 @@ abstract class NavigationHudButtonPlacementTests {
         composeRule.setContent {
             androidx.compose.runtime.key(generation) {
                 NavigationHud(
-                    heading = mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(11f)),
+                    heading = remember { mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(11f)) },
                     liveFix = fix,
                     target = start,
                     distanceUnit = DistanceUnit.MILES,

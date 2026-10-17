@@ -100,6 +100,7 @@ internal fun CartographyScreen(
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
     night: Boolean,
+    modifier: Modifier = Modifier,
     /** Threaded to [CartographyEntryReportScreen] only: the Maps tab's basemap, which an entry map opens on. */
     initialMapMode: MapMode = MapMode.DEFAULT,
     /**
@@ -133,7 +134,6 @@ internal fun CartographyScreen(
     /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See this file's own lifecycle-observer doc comment below. */
     onSaveEntryAsDraft: () -> Unit,
     onDeleteEntry: (String) -> Unit,
-    modifier: Modifier = Modifier,
     /** Grid column count for the Entries/Drafts lists — two on the phone. */
     columns: Int = 2,
     /**

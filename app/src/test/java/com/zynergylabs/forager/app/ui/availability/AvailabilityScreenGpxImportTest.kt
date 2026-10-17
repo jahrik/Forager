@@ -66,7 +66,7 @@ class AvailabilityScreenGpxImportTest {
     private var notice by mutableStateOf<GpxImportNotice?>(null)
 
     private fun setScreen() {
-        composeRule.setContent { gpxImportScreen(imported, notice) { seq -> shownSeqs += seq; if (notice?.seq == seq) notice = null } }
+        composeRule.setContent { GpxImportScreenUnderTest(imported, notice) { seq -> shownSeqs += seq; if (notice?.seq == seq) notice = null } }
         composeRule.waitForIdle()
     }
 
@@ -109,7 +109,7 @@ class AvailabilityScreenGpxImportTest {
 private val GPX_IMPORT_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
 @Composable
-private fun gpxImportScreen(tracks: List<Track>, notice: GpxImportNotice?, onShown: (Long) -> Unit) {
+private fun GpxImportScreenUnderTest(tracks: List<Track>, notice: GpxImportNotice?, onShown: (Long) -> Unit) {
     AvailabilityScreen(
         uiState = AvailabilityUiState(),
         onUseCurrentLocation = {},

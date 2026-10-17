@@ -120,6 +120,7 @@ internal fun LogEntryDetailScreen(
     onCancel: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     /**
      * Reports [PhotoAcquisitionLaunchers.isAcquisitionInFlight] up whenever it changes — device-check
      * patch, Items 2/3 — so a caller several layers up (`AvailabilityScreen`'s own ON_STOP hook) can
@@ -129,7 +130,6 @@ internal fun LogEntryDetailScreen(
      * don't need to pass one just to compile.
      */
     onPhotoAcquisitionInFlightChanged: (Boolean) -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(

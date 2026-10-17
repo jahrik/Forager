@@ -229,10 +229,10 @@ private fun CompactSettingsTab(
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     backup: BackupControls,
+    modifier: Modifier = Modifier,
     showBackupRequest: Int = 0,
     /** Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): Settings' own first page, at the top. */
     showSettingsOnlyRequest: Int = 0,
-    modifier: Modifier = Modifier,
 ) {
     // Dispatch 2026-10-13-05: Sources & credits, and Open-source software under it, are pages of Settings, one step
     // deeper each. Back retraces the way in: Software to Sources, Sources to Settings, each its own handler, composed after

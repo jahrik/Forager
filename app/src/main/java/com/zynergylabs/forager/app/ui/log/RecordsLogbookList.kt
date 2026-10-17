@@ -87,11 +87,11 @@ internal fun RecordsLogbookList(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteWaypoint: (String) -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    modifier: Modifier = Modifier,
     /** Part 2 follow-ups F1 item 5: a finished track row's swipe (pending delete with Undo); `null` leaves track rows without one. A recording track never has one. */
     onDeleteTrack: ((String) -> Unit)? = null,
     onDownloadAgain: (Long) -> Unit = {},
     onOpenFind: (String) -> Unit,
-    modifier: Modifier = Modifier,
     /** J4b L1: a find tile's long-press Delete (pending, with Undo); `null` leaves the tiles tap-only. */
     onDeleteFind: ((String) -> Unit)? = null,
     /** J4b L1: a find tile's long-press Edit. */

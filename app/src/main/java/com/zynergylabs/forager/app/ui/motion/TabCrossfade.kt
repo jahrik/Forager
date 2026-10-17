@@ -193,6 +193,9 @@ private class HeldFrame {
 fun TabChromeFade(
     shown: Boolean,
     windowKey: Any,
+    // The root's modifier, by Compose's convention, ahead of zeroRoom, which is the leaving bar's room only (lint
+    // ModifierParameter, dispatch 2026-10-17-03). Every caller names its arguments.
+    modifier: Modifier = Modifier,
     zeroRoom: Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -207,12 +210,12 @@ fun TabChromeFade(
     // Read in composition for the semantics (tests read the live value); the layer reads it in the draw phase.
     val currentAlpha = alpha
     when {
-        shown -> Box(Modifier.graphicsLayer { this.alpha = alpha }.semantics { tabChromeAlpha = currentAlpha }) { content() }
+        shown -> Box(modifier.graphicsLayer { this.alpha = alpha }.semantics { tabChromeAlpha = currentAlpha }) { content() }
         // Leaving: no room, no touch, and no semantics but its fade (Amendment 2), so a screen reader finds the arriving bar alone.
         // RECORD -691: no minimum touch target while it leaves (NoTouchTargetExpansion).
         state.currentState -> NoTouchTargetExpansion(active = true) {
             Box(
-                zeroRoom
+                modifier.then(zeroRoom)
                     .leavingTakesNoTouches(true)
                     .graphicsLayer { this.alpha = alpha }
                     .clearAndSetSemantics { tabChromeAlpha = currentAlpha },

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.adaptive.ProvideConfigurationAndWindow
 import android.app.Application
 import android.content.ComponentName
 import android.view.Surface
@@ -99,7 +100,7 @@ class AvailabilityScreenJournalShortWindowTest {
         composeRule.setContent {
             rotationSeenByScreen = LocalView.current.display?.rotation
             var cartography by androidx.compose.runtime.remember { mutableStateOf(CartographyUiState(entries = entries, draftEntries = drafts)) }
-            shortWindowScreen(
+            ShortWindowScreenUnderTest(
                 cartography = cartography,
                 onStart = { date -> startedEntries += date },
                 onOpen = { id ->
@@ -444,7 +445,7 @@ class AvailabilityScreenJournalShortWindowTest {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
         composeRule.setContent {
             fontScaleSeenByScreen = androidx.compose.ui.platform.LocalDensity.current.fontScale
-            shortWindowScreen(
+            ShortWindowScreenUnderTest(
                 cartography = CartographyUiState(),
                 onStart = {},
                 onOpen = {},
@@ -545,8 +546,8 @@ class AvailabilityScreenJournalShortWindowTest {
                 }
             }
             var cartography by androidx.compose.runtime.remember { mutableStateOf(CartographyUiState(entries = MANY_ENTRIES, draftEntries = drafts)) }
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalConfiguration provides configuration) {
-                shortWindowScreen(
+            ProvideConfigurationAndWindow(configuration) {
+                ShortWindowScreenUnderTest(
                     cartography = cartography,
                     onStart = { date -> startedEntries += date },
                     onOpen = { id -> cartography = cartography.copy(editingEntry = (cartography.entries + cartography.draftEntries).first { it.id == id }) },
@@ -677,7 +678,7 @@ private val MANY_WAYPOINTS = (1..16).map { i ->
 }
 
 @androidx.compose.runtime.Composable
-private fun shortWindowScreen(
+private fun ShortWindowScreenUnderTest(
     cartography: CartographyUiState,
     onStart: (LocalDate) -> Unit,
     onOpen: (String) -> Unit,

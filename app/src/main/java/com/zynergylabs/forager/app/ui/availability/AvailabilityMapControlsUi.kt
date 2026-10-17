@@ -722,20 +722,23 @@ private fun CompassElevationStripContent(
                                 // Dispatch 2026-09-28-677: labelled, as on the navigation display (LabelledReadout).
                                 // Dispatch 2026-10-12-08: navigating, the note alone; the heading is the navigation info's.
                                 if (!navigating) {
-                                if (shortHeadingStatus && heading.isCompassStatus()) StripHeadingStatusIcon(heading) else
-                                LabelledReadout(label = stripHeadingLabel(heading), labelStyle = stripReadoutStyle()) {
-                                    WordSwap(text = stripHeadingText(heading)) { shown ->
-                                        Text(
-                                            text = shown,
-                                            style = stripReadoutStyle().copy(fontFeatureSettings = "tnum"),
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                                        )
+                                    if (shortHeadingStatus && heading.isCompassStatus()) {
+                                        StripHeadingStatusIcon(heading)
+                                    } else {
+                                        LabelledReadout(label = stripHeadingLabel(heading), labelStyle = stripReadoutStyle()) {
+                                            WordSwap(text = stripHeadingText(heading)) { shown ->
+                                                Text(
+                                                    text = shown,
+                                                    style = stripReadoutStyle().copy(fontFeatureSettings = "tnum"),
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                                                )
+                                            }
+                                        }
                                     }
-                                }
-                                Text("·", style = stripReadoutStyle())
+                                    Text("·", style = stripReadoutStyle())
                                 }
                                 WordSwap(text = lastNote.stripText, modifier = Modifier.weight(1f, fill = false)) { shown ->
                                     Text(

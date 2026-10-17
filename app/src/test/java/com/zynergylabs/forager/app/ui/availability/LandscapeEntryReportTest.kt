@@ -20,6 +20,11 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import com.zynergylabs.forager.app.ui.adaptive.FixedWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
@@ -104,8 +109,11 @@ class LandscapeEntryReportTest {
         bubbles.slot(region, content, renderMode, focusOverride, onLongPress, onTap, onSightingTap, onCameraIdle, modifier)
     }
 
-    private fun setScreen() {
+    /** [window], when given, is the window's own size (lint dispatch 2026-10-17-03: the screen reads the window, not the configuration). */
+    private fun setScreen(window: DpSize? = null) {
         composeRule.setContent {
+            val windowInfo = window?.let { FixedWindowInfo(LocalWindowInfo.current, it, LocalDensity.current.density) } ?: LocalWindowInfo.current
+            CompositionLocalProvider(LocalWindowInfo provides windowInfo) {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(),
                 onUseCurrentLocation = {},
@@ -138,6 +146,7 @@ class LandscapeEntryReportTest {
                 getCartographyEntryMapData = { _, _ -> mapData },
                 getCartographyEntryOfflineRegion = { _, _ -> region },
             )
+            }
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Journal").performClick()
@@ -202,6 +211,18 @@ class LandscapeEntryReportTest {
         setScreen()
         val mapRect = bounds(CARTOGRAPHY_MAP_TEST_TAG)
         assertEquals("the map is 40% of the 384 dp window", 384f * 0.4f, (mapRect.bottom - mapRect.top).value, 0.5f)
+    }
+
+    /**
+     * Lint dispatch 2026-10-17-03, Phase 2 (RECORD -1195), ConfigurationScreenWidthHeight: the cap is a fraction of the
+     * **window's** height (`LocalWindowInfo`), not `Configuration.screenHeightDp`. The configuration says 384 dp (this
+     * class's qualifiers); the window says 300 dp, so the map is 120 dp. Before the fix it was 153.6 dp.
+     */
+    @Test
+    fun `L2 the map cap follows the window's own height, not the configuration's`() {
+        setScreen(window = DpSize(823.dp, 300.dp))
+        val mapRect = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        assertEquals("the map is 40% of the 300 dp window", 300f * 0.4f, (mapRect.bottom - mapRect.top).value, 0.5f)
     }
 
     // ── Checks: M1's bubbles and the opening frame still work on the capped map ──

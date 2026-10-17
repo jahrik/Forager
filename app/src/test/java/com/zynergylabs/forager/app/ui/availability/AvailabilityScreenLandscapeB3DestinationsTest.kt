@@ -84,7 +84,7 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             rotationSeenByScreen = LocalView.current.display?.rotation
-            b3Screen(uiState = B3_LIST_STATE, mapSlot = B3_STUB_MAP)
+            B3ScreenUnderTest(uiState = B3_LIST_STATE, mapSlot = B3_STUB_MAP)
         }
         composeRule.waitForIdle()
         assertEquals("the screen must actually see the rotation this test is about", rotation, rotationSeenByScreen)
@@ -239,7 +239,7 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     @Test
     @Config(qualifiers = "w411dp-h891dp")
     fun `T3 portrait List content fills the width, as today`() {
-        composeRule.setContent { b3Screen(uiState = B3_LIST_STATE, mapSlot = B3_STUB_MAP) }
+        composeRule.setContent { B3ScreenUnderTest(uiState = B3_LIST_STATE, mapSlot = B3_STUB_MAP) }
         composeRule.waitForIdle()
         assertTrue("portrait has no rail", composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes().isEmpty())
         openTab("List")
@@ -299,7 +299,7 @@ private val B3_LIST_STATE = AvailabilityUiState(
 )
 
 @androidx.compose.runtime.Composable
-private fun b3Screen(uiState: AvailabilityUiState, mapSlot: MapSlot) {
+private fun B3ScreenUnderTest(uiState: AvailabilityUiState, mapSlot: MapSlot) {
     AvailabilityScreen(
         uiState = uiState,
         onUseCurrentLocation = {},

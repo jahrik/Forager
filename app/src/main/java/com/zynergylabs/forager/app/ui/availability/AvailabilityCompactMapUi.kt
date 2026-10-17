@@ -165,6 +165,7 @@ import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.draw.clipToBounds
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
@@ -214,7 +215,7 @@ import kotlin.reflect.KProperty
  * preceded by a frame on the right. A holder made with nothing to wait for starts applied.
  */
 internal class MapIconClusterPositionState(awaitingPlacement: Boolean = false) {
-    var userChosenOffsetPx by mutableStateOf(0f)
+    var userChosenOffsetPx by mutableFloatStateOf(0f)
     val displayedOffsetPx = Animatable(0f)
     var isOnLeftSide by mutableStateOf(false)
     var isMinimized by mutableStateOf(false)
@@ -226,7 +227,7 @@ internal class MapIconClusterPositionState(awaitingPlacement: Boolean = false) {
     // so turning between ROTATION_90 and ROTATION_270 keeps the cluster on the same device edge.
     // Defaults to the punch-hole side. Side and height persist like the portrait ones (RECORD -711); minimised does not.
     var landscapeOnPortSide by mutableStateOf(false)
-    var landscapeUserChosenOffsetPx by mutableStateOf(0f)
+    var landscapeUserChosenOffsetPx by mutableFloatStateOf(0f)
     val landscapeDisplayedOffsetPx = Animatable(0f)
     var landscapeIsMinimized by mutableStateOf(false)
 
@@ -308,6 +309,7 @@ internal fun CompactMapTab(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
     renderMode: MapRenderMode,
+    modifier: Modifier = Modifier,
     /**
      * The icon cluster's position — vertical memory, displayed offset, side — held by the caller
      * so it survives leaving and returning to this tab. See [MapIconClusterPositionState]. The
@@ -442,7 +444,6 @@ internal fun CompactMapTab(
      * user left it when the notice clears (the clamp is display-only). Placement only.
      */
     searchNoticeBottom: Dp = 0.dp,
-    modifier: Modifier = Modifier,
     /**
      * Map layers L0b: the Layers sheet's choices and callbacks, the legend and every saved record this
      * tab draws (see [MapLayersControls]). Defaulted so any other caller is unchanged.
@@ -510,9 +511,9 @@ internal fun CompactMapTab(
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
-    var resumeTrackingRequestId by remember { mutableStateOf(0) }
+    var resumeTrackingRequestId by remember { mutableIntStateOf(0) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
-    var resetOrientationRequestId by remember { mutableStateOf(0) }
+    var resetOrientationRequestId by remember { mutableIntStateOf(0) }
     // J6c: the cluster's state and its measurements live in MapIconClusterState (AvailabilityMapIconCluster.kt),
     // shared with the tablet's map. The names below are aliases, so what this tab still reads (the bar's side,
     // the container's width, the nav's height, the legend chip's top) reads as it did.

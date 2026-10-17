@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import androidx.compose.runtime.remember
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -97,7 +98,7 @@ class JournalEntriesChipTest {
                 Box(Modifier.fillMaxSize()) {
                     MapFeatureBubble(
                         content = MapBubbleContent.Find(findId = "find-1", title = "Golden chanterelle", date = "Sep 12, 2026", coverPhotoPath = null, keptIn = keptIn),
-                        tipInBubble = mutableStateOf(null),
+                        tipInBubble = remember { mutableStateOf(null) },
                         onDismiss = {},
                         openFindLabel = OPEN_FIND_LABEL,
                         onOpenFind = null,

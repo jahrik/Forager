@@ -177,6 +177,8 @@ import com.zynergylabs.forager.app.ui.motion.LocalLeavingPages
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.Animatable
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.zIndex
 import com.zynergylabs.forager.app.ui.motion.TabChromeFade
 import com.zynergylabs.forager.app.ui.motion.zeroHeightDrawnAbove
@@ -482,7 +484,7 @@ internal fun CompactMainScaffold(
         val safeAnimatedTopInset = animatedTopInset.coerceAtLeast(0.dp)
         // Dispatch 2026-09-28-104, item 2: the search column's measured height (the bar, and the notice below the compass strip when
         // one shows). The Maps tab keeps the icon cluster below its bottom while a notice shows; nothing else reads it.
-        var searchChromeHeightPx by remember { mutableStateOf(0) }
+        var searchChromeHeightPx by remember { mutableIntStateOf(0) }
         // "Set on map" (SearchDropdown's own Advanced Search section, dispatch C item 2) hands off to the exact same
         // pan-to-centre-pin-plus-confirm flow every other pin placement in this app uses
         // (CentrePinLocationPickerOverlay) rather than a second picker — see CompactMapTab's own
@@ -651,7 +653,7 @@ internal fun CompactMainScaffold(
         // drawn, the same reasoning mapIconClusterHeightPx already established in this file — read back
         // via bottomNavHeight below, needed in two places: the search-dropdown dismiss scrim and
         // its own SearchDropdown panel both need this same band excluded (their own doc comments).
-        var bottomNavHeightPx by remember { mutableStateOf(0f) }
+        var bottomNavHeightPx by remember { mutableFloatStateOf(0f) }
         val bottomNavDensity = LocalDensity.current
         // Landscape B1: in a short landscape window the bottom bar is replaced by a navigation
         // rail on the charger-port edge, so neither ForagerBottomNav call site renders. Two
@@ -680,7 +682,7 @@ internal fun CompactMainScaffold(
         // The Map tab's overlaid rail's real measured width, in px — the landscape counterpart of
         // bottomNavHeightPx above, measured for the same reason (it includes the system
         // navigation-bar inset the rail consumes, which Robolectric reports as zero).
-        var mapRailWidthPx by remember { mutableStateOf(0f) }
+        var mapRailWidthPx by remember { mutableFloatStateOf(0f) }
         val mapRailWidth = with(bottomNavDensity) { mapRailWidthPx.toDp() }
         // What the Map tab's controls are padded by in a short landscape window, and never the
         // map itself (R12, R13, R17, all revised): the displayCutout inset on the sides, so no

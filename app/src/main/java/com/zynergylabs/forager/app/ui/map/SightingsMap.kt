@@ -41,6 +41,7 @@ import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
@@ -310,6 +311,9 @@ fun SightingsMap(
     trueHeading: State<TrueHeadingReading>? = null,
 ) {
     val context = LocalContext.current
+    // Resources through LocalResources, which Compose re-reads on a configuration change, rather than
+    // LocalContext.current.resources, which it does not (lint LocalContextResourcesRead; dispatch 2026-10-17-03).
+    val resources = LocalResources.current
 
     // The marker palette is MapPalette.forMode(nightMode) on every basemap (colour build C2). It is chosen inside requestedMapStyle, below, rather than here, so that a
     // headless test reaches it (OfflineStyleSwapTest); the style effect reads requested.palette.
@@ -647,7 +651,7 @@ fun SightingsMap(
             // The four outcomes come back through the sinks below, unchanged from what the listener did.
             val handler = MapTapHandler(
                 fan = fanOut,
-                probe = MapLibreProbe(map, context.resources.displayMetrics.density) { key ->
+                probe = MapLibreProbe(map, resources.displayMetrics.density) { key ->
                     // Where a fanned record is now, from the lists the map draws (the projection of it is the probe's): the
                     // same lookup a shown bubble's re-anchoring uses. Null once the record is no longer drawn.
                     focusedFeaturePosition(FocusedMapFeature(key.layerId, key.featureId), currentPlannedTrips, currentWaypoints, currentFindMarkers, currentPhotoMarkers)
@@ -883,7 +887,7 @@ fun SightingsMap(
             if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
             initializeOverlayLayers(
                 style,
-                density = context.resources.displayMetrics.density,
+                density = resources.displayMetrics.density,
                 palette = requested.palette,
                 drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState),
                 layersState = currentLayersState,
@@ -981,7 +985,7 @@ fun SightingsMap(
         // A later target change (a locate-me pan) still moves the camera, as before.
         val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, lastAppliedCameraRequestId)
         if (frameWanted) cameraMoveClassifier.markAppMove()
-        val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest!!.frame, context.resources.displayMetrics.density)
+        val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest!!.frame, resources.displayMetrics.density)
         if (frameApplied) {
             lastAppliedCameraRequestId = cameraRequest?.id
             lastAppliedCameraTarget = target
@@ -1024,7 +1028,7 @@ fun SightingsMap(
     LaunchedEffect(loadedStyle, mapLibreMap, focusedObservationId) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
-        val density = context.resources.displayMetrics.density
+        val density = resources.displayMetrics.density
         val effectScope = this
         val gate = fanHideGate
         var waiting: Job? = null
@@ -1094,7 +1098,7 @@ fun SightingsMap(
     LaunchedEffect(loadedStyle, chromeColour) {
         val style = loadedStyle ?: return@LaunchedEffect
         if (fanCircleNeedsRecolour(fanCircleColour[0], chromeColour)) {
-            applyFanCircleStyle(style, chromeColour, context.resources.displayMetrics.density)
+            applyFanCircleStyle(style, chromeColour, resources.displayMetrics.density)
             fanCircleColour[0] = chromeColour
         }
     }
