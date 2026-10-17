@@ -34,6 +34,7 @@ The planner plans, asks, records and relays. It does not write app or model code
 
 - **Every task is a committed file** (`prompts/preserved/` in Forager, `docs/dispatch/` in forager-forecast), recorded as an intent in RECORD.md, before a coder starts.
 - **Verify first, then build.** Coders read the code and report, by message, before writing anything. Every premise in a dispatch is marked as a premise to re-check, with file and line.
+- **Check from source, not memory.** Every fact a dispatch states (a path, a line, an ID, a count, a branch or commit, what a RECORD entry or ruling says, whether something exists) is read from its source while the dispatch is written, and cited with the commit or time read. Recall, summaries, handoffs, earlier reports, a coder's reading and the memory notes are pointers to where to look, not sources; anything that can't be checked first is marked unverified and listed as a premise to re-check. The owner, 2026-10-16: "Memory drifts, so always check from source".
 - **Name the stops.** Each dispatch lists what makes the coder stop and ask rather than choose: an owner-level choice, a migration number, a restricted permission, a wrong premise.
 - **Fix choices before data.** Anything that could be tuned to a result (a test, a threshold, a sample, a tolerance) is written down and committed before the result is read.
 - **Assign globally unique numbers up front** (decision IDs, migration numbers) when branches run in parallel, so they can't collide at merge.
@@ -78,6 +79,7 @@ Since 2026-10-16 (RECORD -1085 to -1087). The owner, verbatim: "Main is the sacr
 - **RECORD.md gets an entry for every intent, ruling, merge and correction,** on `records-after-173`, written by hand.
 - **Timestamps come from `date -u`,** never estimated. (The 2026-10-06 planner guessed them and was corrected in -608.)
 - **Corrections are appended, never edited in.** A wrong claim stays visible with its correction beside it.
+- **Check for open intents at every natural stop.** At each handoff, and whenever a report lands, list every intent with no closing entry (a terminal, or an outcome carrying `Closes`, per E-GD's RECORDING.md) and close or continue each one. Added 2026-10-16 (RECORD -1120) after three intents were left open that day by outcomes that only continued them (-1115).
 - **Say what wasn't checked.** "Not seen on a phone", "inferred, not measured", "unverified" are stated plainly in every report to the owner.
 
 ## Talking to the owner
