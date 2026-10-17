@@ -89,12 +89,14 @@ All Play builds come from main, closed-testing builds included, so every tester 
 For each promotion from pre-main into main, the auditor reads:
 
 - **CI on pre-main**, green at the exact commit being promoted: build, version check, full test suite. No test skipped, deleted or weakened, and no growth in CI's list of allowed skips (CLAUDE.md, "Testing").
-- **Device checks of a plain build.** Since -930 main holds no developer tools, so every build of main is plain. Each check is written before it runs, with a pass condition and evidence for every step.
-  - The S22 Ultra test phone (no SIM, so GPS only): every promotion that changes the app (-1086), starting with the launch check.
-  - The S26 Ultra, the owner's phone: every promotion that changes the app.
-  - The tablet: when a screen changes (-1086), including the camera, because newer Android ignores the portrait request on wide screens (-980).
-  - An upgrade over the current Play version (A2).
-- **A field walk** on a pre-main build, for any change to recording, navigation, alerts or position, before promotion. Testers only meet a change after it is in main, so the walk comes first (-1097).
+- **Device checks and field walks, when the planner proposed one and the owner agreed** (amended by -1133: they are not gate steps). The owner: "Field walks and device checks aren't always necessary, so don't add those as gates". Where one was run, the auditor reads its evidence; where none was, the auditor marks each item that only a phone can show as "not seen on a phone". When one is proposed, it covers:
+  - the S22 Ultra test phone (no SIM, so GPS only), starting with the launch check;
+  - the S26 Ultra, the owner's phone;
+  - the tablet, when a screen changes, including the camera, because newer Android ignores the portrait request on wide screens (-980);
+  - a field walk on a pre-main build, for changes to recording, navigation, alerts or position.
+
+  Every build of main is plain, since -930 main holds no developer tools. Each check is written before it runs, with a pass condition and evidence for every step.
+- **The upgrade check** (A2), only when a promotion changes how records are stored, such as a database migration or a file format (-1133). It installs the owner's signed Play build over the current Play version, holding test records, photos and settings.
 - **Known bugs**: the list in A6.
 - **Accessibility**: Appendix B.
 - **Copy**: honest, with a next step wherever something is empty or failed, plain, no placeholder, nothing that reads as identification. Public text is read against A7.
@@ -104,6 +106,8 @@ For each promotion from pre-main into main, the auditor reads:
 **CI is needed, and not enough.** It builds only the debug version. It never runs the phone's own check of the app's code, which is how main crashed at launch with every test green (-739). Its test harness sees no system bars at the screen edges, and its simulated taps reach a control even when something covers it (CLAUDE.md, "Known pitfalls" and "Testing").
 
 **Only a phone can show:** whether the app starts at all; layouts against real system bars and cut-outs; whether a finger reaches the map or a control through what is drawn above it; the camera's fixed layout on phone and tablet; GPS, compass, height, alerts and recording with the screen off; legibility outdoors and at night; a screen reader and the largest font size; smoothness, heat and battery; an upgrade over a real install.
+
+**Who audits.** A fresh session for each promotion, started by the planner or opened by the owner in another window. It is never the coder that implemented the work, and it runs on a different model from the coder: Fable for Forager, whose coders are Opus (-1134). The owner: "It's useful because the same model shares blind spots".
 
 **The auditor's own walk-through runs on a real phone.** That is the recommended way (-1094). Where a phone check isn't available, an emulator run is the allowed fallback. The emulator is a heavy job on this laptop: it runs only when no Gradle build or heavy forecast job is running, and only on the planner's go. Every result from it is marked "emulator, not a phone" in the audit report.
 
@@ -155,8 +159,8 @@ The draft's questions and the owner's answers. Every answer except 23 is the aud
 8. A7, what Forager says in public stays true: adopted (-1097).
 9. A8, a change states its battery cost: adopted with 18 (-1097).
 10. Verdicts: the three definitions in section 4, as written (-1097).
-11. Build for phone checks: CI's build, plus the owner's signed Play build for the upgrade check. A Play-type build on CI waits for the release tidying (-1097).
-12. Field walks: required on a pre-main build before promotion, for recording, navigation, alerts and position only (-1097).
+11. Build for phone checks: CI's build, plus the owner's signed Play build for the upgrade check. A Play-type build on CI waits for the release tidying (-1097). *Amended by -1133: the upgrade check runs only when a promotion changes how records are stored.*
+12. Field walks: required on a pre-main build before promotion, for recording, navigation, alerts and position only (-1097). *Superseded by -1133: field walks are proposed per promotion by the planner and decided by the owner, not required.*
 13. Tester builds: covered by the gate, since all Play builds come from main (-1097).
 14. Accessibility bar: Appendix B now, full WCAG 2.1 AA later (-1097).
 15. The camera: its fixed layout is the owner's stated exception to WCAG 1.3.4 and is never flagged (-1097).
@@ -169,6 +173,8 @@ The draft's questions and the owner's answers. Every answer except 23 is the aud
 22. The platform's own backup: Forager's Backup meets the guideline's purpose; the switch-off is never flagged (-1097).
 23. The auditor's own checks, answered by the owner: "For the philosophy, running on a device is recommended. Also add an option for an emulator run it device check itself isn't available". The walk-through runs on a real phone, with an emulator as the fallback under the limits in section 3 (-1094).
 24. This document goes into pre-main as docs/process/qa-philosophy.md (-1097).
+
+**Added after adoption.** -1133: device checks and field walks are not gate steps, and the upgrade check runs only when storage changes. -1134: the auditor runs on a different model from the coder (Fable for Forager).
 
 ## Appendix A. Sources
 

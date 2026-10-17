@@ -24,7 +24,7 @@ Each section says which intent field it supplies. The intent quotes or points at
 3. **Authorisation.** The owner's words, verbatim, including their yes to "Start a coder on X now?". A design answer is not a go.
 4. **Writing rule.** One fixed line: "Describe products generically. Commits end with `Co-Authored-By: Claude <noreply@anthropic.com>` and no model name."
 5. **Change.** What will be different afterwards. For anything a person sees, this is the owner's step path (tap → shows → Back), as confirmed with the owner. *Intent field: Change.*
-6. **Scope boundary.** What may be touched (branch, folders, files), and what must not be: main, release builds, other coders' files, RECORD.md and the audit index. *Intent field: Scope boundary.*
+6. **Scope boundary.** What may be touched (branch, folders, files), and what must not be: main, release builds, other coders' files, RECORD.md and the audit index (the planner writes those). *Intent field: Scope boundary.*
 7. **Baseline.** The base branch and the commit it was written against, checked against the remote at writing. Every claim about the code is a premise to re-check, never a fact. *Intent field: Baseline.*
 8. **Verify first.** Each premise, with file and line, for the coder to confirm before building. Where anything is uncertain, the work runs in two phases:
    - Phase 1 reads and reports, then stops;
@@ -47,7 +47,7 @@ Each section says which intent field it supplies. The intent quotes or points at
     - two failed attempts at one symptom.
 
     *Intent field: Abort conditions.*
-12. **Finish line.** What counts as done, for example "PR into dev, green, unmerged; the planner's device check on the S26 then the S22". *Intent field: Finish line.*
+12. **Finish line.** What counts as done, for example "PR into pre-main, green, merged on the owner's word" (an experiment's would read "PR into dev, green, unmerged; the phone check the owner agreed to, S22 first"). *Intent field: Finish line.*
 13. **Final message.** The completion report:
     - commits and PR;
     - failing-first evidence;

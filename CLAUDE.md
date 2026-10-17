@@ -307,6 +307,7 @@ here.
   branch and the session defaults to a different one, that is a
   stop-and-ask, not something to resolve alone — say which two disagree and
   wait.
+- **Main changes only by a promotion from pre-main.** Every Play build comes from main. A promotion passes CI on pre-main, the UX auditor's report (a fresh session on a different model from the coder) against `docs/process/qa-philosophy.md`, and the owner's approval for public use. Work lands on pre-main, and experiments on dev (main plus experiments). See `docs/process/planner-profile.md`, "Branches and the road to main".
 - **Room for data that relates; DataStore for flat settings.** The deciding
   question is what the data will be queried for, not what it looks like
   today: if a value will be referenced by, joined to, or filtered against
