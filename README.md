@@ -85,6 +85,12 @@ A second job, `lint`, runs Android lint on the debug variant (`./gradlew lintDeb
 lint error, with no baseline (dispatch 2026-10-17-03, RECORD -1195). The checks switched off, each with its
 reason, are in the `lint {}` block of `app/build.gradle.kts`. It uploads `lint-reports`.
 
+A third job, `release-compile`, proves the release variant compiles and packages: it runs
+`./gradlew packageRelease packageReleaseBundle` with no signing key, so a release-only compile error, or code in
+`src/main` that needs a debug-only dependency, fails CI (dispatch 2026-10-17-04, RECORD -1201). It stops short of
+`assembleRelease` and `bundleRelease`, which fail by design without the signing identity, and it does not upload
+the unsigned APK or bundle, only its Gradle log, as `release-compile-log`.
+
 ### Run this branch on CI
 
 When the laptop is busy, a coder builds and tests a pushed branch on CI instead (RECORD -865). The branch
