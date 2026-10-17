@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -120,6 +121,16 @@ class MonthWordsFollowTheAppLanguageTest {
         assertEquals("the JVM default says English, so only the configuration can say French", "en", Locale.getDefault().language)
     }
 
+    /**
+     * Counts both languages before asserting either, so a failure says which language was on screen: `(0, 1)` is the
+     * English month in place of the French one, the reason these tests exist; `(0, 0)` would be a harness problem (the
+     * text not reached at all), which is a different failure and not evidence for the fix.
+     */
+    private fun assertFrenchNotEnglish(french: SemanticsMatcher, english: SemanticsMatcher) {
+        val shown = composeRule.onAllNodes(french).fetchSemanticsNodes().size to composeRule.onAllNodes(english).fetchSemanticsNodes().size
+        assertEquals("(French, English) nodes: the French month once, the English nowhere", 1 to 0, shown)
+    }
+
     private fun openSearchPanel() {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.waitForIdle()
@@ -132,8 +143,8 @@ class MonthWordsFollowTheAppLanguageTest {
         composeRule.onNodeWithText("List").performClick()
         composeRule.waitForIdle()
 
+        assertFrenchNotEnglish(hasText("for ${french(8)}.", substring = true), hasText("for ${english(8)}.", substring = true))
         composeRule.onNodeWithText("for ${french(8)}.", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("for ${english(8)}.", substring = true).assertDoesNotExist()
     }
 
     /** `AvailabilitySearchUi.kt`, `RecentSearchRow`: "<filter> · <month>". */
@@ -144,8 +155,8 @@ class MonthWordsFollowTheAppLanguageTest {
         composeRule.onNodeWithText("Recent searches").performScrollTo().performClick()
         composeRule.waitForIdle()
 
+        assertFrenchNotEnglish(hasText("Plants · ${french(10)}"), hasText("Plants · ${english(10)}"))
         composeRule.onNodeWithText("Plants · ${french(10)}").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Plants · ${english(10)}").assertDoesNotExist()
     }
 
     /** `AvailabilitySearchUi.kt`, `MonthSelector`: the selected month shown in the Month field. */
@@ -154,9 +165,9 @@ class MonthWordsFollowTheAppLanguageTest {
         setScreen(STATE)
         openSearchPanel()
 
-        composeRule.onNode(hasText(french(8)) and hasAnyAncestor(hasTestTag(SEARCH_DROPDOWN_TAG)))
-            .performScrollTo().assertIsDisplayed()
-        composeRule.onNode(hasText(english(8)) and hasAnyAncestor(hasTestTag(SEARCH_DROPDOWN_TAG))).assertDoesNotExist()
+        val inPanel = hasAnyAncestor(hasTestTag(SEARCH_DROPDOWN_TAG))
+        assertFrenchNotEnglish(hasText(french(8)) and inPanel, hasText(english(8)) and inPanel)
+        composeRule.onNode(hasText(french(8)) and inPanel).performScrollTo().assertIsDisplayed()
     }
 
     /** `AvailabilitySearchUi.kt`, `MonthSelector`'s menu: the twelve choices. */
@@ -167,9 +178,9 @@ class MonthWordsFollowTheAppLanguageTest {
         composeRule.onNodeWithText("Month").performScrollTo().performClick()
         composeRule.waitForIdle()
 
+        val inMenu = hasAnyAncestor(hasTestTag(MONTH_MENU_TAG))
         for (month in listOf(1, 12)) {
-            composeRule.onNode(hasText(french(month)) and hasAnyAncestor(hasTestTag(MONTH_MENU_TAG))).assertExists()
-            composeRule.onNode(hasText(english(month)) and hasAnyAncestor(hasTestTag(MONTH_MENU_TAG))).assertDoesNotExist()
+            assertFrenchNotEnglish(hasText(french(month)) and inMenu, hasText(english(month)) and inMenu)
         }
     }
 
