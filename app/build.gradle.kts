@@ -321,6 +321,15 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    // Lint on CI (production release T3; dispatch 2026-10-17-03, owner's go RECORD -1195): the lint job in
+    // .github/workflows/ci.yml runs lintDebug, which fails on any error (abortOnError, lint's default), with no
+    // baseline. Three checks are off, each for the reason on its line; every other check runs at lint's own severity.
+    lint {
+        disable += "LogNotTimber" // A library's rule for its own logger; the app logs through Android's Log on purpose.
+        disable += "NewerVersionAvailable" // Answers from what is published online that day, not from the code, so a commit could pass today and fail tomorrow.
+        disable += "GradleDependency" // The same: it reports newer library versions from online indexes, so its result changes without a code change.
+    }
 }
 
 /**

@@ -137,6 +137,7 @@ internal fun JournalTab(
     onOpenCameraForCartographyEntry: () -> Unit,
     mapSlot: MapSlot,
     pickerRegion: Region,
+    modifier: Modifier = Modifier,
     /** The device's current position, if one is in hand — opens the Add/Change Location picker there instead of on [pickerRegion] (find-location-at-creation dispatch, Fix 3; see [findLocationPickerRegion]). Defaulted so callers and tests that have no fix are unchanged. */
     deviceLocation: LatLng? = null,
     basemap: Basemap,
@@ -314,7 +315,6 @@ internal fun JournalTab(
      */
     findEntryModeState: MutableState<JournalEntryMode> = remember { mutableStateOf(JournalEntryMode.REPORT) },
     findOverViewState: MutableState<FindOverView?> = remember { mutableStateOf(null) },
-    modifier: Modifier = Modifier,
     /** Dispatch 2026-09-28-502: Records' Navigate on a waypoint, handed to [RecordsTab]; `null` (the default) offers none. */
     onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
     /** Dispatch 2026-09-28-502, Amendment 1: a waypoint details sheet for [RecordsTab] to open again, once; see its parameters. */

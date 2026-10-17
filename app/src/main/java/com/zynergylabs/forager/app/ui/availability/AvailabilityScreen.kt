@@ -1033,7 +1033,7 @@ fun AvailabilityScreen(
     // the Maps tab and coming back keeps them (CLAUDE.md, UX defaults; the legend's flag above is
     // held the same way). Cleared when navigation stops, so the next Return starts in the view.
     var navigationFollowBroken by rememberSaveable { mutableStateOf(false) }
-    var navigationViewRequestId by rememberSaveable { mutableStateOf(0) }
+    var navigationViewRequestId by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(isNavigating) { if (!isNavigating) navigationFollowBroken = false }
     // Dispatch 2026-09-28-440: the set zoom is applied once per navigation, when it starts: pending
     // from the start until the map reports it applied. Held above the tab, so a tab change does not

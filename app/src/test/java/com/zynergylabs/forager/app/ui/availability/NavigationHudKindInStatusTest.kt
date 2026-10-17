@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.runtime.remember
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -161,7 +162,7 @@ class NavigationHudKindInStatusTest {
         composeRule.setContent {
             val c = case ?: return@setContent
             NavigationHud(
-                heading = mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(c.headingDegrees)),
+                heading = remember(c) { mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(c.headingDegrees)) },
                 liveFix = c.liveFix,
                 approximateFix = c.approximateFix,
                 lastKnownFix = c.lastKnownFix,

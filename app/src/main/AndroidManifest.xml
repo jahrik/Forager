@@ -129,10 +129,20 @@
       device-to-device transfer that docs/plans/journal-trips-and-offline-regions.md (the "Leak
       paths" list) intended to keep. GPX export covers tracks and waypoints, not the journal, so it
       is not the in-app export described above and is not a substitute for it.
+
+      android:dataExtractionRules (lint dispatch 2026-10-17-03, RECORD -1195): carries out the ruling
+      above on Android 12 and later, it does not change it. Lint's DataExtractionRules check says that
+      from Android 12 allowBackup="false" no longer stops device-to-device transfer, which follows
+      these rules instead; res/xml/data_extraction_rules.xml excludes every domain from both cloud
+      backup and device transfer. allowBackup="false" stays: it is what covers Android 11 and below.
+      This is not the withdrawn ruling 2 above, which used rules *instead of* allowBackup="false".
+      Its worry, a rule that is silently inert, is what BackupAndTransferRulesTest checks against the
+      merged manifest; whether a transfer really carries nothing is a device check.
     -->
     <application
         android:name=".ForagerApplication"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"

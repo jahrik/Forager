@@ -82,6 +82,7 @@ fun CentrePinLocationPicker(
     mapSlot: MapSlot,
     region: Region,
     basemap: Basemap,
+    modifier: Modifier = Modifier,
     /**
      * Night mode, passed through to the map the same way the main screen's does. Defaulted so the
      * journal's own pickers keep today's behaviour until their callers thread it — see this
@@ -109,7 +110,6 @@ fun CentrePinLocationPicker(
      * the map and letting the chrome add its own height is what actually makes the viewport 4:3.
      */
     mapAspectRatio: Float? = null,
-    modifier: Modifier = Modifier,
 ) {
     val state = rememberCentrePinState(region)
     // Fills its slot only when the map is the leftover (mapAspectRatio == null). With a ratio, the

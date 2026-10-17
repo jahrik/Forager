@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.adaptive.ProvideConfigurationAndWindow
 import android.app.Application
 import android.content.ComponentName
 import android.content.res.Configuration
@@ -458,7 +459,7 @@ class AvailabilityScreenTurnToShortLandscapeTest {
                 screenWidthDp = 823
                 screenHeightDp = 384
             }
-            CompositionLocalProvider(LocalConfiguration provides configuration) {
+            ProvideConfigurationAndWindow(configuration) {
                 ShortLandscapeScreen(uiState = SEARCHED_STATE, mapSlot = map.slot)
             }
         }

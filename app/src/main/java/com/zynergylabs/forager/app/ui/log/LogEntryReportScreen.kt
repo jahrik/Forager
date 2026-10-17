@@ -58,7 +58,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
@@ -374,7 +374,8 @@ private fun ReportPhotos(photos: List<LogPhoto>, onOpen: (String) -> Unit) {
 /** One photo on the find page, through the shared [DecodedPhoto], whole; tapping anywhere on it opens [PhotoViewerDialog]. */
 @Composable
 private fun ReportPhoto(photo: LogPhoto, onOpen: (String) -> Unit) {
-    val heightCap = minOf(REPORT_PHOTO_MAX_HEIGHT, (LocalConfiguration.current.screenHeightDp * REPORT_PHOTO_WINDOW_FRACTION).dp)
+    // The window's own height, not Configuration.screenHeightDp (lint ConfigurationScreenWidthHeight; see currentWindowWidthClass).
+    val heightCap = minOf(REPORT_PHOTO_MAX_HEIGHT, LocalWindowInfo.current.containerDpSize.height * REPORT_PHOTO_WINDOW_FRACTION)
     DecodedPhoto(
         relativePath = photo.relativePath,
         // No fillMaxWidth: the width is the row's (its Box gives a maximum and no minimum), and DecodedPhoto's own aspect

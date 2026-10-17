@@ -1,9 +1,16 @@
 package com.zynergylabs.forager.app.ui.adaptive
 
+import android.content.res.Configuration
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 /**
@@ -24,4 +31,23 @@ internal class FixedWindowInfo(
     override val containerDpSize: DpSize get() = size
     override val containerSize: IntSize
         get() = IntSize((size.width.value * density).roundToInt(), (size.height.value * density).roundToInt())
+}
+
+/**
+ * Provides [configuration] and the window it describes together, for a test that simulates a rotation or a resize by
+ * changing the configuration's screenWidthDp/screenHeightDp. Where [configuration] is the one already in place, the real
+ * window is kept as it is.
+ */
+@Composable
+internal fun ProvideConfigurationAndWindow(configuration: Configuration, content: @Composable () -> Unit) {
+    val window = if (configuration === LocalConfiguration.current) {
+        LocalWindowInfo.current
+    } else {
+        FixedWindowInfo(
+            LocalWindowInfo.current,
+            DpSize(configuration.screenWidthDp.dp, configuration.screenHeightDp.dp),
+            LocalDensity.current.density,
+        )
+    }
+    CompositionLocalProvider(LocalConfiguration provides configuration, LocalWindowInfo provides window, content = content)
 }

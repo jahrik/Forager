@@ -46,6 +46,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,7 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -263,6 +264,7 @@ internal fun CartographyEntryReportScreen(
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
     night: Boolean,
+    modifier: Modifier = Modifier,
     /** The Maps tab's basemap as a mode, seeding [entryMapMode] when this screen opens; see this file's doc comment. */
     initialMapMode: MapMode = MapMode.DEFAULT,
     getMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
@@ -272,7 +274,6 @@ internal fun CartographyEntryReportScreen(
     onEdit: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier,
     /**
      * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices this map shares with the Maps
      * tab, and its Layers sheet's overlay switch. The sheet lists only what this map draws
@@ -322,7 +323,7 @@ internal fun CartographyEntryReportScreen(
     var isMapFullscreen by remember(entry.id) { mutableStateOf(false) }
     var showLayersSheet by remember(entry.id) { mutableStateOf(false) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
-    var resetOrientationRequestId by remember(entry.id) { mutableStateOf(0) }
+    var resetOrientationRequestId by remember(entry.id) { mutableIntStateOf(0) }
     // The one-shot camera pan a locate-me tap resolves to — see this file's own doc comment,
     // "Fullscreen," for why this is a plain LatLng?, never the main map's tracking token.
     var focusOverrideTarget by remember(entry.id) { mutableStateOf<LatLng?>(null) }
@@ -394,7 +395,8 @@ internal fun CartographyEntryReportScreen(
 
     // L2: read once here, so the map's Modifier below is the only thing that changes with it.
     val shortWindow = isShortWindow()
-    val shortWindowMapCap = (LocalConfiguration.current.screenHeightDp * SHORT_WINDOW_MAP_HEIGHT_FRACTION).dp
+    // The window's own height, not Configuration.screenHeightDp (lint ConfigurationScreenWidthHeight; see currentWindowWidthClass).
+    val shortWindowMapCap = LocalWindowInfo.current.containerDpSize.height * SHORT_WINDOW_MAP_HEIGHT_FRACTION
 
     // Read here, above the header, rather than beside the map below (moved unchanged): whether the entry
     // has a map decides the fill of the header's menu and of the delete dialog, which cover it (map

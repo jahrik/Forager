@@ -5,7 +5,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.zynergylabs.forager.app.ui.motion.shapedPressLayer
 import android.Manifest
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.semantics.Role
+import androidx.core.net.toUri
 import com.zynergylabs.forager.app.domain.BackupFrequency
 import com.zynergylabs.forager.app.domain.RestoreMode
 import com.zynergylabs.forager.app.domain.backupFileName
@@ -233,7 +233,7 @@ private val BackupFrequency.label: String
 
 /** The picked folder's own name: the last part of its tree id (`primary:Backups` is shown as `Backups`), or the URI itself when it has none. */
 private fun folderName(uri: String): String {
-    val last = Uri.parse(uri).lastPathSegment ?: return uri
+    val last = uri.toUri().lastPathSegment ?: return uri
     return last.substringAfterLast(':').ifEmpty { last }
 }
 

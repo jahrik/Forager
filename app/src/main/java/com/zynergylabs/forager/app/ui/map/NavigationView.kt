@@ -514,8 +514,12 @@ class NavigationModeChange {
      * the camera eased flat and north-up with no padding, and following resumed when that ends
      * (from not following into following, so its own transition goes to the walker). Seen on the
      * S22 desk step: the first form, a following-to-following change, left the map tilted and turned.
+     *
+     * [maxZoom] has no default: its old default, `Double.MAX_VALUE`, is out of MapLibre's range for
+     * `setMaxZoomPreference` (lint Range: at most 25.5), and the one caller always passed a real cap
+     * (lint dispatch 2026-10-17-03).
      */
-    fun leaveNavigation(map: MapLibreMap, maxZoom: Double = Double.MAX_VALUE) {
+    fun leaveNavigation(map: MapLibreMap, maxZoom: Double) {
         expected = null
         active = false
         startZoomGate.reset()

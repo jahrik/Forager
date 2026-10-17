@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsPropertyKey
@@ -74,7 +75,6 @@ import com.zynergylabs.forager.app.photo.oriented
 import com.zynergylabs.forager.app.photo.readPhotoOrientation
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -375,7 +375,8 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
                     return Offset(axis(candidate.x, shownWidth, viewport.width), axis(candidate.y, shownHeight, viewport.height))
                 }
                 val centre = Offset(viewport.width / 2f, viewport.height / 2f)
-                val zoomLabel = String.format(Locale.getDefault(), "Zoom %.1f×", scale)
+                // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
+                val zoomLabel = String.format(LocalConfiguration.current.locales[0], "Zoom %.1f×", scale)
 
                 Image(
                     bitmap = loaded,

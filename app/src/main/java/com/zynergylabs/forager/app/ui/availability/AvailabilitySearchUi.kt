@@ -93,6 +93,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -931,7 +932,8 @@ private fun RecentSearchRow(
                 .padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            val month = Month.of(summary.month).getDisplayName(TextStyle.FULL, Locale.getDefault())
+            // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
+            val month = Month.of(summary.month).getDisplayName(TextStyle.FULL, LocalConfiguration.current.locales[0])
             Text("${summary.filter.label} · $month", style = MaterialTheme.typography.titleSmall)
             Text(
                 "${"%.4f".format(summary.region.lat)}, ${"%.4f".format(summary.region.lng)} · " +
@@ -971,6 +973,8 @@ private fun SpeciesSearchControls(
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
+    // The root's modifier, by Compose's convention; the field's own is queryFieldModifier (lint ModifierParameter, dispatch 2026-10-17-03).
+    modifier: Modifier = Modifier,
     queryFieldModifier: Modifier = Modifier,
     onQueryFieldFocusChanged: (Boolean) -> Unit = {},
     /**
@@ -1005,7 +1009,7 @@ private fun SpeciesSearchControls(
     /** Whether the suggestions open over a map drawn on screen; they are then at the map chrome's alpha (owner, "1 A"). */
     suggestionsOverMap: Boolean = false,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty() || uiState.taxonSearchHasNoResults
         val queryFieldInteractionSource = remember { MutableInteractionSource() }
         ExposedDropdownMenuBox(
@@ -1130,7 +1134,9 @@ private fun TaxonSuggestionContent(result: TaxonSearchResult) {
 @Composable
 private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, overMap: Boolean = false) {
     var expanded by remember { mutableStateOf(false) }
-    val monthName = Month.of(selectedMonth).getDisplayName(TextStyle.FULL, Locale.getDefault())
+    // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
+    val locale = LocalConfiguration.current.locales[0]
+    val monthName = Month.of(selectedMonth).getDisplayName(TextStyle.FULL, locale)
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
@@ -1160,7 +1166,7 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, ov
                 val readInside = Modifier.mapChromeContentColor(LocalContentColor.current)
                 (1..12).forEach { month ->
                     DropdownMenuItem(
-                        text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault())) },
+                        text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, locale)) },
                         onClick = {
                             onMonthSelected(month)
                             expanded = false

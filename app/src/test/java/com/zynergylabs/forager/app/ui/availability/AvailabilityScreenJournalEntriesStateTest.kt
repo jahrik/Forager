@@ -88,7 +88,7 @@ class AvailabilityScreenJournalEntriesStateTest {
 
     @Test
     fun `the album view survives leaving the Journal tab and returning`() {
-        composeRule.setContent { entriesStateScreen() }
+        composeRule.setContent { EntriesStateScreenUnderTest() }
         chooseAlbum()
 
         openBottomTab("List")
@@ -100,7 +100,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     @Test
     fun `the album view survives a saved-instance-state round trip`() {
         val restorationTester = StateRestorationTester(composeRule)
-        restorationTester.setContent { entriesStateScreen() }
+        restorationTester.setContent { EntriesStateScreenUnderTest() }
         chooseAlbum()
 
         restorationTester.emulateSavedInstanceStateRestore()
@@ -114,7 +114,7 @@ class AvailabilityScreenJournalEntriesStateTest {
 
     @Test
     fun `Back from the album returns to the timeline, and Back again leaves the Journal`() {
-        composeRule.setContent { entriesStateScreen() }
+        composeRule.setContent { EntriesStateScreenUnderTest() }
         chooseAlbum()
 
         pressBack()
@@ -134,7 +134,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     @Test
     fun `the Journal bottom tab survives a saved-instance-state round trip without being tapped again`() {
         val restorationTester = StateRestorationTester(composeRule)
-        restorationTester.setContent { entriesStateScreen() }
+        restorationTester.setContent { EntriesStateScreenUnderTest() }
         openBottomTab("Journal")
         composeRule.onNodeWithText("Journal").assertIsSelected()
 
@@ -150,7 +150,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     @Test
     fun `the List bottom tab survives a saved-instance-state round trip`() {
         val restorationTester = StateRestorationTester(composeRule)
-        restorationTester.setContent { entriesStateScreen() }
+        restorationTester.setContent { EntriesStateScreenUnderTest() }
         openBottomTab("List")
         composeRule.onNodeWithText("List").assertIsSelected()
 
@@ -175,7 +175,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     private fun restoreOnSeasonal(uiState: androidx.compose.runtime.MutableState<AvailabilityUiState>) {
         val restorationTester = StateRestorationTester(composeRule)
         restorationTester.setContent {
-            entriesStateScreen(
+            EntriesStateScreenUnderTest(
                 uiState = uiState.value,
                 onMapTabSelected = { mapTabSelectedCalls++ },
                 onSeasonalTabSelected = { seasonalTabSelectedCalls++ },
@@ -227,7 +227,7 @@ private const val ENTRIES_STATE_MAP_TAG = "entries-state-map-slot"
 private val ENTRIES_STATE_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag(ENTRIES_STATE_MAP_TAG)) }
 
 @androidx.compose.runtime.Composable
-private fun entriesStateScreen(
+private fun EntriesStateScreenUnderTest(
     uiState: AvailabilityUiState = AvailabilityUiState(),
     onMapTabSelected: () -> Unit = {},
     onSeasonalTabSelected: () -> Unit = {},
