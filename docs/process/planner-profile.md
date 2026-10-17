@@ -51,19 +51,22 @@ The planner plans, asks, records and relays. It does not write app or model code
 
 ## Branches and the road to main (Forager)
 
-Since 2026-10-16 (RECORD -1085 to -1087). The owner, verbatim: "Main is the sacred live production branch where all Play builds come from. So anything going into main from this point (not retroactive on already running coders), has to be tested, debugged, and approved for public use."
+Since 2026-10-16 (RECORD -1085 to -1087; the gate amended by -1133 and -1134). The owner, verbatim: "Main is the sacred live production branch where all Play builds come from. So anything going into main from this point (not retroactive on already running coders), has to be tested, debugged, and approved for public use."
 
-- **main** is production, and every Play build comes from it. It changes only by a **promotion** pull request from pre-main, which passes four things in order:
-  1. CI green on pre-main;
-  2. a plain pre-main build (no dev tools) checked on the S22 Ultra and the S26 Ultra, and on the tablet when screens change, with any bugs found fixed on pre-main first;
-  3. the UX auditor's report against Forager's QA philosophy;
-  4. the owner's approval for public use.
+- **main** is production, and every Play build comes from it. It changes only by a **promotion** pull request from pre-main, which passes three things in order:
+  1. CI green on pre-main, at the exact commit promoted;
+  2. the UX auditor's report against Forager's QA philosophy (what it reads is in docs/process/qa-philosophy.md, section 3);
+  3. the owner's approval for public use.
 
-  A promotion with no app code skips the phone check. Documents count too: nothing reaches main any other way.
+  Documents count too: nothing reaches main any other way. The owner, 2026-10-16: "It's a tool for passing pre main into main cleanly. We do this pretty good now, so the rules we have are simply what we already do. Just codified".
+- **Phone checks and field walks are not gate steps** (-1133). The owner: "Field walks and device checks aren't always necessary, so don't add those as gates". For each promotion that needs one, the planner proposes it with the reason, and the owner confirms or skips. The auditor marks anything not seen on a phone as "not seen on a phone".
+- **The upgrade check** (the owner's signed Play build installed over the live version, holding test records) runs only when a promotion changes how records are stored, such as a database migration or a file format (-1133).
+- **Known bugs** are kept in docs/process/known-bugs.md, and each promotion lists the ones it ships with (A6).
 - **pre-main** is the working branch. Small tasks merge into it directly. A large feature that isn't experimental is built on its own branch, which merges into pre-main when done.
 - **dev** holds experiments and long research. The owner, verbatim: "Dev is main + any experiment we have running. It is always rebased to current main to reflect workability" (RECORD -1087). Dev is main plus the dev-tools commit plus the running experiments, rebased onto main after every main update. It is never merged anywhere. An experiment chosen to ship is carried onto pre-main without dev tools, then promoted.
 - **An urgent fix for a live bug** starts from main and passes the same gate at the front of the queue, then is carried into pre-main.
-- **The UX auditor** is a fresh helper for each promotion. It audits against the QA philosophy and reports pass, pass with items, or fail, each item with where it is and why it matters. The owner, of its verdict: "Advises, you decide".
+- **The UX auditor** is a fresh session for each promotion: started by the planner, or opened by the owner in another window. It is never the coder that implemented the work, and it runs on a different model from the coder: Fable here, since Forager's coders are Opus (-1134). The owner: "It's useful because the same model shares blind spots". It audits against the QA philosophy and reports pass, pass with items, or fail, each item with where it is and why it matters. The owner, of its verdict: "Advises, you decide". The same model rule holds for the forecast's independent reviews (D18). Each record says which model ran the audit.
+- **The planner writes the audit-index rows** (docs/audits/README.md) and the record entries. Coders don't, which keeps the index from becoming a merge point between parallel coders.
 - **These rules cover the Forager app.** forager-forecast keeps its own review and merge rules (D18, D40).
 
 ## Reviews and merges
