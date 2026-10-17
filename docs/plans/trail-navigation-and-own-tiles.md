@@ -20,7 +20,7 @@ Trail navigation and Forager's own tiles need the same thing: OpenStreetMap data
 
 ## What is decided (owner rulings)
 
-- **Data** (-445, 1 and 2): OpenStreetMap is the routable base. Public-domain agency trails (Forest Service, BLM, USGS) are a separate reference layer used to flag gaps, never merged into the route network. National Park Service and Washington RCO trail data are left out ("not for navigation").
+- **Data** (-445, 1 and 2): OpenStreetMap is the routable base. Public-domain agency trails (Forest Service, BLM; USGS dropped 2026-10-17, -1176) are a separate reference layer used to flag gaps, never merged into the route network. National Park Service and Washington RCO trail data are left out ("not for navigation").
 - **The network** (-447): trails and roads alike. The route follows established paths where they exist.
 - **Off the trail** (-445, 4), every number provisional: off for about 15 s, the map quietly dims the trail, highlights the walker's own track and shows "Off trail · your track leads back", with no sound; no alerts while foraging, with a readout of the way back along their own track; heading back, guidance follows their own track to where they left the trail, with no straight-line shortcut; one gentle alert only when far from both the trail and their track, or near dusk; back on the trail, trail navigation resumes and "Back on trail" shows briefly.
 - **A wrong turn** (-447): walking along a different trail or road than the route, away from it, gives one alert ("Wrong way, your route is back there", the planner's wording) and the line shows the way back. Leaving all paths is the quiet switch above.
@@ -53,7 +53,7 @@ A read-only comparison (RECORD -1172; report `docs/audits/2026-10-17-trail-data-
 - **Attribution in the app:** "Map data © OpenStreetMap contributors, ODbL" with a link; "National Forest System Trails, USDA Forest Service, CC BY 4.0" with a link. BLM's line is optional (public domain).
 - **Share-alike** (inferred, not legal advice): keeping the agency layer separate from the OSM routing database keeps ODbL's share-alike on the OSM part only, as the 2016 guideline from the body that runs OpenStreetMap allows. That matches -445's "never merged".
 
-**Open, for the owner:** drop USGS from the reference layer, since it adds nothing measured? Recommended: yes, keeping the Forest Service and BLM.
+**Decided, 2026-10-17 (RECORD -1176):** USGS is dropped from the reference layer, which is now the Forest Service and BLM only. The owner: "yes we stick with the original plan. I was trying to be ambitious, but I want to be accurate and have the best data than throwing anything possible."
 
 ## Stages
 
