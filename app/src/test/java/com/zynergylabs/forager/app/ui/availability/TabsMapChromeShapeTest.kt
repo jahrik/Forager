@@ -137,7 +137,12 @@ abstract class TabsMapChromeShapeTests(
     private fun open(label: String) {
         composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(navigationTag)), useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
-        // RECORD -1238 ("Always show it"): the Journal's search header shows in landscape too, with no icon to bring it up.
+        // Journal redesign J5 (restored by RECORD -1242, "Journal back to J5"): in a landscape window the Journal hides the search
+        // header until its own search icon brings it up.
+        if (landscape && label == "Journal") {
+            composeRule.onNodeWithTag("journal-short-search", useUnmergedTree = true).performTouchInput { click(center) }
+            composeRule.waitForIdle()
+        }
     }
 
     private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()

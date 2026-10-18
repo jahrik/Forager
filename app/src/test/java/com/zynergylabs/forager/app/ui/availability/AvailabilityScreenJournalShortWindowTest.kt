@@ -135,27 +135,18 @@ class AvailabilityScreenJournalShortWindowTest {
     }
 
     // ── Ruling 1: the app-wide search header ──
-    //
-    // J5's ruling 1 for landscape ("Hide header; icon reveals it (Recommended)") is replaced by the owner's RECORD -1238
-    // (dispatch 2026-10-17-09, PR #252): "And can it be set in the Journal at the same position at top?", then "Always show
-    // it". Before -1238 these tests asserted that the header was hidden on the Journal in a short window
-    // (checkHeaderHiddenOnJournal), and that real touches on the row's search icon brought it up and put it away, as did Back
-    // (checkSearchIconReveals, and the Records variant). The icon is gone with the hiding, so the header now shows on the
-    // Journal as on every other tab, and the row has no search icon.
 
-    private fun checkHeaderShowsOnJournal(rotation: Int) {
+    private fun checkHeaderHiddenOnJournal(rotation: Int) {
         setScreen(rotation)
         openJournal()
-        node(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
-        assertTrue("the row has no search icon: nothing to reveal", !exists(SEARCH_ICON))
+        assertTrue("the app-wide search header is hidden on the Journal tab in a short window", !exists(SEARCH_ENTRY_BAR_TAG))
         node(SWITCH_RECORDS).performClick()
         composeRule.waitForIdle()
-        node(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
-        assertTrue("and none on Records", !exists(SEARCH_ICON))
+        assertTrue("and on Records", !exists(SEARCH_ENTRY_BAR_TAG))
     }
 
-    @Test fun `RECORD -1238 at ROTATION_90 the search header always shows on the Journal tab in a short window`() = checkHeaderShowsOnJournal(Surface.ROTATION_90)
-    @Test fun `RECORD -1238 at ROTATION_270 the search header always shows on the Journal tab in a short window`() = checkHeaderShowsOnJournal(Surface.ROTATION_270)
+    @Test fun `ruling 1 at ROTATION_90 the search header is hidden on the Journal tab in a short window`() = checkHeaderHiddenOnJournal(Surface.ROTATION_90)
+    @Test fun `ruling 1 at ROTATION_270 the search header is hidden on the Journal tab in a short window`() = checkHeaderHiddenOnJournal(Surface.ROTATION_270)
 
     @Test
     fun `ruling 1 the search header still shows on List and Seasonal in a short window`() {
@@ -166,6 +157,42 @@ class AvailabilityScreenJournalShortWindowTest {
         openJournal()
         composeRule.onNodeWithText("Seasonal").performClick()
         composeRule.waitForIdle()
+        node(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
+    }
+
+    private fun checkSearchIconReveals(rotation: Int) {
+        setScreen(rotation)
+        openJournal()
+        var revealed = 0
+        for (fraction in TOUCH_SAMPLES) {
+            assertTrue("hidden before the touch", !exists(SEARCH_ENTRY_BAR_TAG))
+            touch(SEARCH_ICON, fraction)
+            node(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
+            revealed++
+            // Dismissed by the same icon.
+            touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+            assertTrue("the icon touched again hides the header", !exists(SEARCH_ENTRY_BAR_TAG))
+        }
+        assertEquals("every sampled point revealed the header", TOUCH_SAMPLES.size, revealed)
+        // Dismissed by Back too.
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        node(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
+        composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        composeRule.waitForIdle()
+        assertTrue("Back hides the revealed header", !exists(SEARCH_ENTRY_BAR_TAG))
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+    }
+
+    @Test fun `ruling 1 at ROTATION_90 real touches on the search icon reveal the header, and the icon or Back hides it`() = checkSearchIconReveals(Surface.ROTATION_90)
+    @Test fun `ruling 1 at ROTATION_270 real touches on the search icon reveal the header, and the icon or Back hides it`() = checkSearchIconReveals(Surface.ROTATION_270)
+
+    @Test
+    fun `ruling 1 on Records the search icon reveals the header too`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        touch(SEARCH_ICON, Offset(0.3f, 0.6f))
         node(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
     }
 
@@ -189,13 +216,11 @@ class AvailabilityScreenJournalShortWindowTest {
         openJournal()
         val row = bounds(SHORT_HEADER)
         assertEquals("the L1 row is 48 dp tall", 48f, row.height.value, 0.5f)
-        // RECORD -1238: no search icon in the row any more (the header always shows); the switch and New remain.
-        assertTrue("no search icon in the row", !exists(SEARCH_ICON))
-        for (tag in listOf(SWITCH, NEW_ICON)) {
+        for (tag in listOf(SWITCH, SEARCH_ICON, NEW_ICON)) {
             val r = bounds(tag)
             assertTrue("$tag $r sits inside the L1 row $row", r.top >= row.top - 0.5.dp && r.bottom <= row.bottom + 0.5.dp && r.left >= row.left - 0.5.dp && r.right <= row.right + 0.5.dp)
         }
-        assertTrue("the switch is at the row's start, New after it", bounds(SWITCH).right <= bounds(NEW_ICON).left)
+        assertTrue("the switch is at the row's start, the icons after it", bounds(SWITCH).right <= bounds(SEARCH_ICON).left)
         // The switch's two segments take real touches across their bounds.
         for (fraction in TOUCH_SAMPLES) {
             touch(SWITCH_RECORDS, fraction)
@@ -205,8 +230,8 @@ class AvailabilityScreenJournalShortWindowTest {
         }
     }
 
-    @Test fun `L1 at ROTATION_90 one 48 dp row holds the switch and New`() = checkHeaderRow(Surface.ROTATION_90)
-    @Test fun `L1 at ROTATION_270 one 48 dp row holds the switch and New`() = checkHeaderRow(Surface.ROTATION_270)
+    @Test fun `L1 at ROTATION_90 one 48 dp row holds the switch, the search icon and New`() = checkHeaderRow(Surface.ROTATION_90)
+    @Test fun `L1 at ROTATION_270 one 48 dp row holds the switch, the search icon and New`() = checkHeaderRow(Surface.ROTATION_270)
 
     @Test
     fun `L1 the header row stays pinned while the entries scroll`() {
@@ -221,7 +246,7 @@ class AvailabilityScreenJournalShortWindowTest {
     }
 
     @Test
-    fun `L1 on Records the row holds the switch, and no search icon or New`() {
+    fun `L1 on Records the row holds the switch and the search icon, and no New`() {
         setScreen(Surface.ROTATION_270)
         openJournal()
         node(SWITCH_RECORDS).performClick()
@@ -230,8 +255,7 @@ class AvailabilityScreenJournalShortWindowTest {
         node(CHIP_ALL).performClick()
         composeRule.waitForIdle()
         node(SHORT_HEADER).assertIsDisplayed()
-        // RECORD -1238: the search icon left the row with J5's hiding; this asserted node(SEARCH_ICON).assertIsDisplayed().
-        assertTrue("no search icon in the row", !exists(SEARCH_ICON))
+        node(SEARCH_ICON).assertIsDisplayed()
         assertTrue("Records has no New (portrait's Records has no floating button to move)", !exists(NEW_ICON))
     }
 
@@ -403,10 +427,10 @@ class AvailabilityScreenJournalShortWindowTest {
      * device item.
      */
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `height budget at ROTATION_90 with the search header shown two card rows fit on Entries`() = checkHeightBudget(Surface.ROTATION_90)
+    fun `height budget at ROTATION_90 the header hidden leaves two card rows on Entries`() = checkHeightBudget(Surface.ROTATION_90)
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `height budget at ROTATION_270 with the search header shown two card rows fit on Entries`() = checkHeightBudget(Surface.ROTATION_270)
+    fun `height budget at ROTATION_270 the header hidden leaves two card rows on Entries`() = checkHeightBudget(Surface.ROTATION_270)
 
     // ── L5a: the Records chips fit one line at 640 dp (continuation 2026-09-27-27, owner: "Tighter chips") ──
 
