@@ -57,9 +57,10 @@ import org.robolectric.annotation.Config
  * (`MapChromeContainerColor`). Robolectric reports zero insets (CLAUDE.md, "Known pitfalls"), so where the pieces sit against the
  * real system bars is the device check's, not this file's.
  *
- * Landscape (RECORD -1227, the owner: "Move to Maps' spot"; and "The layout resizing between tabs looks like a UI glitch"): the
- * pill on the three tabs takes the Maps pill's place and size, so every piece (the pill, and the bar or rail) keeps identical
- * bounds across the switch, in portrait and in both landscapes (the punch-hole and port edges swap sides between them).
+ * Landscape (RECORD -1227, "Move to Maps' spot"; "The layout resizing between tabs looks like a UI glitch"; then RECORD -1238,
+ * "Yes, at the left (Recommended)", after a centred build passed over nothing but suited no floating keyboard): the pill on
+ * the three tabs is the Maps pill's size, its start just clear of the navigation bar, which with no cut-out on the rail's side
+ * is the Maps pill's own place. So every piece keeps identical bounds across the switch here, in portrait and in landscape.
  */
 
 private typealias ShapeRule = AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>
@@ -136,11 +137,7 @@ abstract class TabsMapChromeShapeTests(
     private fun open(label: String) {
         composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(navigationTag)), useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
-        // Journal redesign J5: in a landscape window the Journal hides the search header until its own search icon brings it up.
-        if (landscape && label == "Journal") {
-            composeRule.onNodeWithTag("journal-short-search", useUnmergedTree = true).performTouchInput { click(center) }
-            composeRule.waitForIdle()
-        }
+        // RECORD -1238 ("Always show it"): the Journal's search header shows in landscape too, with no icon to bring it up.
     }
 
     private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
@@ -230,29 +227,16 @@ abstract class TabsMapChromeShapeTests(
         val mapsPill = bounds(SEARCH_ENTRY_BAR_TAG)
         open(label)
         assertBoundsEqual("$label: the ${if (landscape) "rail" else "bar"} against Maps", mapsNav, bounds(navigationTag))
-        if (landscape) {
-            // The owner on the S22 (PR #252, build 1.0.3414): "It can stay the same size as it is now in those tabs, but have it
-            // centered" (revising RECORD -1227 for position only). The Maps pill's size and height; centred between the system
-            // navigation bar's edge (navBarLeft; Robolectric's own insets are zero) and the rail.
-            assertLandscapeTabPill(label, mapsPill, bounds(SEARCH_ENTRY_BAR_TAG), mapsNav)
-        } else {
-            assertBoundsEqual("$label: the pill against Maps", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
-        }
+        // Landscape, RECORD -1238 (the owner on build 1.0.3416: "can it move a bit to the left to accommodate floating
+        // keyboards?", then "Yes, at the left (Recommended)"): the Maps pill's size, its start just clear of the navigation bar
+        // (navBarLeft; Robolectric's own insets are zero). With no cut-out on the rail's side that is the Maps pill's own place,
+        // so its bounds are compared whole, in portrait and landscape alike.
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertBoundsEqual("$label: the pill against Maps", mapsPill, pill)
+        assertTrue("$label pill: clear of the navigation bar (left ${pill.left} >= $navBarLeft)", pill.left.value >= navBarLeft.value - 0.5f)
         open("Maps")
         assertBoundsEqual("back on Maps from $label: the bar or rail", mapsNav, bounds(navigationTag))
         assertBoundsEqual("back on Maps from $label: the pill", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
-    }
-
-    private fun assertLandscapeTabPill(label: String, mapsPill: DpRect, pill: DpRect, rail: DpRect) {
-        val tolerance = 0.5f
-        assertEquals("$label pill: top, the Maps pill's", mapsPill.top.value, pill.top.value, tolerance)
-        assertEquals("$label pill: bottom, the Maps pill's", mapsPill.bottom.value, pill.bottom.value, tolerance)
-        assertEquals("$label pill: width, the Maps pill's", (mapsPill.right - mapsPill.left).value, (pill.right - pill.left).value, tolerance)
-        assertTrue("$label pill: clear of the navigation bar (left ${pill.left} >= $navBarLeft)", pill.left.value >= navBarLeft.value - tolerance)
-        assertEquals(
-            "$label pill: centred between the navigation bar's edge ($navBarLeft) and the rail (${rail.left})",
-            (navBarLeft.value + rail.left.value) / 2f, (pill.left.value + pill.right.value) / 2f, tolerance,
-        )
     }
 
     private fun assertBoundsEqual(what: String, expected: DpRect, actual: DpRect) {
@@ -262,6 +246,27 @@ abstract class TabsMapChromeShapeTests(
         assertEquals("$what: right", expected.right.value, actual.right.value, tolerance)
         assertEquals("$what: bottom", expected.bottom.value, actual.bottom.value, tolerance)
     }
+
+    // ── The search panel opened from the pill ──
+
+    /**
+     * RECORD -1238 (the owner: "Yes, both (Recommended)", the planner having seen the page's text read through the panel in the
+     * owner's floating-keyboard screenshot): off the map the panel is solid (owner: "In the places that aren't covering a map,
+     * they can stay solid"); over the map it stays at 0.8. Opened by a real touch on the pill's field.
+     */
+    private fun checkPanelFill(label: String) {
+        setScreen()
+        if (label != "Maps") open(label)
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG, useUnmergedTree = true).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        val panel = composeRule.oneNode(SEARCH_DROPDOWN_TAG)
+        assertFill("$label search panel", panel, roles.token, if (label == "Maps") MAP_CHROME_OVER_MAP_ALPHA else 1f)
+    }
+
+    @Test fun `on Maps the search panel stays at 0_8`() = checkPanelFill("Maps")
+    @Test fun `on List the search panel is solid`() = checkPanelFill("List")
+    @Test fun `on Seasonal the search panel is solid`() = checkPanelFill("Seasonal")
+    @Test fun `on Journal the search panel is solid`() = checkPanelFill("Journal")
 
     @Test fun `Maps to List and back, the pill and the bar or rail do not move`() = checkNoJump("List")
     @Test fun `Maps to Seasonal and back, the pill and the bar or rail do not move`() = checkNoJump("Seasonal")
