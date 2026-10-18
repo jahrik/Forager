@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import android.view.Surface
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
@@ -35,6 +36,8 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
+import org.robolectric.shadows.ShadowDisplay
 import org.robolectric.annotation.Config
 
 /*
@@ -50,9 +53,9 @@ import org.robolectric.annotation.Config
  * (`MapChromeContainerColor`). Robolectric reports zero insets (CLAUDE.md, "Known pitfalls"), so where the pieces sit against the
  * real system bars is the device check's, not this file's.
  *
- * Landscape: the pill on the three tabs stays where it already sits (centred, capped), not at the Maps tab's punch-hole corner,
- * so its position is not compared across the tab switch there (the planner's ruling on the verify-first report; the move is the
- * owner's to decide).
+ * Landscape (RECORD -1227, the owner: "Move to Maps' spot"; and "The layout resizing between tabs looks like a UI glitch"): the
+ * pill on the three tabs takes the Maps pill's place and size, so every piece (the pill, and the bar or rail) keeps identical
+ * bounds across the switch, in portrait and in both landscapes (the punch-hole and port edges swap sides between them).
  */
 
 private typealias ShapeRule = AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>
@@ -81,7 +84,12 @@ private fun SemanticsNode.shape(): Shape? = config.getOrElseNullable(MapChromeSh
 private fun SemanticsNode.edges(): MapChromeEdgesDrawn? = config.getOrElseNullable(MapChromeEdges) { null }
 private fun SemanticsNode.fill(): Color = config[MapChromeContainerColor]
 
-abstract class TabsMapChromeShapeTests(private val dark: Boolean, private val landscape: Boolean) {
+abstract class TabsMapChromeShapeTests(
+    private val dark: Boolean,
+    private val landscape: Boolean,
+    /** The display's rotation in landscape (which edge the port and the punch hole are on); null in portrait. */
+    private val rotation: Int? = null,
+) {
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @get:Rule
@@ -95,6 +103,7 @@ abstract class TabsMapChromeShapeTests(private val dark: Boolean, private val la
     private val pillRole get() = if (dark) DarkColors.surfaceContainerHighest else LightColors.surfaceContainerLowest
 
     private fun setScreen() {
+        if (rotation != null) Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent { MapChromeTestScreen(state, map, roles, darkTheme = dark) }
         composeRule.waitForIdle()
     }
@@ -194,13 +203,13 @@ abstract class TabsMapChromeShapeTests(private val dark: Boolean, private val la
     private fun checkNoJump(label: String) {
         setScreen()
         val mapsNav = bounds(navigationTag)
-        val mapsPill = if (landscape) null else bounds(SEARCH_ENTRY_BAR_TAG)
+        val mapsPill = bounds(SEARCH_ENTRY_BAR_TAG)
         open(label)
         assertBoundsEqual("$label: the ${if (landscape) "rail" else "bar"} against Maps", mapsNav, bounds(navigationTag))
-        if (mapsPill != null) assertBoundsEqual("$label: the pill against Maps", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
+        assertBoundsEqual("$label: the pill against Maps", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
         open("Maps")
         assertBoundsEqual("back on Maps from $label: the bar or rail", mapsNav, bounds(navigationTag))
-        if (mapsPill != null) assertBoundsEqual("back on Maps from $label: the pill", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
+        assertBoundsEqual("back on Maps from $label: the pill", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
     }
 
     private fun assertBoundsEqual(what: String, expected: DpRect, actual: DpRect) {
@@ -226,8 +235,12 @@ class TabsMapChromeShapePortraitLightTest : TabsMapChromeShapeTests(dark = false
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
-class TabsMapChromeShapeLandscapeDarkTest : TabsMapChromeShapeTests(dark = true, landscape = true)
+class TabsMapChromeShapeLandscape90DarkTest : TabsMapChromeShapeTests(dark = true, landscape = true, rotation = Surface.ROTATION_90)
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
-class TabsMapChromeShapeLandscapeLightTest : TabsMapChromeShapeTests(dark = false, landscape = true)
+class TabsMapChromeShapeLandscape270DarkTest : TabsMapChromeShapeTests(dark = true, landscape = true, rotation = Surface.ROTATION_270)
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+class TabsMapChromeShapeLandscape90LightTest : TabsMapChromeShapeTests(dark = false, landscape = true, rotation = Surface.ROTATION_90)
