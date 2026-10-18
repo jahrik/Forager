@@ -126,8 +126,27 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
 
                 uiState.seasonalPattern != null -> SeasonalPatternContent(uiState.seasonalPattern)
             }
+            // Open-Meteo's licence: a link next to any place their data are shown (dispatch 2026-10-13-05). Since dispatch
+            // 2026-10-18-01 (the owner: "open meteo is cited twice in the seasonal tab. Once at the bottom is sufficient") the
+            // tab carries one, the last thing in this column, in place of one in the Current Conditions card and one under the
+            // fruiting-lag counts. Only while a figure of theirs is on the tab: a loading or failed fetch shows none.
+            if (seasonalShowsOpenMeteoFigures(uiState)) {
+                OpenMeteoCredit()
+            }
         }
     }
+}
+
+/**
+ * Whether the Seasonal tab is drawing any figure of Open-Meteo's, and so carries their credit at its foot: recent rain, today's
+ * forecast (Current Conditions), or the fruiting-lag pattern, whose lags are counted from their historical rainfall (dispatch
+ * 2026-10-13-05, the planner's answer Q3). The pattern is drawn only once a search has run and nothing is loading or failed, as
+ * [SeasonalTab]'s `when` decides.
+ */
+private fun seasonalShowsOpenMeteoFigures(uiState: AvailabilityUiState): Boolean {
+    val patternDrawn = uiState.hasSearched && !uiState.isLoadingSeasonalPattern &&
+        uiState.seasonalPatternErrorMessage == null && uiState.seasonalPattern != null
+    return uiState.conditions != null || uiState.todaysForecast != null || patternDrawn
 }
 
 /**
@@ -155,9 +174,6 @@ private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
         SeasonalSampleSizeSummary(distribution)
         FruitingLagChart(distribution, modifier = Modifier.fillMaxWidth())
         FruitingLagBucketCounts(distribution.buckets)
-        // The lags above are counted from Open-Meteo's historical rainfall, so its credit sits beside them (dispatch
-        // 2026-10-13-05, the planner's answer Q3).
-        OpenMeteoCredit()
 
         HorizontalDivider()
         // The observer-effort caveat: not polish, per this feature's own honesty requirement —
@@ -327,11 +343,6 @@ private fun ConditionsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 SeasonalBarChart(chart)
-            }
-            // Open-Meteo's licence: a link next to any place their data are shown (dispatch 2026-10-13-05). Only while a
-            // figure of theirs is in the card; a loading or failed fetch shows none.
-            if (conditions != null || todaysForecast != null) {
-                OpenMeteoCredit()
             }
         }
     }

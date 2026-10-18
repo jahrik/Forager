@@ -892,7 +892,7 @@ internal fun CompactMainScaffold(
             } else if (showRail) {
                 // RECORD -1242: no keyboard in these (see shortLandscapeContentInsets), so the docked rail keeps its full
                 // height under a keyboard; the content column reserves it instead (below).
-                shortLandscapeContentInsets()
+                shortLandscapeContentInsets(railEdge = portEdge)
             } else if (compactTab() == CompactTab.MAP) {
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
             } else {

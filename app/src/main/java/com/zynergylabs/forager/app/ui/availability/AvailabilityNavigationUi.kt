@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.add
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -279,7 +280,12 @@ internal fun ForagerNavigationRail(
     NavigationRail(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        windowInsets = WindowInsets.navigationBars.only(portEdge.horizontalInsetsSide()),
+        // Dispatch 2026-10-18-01 (the owner, S22 check group 2: "have the rail extend fully to the side so there's no cutoff"):
+        // the cut-out's band on the rail's side is the rail's too, as the navigation bar's always was. The surface runs under
+        // both to the screen's edge and only the items are padded clear of them, on every tab. Until then this was the
+        // navigation bar alone, and beside List, Seasonal and Journal the content insets reserved the cut-out outside the rail,
+        // so a strip of page background showed between it and the edge whenever the punch hole was on the rail's side.
+        windowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout).only(portEdge.horizontalInsetsSide()),
         modifier = modifier
             .fillMaxHeight()
             .then(if (innerCornerRadius > 0.dp) Modifier.clip(railShape) else Modifier)
@@ -378,9 +384,10 @@ private val RailItemsEvenly: Arrangement.Vertical = object : Arrangement.Vertica
  * The Scaffold content insets for every tab but Map in a short landscape window (landscape B1,
  * P4/P5 and Resolutions R12 and R17 as revised). These tabs have the opaque rail beside them
  * ([ForagerNavigationRail], which takes the `navigationBars` inset on the port side itself), so:
- * at the top, `statusBars`; on the sides, `displayCutout`, so nothing sits in the cut-out band (in
- * practice only the punch-hole side has one); at the bottom nothing for a system bar, since in
- * landscape the 3-button bar is on the port side. The Map tab does not use this: its map is
+ * at the top, `statusBars`; on the side away from [railEdge], `displayCutout`, so nothing sits in the cut-out band there;
+ * at the bottom nothing for a system bar, since in landscape the 3-button bar is on the port side. On the rail's own side
+ * nothing since dispatch 2026-10-18-01: the rail takes that side's cut-out itself and runs to the screen's edge under it
+ * ([ForagerNavigationRail]'s `windowInsets`); until then both sides' cut-outs were reserved here, outside the rail. The Map tab does not use this: its map is
  * full-bleed and only its controls are padded (compactMainScaffold's `mapControlsPadding`).
  *
  * No keyboard, since dispatch 2026-10-17-09, RECORD -1242 (the owner: "A: Ignore the keyboard, like Maps (Recommended)").
@@ -390,9 +397,9 @@ private val RailItemsEvenly: Arrangement.Vertical = object : Arrangement.Vertica
  * page still ends above it and the rail keeps its full height under it, as the Maps tab's overlaid rail does.
  */
 @Composable
-internal fun shortLandscapeContentInsets(): WindowInsets =
+internal fun shortLandscapeContentInsets(railEdge: ScreenEdge): WindowInsets =
     WindowInsets.statusBars.only(WindowInsetsSides.Top)
-        .add(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+        .add(WindowInsets.displayCutout.only(railEdge.opposite.horizontalInsetsSide()))
 
 /** The bottom navigation bar (either instance), for tests (dispatch 2026-09-28-104, continuation -12, item 6). */
 internal const val COMPACT_BOTTOM_NAV_TAG = "compact-bottom-nav"

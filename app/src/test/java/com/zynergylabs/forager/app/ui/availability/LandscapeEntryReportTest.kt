@@ -21,6 +21,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.runtime.CompositionLocalProvider
@@ -290,7 +292,11 @@ class LandscapeEntryReportTest {
         // Away from the stub glyph (48 to 72 dp in from the map's top left).
         touch(DpRect(map.right - 40.dp, map.bottom - 40.dp, map.right - 20.dp, map.bottom - 20.dp), 0.5f, 0.5f)
         val report = bounds(ENTRY_REPORT_TAG)
-        val full = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        // Instrumentation (the tests-first run at b2730392 found no map node here, a failure the old layout was not predicted
+        // to give): name what is on screen if the map has gone.
+        val mapNodes = composeRule.onAllNodesWithTag(CARTOGRAPHY_MAP_TEST_TAG, useUnmergedTree = true).fetchSemanticsNodes().size
+        assertEquals("the map is still on screen after the touch; the tree:\n${composeRule.onRoot(useUnmergedTree = true).printToString()}", 1, mapNodes)
+        val full = composeRule.onNodeWithTag(CARTOGRAPHY_MAP_TEST_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertEquals("fullscreen: the map spans the report's width", (report.right - report.left).value, (full.right - full.left).value, 0.5f)
         assertEquals("fullscreen: the map spans the report's height", (report.bottom - report.top).value, (full.bottom - full.top).value, 0.5f)
         assertEquals("one opening request across the switch", 1, requests.filterNotNull().distinct().size)

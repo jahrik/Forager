@@ -98,6 +98,8 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.util.UUID
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.launch
@@ -405,7 +407,47 @@ internal fun CartographyEntryReportScreen(
     val mapRegion = resolvedMapData?.takeUnless { it.isEmpty }?.let { GeoDistance.boundingRegion(it.allPoints) }
     val entryMapShown = resolvedMapData != null && mapRegion != null
 
-    Column(modifier = modifier.fillMaxWidth().testTag(ENTRY_REPORT_TAG)) {
+    // Dispatch 2026-10-18-01, the owner (S22 check, group 1 item 2): "map is squished in landscape. reduce the size to a 4:3
+    // box, and have it on one side with the info on the other. I propose the map on the left with the info on the right." In a
+    // landscape window, with a map, the screen splits: the map on the left in a 4:3 box, the header and everything else on the
+    // right, scrolling on its own (EntryReportLayout). Portrait is as before. The three parts are the same composables in
+    // either arrangement, and EntryReportLayout only places them, so the one mapSlot call below never moves in the
+    // composition when the phone turns (this file's doc comment, "Fullscreen").
+    val landscapeSplit = isLandscapeWindow()
+
+    @Composable
+    fun OfflineRow(horizontalPadding: Dp) {
+        val availableOfflineRegion = coveringOfflineRegion
+        // Amendment 2 (scout E3): the offline-map row, found a moment after the map, grows in the same way.
+        GrowIn(visible = availableOfflineRegion != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(OFFLINE_TOGGLE_LABEL, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        OFFLINE_TOGGLE_CAPTION,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = useOfflineTiles,
+                    onCheckedChange = { useOfflineTiles = it },
+                    modifier = Modifier.testTag(OFFLINE_TOGGLE_TEST_TAG),
+                )
+            }
+        }
+    }
+
+    EntryReportLayout(
+        split = landscapeSplit && entryMapShown && !isMapFullscreen,
+        fullscreen = isMapFullscreen,
+        infoMinWidth = LANDSCAPE_ENTRY_INFO_MIN_WIDTH,
+        modifier = modifier.fillMaxWidth().testTag(ENTRY_REPORT_TAG),
+        header = {
         // Hidden via composition (an if, not an opacity/size-zero modifier), same convention
         // CompactMapTab's own fullscreen mode uses for its surrounding chrome — an unmounted
         // composable can't be the thing silently holding onto stale menu/dialog state, and this
@@ -470,6 +512,8 @@ internal fun CartographyEntryReportScreen(
             }
         }
 
+        },
+        map = {
         // The opening frame (owner, 2026-09-28, "Fit all kept records"): one request per screen
         // instance, framed on the kept records and never the kept regions (entryMapFrame). Its id is
         // this instance's own token, not the entry's id, so a request is new exactly when this screen
@@ -483,7 +527,7 @@ internal fun CartographyEntryReportScreen(
         // fullscreen, so the one map call site below never moves (this file's doc comment, "Fullscreen"). It goes at once.
         GrowIn(
             visible = entryMapShown,
-            modifier = if (isMapFullscreen) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth(),
+            modifier = if (isMapFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
             shrinkOut = false,
         ) {
         Column(modifier = if (isMapFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
@@ -491,7 +535,7 @@ internal fun CartographyEntryReportScreen(
             Box(
                 modifier = if (isMapFullscreen) {
                     Modifier.fillMaxWidth().weight(1f)
-                } else if (shortWindow) {
+                } else if (shortWindow && !landscapeSplit) {
                     // L2 (dispatch 2026-09-28-47): see shortWindowEntryMapHeight.
                     Modifier.fillMaxWidth().shortWindowEntryMapHeight(shortWindowMapCap)
                 } else {
@@ -619,46 +663,61 @@ internal fun CartographyEntryReportScreen(
                 }
             }
 
-            if (!isMapFullscreen) {
-                val availableOfflineRegion = coveringOfflineRegion
-                // Amendment 2 (scout E3): the offline-map row, found a moment after the map, grows in the same way.
-                GrowIn(visible = availableOfflineRegion != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(OFFLINE_TOGGLE_LABEL, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                OFFLINE_TOGGLE_CAPTION,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = useOfflineTiles,
-                            onCheckedChange = { useOfflineTiles = it },
-                            modifier = Modifier.testTag(OFFLINE_TOGGLE_TEST_TAG),
-                        )
-                    }
-                }
+            // Dispatch 2026-10-18-01: in a landscape window the offline switch is in the info column instead.
+            if (!isMapFullscreen && !landscapeSplit) {
+                OfflineRow(horizontalPadding = Spacing.lg)
             }
         }
         }
         }
+        }
 
+        },
+        body = {
         if (!isMapFullscreen) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                    .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = Spacing.lg)
                     .testTag(ENTRY_REPORT_INFO_TAG),
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                if (isEntirelyEmpty) {
+                if (landscapeSplit && entryMapShown) {
+                    // Dispatch 2026-10-18-01 (the drawing the owner confirmed: "header · stats · switch / … / notes"): beside
+                    // the map, the stats first, then the offline switch, then the notes. The header is pinned above this
+                    // column, as in portrait, so Back never scrolls away. What each part is: the portrait branch below.
+                    EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
+                    EntryHeightProfile(profile = report.heightProfile, distanceUnit = distanceUnit)
+                    OfflineRow(horizontalPadding = 0.dp)
+                    if (isEntirelyEmpty) {
+                        Text(EMPTY_ENTRY_MESSAGE, style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        if (entry.text.isNotBlank() || entry.tags.isNotEmpty() || entry.photos.isNotEmpty()) {
+                            HorizontalDivider()
+                        }
+                        entry.text.takeIf { it.isNotBlank() }?.let { text ->
+                            Text(text, style = MaterialTheme.typography.bodyMedium)
+                        }
+
+                        if (entry.tags.isNotEmpty()) {
+                            Text("Tags: ${entry.tags.joinToString(", ")}", style = MaterialTheme.typography.bodySmall)
+                        }
+
+                        if (entry.photos.isNotEmpty()) {
+                            val photosById = galleryPhotos.associateBy { it.photo.id }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                entry.photos.forEach { attachment ->
+                                    KeptPhotoOrUnavailable(
+                                        attachment = attachment,
+                                        photo = photosById[attachment.photoId],
+                                        modifier = Modifier.size(KEPT_PHOTO_SIZE_DP.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else if (isEntirelyEmpty) {
                     Text(EMPTY_ENTRY_MESSAGE, style = MaterialTheme.typography.bodyMedium)
                 } else {
                     entry.text.takeIf { it.isNotBlank() }?.let { text ->
@@ -699,7 +758,8 @@ internal fun CartographyEntryReportScreen(
                 Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
             }
         }
-    }
+        },
+    )
 
     if (confirmingDelete) {
         val deleteDialogColor = mapChromeFill(navigationBarContainerColor(), entryMapShown)
@@ -814,6 +874,74 @@ internal const val CARTOGRAPHY_MAP_TEST_TAG = "cartography-entry-map"
 /** The day entry report's own bounds, and its scrolling info column, for tests (dispatch 2026-10-18-01). */
 internal const val ENTRY_REPORT_TAG = "cartography-entry-report"
 internal const val ENTRY_REPORT_INFO_TAG = "cartography-entry-report-info"
+
+/**
+ * Dispatch 2026-10-18-01, the owner's answer to the planner's Q1 (RECORD -1260): "Largest that leaves info ≥240 dp
+ * (Recommended)". Beside the landscape map the info column keeps at least this width. Every tab's content beside the rail is
+ * capped at 640 dp ([com.zynergylabs.forager.app.ui.availability.READABLE_CONTENT_MAX_WIDTH]), so "4:3, as large as fits the
+ * height" cannot always hold: on a landscape tablet a map as tall as the window would be wider than the whole column. Rejected
+ * alternatives the owner was shown: the map at most half the width (320 x 240 everywhere), and lifting the 640 dp cap for the
+ * entry, which reaches into the Journal tab's layout.
+ */
+internal val LANDSCAPE_ENTRY_INFO_MIN_WIDTH = 240.dp
+
+/**
+ * The day entry's three parts, placed. Not a Row or a Column chosen by orientation: a measure policy that only places, so
+ * [header], [map] and [body] are the same composables in either arrangement and the map's one mapSlot call keeps its place in
+ * the composition when the phone turns (MainActivity handles rotation itself, so a rebuilt map would be a real MapView torn
+ * down; [CartographyEntryReportScreen]'s doc comment, "Fullscreen").
+ *
+ * - Not [split] (portrait, and any window without a map or with the map fullscreen): stacked as before. The header at the top
+ *   at its own height; the map under it at its own height, at most what is left (all of it in [fullscreen]); the body takes
+ *   the rest exactly, as the `weight(1f)` it replaced did.
+ * - [split] (dispatch 2026-10-18-01, a landscape window with a map): the map on the left in a 4:3 box, the largest whose
+ *   height fits and which leaves [infoMinWidth] beside it; the header at the top of the right side, pinned; the body under it
+ *   taking the rest of the right side's height exactly, so it scrolls on its own.
+ */
+@Composable
+private fun EntryReportLayout(
+    split: Boolean,
+    fullscreen: Boolean,
+    infoMinWidth: Dp,
+    header: @Composable () -> Unit,
+    map: @Composable () -> Unit,
+    body: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Layout(contents = listOf(header, map, body), modifier = modifier) { (headerParts, mapParts, bodyParts), constraints ->
+        val width = constraints.maxWidth
+        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else constraints.minHeight
+        val loose = Constraints(maxWidth = width, maxHeight = height)
+        if (split) {
+            val boxWidth = minOf(height * 4 / 3, (width - infoMinWidth.roundToPx()).coerceAtLeast(0))
+            val boxHeight = boxWidth * 3 / 4
+            val mapPlaceables = mapParts.map { it.measure(Constraints(maxWidth = boxWidth, maxHeight = boxHeight)) }
+            val infoWidth = width - boxWidth
+            val headerPlaceables = headerParts.map { it.measure(Constraints(maxWidth = infoWidth, maxHeight = height)) }
+            val headerHeight = headerPlaceables.maxOfOrNull { it.height } ?: 0
+            val bodyPlaceables = bodyParts.map { it.measure(Constraints.fixed(infoWidth, (height - headerHeight).coerceAtLeast(0))) }
+            layout(width, height) {
+                mapPlaceables.forEach { it.place(0, 0) }
+                headerPlaceables.forEach { it.place(boxWidth, 0) }
+                bodyPlaceables.forEach { it.place(boxWidth, headerHeight) }
+            }
+        } else {
+            val headerPlaceables = headerParts.map { it.measure(loose) }
+            val headerHeight = headerPlaceables.maxOfOrNull { it.height } ?: 0
+            val mapRoom = (height - headerHeight).coerceAtLeast(0)
+            val mapPlaceables = mapParts.map {
+                it.measure(if (fullscreen) Constraints.fixed(width, mapRoom) else Constraints(maxWidth = width, maxHeight = mapRoom))
+            }
+            val mapHeight = mapPlaceables.maxOfOrNull { it.height } ?: 0
+            val bodyPlaceables = bodyParts.map { it.measure(Constraints.fixed(width, (mapRoom - mapHeight).coerceAtLeast(0))) }
+            layout(width, height) {
+                headerPlaceables.forEach { it.place(0, 0) }
+                mapPlaceables.forEach { it.place(0, headerHeight) }
+                bodyPlaceables.forEach { it.place(0, headerHeight + mapHeight) }
+            }
+        }
+    }
+}
 
 /** Lets tests select the offline-map [Switch] directly, rather than relying on an untagged toggleable-semantics query. */
 internal const val OFFLINE_TOGGLE_TEST_TAG = "cartography-entry-offline-toggle"
