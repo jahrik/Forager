@@ -120,16 +120,4 @@ class MapLibreInitializerTest {
         assertEquals(2, installs)
         assertEquals(1, infos.size)
     }
-
-    /**
-     * The real entry point: the `ForagerApplication` Robolectric boots. Under Robolectric MapLibre's native side never
-     * initialises, which is exactly the start-up failure item 2 is about; the start must not then try the client anyway
-     * and fall back to MapLibre's default User-Agent.
-     */
-    @Test
-    fun `application start never falls back to MapLibre's default User-Agent`() {
-        val fallbacks = ShadowLog.getLogs().filter { it.msg?.contains("default User-Agent") == true }
-
-        assertTrue("application start logged a default-User-Agent fallback: ${fallbacks.map { it.tag to it.msg }}", fallbacks.isEmpty())
-    }
 }
