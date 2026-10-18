@@ -13,6 +13,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -191,13 +194,33 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     @Test fun `T2 at ROTATION_90 Seasonal is 640 wide and centred beside the rail`() = checkSeasonal(Surface.ROTATION_90)
     @Test fun `T2 at ROTATION_270 Seasonal is 640 wide and centred beside the rail`() = checkSeasonal(Surface.ROTATION_270)
 
-    // ── The search bar above the tab content: in the capped column too (coder's reading, see the completion report) ──
+    // ── The search bar above the tab content ──
+    //
+    // Was "in the capped column too (coder's reading, see the completion report)":
+    // `the search bar above the tab content is capped and centred with it`, asserting
+    // assertCappedAndCentred("the search bar", taggedBounds(SEARCH_ENTRY_BAR_TAG)) on List.
+    // Superseded by the owner's ruling, RECORD -1227 (dispatch 2026-10-17-09): "Move to Maps'
+    // spot". The bar now takes the Maps pill's place and size, outside the cap, and the content
+    // below it stays capped (T1 and T2 above, unchanged). TabsMapChromeShapeTest compares the
+    // bounds at both rotations, on List, Seasonal and Journal; this keeps the check in the
+    // class that pins B3's cap, on its own screen and state.
+
+    private fun openFromRail(label: String) {
+        composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(COMPACT_NAVIGATION_RAIL_TAG)), useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+    }
 
     @Test
-    fun `the search bar above the tab content is capped and centred with it`() {
+    fun `the search bar above the tab content takes the Maps pill's place, outside the cap`() {
         setScreen(Surface.ROTATION_90)
+        openFromRail("Maps")
+        val mapsPill = taggedBounds(SEARCH_ENTRY_BAR_TAG)
         openTab("List")
-        assertCappedAndCentred("the search bar", taggedBounds(SEARCH_ENTRY_BAR_TAG))
+        val listBar = taggedBounds(SEARCH_ENTRY_BAR_TAG)
+        assertEquals("left, the Maps pill's", mapsPill.left.value, listBar.left.value, 0.5f)
+        assertEquals("top, the Maps pill's", mapsPill.top.value, listBar.top.value, 0.5f)
+        assertEquals("right, the Maps pill's", mapsPill.right.value, listBar.right.value, 0.5f)
+        assertEquals("bottom, the Maps pill's", mapsPill.bottom.value, listBar.bottom.value, 0.5f)
     }
 
     // ── T4: the rail stays tappable beside the capped content ──
