@@ -97,6 +97,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -1076,6 +1077,22 @@ internal fun CompactMainScaffold(
                     LaunchedEffect(journalHidesSearchHeader) {
                         if (journalHidesSearchHeader) showSearchDropdown = false
                     }
+                    // Dispatch 2026-10-18-08 Amendment 3, RECORD -1320 (the owner: "Option 2"; -1318: "Reduce the size of the map so
+                    // that nothing gets covered. Simple solution."): on the Journal in landscape the pill's room is kept whether the
+                    // pill shows or not, on every Journal screen, an open entry's included, so the pill slides into empty space
+                    // and nothing under it moves or resizes (on Offline maps, the map). The one place the reserve is decided: its
+                    // height is the pill's own landscape height (the landscapeHeight passed below), a floor, so a search notice
+                    // under the pill can still add to it. null: no reserve, as on every other tab and in portrait, where the
+                    // Journal's pill never hides.
+                    val journalSearchRoom: Dp? = if (railBeside && compactTab() == CompactTab.JOURNAL && !isMapFullscreen()) lastMapsStripHeight.takeIf { it > 0.dp } ?: tabPillStripLineHeight else null
+                    Box(
+                        modifier = if (journalSearchRoom != null) {
+                            // Clipped, as the expand it replaces clipped: the pill slides in from above within the reserved room.
+                            Modifier.fillMaxWidth().heightIn(min = journalSearchRoom).clipToBounds().testTag(JOURNAL_SEARCH_ROOM_TAG)
+                        } else {
+                            Modifier
+                        },
+                    ) {
                     if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld) {
                         // Dispatch 2026-10-17-09, RECORD -1244 (the owner: "And have the search bar slide up and down when
                         // revealing/hiding"): J5's reveal on the Journal (journalHidesSearchHeader) slides the pill down into place
@@ -1103,13 +1120,14 @@ internal fun CompactMainScaffold(
                                 EnterTransition.None
                             } else {
                                 slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
-                                    expandVertically(animationSpec = MotionTokens.panelMotionSpec(), expandFrom = Alignment.Top)
+                                    // RECORD -1320: into the reserved room, so no expand: the content below does not follow it.
+                                    if (journalSearchRoom != null) EnterTransition.None else expandVertically(animationSpec = MotionTokens.panelMotionSpec(), expandFrom = Alignment.Top)
                             },
                             exit = if (searchHeaderReduceMotion || searchHeaderArriving) {
                                 ExitTransition.None
                             } else {
                                 slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
-                                    shrinkVertically(animationSpec = MotionTokens.panelMotionSpec(), shrinkTowards = Alignment.Top)
+                                    if (journalSearchRoom != null) ExitTransition.None else shrinkVertically(animationSpec = MotionTokens.panelMotionSpec(), shrinkTowards = Alignment.Top)
                             },
                         ) {
                         Column {
@@ -1146,6 +1164,7 @@ internal fun CompactMainScaffold(
                         Box(modifier = readableContentCap) { SearchNotice(uiState) }
                         }
                         }
+                    }
                     }
 
                     // Switches to the Journal tab and starts the entry there — the gallery's own edit
@@ -1871,6 +1890,9 @@ internal fun CompactMainScaffold(
  * switch for the device check.
  */
 internal const val KEEP_MAP_THROUGH_TAB_FADE = true
+
+/** RECORD -1320: the Journal's reserved search room in landscape, for tests. */
+internal const val JOURNAL_SEARCH_ROOM_TAG = "journal-search-room"
 
 /** Landscape B2 (S2): the search bar's width cap in a short landscape window. */
 internal val LANDSCAPE_SEARCH_MAX_WIDTH = 384.dp
