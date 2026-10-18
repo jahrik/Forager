@@ -34,7 +34,7 @@ import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.availability.CONDITIONS_CARD_TAG
-import com.zynergylabs.forager.app.ui.availability.FRUITING_LAG_SECTION_TAG
+import com.zynergylabs.forager.app.ui.availability.SEASONAL_CONTENT_TAG
 import com.zynergylabs.forager.app.ui.availability.SettingsPageHarness
 import com.zynergylabs.forager.app.ui.availability.TRIP_WINDOWS_CARD_TAG
 import java.time.LocalDate
@@ -51,9 +51,9 @@ import org.robolectric.annotation.Config
 /**
  * "Weather data by Open-Meteo.com", linked, beside every place Open-Meteo's figures are drawn (dispatch
  * 2026-10-13-05; their licence: "You must include a link next to any location Open-Meteo data are
- * displayed"). The three places, traced from the code: the Seasonal tab's Current Conditions card, its
- * fruiting-lag section (lags counted from their historical rainfall, the planner's answer Q3), and Tools >
- * Trip Planner's Trip Windows card. Each is reached through the real screen, and "beside" is read as
+ * displayed"). The places, traced from the code: the Seasonal tab, once, at the foot of its column (dispatch
+ * 2026-10-18-01; until then its Current Conditions card and its fruiting-lag section each carried one), and
+ * Tools > Trip Planner's Trip Windows card. Each is reached through the real screen, and "beside" is read as
  * geometry: exactly one credit inside that place's own bounds, below everything else in it. Where the place
  * shows no figure of theirs (a failed fetch, a load in progress), it carries no credit. The link is opened by
  * real touches across the credit, read as the Intent the app starts.
@@ -67,15 +67,37 @@ class OpenMeteoCreditTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(SettingsPageHarness.declareHostActivity()).around(composeRule)
 
+    // Dispatch 2026-10-18-01 (the owner, S22 check group 3: "open meteo is cited twice in the seasonal tab. Once at the bottom
+    // is sufficient"): the Seasonal tab carries one credit, the last thing in its scrolling column, whenever any figure of
+    // Open-Meteo's is on it. Until then the Current Conditions card and the fruiting-lag section each carried their own.
+
     @Test
-    fun `the Current Conditions card carries the credit under its figures, and it opens Open-Meteo`() {
-        SettingsPageHarness.setScreen(composeRule, SEARCHED.copy(conditions = CONDITIONS, todaysForecast = TODAY))
+    fun `Seasonal with conditions and the fruiting-lag pattern carries one credit, at the bottom, and it opens Open-Meteo`() {
+        SettingsPageHarness.setScreen(composeRule, SEARCHED.copy(conditions = CONDITIONS, todaysForecast = TODAY, seasonalPattern = DISTRIBUTION))
         registerBrowser()
         composeRule.onNodeWithText("Seasonal").performClick()
         composeRule.waitForIdle()
 
-        val credit = assertOneCreditLastIn(CONDITIONS_CARD_TAG)
+        val credit = assertOneCreditAtTheBottomOfSeasonal()
         assertCreditOpensOpenMeteo(credit)
+    }
+
+    @Test
+    fun `Seasonal with only the Current Conditions card carries one credit, at the bottom`() {
+        SettingsPageHarness.setScreen(composeRule, SEARCHED.copy(conditions = CONDITIONS, todaysForecast = TODAY))
+        composeRule.onNodeWithText("Seasonal").performClick()
+        composeRule.waitForIdle()
+
+        assertOneCreditAtTheBottomOfSeasonal()
+    }
+
+    @Test
+    fun `Seasonal with only the fruiting-lag pattern carries one credit, at the bottom`() {
+        SettingsPageHarness.setScreen(composeRule, SEARCHED.copy(seasonalPattern = DISTRIBUTION))
+        composeRule.onNodeWithText("Seasonal").performClick()
+        composeRule.waitForIdle()
+
+        assertOneCreditAtTheBottomOfSeasonal()
     }
 
     @Test
@@ -89,22 +111,6 @@ class OpenMeteoCreditTest {
 
         composeRule.onNodeWithTag(CONDITIONS_CARD_TAG).performScrollTo()
         assertEquals("credits on the Seasonal tab", 0, composeRule.onAllNodesWithTag(OPEN_METEO_CREDIT_TAG).fetchSemanticsNodes().size)
-    }
-
-    @Test
-    fun `the fruiting-lag section carries the credit beside its counts, and it opens Open-Meteo`() {
-        SettingsPageHarness.setScreen(composeRule, SEARCHED.copy(seasonalPattern = DISTRIBUTION))
-        registerBrowser()
-        composeRule.onNodeWithText("Seasonal").performClick()
-        composeRule.waitForIdle()
-
-        val credit = composeRule.onNodeWithTag(OPEN_METEO_CREDIT_TAG).performScrollTo().fetchSemanticsNode()
-        val section = composeRule.onNodeWithTag(FRUITING_LAG_SECTION_TAG).fetchSemanticsNode().boundsInRoot
-        assertTrue("the credit ${credit.boundsInRoot} is inside the fruiting-lag section $section", section.contains(credit.boundsInRoot))
-        // Beside the counts: directly under the last bucket's row.
-        val lastBucket = composeRule.onNodeWithText("36+ days", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        assertTrue("the credit is under the bucket counts", credit.boundsInRoot.top >= lastBucket.bottom - 0.5f)
-        assertCreditOpensOpenMeteo(credit)
     }
 
     @Test
@@ -130,6 +136,30 @@ class OpenMeteoCreditTest {
         composeRule.onNodeWithText("Tools").performClick()
         composeRule.onNodeWithText("Trip Planner").performClick()
         composeRule.waitForIdle()
+    }
+
+    /**
+     * The one credit on the Seasonal tab: exactly one in the whole tree, inside the tab's scrolling column, with nothing else
+     * in that column drawn below it (the fruiting-lag section's iNaturalist caveat included).
+     */
+    private fun assertOneCreditAtTheBottomOfSeasonal(): SemanticsNode {
+        val all = composeRule.onAllNodesWithTag(OPEN_METEO_CREDIT_TAG, useUnmergedTree = true).fetchSemanticsNodes()
+        assertEquals("credits on the Seasonal tab", 1, all.size)
+        composeRule.onNodeWithTag(OPEN_METEO_CREDIT_TAG).performScrollTo()
+        val column = composeRule.onNodeWithTag(SEASONAL_CONTENT_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        val credit = composeRule.onAllNodesWithTag(OPEN_METEO_CREDIT_TAG, useUnmergedTree = true).fetchSemanticsNodes().single()
+        val inColumn = descendantsOf(column)
+        assertTrue("the credit is in the Seasonal tab's column", inColumn.any { it.id == credit.id })
+        assertEquals("the credit's words", listOf(OPEN_METEO_EXPECTED_TEXT), descendantsOf(credit).flatMap { it.texts() })
+        val creditIds = (listOf(credit) + descendantsOf(credit)).map { it.id }.toSet()
+        val others = inColumn.filter { it.id !in creditIds && it.boundsInRoot.height > 0f && it.texts().isNotEmpty() }
+        assertTrue("the Seasonal tab has its figures", others.isNotEmpty())
+        val lowest = others.maxBy { it.boundsInRoot.bottom }
+        assertTrue(
+            "the credit (top ${credit.boundsInRoot.top}) is under everything else on the tab (lowest ${lowest.texts()} at ${lowest.boundsInRoot.bottom})",
+            credit.boundsInRoot.top >= lowest.boundsInRoot.bottom - 0.5f,
+        )
+        return credit
     }
 
     /** The one credit inside the node tagged [placeTag], and nothing else in that place drawn below it. */

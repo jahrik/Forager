@@ -405,7 +405,7 @@ internal fun CartographyEntryReportScreen(
     val mapRegion = resolvedMapData?.takeUnless { it.isEmpty }?.let { GeoDistance.boundingRegion(it.allPoints) }
     val entryMapShown = resolvedMapData != null && mapRegion != null
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().testTag(ENTRY_REPORT_TAG)) {
         // Hidden via composition (an if, not an opacity/size-zero modifier), same convention
         // CompactMapTab's own fullscreen mode uses for its surrounding chrome — an unmounted
         // composable can't be the thing silently holding onto stale menu/dialog state, and this
@@ -654,7 +654,8 @@ internal fun CartographyEntryReportScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.lg),
+                    .padding(horizontal = Spacing.lg)
+                    .testTag(ENTRY_REPORT_INFO_TAG),
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
                 if (isEntirelyEmpty) {
@@ -809,6 +810,10 @@ private fun Modifier.shortWindowEntryMapHeight(cap: Dp): Modifier = layout { mea
 }
 
 internal const val CARTOGRAPHY_MAP_TEST_TAG = "cartography-entry-map"
+
+/** The day entry report's own bounds, and its scrolling info column, for tests (dispatch 2026-10-18-01). */
+internal const val ENTRY_REPORT_TAG = "cartography-entry-report"
+internal const val ENTRY_REPORT_INFO_TAG = "cartography-entry-report-info"
 
 /** Lets tests select the offline-map [Switch] directly, rather than relying on an untagged toggleable-semantics query. */
 internal const val OFFLINE_TOGGLE_TEST_TAG = "cartography-entry-offline-toggle"

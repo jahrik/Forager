@@ -19,6 +19,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.runtime.CompositionLocalProvider
@@ -36,6 +38,9 @@ import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.ui.log.CARTOGRAPHY_MAP_TEST_TAG
+import com.zynergylabs.forager.app.ui.log.ENTRY_REPORT_INFO_TAG
+import com.zynergylabs.forager.app.ui.log.ENTRY_REPORT_TAG
+import com.zynergylabs.forager.app.ui.log.TILE_FINDS
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.OFFLINE_TOGGLE_TEST_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
@@ -55,15 +60,19 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * L2 (dispatch `prompts/preserved/2026-09-28-47.md`): the day entry report in a short window. Its map
- * was 4:3 by the column's width (480 dp at 640), taller than the window, and was drawn over its own
- * header row, with the offline-map row squeezed to nothing. In a short window the map is now capped
- * (see `CartographyEntryReportScreen`'s `SHORT_WINDOW_MAP_HEIGHT_FRACTION`), so the header row and the
- * offline switch show, and they take real touches.
+ * The day entry report in a landscape window. Dispatch 2026-10-18-01 (RECORD -1258; the owner, S22 check group 1 item 2: "map
+ * is squished in landscape. reduce the size to a 4:3 box, and have it on one side with the info on the other. I propose the
+ * map on the left with the info on the right"; Q1, RECORD -1260: "Largest that leaves info ≥240 dp (Recommended)"): the map on
+ * the left in a 4:3 box, the largest that fits the height and leaves the info column at least 240 dp; the header pinned at the
+ * top of the right side, and under it the stats, the offline switch and the notes, scrolling on their own.
  *
- * Driven through the real [AvailabilityScreen], Journal tab, with a committed entry open, a kept find
- * and waypoint that the map frames, and a covering offline region so the offline switch shows (the
- * control the device run found cut off is **not** known to be this switch; that stays a device item).
+ * This replaces L2 (dispatch `prompts/preserved/2026-09-28-47.md`), whose tests asserted the header above the map, the switch
+ * below it and the map capped at 40% of a short window's height: an owner change of behaviour, so those assertions are
+ * replaced here, not weakened. L2's real-touch checks on Back and the switch stay, at their new places. Short portrait windows
+ * keep L2's cap (pinned below).
+ *
+ * Driven through the real [AvailabilityScreen], Journal tab, with a committed entry open, a kept find and waypoint that the map
+ * frames, and a covering offline region so the offline switch shows.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land")
@@ -168,17 +177,85 @@ class LandscapeEntryReportTest {
 
     private val fractions = listOf(0.5f to 0.5f, 0.2f to 0.2f, 0.8f to 0.2f, 0.2f to 0.8f, 0.8f to 0.8f)
 
+    private fun info(): DpRect = bounds(ENTRY_REPORT_INFO_TAG)
+
+    /** The split's geometry, in any landscape window: 4:3, on the left, the largest that leaves the info column 240 dp. */
+    private fun assertSplit() {
+        val report = bounds(ENTRY_REPORT_TAG)
+        val map = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        val mapWidth = (map.right - map.left).value
+        val mapHeight = (map.bottom - map.top).value
+        val reportWidth = (report.right - report.left).value
+        val reportHeight = (report.bottom - report.top).value
+        assertEquals("the map ($map) is 4:3", mapWidth * 3f / 4f, mapHeight, 1f)
+        assertEquals("the map is at the report's left ($report)", report.left.value, map.left.value, 0.5f)
+        assertEquals("the map is at the report's top ($report)", report.top.value, map.top.value, 0.5f)
+        val expectedHeight = minOf(reportHeight, (reportWidth - 240f) * 3f / 4f)
+        assertEquals("the map is the largest 4:3 box that fits the height ($reportHeight) and leaves 240 dp", expectedHeight, mapHeight, 1f)
+        assertTrue("the info column beside the map is at least 240 dp (${(report.right - map.right).value})", (report.right - map.right).value >= 240f - 0.5f)
+        val header = back().getUnclippedBoundsInRoot()
+        assertTrue("Back ($header) is right of the map ($map)", header.left >= map.right)
+        assertTrue("the entry options ($header) are right of the map", options().getUnclippedBoundsInRoot().left >= map.right)
+        assertTrue("the info column (${info()}) is right of the map", info().left.value >= map.right.value - 0.5f)
+        assertTrue("the info column starts below the header", info().top.value >= header.bottom.value - 0.5f)
+    }
+
     // ── Tests first ──
 
     @Test
-    fun `L2 the header row shows above the map, not under it, and Back takes real touches across its bounds`() {
+    fun `landscape the map is a 4 by 3 box on the left, the largest that leaves the info 240 dp, with the header and info on its right`() {
+        setScreen()
+        assertSplit()
+    }
+
+    /** A landscape tablet: the height would allow a map wider than the 640 dp column, so 240 dp of info decides the size. */
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land")
+    fun `landscape tablet the map box is limited by the 240 dp info column, still 4 by 3 and on the left`() {
+        setScreen()
+        assertSplit()
+        val report = bounds(ENTRY_REPORT_TAG)
+        val map = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        assertEquals("the info column is exactly 240 dp", 240f, (report.right - map.right).value, 1f)
+    }
+
+    @Test
+    fun `landscape the stats come before the offline switch and the notes, in the info column`() {
+        setScreen()
+        val finds = composeRule.onNodeWithText(TILE_FINDS, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val switch = composeRule.onNodeWithTag(OFFLINE_TOGGLE_TEST_TAG).getUnclippedBoundsInRoot()
+        val notes = composeRule.onNodeWithText("A wet morning on the ridge.").getUnclippedBoundsInRoot()
+        val map = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        listOf("Finds tile" to finds, "switch" to switch, "notes" to notes).forEach { (what, r) ->
+            assertTrue("the $what ($r) is right of the map ($map)", r.left >= map.right)
+        }
+        assertTrue("the Finds tile ($finds) is above the switch ($switch)", finds.bottom <= switch.top)
+        assertTrue("the switch ($switch) is above the notes ($notes)", switch.bottom <= notes.top)
+    }
+
+    @Test
+    fun `landscape the info column scrolls on its own, the map and header staying put`() {
+        setScreen()
+        // Notes long enough that the info column has to scroll in any landscape window.
+        composeRule.runOnIdle { editing = entry.copy(text = "A wet morning on the ridge." + "\nChanterelles under the firs.".repeat(30)) }
+        composeRule.waitForIdle()
+        val map = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        val header = back().getUnclippedBoundsInRoot()
+        val notes = { composeRule.onNodeWithText("A wet morning on the ridge.", substring = true).getUnclippedBoundsInRoot() }
+        val notesBefore = notes()
+        composeRule.onNodeWithTag(ENTRY_REPORT_INFO_TAG).performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+        val notesAfter = notes()
+        assertTrue("the info column scrolled (notes from ${notesBefore.top} to ${notesAfter.top})", notesAfter.top < notesBefore.top)
+        assertEquals("the map did not move", map, bounds(CARTOGRAPHY_MAP_TEST_TAG))
+        assertEquals("the header did not move", header, back().getUnclippedBoundsInRoot())
+    }
+
+    @Test
+    fun `landscape Back takes real touches across its bounds`() {
         setScreen()
         back().assertIsDisplayed()
-        options().assertIsDisplayed()
         val backRect = back().getUnclippedBoundsInRoot()
-        val mapRect = bounds(CARTOGRAPHY_MAP_TEST_TAG)
-        assertTrue("the map ($mapRect) starts below the header row (Back at $backRect)", mapRect.top >= backRect.bottom)
-
         // Each touch closes the entry; reopen it for the next.
         for ((fx, fy) in fractions) {
             touch(backRect, fx, fy)
@@ -189,14 +266,14 @@ class LandscapeEntryReportTest {
     }
 
     @Test
-    fun `L2 the offline switch below the map is shown whole in the window and takes real touches`() {
+    fun `landscape the offline switch in the info column is shown whole in the window and takes real touches`() {
         setScreen()
         val switch = composeRule.onNodeWithTag(OFFLINE_TOGGLE_TEST_TAG)
+        switch.performScrollTo()
         switch.assertIsDisplayed()
         val rect = switch.getUnclippedBoundsInRoot()
         val window = root()
-        assertTrue("the switch $rect lies wholly inside the window $window", rect.top >= window.top && rect.bottom <= window.bottom)
-        assertTrue("the switch $rect is below the map ${bounds(CARTOGRAPHY_MAP_TEST_TAG)}", rect.top >= bounds(CARTOGRAPHY_MAP_TEST_TAG).bottom)
+        assertTrue("the switch $rect lies wholly inside the window $window", rect.top >= window.top && rect.bottom <= window.bottom && rect.right <= window.right)
         switch.assertIsOff()
         touch(rect, 0.5f, 0.5f)
         switch.assertIsOn()
@@ -207,22 +284,16 @@ class LandscapeEntryReportTest {
     }
 
     @Test
-    fun `L2 the map is capped at the stated fraction of the window height`() {
+    fun `landscape a real touch on the map opens it fullscreen across the whole report, and the map keeps its one opening frame`() {
         setScreen()
-        val mapRect = bounds(CARTOGRAPHY_MAP_TEST_TAG)
-        assertEquals("the map is 40% of the 384 dp window", 384f * 0.4f, (mapRect.bottom - mapRect.top).value, 0.5f)
-    }
-
-    /**
-     * Lint dispatch 2026-10-17-03, Phase 2 (RECORD -1195), ConfigurationScreenWidthHeight: the cap is a fraction of the
-     * **window's** height (`LocalWindowInfo`), not `Configuration.screenHeightDp`. The configuration says 384 dp (this
-     * class's qualifiers); the window says 300 dp, so the map is 120 dp. Before the fix it was 153.6 dp.
-     */
-    @Test
-    fun `L2 the map cap follows the window's own height, not the configuration's`() {
-        setScreen(window = DpSize(823.dp, 300.dp))
-        val mapRect = bounds(CARTOGRAPHY_MAP_TEST_TAG)
-        assertEquals("the map is 40% of the 300 dp window", 300f * 0.4f, (mapRect.bottom - mapRect.top).value, 0.5f)
+        val map = bounds("map-slot")
+        // Away from the stub glyph (48 to 72 dp in from the map's top left).
+        touch(DpRect(map.right - 40.dp, map.bottom - 40.dp, map.right - 20.dp, map.bottom - 20.dp), 0.5f, 0.5f)
+        val report = bounds(ENTRY_REPORT_TAG)
+        val full = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        assertEquals("fullscreen: the map spans the report's width", (report.right - report.left).value, (full.right - full.left).value, 0.5f)
+        assertEquals("fullscreen: the map spans the report's height", (report.bottom - report.top).value, (full.bottom - full.top).value, 0.5f)
+        assertEquals("one opening request across the switch", 1, requests.filterNotNull().distinct().size)
     }
 
     // ── Checks: M1's bubbles and the opening frame still work on the capped map ──
@@ -237,7 +308,19 @@ class LandscapeEntryReportTest {
         assertEquals("one opening request", 1, requests.filterNotNull().distinct().size)
     }
 
-    // ── Check (a pin, passes before and after by design): portrait is unchanged ──
+    // ── Checks (pins, pass before and after by design): portrait is unchanged ──
+
+    /** L2's cap, kept for a short window that is not landscape (a phone in split screen). */
+    @Test
+    @Config(qualifiers = "w411dp-h460dp-port")
+    fun `L2 a short portrait window keeps the map capped at 40 percent of the window height, across the width`() {
+        setScreen()
+        val mapRect = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        assertEquals("the map is 40% of the 460 dp window", 460f * 0.4f, (mapRect.bottom - mapRect.top).value, 0.5f)
+        assertEquals("the map spans the width", (root().right - root().left).value, (mapRect.right - mapRect.left).value, 0.5f)
+        assertTrue("the map starts below Back", mapRect.top >= back().getUnclippedBoundsInRoot().bottom)
+    }
+
 
     @Test
     @Config(qualifiers = "w411dp-h891dp")
