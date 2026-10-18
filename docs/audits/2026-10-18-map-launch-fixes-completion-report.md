@@ -5,6 +5,12 @@ answers). Branch `map-launch-fixes`, PR #257 into `pre-main`, **not merged**. Th
 from pushed head `b3ca6a56` after the previous Hazel session was stopped by mistake (-1281). That session wrote
 all the code and the six revert branches. This session read CI, checked the reverts and wrote this report.
 
+**Update, 15:16Z (supersedes the status line below; everything under it stands as written at 14:51Z).** The owner
+answered question 1 with option (a), and ruled on question 2 (RECORD -1283, `113ab4ad` on records-after-173).
+`f90d3049` replaces the failing test. **Full CI 39138361084 at `f90d3049` is green: 5,064 tests, 0 failures, 0
+errors, 24 skipped** (JUnit XML from the run's artifact, 675 files, 15:04:32Z to 15:13:51Z). PR #257 is still not
+merged, and the S22 check below is now runnable on that run's debug APK. Details in "Update: question 1" at the end.
+
 **Status: not done. Full CI at `b3ca6a56` is red, with one failure, an existing test that pins the behaviour the
 owner's answer (B) removed. Rewriting it is a test change that the dispatch lists as a stop ("a test would have to
 be weakened"), so it is untouched and the decision goes to the planner (Questions, below).**
@@ -224,3 +230,63 @@ OpenStreetMap's tile policy, would no longer apply to the basemap.
 2. **"Map blank" versus a likely crash** when initialisation fails on a device (inferred above, not observed). Is
    that acceptable as the behaviour for an install failure, or should the map screen handle a failed initialisation?
    The second would be a behaviour choice with its own dispatch.
+
+## Update: question 1, the replaced test (15:16Z)
+
+**The owner's words**, from RECORD -1283: "1 Option 1 / 2 option 1".
+- **Question 1, option (a):** the failing test is replaced by two tests.
+- **Question 2:** a failed MapLibre start-up shows on the map screen as a message with Try again, fixed before release.
+  That is a separate dispatch from the planner. Not started here.
+
+**`f90d3049` (tests only):**
+- `MapUserAgentTest > starting the application installs the client…` is replaced by two tests:
+  - **`application start where MapLibre fails to initialise installs no HTTP client`** reads MapLibre's static client
+    slot (`HttpRequestImpl.client`) after Robolectric has booted the real `ForagerApplication`. Under Robolectric
+    MapLibre's start-up always fails, so this is the real entry point for (B).
+  - **`a successful install carries the app's User-Agent into MapLibre`** calls `installMapHttpClient()` directly,
+    because MapLibre cannot initialise under Robolectric. It then sends a request carrying MapLibre's own User-Agent
+    through the installed client and asserts that the app's User-Agent is what goes out. The static slot is put back
+    afterwards, so test order cannot leak a client into the first test.
+- `MapLibreInitializerTest > application start never falls back…` is removed. It passed the same before and after
+  the change (see "A test that cannot fail", above), and the first new test holds its claim at the same entry point.
+
+**Not covered by any test:** the wiring line `installHttpClient = { installMapHttpClient() }` at
+`MapLibreStorage.kt:29`. No test can reach the production initialiser with a successful SDK call. The initialiser
+tests cover the order of the two steps, and the second new test covers what `installMapHttpClient` installs. That
+line itself is confirmed by reading only.
+
+**Revert checks.** One line each, on separate branches built from `f90d3049` with a temporary git index. The
+`map-launch-fixes` working tree was never edited or restored, and the branch is still at `f90d3049`.
+- Each run was a `workflow_dispatch` filtered to `MapUserAgentTest` and `MapLibreInitializerTest` (13 tests).
+- Per-job logs were read through the API. The first try with `gh run view --log` came back empty, because local
+  `/tmp` hit its disk quota, and an empty log reads as "0 compile errors". That reading was thrown away and the logs
+  fetched again: 3,204 and 3,175 lines, zero Kotlin `e:` lines in any job, and the unit-test compile succeeded.
+
+| Revert | Edit | Run | Result | Failure |
+|---|---|---|---|---|
+| R7 | `ForagerApplication.kt:46`: `installMapHttpClient()` called again at application start, after the failed initialisation | 39138379233 | 13 / 1 failed | `application start where MapLibre fails to initialise installs no HTTP client`: "ForagerApplication.onCreate installed an HTTP client although MapLibre failed to initialise expected null, but was:<okhttp3.OkHttpClient@…>" |
+| R8 | `MapHttpClient.kt:36`: `setOkHttpClient(OkHttpClient())`, a client without the app's User-Agent | 39138381642 | 13 / 1 failed | `a successful install carries the app's User-Agent into MapLibre`: "expected:<[Forager/1.0.3442+g96ae7842 (Android 16; …)]> but was:<[MapLibre Android/13.5.0]>" |
+
+Each failure is the one its edit can cause, and no other test failed. R7's lint job also failed. Its log shows the
+Android SDK download failing with "curl: (92) HTTP/2 stream 1 was not closed cleanly", so lint never ran. That is a
+runner network error, not the revert.
+
+**A run of mine was cancelled.** Pushing `f90d3049` made the workflow's own concurrency setting
+(`.github/workflows/ci.yml:43-45`, `cancel-in-progress` on every branch but main and pre-main) cancel run
+39137964059. That was the run on this report's first commit, `b28c503d`, docs only, cancelled at 14:59:29Z. The
+planner's caution about this arrived after the push. The owner's instruction was not to cancel CI runs. The commit it
+covered changed no code, and `f90d3049`'s full run supersedes it. Since then, no push to `map-launch-fixes` has been
+made while a run on it was in progress.
+
+**Run IDs, all of them:**
+- 39133618709 (a0005a33): failed, test compile error.
+- 39134222373 (fc48f5f3): filtered, 19 tests, 4 failed, as expected.
+- 39134774158 (c0303ea6): filtered, 29 tests, 6 failed, as expected.
+- 39136088411 (b3ca6a56): full, 5,064 tests, 1 failed.
+- 39137964059 (b28c503d): cancelled.
+- 39138361084 (f90d3049): full, 5,064 tests, 0 failed, 24 skipped, green.
+- Reverts R1 to R6 (39136131212, 39136135460, 39136139883, 39136144795, 39136149384, 39136152957) and R7 and R8
+  (39138379233, 39138381642): all compiled, each failing only its own tests.
+
+**The device check** above stands unchanged. Use the debug APK from run 39138361084, or from the run on this report's
+commit if it is green and nothing but docs changed.
