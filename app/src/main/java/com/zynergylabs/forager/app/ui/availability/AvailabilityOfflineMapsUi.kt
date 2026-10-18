@@ -460,9 +460,7 @@ private fun OfflineMapsSideBySide(
             }
         }
         if (controlsFirst) controls()
-        // RECORD -1330 (the owner: "have the entries | records chip move up slightly from the map"): a small gap between the
-        // Journal's switch line, directly above, and the map. The map only; the controls beside it keep their own padding.
-        map(Modifier.weight(1f).fillMaxHeight().padding(top = OFFLINE_MAP_TOP_GAP))
+        map(Modifier.weight(1f).fillMaxHeight())
         if (!controlsFirst) controls()
     }
 }
@@ -737,6 +735,3 @@ internal fun offlineRegionZoomNote(region: OfflineRegionSummary): String =
 
 /** "Download this area?", for tests reading its container colour. */
 internal const val DOWNLOAD_CONFIRM_DIALOG_TAG = "download-confirm-dialog"
-
-/** RECORD -1330: the gap above the Offline maps map in landscape, below the Journal's switch line. */
-internal val OFFLINE_MAP_TOP_GAP = Spacing.sm

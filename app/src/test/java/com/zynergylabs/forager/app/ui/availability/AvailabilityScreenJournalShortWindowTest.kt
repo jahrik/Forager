@@ -321,22 +321,6 @@ class AvailabilityScreenJournalShortWindowTest {
         assertTrue("back on the open entry: no search icon", !exists(SEARCH_ICON))
     }
 
-    /** The owner (RECORD -1330): "have the entries | records chip move up slightly from the map". */
-    @Test
-    fun `RECORD -1330 on Offline maps a small gap separates the switch line from the map`() {
-        setScreen(Surface.ROTATION_90)
-        openJournal()
-        node(SWITCH_RECORDS).performClick()
-        composeRule.waitForIdle()
-        node(CHIP_OFFLINE).performClick()
-        composeRule.mainClock.advanceTimeBy(2_000)
-        composeRule.waitForIdle()
-        val line = bounds(SHORT_HEADER)
-        val map = bounds(SHORT_STUB_MAP_TAG)
-        println("MEASURED -1330 gap: switch line $line, map $map")
-        assertEquals("the map starts 8 dp below the switch line", 8f, (map.top - line.bottom).value, 0.5f)
-    }
-
     // ── L1: one pinned 48 dp header row ──
 
     private fun checkHeaderRow(rotation: Int) {
