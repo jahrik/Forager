@@ -21,8 +21,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.swipeUp
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.printToString
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.runtime.CompositionLocalProvider
@@ -292,17 +290,16 @@ class LandscapeEntryReportTest {
         // Away from the stub glyph (48 to 72 dp in from the map's top left).
         touch(DpRect(map.right - 40.dp, map.bottom - 40.dp, map.right - 20.dp, map.bottom - 20.dp), 0.5f, 0.5f)
         val report = bounds(ENTRY_REPORT_TAG)
-        // Instrumentation (the tests-first run at b2730392 found no map node here, a failure the old layout was not predicted
-        // to give): name what is on screen if the map has gone.
-        val mapNodes = composeRule.onAllNodesWithTag(CARTOGRAPHY_MAP_TEST_TAG, useUnmergedTree = true).fetchSemanticsNodes().size
-        assertEquals("the map is still on screen after the touch; the tree:\n${composeRule.onRoot(useUnmergedTree = true).printToString()}", 1, mapNodes)
-        val full = composeRule.onNodeWithTag(CARTOGRAPHY_MAP_TEST_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        // The map slot's own node, not CARTOGRAPHY_MAP_TEST_TAG: that tag is not on the map's box in fullscreen (its `.testTag`
+        // binds to the inner if-else of the box's modifier, not the fullscreen branch; found by instrumenting this test, CI run
+        // 39128035537, whose tree dump showed the map slot filling the report with no node carrying the tag).
+        val full = bounds("map-slot")
         assertEquals("fullscreen: the map spans the report's width", (report.right - report.left).value, (full.right - full.left).value, 0.5f)
         assertEquals("fullscreen: the map spans the report's height", (report.bottom - report.top).value, (full.bottom - full.top).value, 0.5f)
         assertEquals("one opening request across the switch", 1, requests.filterNotNull().distinct().size)
     }
 
-    // ── Checks: M1's bubbles and the opening frame still work on the capped map ──
+    // ── Checks: M1's bubbles and the opening frame still work on the split map ──
 
     @Test
     fun `L2 a real touch on a glyph in the capped map opens its bubble, and the map asked for its opening frame once`() {
