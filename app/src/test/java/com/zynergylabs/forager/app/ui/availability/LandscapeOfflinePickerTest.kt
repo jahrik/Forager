@@ -186,32 +186,20 @@ class LandscapeOfflinePickerTest {
     @Test fun `L1 at ROTATION_270 OK, Cancel and Download are shown and take real touches across their bounds without scrolling`() =
         checkPinnedActions(Surface.ROTATION_270)
 
-    // ── Tests first: the slider is reached by scrolling the controls side, then takes real touches ──
+    // ── The slider is in view on open, then takes real touches ──
+    //
+    // RECORD -1253 (the owner: "C: OK, Cancel and Download on one line", so that "the optional name box at top with the radius
+    // slider shown", RECORD -1243, holds): the slider is meant to be in view when the panel opens. This asserted the opposite
+    // case, that the slider was reached by scrolling: real drags on the controls side until it lay wholly inside the scrolling
+    // part, and `assertTrue("the controls side was scrolled by a real drag ($drags)", drags > 0)`. The touches across the
+    // slider's bounds below are unchanged.
 
     private fun checkSliderByScrolling(rotation: Int) {
         setScreen(rotation)
-        // Real drags upward on the controls side's scrolling part, which is not the map, a short
-        // one at a time until the slider lies wholly inside that part (at most eight).
         val mapRect = bounds(mapNode())
-        fun area() = bounds(composeRule.onNodeWithTag(L1_CONTROLS_SCROLL_TAG))
-        fun sliderInArea(): Boolean {
-            val a = area()
-            val r = bounds(slider())
-            return r.top >= a.top && r.bottom <= a.bottom
-        }
-        var drags = 0
-        while (!sliderInArea() && drags < 8) {
-            val a = area()
-            assertTrue("the drag starts off the map: controls $a, map $mapRect", a.left >= mapRect.right || a.right <= mapRect.left)
-            val x = ((a.left + a.right) / 2).value
-            val from = (a.top + (a.bottom - a.top) * 0.7f).value
-            val to = (a.top + (a.bottom - a.top) * 0.4f).value
-            composeRule.onRoot().performTouchInput { swipe(Offset(x * density, from * density), Offset(x * density, to * density), 400) }
-            composeRule.waitForIdle()
-            drags++
-        }
-        assertTrue("the controls side was scrolled by a real drag ($drags)", drags > 0)
-        assertTrue("the slider ${bounds(slider())} lies wholly in the scrolling part ${area()} after $drags drags", sliderInArea())
+        val area = bounds(composeRule.onNodeWithTag(L1_CONTROLS_SCROLL_TAG))
+        val opened = bounds(slider())
+        assertTrue("the slider $opened lies wholly in the scrolling part $area on open, with no drag", opened.top >= area.top && opened.bottom <= area.bottom)
         slider().assertIsDisplayed()
         val sliderRect = bounds(slider())
         assertWhollyInWindow("the slider", sliderRect)
@@ -229,11 +217,43 @@ class LandscapeOfflinePickerTest {
         assertEquals(5, moved)
     }
 
-    @Test fun `L1 at ROTATION_90 the slider is reached by scrolling the controls side and takes real touches`() =
+    @Test fun `RECORD -1253 at ROTATION_90 the slider is in view on open and takes real touches across its bounds`() =
         checkSliderByScrolling(Surface.ROTATION_90)
 
-    @Test fun `L1 at ROTATION_270 the slider is reached by scrolling the controls side and takes real touches`() =
+    @Test fun `RECORD -1253 at ROTATION_270 the slider is in view on open and takes real touches across its bounds`() =
         checkSliderByScrolling(Surface.ROTATION_270)
+
+    // ── RECORD -1253: OK, Cancel and Download on one line, each hit where it is drawn ──
+
+    @Test
+    fun `RECORD -1253 OK, Cancel and Download share one line and each takes real touches where it is drawn`() {
+        setScreen(Surface.ROTATION_90)
+        val okRect = bounds(ok())
+        val cancelRect = bounds(cancel())
+        val downloadRect = bounds(download())
+        for ((name, r) in listOf("Cancel" to cancelRect, "Download" to downloadRect)) {
+            assertEquals("$name is on OK's line (centre)", (okRect.top + okRect.bottom).value / 2, (r.top + r.bottom).value / 2, 1f)
+        }
+        assertTrue("OK $okRect, then Cancel $cancelRect, side by side", okRect.right <= cancelRect.left)
+        assertTrue("Cancel $cancelRect, then Download $downloadRect, side by side", cancelRect.right <= downloadRect.left)
+        assertWhollyInWindow("Download", downloadRect)
+        // Cancel first, while nothing is picked: touches across it confirm nothing and open nothing.
+        for ((fx, fy) in fractions) touch(cancelRect, fx, fy)
+        assertEquals("no touch on Cancel reached OK", 0, latChanges)
+        composeRule.onNodeWithText("Download this area?").assertDoesNotExist()
+        // OK, across its bounds: each confirms the pick.
+        for ((fx, fy) in fractions) touch(okRect, fx, fy)
+        assertEquals("every sampled touch on OK confirmed the pick", fractions.size, latChanges)
+        // Download, enabled now, across its bounds: each opens the confirmation, closed again by its Cancel.
+        for ((fx, fy) in fractions) {
+            touch(downloadRect, fx, fy)
+            composeRule.onNodeWithText("Download this area?").assertIsDisplayed()
+            composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
+            composeRule.waitForIdle()
+        }
+        assertEquals("the touches on OK all confirmed the pick, none reached it from Download", fractions.size, latChanges)
+        assertEquals("no download started without the confirmation", 0, downloads)
+    }
 
     // ── Tests first: side by side, the map full height on the punch-hole side, the controls by the rail ──
 
