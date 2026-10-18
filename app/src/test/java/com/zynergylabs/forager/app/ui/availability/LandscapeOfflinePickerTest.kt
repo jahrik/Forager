@@ -126,8 +126,6 @@ class LandscapeOfflinePickerTest {
 
     private fun bounds(node: SemanticsNodeInteraction): DpRect = node.getUnclippedBoundsInRoot()
     private fun root(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
-    private fun ok() = composeRule.onNodeWithText("OK")
-    private fun cancel() = composeRule.onNodeWithText("Cancel")
     private fun download() = composeRule.onNodeWithText("Download Maps")
     private fun slider() = composeRule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
     private fun mapNode() = composeRule.onNodeWithTag(PAN_RECORDING_MAP_TAG)
@@ -151,25 +149,22 @@ class LandscapeOfflinePickerTest {
         )
     }
 
-    // ── Tests first: OK, Cancel and Download are pinned, shown and reached by real touches, with no scrolling ──
+    // ── Download Maps is pinned, shown and reached by real touches, with no scrolling ──
+    //
+    // Dispatch 2026-10-18-03 (Forager RECORD -1269; the owner: "Remove both OK and Cancel and just have the Download Maps option"):
+    // the pinned part is "Pin at", then Download Maps. This was L1's OK, Cancel and Download, OK touched first to confirm the
+    // pick (`assertEquals("every sampled touch on OK confirmed the pick", fractions.size, latChanges)`) because Download was
+    // disabled until then. Now Download Maps picks the pin itself: each touch on it picks the point and opens the confirmation.
 
     private fun checkPinnedActions(rotation: Int) {
         setScreen(rotation)
-        ok().assertIsDisplayed()
-        cancel().assertIsDisplayed()
+        composeRule.onNodeWithText("OK").assertDoesNotExist()
+        composeRule.onNodeWithText("Cancel").assertDoesNotExist()
         download().assertIsDisplayed()
-        val okRect = bounds(ok())
-        assertWhollyInWindow("OK", okRect)
-        assertWhollyInWindow("Cancel", bounds(cancel()))
-
-        for ((fx, fy) in fractions) touch(okRect, fx, fy)
-        assertEquals("every sampled touch on OK confirmed the pick", fractions.size, latChanges)
-
-        // OK confirmed a point, so Download is enabled now.
         val downloadRect = bounds(download())
         assertWhollyInWindow("Download", downloadRect)
-        // Part 2 follow-ups F1 item 4: a touch on Download Maps now opens the confirmation instead of
-        // starting the download, so "reached it" is the confirmation appearing; Cancel closes it again.
+        // Part 2 follow-ups F1 item 4: a touch on Download Maps opens the confirmation instead of starting the download, so
+        // "reached it" is the confirmation appearing; Cancel closes it again.
         for ((fx, fy) in fractions) {
             touch(downloadRect, fx, fy)
             composeRule.onNodeWithText("Download this area?").assertIsDisplayed()
@@ -177,13 +172,14 @@ class LandscapeOfflinePickerTest {
             composeRule.waitForIdle()
             composeRule.onNodeWithText("Download this area?").assertDoesNotExist()
         }
+        assertEquals("every sampled touch on Download Maps picked the pin's point", fractions.size, latChanges)
         assertEquals("no touch on Download Maps started a download: the confirmation comes first", 0, downloads)
     }
 
-    @Test fun `L1 at ROTATION_90 OK, Cancel and Download are shown and take real touches across their bounds without scrolling`() =
+    @Test fun `at ROTATION_90 Download Maps is shown alone and takes real touches across its bounds without scrolling`() =
         checkPinnedActions(Surface.ROTATION_90)
 
-    @Test fun `L1 at ROTATION_270 OK, Cancel and Download are shown and take real touches across their bounds without scrolling`() =
+    @Test fun `at ROTATION_270 Download Maps is shown alone and takes real touches across its bounds without scrolling`() =
         checkPinnedActions(Surface.ROTATION_270)
 
     // ── The slider is in view on open, then takes real touches ──
@@ -223,44 +219,17 @@ class LandscapeOfflinePickerTest {
     @Test fun `RECORD -1253 at ROTATION_270 the slider is in view on open and takes real touches across its bounds`() =
         checkSliderByScrolling(Surface.ROTATION_270)
 
-    // ── RECORD -1253: OK, Cancel and Download on one line, each hit where it is drawn ──
-
-    @Test
-    fun `RECORD -1253 OK, Cancel and Download share one line and each takes real touches where it is drawn`() {
-        setScreen(Surface.ROTATION_90)
-        val okRect = bounds(ok())
-        val cancelRect = bounds(cancel())
-        val downloadRect = bounds(download())
-        for ((name, r) in listOf("Cancel" to cancelRect, "Download" to downloadRect)) {
-            assertEquals("$name is on OK's line (centre)", (okRect.top + okRect.bottom).value / 2, (r.top + r.bottom).value / 2, 1f)
-        }
-        assertTrue("OK $okRect, then Cancel $cancelRect, side by side", okRect.right <= cancelRect.left)
-        assertTrue("Cancel $cancelRect, then Download $downloadRect, side by side", cancelRect.right <= downloadRect.left)
-        assertWhollyInWindow("Download", downloadRect)
-        // Cancel first, while nothing is picked: touches across it confirm nothing and open nothing.
-        for ((fx, fy) in fractions) touch(cancelRect, fx, fy)
-        assertEquals("no touch on Cancel reached OK", 0, latChanges)
-        composeRule.onNodeWithText("Download this area?").assertDoesNotExist()
-        // OK, across its bounds: each confirms the pick.
-        for ((fx, fy) in fractions) touch(okRect, fx, fy)
-        assertEquals("every sampled touch on OK confirmed the pick", fractions.size, latChanges)
-        // Download, enabled now, across its bounds: each opens the confirmation, closed again by its Cancel.
-        for ((fx, fy) in fractions) {
-            touch(downloadRect, fx, fy)
-            composeRule.onNodeWithText("Download this area?").assertIsDisplayed()
-            composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
-            composeRule.waitForIdle()
-        }
-        assertEquals("the touches on OK all confirmed the pick, none reached it from Download", fractions.size, latChanges)
-        assertEquals("no download started without the confirmation", 0, downloads)
-    }
+    // Dispatch 2026-10-18-03 (Forager RECORD -1269) supersedes RECORD -1253's "OK, Cancel and Download share one line and each
+    // takes real touches where it is drawn": there is no OK or Cancel now. The pinned part's shape, "Pin at" then Download Maps
+    // across the side, is OfflineDownloadMapsOnlyTest's; the touches across Download Maps are checkPinnedActions' above.
 
     // ── Tests first: side by side, the map full height on the punch-hole side, the controls by the rail ──
 
     private fun checkSides(rotation: Int) {
         setScreen(rotation)
         val mapRect = bounds(mapNode())
-        val okRect = bounds(ok())
+        // Dispatch 2026-10-18-03: Download Maps marks the controls side, which held OK until then.
+        val okRect = bounds(download())
         val railRect = rail()
         val window = root()
         val railOnRight = railRect.left > (window.left + window.right) / 2
@@ -312,14 +281,16 @@ class LandscapeOfflinePickerTest {
 
     @Test
     @Config(qualifiers = "w411dp-h891dp")
-    fun `L1 portrait keeps the stacked picker, the map 4 by 3 across the width and OK below it`() {
+    fun `L1 portrait keeps the stacked picker, the map 4 by 3 across the width and the Pin at line below it`() {
         setScreen(rotation = null)
         val mapRect = bounds(mapNode())
         val window = root()
         assertEquals("the map spans the width", (window.right - window.left).value, (mapRect.right - mapRect.left).value, 0.5f)
         assertEquals("the map is 4:3", (mapRect.right - mapRect.left).value * 3f / 4f, (mapRect.bottom - mapRect.top).value, 0.5f)
-        assertTrue("OK is below the map", bounds(ok()).top >= mapRect.bottom)
-        assertTrue("Download is below OK", bounds(download()).top >= bounds(ok()).bottom)
+        // Dispatch 2026-10-18-03: the Pin at line in OK's place, under the map. Was "OK is below the map" and "Download is below OK".
+        val pinLine = bounds(composeRule.onNodeWithText("Pin at:", substring = true))
+        assertTrue("the Pin at line is below the map", pinLine.top >= mapRect.bottom)
+        assertTrue("Download is below the Pin at line", bounds(download()).top >= pinLine.bottom)
     }
 }
 

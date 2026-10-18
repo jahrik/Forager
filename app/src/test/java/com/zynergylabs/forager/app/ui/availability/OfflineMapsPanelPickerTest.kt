@@ -7,6 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -98,14 +101,20 @@ class OfflineMapsPanelPickerTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Dispatch 2026-10-18-03 (Forager RECORD -1269): this screen has no OK; Download Maps picks the pin's point and asks. Was
+     * `onNodeWithText("OK").performScrollTo().performClick()`. The confirmation is closed again by its own Cancel.
+     */
     private fun confirm() {
-        composeRule.onNodeWithText("OK").performScrollTo().performClick()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
         composeRule.waitForIdle()
     }
 
-    /** F2 (M1): after a pan, the device location arriving late moves neither the pin, nor the map, nor what OK reports. */
+    /** F2 (M1): after a pan, the device location arriving late moves neither the pin, nor the map, nor what Download Maps picks. */
     @Test
-    fun `after a pan, a late device centre moves neither the pin, nor the map's region, nor what OK reports`() {
+    fun `after a pan, a late device centre moves neither the pin, nor the map's region, nor what Download Maps picks`() {
         setPanel()
         composeRule.onNodeWithText(pinText(BUILT_IN_CENTRE)).assertExists()
         panTheMap()
@@ -140,7 +149,7 @@ class OfflineMapsPanelPickerTest {
      * the radius, as it did before this fix).
      */
     @Test
-    fun `after a pan, the radius slider keeps the panned centre for the pin, the map and OK`() {
+    fun `after a pan, the radius slider keeps the panned centre for the pin, the map and Download Maps`() {
         setPanel()
         val radiusBefore = uiState.value.offlineMapRadiusKm
         panTheMap()
