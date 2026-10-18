@@ -64,6 +64,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.runtime.key
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -1061,7 +1064,32 @@ internal fun CompactMainScaffold(
                     LaunchedEffect(journalHidesSearchHeader) {
                         if (journalHidesSearchHeader) showSearchDropdown = false
                     }
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld && !journalHidesSearchHeader) {
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld) {
+                        // Dispatch 2026-10-17-09, RECORD -1244 (the owner: "And have the search bar slide up and down when
+                        // revealing/hiding"): J5's reveal on the Journal (journalHidesSearchHeader) slides the pill down into place
+                        // from above, and back up out of view, while the content below follows it (the expand and shrink), on
+                        // MotionTokens.panelMotionSpec, the spec the Maps tab's own search bar slides on into and out of fullscreen.
+                        // Keyed by the tab, so arriving on a tab shows its pill as it stands, with no slide: only a reveal or a
+                        // hide on the Journal plays one. Every other way the pill comes or goes is as before, at once. Under
+                        // reduced motion the reveal is at once too (docs/motion-spec.md §4).
+                        key(compactTab()) {
+                        val searchHeaderReduceMotion = LocalReduceMotion.current
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = !journalHidesSearchHeader,
+                            enter = if (searchHeaderReduceMotion) {
+                                EnterTransition.None
+                            } else {
+                                slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
+                                    expandVertically(animationSpec = MotionTokens.panelMotionSpec(), expandFrom = Alignment.Top)
+                            },
+                            exit = if (searchHeaderReduceMotion) {
+                                ExitTransition.None
+                            } else {
+                                slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
+                                    shrinkVertically(animationSpec = MotionTokens.panelMotionSpec(), shrinkTowards = Alignment.Top)
+                            },
+                        ) {
+                        Column {
                         // SearchEntryBar takes no modifier, so its place goes on this wrapper (tabLandscapePillPlace).
                         Box(modifier = tabLandscapePillPlace) {
                         SearchEntryBar(
@@ -1091,6 +1119,9 @@ internal fun CompactMainScaffold(
                         }
                         // Under the pill, inside the readable-width cap, as it was before the pill moved.
                         Box(modifier = readableContentCap) { SearchNotice(uiState) }
+                        }
+                        }
+                        }
                     }
 
                     // Switches to the Journal tab and starts the entry there — the gallery's own edit

@@ -646,6 +646,9 @@ internal fun JournalTab(
     val shortLandscape = isLandscapeJournal()
     // Amendment 1: the action Entries puts in the L1 row's last slot, for the row drawn above the pages.
     val cartographyHeaderAction = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
+    // Dispatch 2026-10-17-09, RECORD -1243: Records' filter chips, handed up by RecordsTab, for the space between the switch and
+    // the search icon on this line (landscape only; `null` while Records is not shown).
+    val recordsChipsOnSwitchLine = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
     // Any entry open, find or Cartography entry: the scaffold hides the search header then anyway
     // (its isEditingJournalEntry rule, the same two fields), so the row's search icon is left out.
     val journalEntryOpen = editing != null || cartographyUiState.editingEntry != null
@@ -658,6 +661,7 @@ internal fun JournalTab(
                 searchRevealed = journalState.searchHeaderRevealed,
                 onToggleSearch = { journalState.searchHeaderRevealed = !journalState.searchHeaderRevealed },
                 action = action,
+                middle = if (selectedTopTab == JournalTopTab.RECORDS) recordsChipsOnSwitchLine.value else null,
             )
         }
     } else {
@@ -865,6 +869,8 @@ internal fun JournalTab(
                     // J5, L3 and L5a: in a short window the filter chips are the second row, which
                     // gets out of the way while the list scrolls, with the tighter chip spacing.
                     shortWindow = shortLandscape,
+                    // RECORD -1243: in a short window the chips go on the switch line above (recordsChipsOnSwitchLine).
+                    chipsOnSwitchLine = if (shortLandscape) recordsChipsOnSwitchLine else null,
                     backEnabled = backEnabled,
                     onNavigateToWaypoint = onNavigateToWaypoint,
                     reopenWaypointDetails = reopenWaypointDetails,

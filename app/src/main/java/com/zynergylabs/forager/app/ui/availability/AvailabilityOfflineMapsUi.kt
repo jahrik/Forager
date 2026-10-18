@@ -31,7 +31,6 @@ import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
 import com.zynergylabs.forager.app.ui.map.CentrePinConfirmActions
-import com.zynergylabs.forager.app.ui.map.CentrePinInstruction
 import com.zynergylabs.forager.app.ui.map.CentrePinMap
 import com.zynergylabs.forager.app.ui.map.rememberCentrePinState
 import androidx.compose.foundation.layout.Arrangement
@@ -184,24 +183,26 @@ internal fun OfflineMapsPanel(
     val confirmActions: @Composable () -> Unit = {
         CentrePinConfirmActions(state = pinState, onConfirm = onRegionPicked, onCancel = {})
     }
-    val instruction: @Composable () -> Unit = {
+    // Dispatch 2026-10-17-09, RECORD -1243 and -1245 (the owner: "Trim the top text out, the design is intuitive to use without
+    // explaining (3 times). Add at the bottom the note on the Continental US vector map. Have the user be faced with the
+    // optional name box at top with the radius slider shown"; to the three lines as listed, "Option 1, but do the same for
+    // portrait"). Gone from this screen, in both orientations:
+    //  1. the instruction above the map, "Offline downloads cover the continental United States with vector map data. Pan the
+    //     map below to position the pin, then tap OK to choose where to download.", whose first sentence is now the note at the
+    //     bottom (usContinentalNote);
+    //  2. the centre-pin instruction, "Pan the map to position the pin, then confirm." (CentrePinInstruction; only here: every
+    //     other picker keeps it);
+    //  3. the picked-region line, "No location picked yet — pan the map above and tap OK." or "Download region: <lat>, <lng>":
+    //     the pinned "Pin at: <lat>, <lng>" line under the map already shows where the pin is.
+    // So the controls start with the Name box, the radius and its slider under it.
+    val usContinentalNote: @Composable () -> Unit = {
         Text(
-            "Offline downloads cover the continental United States with vector map data. " +
-                "Pan the map below to position the pin, then tap OK to choose where to download.",
+            OFFLINE_US_CONTINENTAL_NOTE,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
     }
     val details: @Composable ColumnScope.() -> Unit = {
-        Text(
-            if (hasValidRegion) {
-                "Download region: ${"%.4f".format(pickedLat)}, ${"%.4f".format(pickedLng)}"
-            } else {
-                "No location picked yet — pan the map above and tap OK."
-            },
-            style = MaterialTheme.typography.bodySmall,
-        )
-
         OutlinedTextField(
             value = uiState.offlineMapNameText,
             onValueChange = onOfflineMapNameChanged,
@@ -301,8 +302,8 @@ internal fun OfflineMapsPanel(
             // when the port edge is the left", which put them on the left at ROTATION_270.
             controlsFirst = false,
             map = { mapModifier -> pickerMap(isNightMode, mapModifier) },
-            instruction = instruction,
             details = details,
+            usContinentalNote = usContinentalNote,
             regionsSection = regionsSection,
             confirmActions = confirmActions,
             downloadButton = downloadButton,
@@ -318,7 +319,6 @@ internal fun OfflineMapsPanel(
     // parent), so verticalScroll here is meaningful rather than a no-op: weight(1f) gives a bounded,
     // not infinite, height to scroll within.
     Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-        instruction()
 
         // A fixed aspect ratio, not weight(1f): the picker map used to claim all leftover space in
         // an unscrolled panel, but a panel that now scrolls as a whole has no "leftover space" for
@@ -333,7 +333,6 @@ internal fun OfflineMapsPanel(
         // picker's three pieces are composed here directly, in CentrePinLocationPicker's own order,
         // so the map can move to the side-by-side layout; this layout is unchanged.
         Column(modifier = Modifier.fillMaxWidth()) {
-            CentrePinInstruction()
             pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(MAP_PICKER_ASPECT_RATIO))
             confirmActions()
         }
@@ -349,6 +348,8 @@ internal fun OfflineMapsPanel(
         }
 
         regionsSection()
+        // RECORD -1245: the continental-US note, the screen's last line.
+        usContinentalNote()
     }
     confirmDownloadDialog()
 }
@@ -390,8 +391,9 @@ private fun OfflineMapsSideBySide(
     modifier: Modifier,
     controlsFirst: Boolean,
     map: @Composable (Modifier) -> Unit,
-    instruction: @Composable () -> Unit,
     details: @Composable ColumnScope.() -> Unit,
+    /** RECORD -1245: the continental-US note, the last line of the scrolling part. */
+    usContinentalNote: @Composable () -> Unit,
     regionsSection: @Composable () -> Unit,
     confirmActions: @Composable () -> Unit,
     downloadButton: @Composable (Modifier) -> Unit,
@@ -406,8 +408,6 @@ private fun OfflineMapsSideBySide(
                         .verticalScroll(rememberScrollState())
                         .testTag(OFFLINE_PICKER_CONTROLS_SCROLL_TAG),
                 ) {
-                    instruction()
-                    CentrePinInstruction()
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -416,6 +416,7 @@ private fun OfflineMapsSideBySide(
                         content = details,
                     )
                     regionsSection()
+                    usContinentalNote()
                 }
                 confirmActions()
                 downloadButton(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
@@ -429,6 +430,12 @@ private fun OfflineMapsSideBySide(
 
 /** [OfflineMapsSideBySide]'s scrolling part, above the pinned actions: what a test drags to reach the slider. */
 internal const val OFFLINE_PICKER_CONTROLS_SCROLL_TAG = "offline-picker-controls-scroll"
+
+/**
+ * The offline-maps screen's last line (RECORD -1245), word for word the first sentence of the instruction that used to open the
+ * screen ("Offline downloads cover the continental United States with vector map data. Pan the map below…").
+ */
+internal const val OFFLINE_US_CONTINENTAL_NOTE = "Offline downloads cover the continental United States with vector map data."
 
 /** The picker map's fixed width:height ratio — see [OfflineMapsPanel]'s doc comment for why this replaced `Modifier.weight(1f)`. */
 private const val MAP_PICKER_ASPECT_RATIO = 4f / 3f
@@ -544,10 +551,10 @@ private fun OfflineRegionsSection(
     ) {
         Text("Downloaded Maps", style = MaterialTheme.typography.titleSmall)
 
+        // RECORD -1245 (the owner: "Keep the figure, drop the explanation (Recommended)"): was followed by "Sizes don't add up to
+        // total disk usage — overlapping regions share tiles, so deleting one may free less than its own size suggests."
         Text(
-            "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}. Sizes don't add up to " +
-                "total disk usage — overlapping regions share tiles, so deleting one may free less " +
-                "than its own size suggests.",
+            "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}",
             style = MaterialTheme.typography.bodySmall,
         )
 

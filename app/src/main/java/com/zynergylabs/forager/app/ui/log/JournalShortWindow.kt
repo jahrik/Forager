@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -86,6 +85,13 @@ internal fun ShortWindowJournalHeader(
     onToggleSearch: () -> Unit,
     action: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
+    /**
+     * Dispatch 2026-10-17-09, RECORD -1243 (the owner: "still have the chips be on the same line as the entries | records. But
+     * centered between the entries | records and search icon, scrollable with offline maps showing and highlighted"; "All of
+     * Records, landscape (Recommended)"): what sits between the switch and the search icon, centred in that space. Records'
+     * filter chips; `null` (Entries, and every caller before -1243) leaves the space empty, as before.
+     */
+    middle: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -97,7 +103,7 @@ internal fun ShortWindowJournalHeader(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         JournalSwitch(selected = selectedTopTab, onSelect = onSelectTopTab)
-        Spacer(Modifier.weight(1f))
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { middle?.invoke() }
         if (showSearch) {
             // Motion Part 1 (dispatch 2026-09-28-652, item 5, scout J19): Search and Search-off crossfade with a slight grow. The
             // label is on the button, because both icons are composed for the length of the swap.
