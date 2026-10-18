@@ -29,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
@@ -209,6 +210,45 @@ class AvailabilityScreenJournalShortWindowTest {
         node(SWITCH).assertIsDisplayed()
     }
 
+    // ── RECORD -1244: the revealed header slides down, and up when it hides ──
+
+    /**
+     * The owner (RECORD -1244): "And have the search bar slide up and down when revealing/hiding". On the test clock: a frame part
+     * way through each transition shows the pill partly above its place and the row below it part way down, so it is animated, not
+     * a jump; the end states are the pill at its place (the left, as on List and Seasonal) and then no pill.
+     */
+    @Test
+    fun `RECORD -1244 the revealed header slides down into place, and slides up when hidden`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        val rowHidden = bounds(SHORT_HEADER).top
+        composeRule.mainClock.autoAdvance = false
+        node(SEARCH_ICON).performTouchInput { click(center) }
+        repeat(4) { composeRule.mainClock.advanceTimeByFrame() }
+        val midPill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val midRow = bounds(SHORT_HEADER).top
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val rowShown = bounds(SHORT_HEADER).top
+        assertTrue("revealed, the row below sits under the pill ($rowShown, pill bottom ${pill.bottom})", rowShown >= pill.bottom - 0.5.dp && rowShown > rowHidden)
+        assertTrue("part way in, the pill $midPill is above its place ${pill.top}", midPill.top < pill.top - 0.5.dp)
+        assertTrue("part way in, the row ($midRow) is between its two places ($rowHidden, $rowShown)", midRow > rowHidden + 0.5.dp && midRow < rowShown - 0.5.dp)
+        assertEquals("the pill takes the left place, as on the other tabs (no insets: the window's left)", 0f, pill.left.value, 0.5f)
+
+        composeRule.mainClock.autoAdvance = false
+        node(SEARCH_ICON).performTouchInput { click(center) }
+        repeat(4) { composeRule.mainClock.advanceTimeByFrame() }
+        val outPill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val outRow = bounds(SHORT_HEADER).top
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertTrue("part way out, the pill $outPill is above its place ${pill.top}", outPill.top < pill.top - 0.5.dp)
+        assertTrue("part way out, the row ($outRow) is between its two places", outRow > rowHidden + 0.5.dp && outRow < rowShown - 0.5.dp)
+        assertTrue("hidden at the end", !exists(SEARCH_ENTRY_BAR_TAG))
+        assertEquals("the row is back at the top", rowHidden.value, bounds(SHORT_HEADER).top.value, 0.5f)
+    }
+
     // ── L1: one pinned 48 dp header row ──
 
     private fun checkHeaderRow(rotation: Int) {
@@ -370,26 +410,67 @@ class AvailabilityScreenJournalShortWindowTest {
         node(DRAFTS_CHIP).assertIsDisplayed()
     }
 
+    // ── RECORD -1243: on Records, the chips are on the switch's line, in landscape ──
+    //
+    // The owner (RECORD -1243): "In offline maps: still have the chips be on the same line as the entries | records. But
+    // centered between the entries | records and search icon, scrollable with offline maps showing and highlighted", then
+    // "All of Records, landscape (Recommended)". The chip row's own line (J5's L3 second row on Records) is gone, so is its
+    // hide-on-scroll: this replaces `L3 on Records the filter chip row hides on a real scroll down and returns on a scroll up`,
+    // which asserted that the row hid on a scroll down, came back on a scroll up, and sat below L1.
+
+    private fun checkChipsOnSwitchLine(rotation: Int) {
+        setScreen(rotation)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        assertEquals("one chip row", 1, composeRule.onAllNodesWithTag(CHIP_ROW).fetchSemanticsNodes().size)
+        val header = bounds(SHORT_HEADER)
+        val row = bounds(CHIP_ROW)
+        val switch = bounds(SWITCH)
+        val icon = bounds(SEARCH_ICON)
+        assertTrue("the chip row $row sits in the switch's line $header", row.top >= header.top - 0.5.dp && row.bottom <= header.bottom + 0.5.dp)
+        assertTrue("after the switch ($switch)", row.left >= switch.right - 0.5.dp)
+        assertTrue("before the search icon ($icon)", row.right <= icon.left + 0.5.dp)
+        assertEquals("centred between the switch and the search icon", ((switch.right + icon.left) / 2).value, ((row.left + row.right) / 2).value, 1f)
+    }
+
+    @Test fun `RECORD -1243 at ROTATION_90 the Records chips sit on the switch's line, centred before the search icon`() = checkChipsOnSwitchLine(Surface.ROTATION_90)
+    @Test fun `RECORD -1243 at ROTATION_270 the Records chips sit on the switch's line, centred before the search icon`() = checkChipsOnSwitchLine(Surface.ROTATION_270)
+
     @Test
-    fun `L3 on Records the filter chip row hides on a real scroll down and returns on a scroll up`() {
+    fun `RECORD -1243 the selected chip is scrolled into view and highlighted when Records opens`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        node(CHIP_OFFLINE).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        // Away to Entries and back: Records opens again, its chips laid out afresh.
+        node(SWITCH_ENTRIES).performClick()
+        composeRule.waitForIdle()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        val row = bounds(CHIP_ROW)
+        val chip = bounds(CHIP_OFFLINE)
+        assertTrue("the chip row $row is on the switch's line", row.bottom <= bounds(SHORT_HEADER).bottom + 0.5.dp)
+        assertTrue("Offline maps $chip is wholly in view in the chip row $row", chip.left >= row.left - 0.5.dp && chip.right <= row.right + 0.5.dp)
+        node(CHIP_OFFLINE).assertIsSelected()
+    }
+
+    @Test
+    fun `RECORD -1243 on Records the chips stay on the line while the list scrolls`() {
         setScreen(Surface.ROTATION_270)
         openJournal()
         node(SWITCH_RECORDS).performClick()
         composeRule.waitForIdle()
-        // Records opens on Finds since RECORD -868; this case scrolls the All logbook.
-        node(CHIP_ALL).performClick()
+        node(CHIP_ALL).performScrollTo().performClick()
         composeRule.waitForIdle()
-        node(CHIP_ROW).assertIsDisplayed()
-        // The All logbook, with more rows than fit: sixteen waypoints on sixteen days.
+        val before = bounds(CHIP_ROW)
         val list = composeRule.onNode(hasScrollAction() and hasAnyDescendant(hasText("Pin 1")))
         list.performTouchInput { swipeUp() }
         composeRule.waitForIdle()
-        assertTrue("the chip row hides on a scroll down", !exists(CHIP_ROW))
-        node(SHORT_HEADER).assertIsDisplayed()
-        list.performTouchInput { swipeDown() }
-        composeRule.waitForIdle()
         node(CHIP_ROW).assertIsDisplayed()
-        assertTrue("the chip row is the second row, below L1", bounds(CHIP_ROW).top >= bounds(SHORT_HEADER).bottom - 0.5.dp)
+        assertEquals("the chip row did not move", before.top.value, bounds(CHIP_ROW).top.value, 0.5f)
     }
 
     // ── The height budget ──
@@ -476,18 +557,28 @@ class AvailabilityScreenJournalShortWindowTest {
         return overflow to "row ${row.left}..${row.right} (${row.right - row.left}), chips ${first.left}..${last.right}, padding $padding, content ends at $contentEnd"
     }
 
+    /**
+     * Was `L5a guard - at 640 dp the five Records chips, icons and counts, fit one line without scrolling` (continuation
+     * 2026-09-27-27, the owner: "Tighter chips"), asserting a 640 dp row and no overflow. Superseded in landscape by RECORD -1243:
+     * the chips share the switch's line and "Have the chips be scrollable". The landscape guard is now that the five chips stay
+     * on one line, in the switch's line, and that a row narrower than its chips scrolls sideways. Portrait keeps J1's row and
+     * spacing (`L5a portrait chips are unchanged`, below, unchanged).
+     */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `L5a guard - at 640 dp the five Records chips, icons and counts, fit one line without scrolling`() {
+    fun `L5a guard, landscape since RECORD -1243 - the five Records chips stay on one line in the switch's line, scrolling sideways`() {
         openRecordsWithCounts()
         assertEquals("this case is at the default font scale", 1f, fontScaleSeenByScreen)
         val row = bounds(CHIP_ROW)
-        assertEquals("the chip row is B3's capped 640 dp", 640f, (row.right - row.left).value, 0.5f)
+        val header = bounds(SHORT_HEADER)
+        assertTrue("the chip row $row is in the switch's line $header", row.top >= header.top - 0.5.dp && row.bottom <= header.bottom + 0.5.dp)
         val chips = listOf(CHIP_ALL, "records-chip-finds", "records-chip-tracks", CHIP_WAYPOINTS, CHIP_OFFLINE).map { bounds(it) }
         chips.forEach { assertEquals("one line", chips.first().top.value, it.top.value, 0.5f) }
         val (overflow, detail) = chipRowOverflow()
         println("J5-L5A fontScale=1.0 overflow=$overflow $detail")
-        assertTrue("the chip row's content is ${overflow}dp wider than the row: $detail", overflow <= 0f)
+        if (overflow > 0f) {
+            assertTrue("a row narrower than its chips scrolls sideways: $detail", composeRule.onAllNodes(hasTestTag(CHIP_ROW) and hasScrollAction()).fetchSemanticsNodes().size == 1)
+        }
     }
 
     /**
