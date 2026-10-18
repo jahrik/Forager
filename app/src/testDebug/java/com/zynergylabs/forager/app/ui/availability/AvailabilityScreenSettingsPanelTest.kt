@@ -32,6 +32,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -632,12 +634,15 @@ class AvailabilityScreenSettingsPanelTest {
     // removed every "Delete" text from the app, so that line passed whatever it checked, and with
     // no region there was no row for a delete control to be on anyway. The empty-list half stays
     // here; what the line was guarding moved to the next test, which has a row to look at.
+    // Dispatch 2026-10-18-03 (Forager RECORD -1269; the owner: "Remove both OK and Cancel and just have the Download Maps option";
+    // Download Maps "is enabled whenever the map has a position and no download is running, and is never greyed waiting for OK").
+    // Was `Download Maps is disabled with no region picked, ...`, asserting `.assertIsNotEnabled()` here.
     @Test
-    fun `Download Maps is disabled with no region picked, and no regions show with nothing downloaded`() {
+    fun `Download Maps is enabled with no region picked, and no regions show with nothing downloaded`() {
         setScreen()
         openOfflineMapsSubTab()
 
-        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsEnabled()
         composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
     }
 
@@ -666,21 +671,27 @@ class AvailabilityScreenSettingsPanelTest {
             .assertCountEquals(0)
     }
 
+    // Dispatch 2026-10-18-03 (Forager RECORD -1269): this screen has no OK; Download Maps picks the pin's point and asks first. Was
+    // `panning the picker map and confirming with OK sets the region and enables Download Maps`: Download Maps not enabled on
+    // arrival, then `onNodeWithText("OK").performClick()`, then enabled.
     @Test
-    fun `panning the picker map and confirming with OK sets the region and enables Download Maps`() {
+    fun `panning the picker map and tapping Download Maps picks the panned point and asks first`() {
         setScreenWithOfflineMapsState()
         openOfflineMapsSubTab()
-        composeRule.onNodeWithText("Download Maps").assertIsNotEnabled()
+        composeRule.onNodeWithText("Download Maps").assertIsEnabled()
 
         composeRule.onNodeWithText("Simulate pan to test location").performClick()
-        composeRule.onNodeWithText("OK").performClick()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Download this area?").assertIsDisplayed()
+        composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
         composeRule.waitForIdle()
 
         // Dispatch 2026-10-17-09, RECORD -1245 (the owner: "Option 1, but do the same for portrait"): the panel's
         // "Download region: <lat>, <lng>" line is gone, both forms of it; this read it as the evidence that OK set the region
         // (`onNodeWithText("Download region: …").performScrollTo().assertIsDisplayed()`). The evidence is now the pinned "Pin at"
-        // line showing the picked point, and Download Maps enabled, which it is only once a region has been confirmed
-        // (OfflineMapsPanel's hasValidRegion).
+        // line showing the picked point, and Download Maps enabled (since dispatch 2026-10-18-03 it is enabled whenever the pin is
+        // on a real place and no download runs).
         composeRule.onNodeWithText(
             "Pin at: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
         ).performScrollTo().assertIsDisplayed()
