@@ -431,7 +431,11 @@ class AvailabilityScreenJournalShortWindowTest {
         assertTrue("the chip row $row sits in the switch's line $header", row.top >= header.top - 0.5.dp && row.bottom <= header.bottom + 0.5.dp)
         assertTrue("after the switch ($switch)", row.left >= switch.right - 0.5.dp)
         assertTrue("before the search icon ($icon)", row.right <= icon.left + 0.5.dp)
-        assertEquals("centred between the switch and the search icon", ((switch.right + icon.left) / 2).value, ((row.left + row.right) / 2).value, 1f)
+        // Centred in the row's space between the switch and the icon (the slot the row lays out there; the icons' tagged bounds
+        // are their drawn size, inside a larger touch target, so their edges are not the slot's).
+        val middle = bounds("journal-short-header-middle")
+        assertTrue("the space $middle lies between the switch $switch and the icon $icon", middle.left >= switch.right - 0.5.dp && middle.right <= icon.left + 0.5.dp)
+        assertEquals("centred in that space", ((middle.left + middle.right) / 2).value, ((row.left + row.right) / 2).value, 0.5f)
     }
 
     @Test fun `RECORD -1243 at ROTATION_90 the Records chips sit on the switch's line, centred before the search icon`() = checkChipsOnSwitchLine(Surface.ROTATION_90)

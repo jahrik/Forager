@@ -140,11 +140,13 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     private fun journalTopTabs(): DpRect = taggedBounds(com.zynergylabs.forager.app.ui.log.SHORT_HEADER_TAG)
 
     /**
-     * Journal redesign J1 (S3): the Records filter chip row, which replaced the sub-tab row. The
-     * chips themselves size to their labels and scroll, so their outer edges no longer span the
-     * width Records was handed; the row fills that width (`fillMaxWidth`), so it is what is measured.
+     * Journal redesign J1 (S3): the Records filter chip row, which replaced the sub-tab row, filled the width Records was
+     * handed, so it was what was measured. Since RECORD -1243 (dispatch 2026-10-17-09) the chips sit on the switch's line in a
+     * landscape window, centred and sized to their chips, so they no longer span that width; the line itself does, as on
+     * Entries ([journalTopTabs]), so it is what is measured now. The requirement (Records capped at 640 and centred beside the
+     * rail) is unchanged. Was `taggedBounds(RECORDS_FILTER_CHIP_ROW_TAG)`.
      */
-    private fun recordsSubTabs(): DpRect = taggedBounds(com.zynergylabs.forager.app.ui.log.RECORDS_FILTER_CHIP_ROW_TAG)
+    private fun recordsSubTabs(): DpRect = taggedBounds(com.zynergylabs.forager.app.ui.log.SHORT_HEADER_TAG)
 
     // ── T1: List, Journal (its default top tab), Records ──
 

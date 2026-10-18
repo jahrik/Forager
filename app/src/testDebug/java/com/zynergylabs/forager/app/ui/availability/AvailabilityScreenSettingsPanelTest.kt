@@ -676,12 +676,13 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
-        // performScrollTo, as "Download Maps"/"No regions downloaded yet" above already need:
-        // map-pan dispatch §2b gave the picker map its own 4:3 viewport (360x270dp here, up from
-        // 360x146dp), which pushes this line below the fold on a 360x640dp window. The line is
-        // present and reachable in the panel's own scroll — only its position changed.
+        // Dispatch 2026-10-17-09, RECORD -1245 (the owner: "Option 1, but do the same for portrait"): the panel's
+        // "Download region: <lat>, <lng>" line is gone, both forms of it; this read it as the evidence that OK set the region
+        // (`onNodeWithText("Download region: …").performScrollTo().assertIsDisplayed()`). The evidence is now the pinned "Pin at"
+        // line showing the picked point, and Download Maps enabled, which it is only once a region has been confirmed
+        // (OfflineMapsPanel's hasValidRegion).
         composeRule.onNodeWithText(
-            "Download region: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
+            "Pin at: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
         ).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsEnabled()
     }
@@ -805,10 +806,10 @@ class AvailabilityScreenSettingsPanelTest {
 
         composeRule.onAllNodesWithText("Pin at:", substring = true).assertCountEquals(1)
         composeRule.onAllNodesWithText("Selected:", substring = true).assertCountEquals(0)
-        // performScrollTo since map-pan dispatch §2b: the 4:3 map viewport puts this line below
-        // the fold on a 360x640dp window — see the Download-region assertion above.
-        composeRule.onNodeWithText("No location picked yet — pan the map above and tap OK.")
-            .performScrollTo().assertIsDisplayed()
+        // Dispatch 2026-10-17-09, RECORD -1245: the panel's not-yet-picked line is gone (the owner: "Option 1, but do the same
+        // for portrait"), so nothing can contradict the pin's label; this asserted it was displayed
+        // (`onNodeWithText("No location picked yet — pan the map above and tap OK.").performScrollTo().assertIsDisplayed()`).
+        composeRule.onAllNodesWithText("No location picked yet", substring = true).assertCountEquals(0)
     }
 
     /**

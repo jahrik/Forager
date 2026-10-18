@@ -103,7 +103,7 @@ internal fun ShortWindowJournalHeader(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         JournalSwitch(selected = selectedTopTab, onSelect = onSelectTopTab)
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { middle?.invoke() }
+        Box(modifier = Modifier.weight(1f).testTag(SHORT_HEADER_MIDDLE_TAG), contentAlignment = Alignment.Center) { middle?.invoke() }
         if (showSearch) {
             // Motion Part 1 (dispatch 2026-09-28-652, item 5, scout J19): Search and Search-off crossfade with a slight grow. The
             // label is on the button, because both icons are composed for the length of the swap.
@@ -234,6 +234,9 @@ internal val SHORT_HEADER_HEIGHT = 48.dp
 
 internal const val SHORT_HEADER_TAG = "journal-short-header"
 internal const val SHORT_SEARCH_TAG = "journal-short-search"
+
+/** RECORD -1243: the L1 row's space between the switch and the search icon, where Records' chips are centred. */
+internal const val SHORT_HEADER_MIDDLE_TAG = "journal-short-header-middle"
 internal const val SHORT_NEW_TAG = "journal-short-new"
 internal const val SHORT_NEW_FIND_TAG = "journal-short-new-find"
 internal const val SHORT_PHOTO_TAG = "journal-short-photo"
