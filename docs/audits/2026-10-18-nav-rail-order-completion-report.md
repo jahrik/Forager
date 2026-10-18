@@ -4,7 +4,7 @@ Hazel (app coder), 2026-10-18, written 20:30Z. RECORD -1312 (rail order) and -13
 Branch `nav-rail-order` from pre-main `d942e022`, which matched `origin/pre-main` at the start. PR #260 into `pre-main`,
 **not merged**: it merges on the owner's word after the phone check.
 
-**Status: built, with tests and reverts done; full CI is in the table below. No Stop was hit.** The phone steps at the
+**Status: built, with tests and reverts done; full CI 39163471748 at `13ff24d6` is green, 5,115 tests, 0 failures, 24 skipped (JUnit XML). No Stop was hit for -1312 or -1313. **Amendment 2 (RECORD -1318) is stopped before building, on its first Stop; see its section at the end.** The phone steps at the
 end are still to run.
 
 ## What landed
@@ -122,6 +122,7 @@ the forward files were intact.
 
 | Run | Head | Result |
 | --- | --- | --- |
+| 39164638434 (pull_request) | `a52f2f0b` (report commit) | **green: 5,115 tests, 0 failures, 0 errors, 24 skipped** (JUnit XML, 689 files) |
 | 39163471748 (pull_request) | `13ff24d6` | **green: 5,115 tests, 0 failures, 0 errors, 24 skipped** (JUnit XML, 689 files); build, lint and release-compile jobs green |
 
 ## Not verified
@@ -159,3 +160,78 @@ On the PR's debug APK. Cheap steps come first. Evidence is a description in word
    again and press Back. Pass: it closes.
 7. **Tablet.** Repeat steps 1 to 6 on the tablet.
 8. *Observation, not a gate:* with TalkBack on, in landscape, swipe through the rail. Note the order it reads.
+
+## Amendment 2 (RECORD -1318): stopped before building
+
+Added 21:10Z. I read the amendment and RECORD -1318 in full and did the verify-first steps. No code was written for it.
+The space reserved for the hidden bar would make the chip line jump whenever the Offline maps chip is chosen or left.
+That could read as broken, which is the amendment's first Stop, so the choice goes back to the owner.
+
+### Verify first
+
+- **Where the search reveal happens.** It happens only in a landscape window, phone or tablet.
+  `AvailabilityCompactScaffold.kt:1073` hides the header only when
+  `showRail && compactTab() == JOURNAL && !journalScreenState.searchHeaderRevealed`, and `showRail` is
+  `isLandscapeWindow` (`:697`). In portrait the search bar always shows on the Journal and there is no 🔍 toggle
+  (`JournalTab.kt:655-668` builds the 🔍 row only when `isLandscapeJournal()`). **So the amendment's portrait step has
+  nothing to fix:** in portrait no reveal ever resizes the map.
+- **How the reveal is laid out today.** The pill is an `AnimatedVisibility` in the scaffold's content column, above
+  the Journal's own content (`AvailabilityCompactScaffold.kt:1080-1146`). Its enter is
+  `slideInVertically + expandVertically` and its exit is `slideOutVertically + shrinkVertically`, on
+  `MotionTokens.panelMotionSpec` (RECORD -1244). The Journal content below it is in the `weight(1f)` box. So while the
+  pill expands, everything under it gets shorter frame by frame. That includes the Journal's 48 dp switch line, which
+  carries Records' chips in landscape (RECORD -1243), and the page under it. I did not check "revert 10 on
+  topup-items".
+- **Which Journal screens have a map under the reveal.** Every map in the app is drawn through `mapSlot(`, called
+  from `CentrePinLocationPicker.kt:207`, `CartographyEntryReportScreen.kt:548` and `AvailabilityCompactMapUi.kt:970`
+  (Maps).
+  - **Records → Offline maps** (`RecordsTab.kt:387`, `OfflineMapsPanel`). In landscape its map is
+    `weight(1f).fillMaxHeight()` (`AvailabilityOfflineMapsUi.kt:454`), so it follows the height it is given. This is
+    the owner's screen, and the only one affected.
+  - **Finds → pick a location** (`JournalTab.kt:516`) and **an Entries entry's report map** (`CartographyScreen.kt:459`).
+    Both show only while an entry is open. The scaffold then holds the header hidden (`journalSearchHeld`,
+    `AvailabilityCompactScaffold.kt:577-595`), and the 🔍 icon is not drawn (`JournalTab.kt:660`), so neither can be
+    revealed over.
+  - **No other Journal screen draws a map.** The Records map and Cartography named in the amendment have no map of
+    their own outside an open entry, as far as this grep shows.
+- **File ownership.** `OfflineMapsPanel` is in `AvailabilityOfflineMapsUi.kt`, which the other Hazel is changing, so
+  a fix has to sit outside it, in the scaffold or in `RecordsTab`.
+
+### Why it stops
+
+The fix that holds the map exactly still is in one place, the scaffold. While Offline maps is showing, the pill's slot
+keeps the pill's full height (its landscape height, the Maps strip's height) whether the pill shows or not, and the
+pill slides into that slot with no expand or shrink. The map then never moves. With the bar hidden, it looks like this:
+
+```
+ ┌───────────────────────────────────────────┬──────┐
+ │  (empty band, page background, pill-high) │ Tools│
+ ├───────────────────────────────────────────┤      │
+ │ Entries|Records  [All][Finds]..[Offline] 🔍│ ...  │
+ ├───────────────────────────────────────────┤      │
+ │ list / controls      │  map               │ List │
+ └───────────────────────────────────────────┴──────┘
+```
+
+Only Offline maps has a map, and "screens without a map behave as today". So the band would be there on Offline maps
+and absent on the other chips. **Tapping the Offline maps chip would drop the whole switch line, chips and 🔍
+included, by the band's height, and tapping any other chip would jump it back up**, with an empty strip at the top of
+the screen in between. A user could read that strip and that jump as a layout glitch. I haven't measured the band's
+height. It is the pill's landscape height, around the Maps compass strip's height.
+
+The other layout the amendment allows, where the chips sit higher and the gap is between the chip line and the map,
+keeps the chip line still across chips. But then the gap has to shrink by exactly what the pill grows, frame by frame,
+across the scaffold and the Records page. Done through a size callback, it would lag a frame behind the slide, which
+brings back the stutter the owner reported. I don't know a same-frame way to do it without moving the pill into the
+Journal's own layout.
+
+### Options for the owner (not chosen)
+
+1. **Band on Offline maps only, as above.** The map holds still. The switch line jumps when you move between Offline
+   maps and the other chips, with an empty strip at the top while the bar is hidden.
+2. **Band on every Journal screen in landscape.** Nothing jumps between chips, and the map holds still. But every
+   Journal screen gives up that strip of height while the bar is hidden, which is against "screens without a map
+   behave as today" and against J5's reason for hiding the bar (height is scarce in landscape).
+3. **On Offline maps, the bar slides in over the top of the Journal content without pushing it**, covering the
+   switch line while it is open. The map holds still and nothing is reserved. The owner declined covering
+   ("nothing gets covered"), so this is listed only for completeness.
