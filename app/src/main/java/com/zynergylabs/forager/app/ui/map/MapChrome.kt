@@ -548,6 +548,42 @@ internal fun Modifier.mapChromeEdges(
     drawPath(path, brush = stroke.brush, style = Stroke(width = strokePx))
 }
 
+/**
+ * Dispatch 2026-10-17-09 (RECORD -1224, -1225): the shape a piece of chrome is clipped or filled to, set beside its test tag on
+ * the search pill, the bottom bar and the rail, so a test reads the shape the piece was given rather than its pixels. Semantics
+ * only: nothing is drawn, measured or touched by it.
+ */
+internal val MapChromeShape = SemanticsPropertyKey<Shape>("MapChromeShape")
+
+/** Marks this node with the shape it was given ([MapChromeShape]). */
+internal fun Modifier.mapChromeShape(shape: Shape): Modifier = semantics { set(MapChromeShape, shape) }
+
+/** The outline [mapChromeEdgesReported] drew on a piece: its corner radii and its [MapChromeOutlineSides]. */
+internal data class MapChromeEdgesDrawn(
+    val topLeft: Dp,
+    val topRight: Dp,
+    val bottomRight: Dp,
+    val bottomLeft: Dp,
+    val sides: MapChromeOutlineSides,
+)
+
+/** The outline a piece carries, for tests (dispatch 2026-10-17-09). Absent where no outline is drawn. */
+internal val MapChromeEdges = SemanticsPropertyKey<MapChromeEdgesDrawn>("MapChromeEdges")
+
+/**
+ * [mapChromeEdges], with what it draws set on the node as [MapChromeEdges], from the same arguments, so the reading cannot drift
+ * from the drawing. Used by the search pill, the bottom bar and the rail.
+ */
+internal fun Modifier.mapChromeEdgesReported(
+    stroke: BorderStroke,
+    topLeft: Dp,
+    topRight: Dp,
+    bottomRight: Dp,
+    bottomLeft: Dp,
+    sides: MapChromeOutlineSides,
+): Modifier = semantics { set(MapChromeEdges, MapChromeEdgesDrawn(topLeft, topRight, bottomRight, bottomLeft, sides)) }
+    .mapChromeEdges(stroke, topLeft, topRight, bottomRight, bottomLeft, sides)
+
 /** The hairline edge on [MapIconStackButtonColorDark] circles — see that color's own doc comment. */
 internal val MAP_ICON_STACK_BORDER_COLOR_DARK = Color.White.copy(alpha = 0.4f)
 

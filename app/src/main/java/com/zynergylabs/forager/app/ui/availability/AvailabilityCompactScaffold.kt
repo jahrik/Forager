@@ -64,6 +64,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.runtime.key
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -457,6 +460,16 @@ internal fun CompactMainScaffold(
         val mapSearchBarHeight = if (barMeetsStrip && landscapeStripHeight > 0.dp) landscapeStripHeight else mapPillHeight
         // A height left over from an earlier landscape Maps tab is not reused: it is measured again on the way back.
         LaunchedEffect(barMeetsStrip) { if (!barMeetsStrip) { landscapeStripHeight = 0.dp; landscapeStripWidth = 0.dp } }
+        // Dispatch 2026-10-17-09, the owner's addition (RECORD -1227, "Move to Maps' spot"; and "The layout resizing between tabs
+        // looks like a UI glitch"): in a landscape window the pill on List, Seasonal and Journal takes the Maps pill's place and
+        // size, which on Maps follow the compass strip's measured width and height (RECORD -729, -732). The strip is drawn on Maps
+        // only, so its last measurement in this landscape window is kept here for the other tabs. Separate from the two values
+        // above, which Maps resets on leaving and measures again on its way back, so the Maps tab reads exactly what it read
+        // before. 0 until Maps has been shown in this landscape window; the other tabs then take the Maps pill's own
+        // before-measurement half width (RECORD -729) and its own height.
+        var lastMapsStripWidth by remember { mutableStateOf(0.dp) }
+        var lastMapsStripHeight by remember { mutableStateOf(0.dp) }
+        LaunchedEffect(isLandscapeWindow) { if (!isLandscapeWindow) { lastMapsStripWidth = 0.dp; lastMapsStripHeight = 0.dp } }
         // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): the Maps tab's compass strip as measured,
         // handed up through searchBarSlot; 0 while it is not measured (before its first layout, while navigating, in a landscape
         // window), where the dropdown keeps the one-line clearance above. See CompactMapTab's compassStripBottomClearance.
@@ -877,6 +890,8 @@ internal fun CompactMainScaffold(
                 // controls are padded one by one instead — mapControlsPadding above.
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
             } else if (showRail) {
+                // RECORD -1242: no keyboard in these (see shortLandscapeContentInsets), so the docked rail keeps its full
+                // height under a keyboard; the content column reserves it instead (below).
                 shortLandscapeContentInsets()
             } else if (compactTab() == CompactTab.MAP) {
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
@@ -911,6 +926,9 @@ internal fun CompactMainScaffold(
                         selectedTab = compactTab(),
                         isDrawerOpen = isDrawerOpen(),
                         onTabSelected = onBottomNavTabSelected,
+                        // Dispatch 2026-10-17-09 (RECORD -1224, -1225): the Maps bar's rounded top corners and outline, solid here
+                        // (the default fill), so the bar keeps its shape across the tab switch.
+                        topCornerRadius = MAP_CARD_CORNER_RADIUS,
                     )
                 }
             },
@@ -941,6 +959,8 @@ internal fun CompactMainScaffold(
                         isDrawerOpen = isDrawerOpen(),
                         onTabSelected = onBottomNavTabSelected,
                         portEdge = portEdge,
+                        // Dispatch 2026-10-17-09: the Maps rail's rounded inner corners and outline, solid here (the default fill).
+                        innerCornerRadius = MAP_CARD_CORNER_RADIUS,
                     )
                 }
                 Column(
@@ -948,23 +968,67 @@ internal fun CompactMainScaffold(
                         // Landscape B1: the Row above carries Scaffold's padding now, and this
                         // Column takes whatever the rail (if any) leaves — in portrait, all of it.
                         .weight(1f)
+                        // Landscape B3 (P11, R9)'s readable-width cap moved from here to the tab's content
+                        // (readableContentCap, below) by dispatch 2026-10-17-09 (RECORD -1227): the search
+                        // pill above the content now takes the Maps pill's place, which is not inside the cap.
                         .fillMaxHeight()
-                        // Landscape B3 (P11, R9): beside the opaque rail, the tab's content — the
-                        // search bar above it included — is capped at the readable width and centred
-                        // in what the rail leaves. Once, here, not per destination. Seasonal's own
-                        // cap (SeasonalTab) is the same 640 dp, so the two compose to 640. Scrolling
-                        // stays each destination's own. Portrait and non-short windows skip this.
-                        .then(
-                            if (railBeside) {
-                                Modifier
-                                    .wrapContentWidth(Alignment.CenterHorizontally)
-                                    .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
-                                    .fillMaxWidth()
-                            } else {
-                                Modifier
-                            },
-                        ),
+                        // RECORD -1242: beside the rail, the keyboard is reserved here, on the content column only, not on the
+                        // Row (shortLandscapeChromeInsets above), so the page ends above the keyboard and the rail does not.
+                        .then(if (railBeside) Modifier.windowInsetsPadding(WindowInsets.ime.only(WindowInsetsSides.Bottom)) else Modifier),
                 ) {
+                    // Landscape B3 (P11, R9): beside the opaque rail, the tab's content is capped at the
+                    // readable width and centred in what the rail leaves. Once, here, not per destination.
+                    // Seasonal's own cap (SeasonalTab) is the same 640 dp, so the two compose to 640.
+                    // Scrolling stays each destination's own. Portrait and non-short windows skip this.
+                    // Until dispatch 2026-10-17-09 the search bar was inside this cap too.
+                    val readableContentCap = if (railBeside) {
+                        Modifier
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                            .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
+                            .fillMaxWidth()
+                    } else {
+                        Modifier
+                    }
+                    // Dispatch 2026-10-17-09: beside the rail the pill is the Maps pill's size, its start just clear of the system
+                    // navigation bar (or of the cut-out, which the Row already reserves), so the screen's other side stays free
+                    // for a floating keyboard. History: RECORD -1227 ("Move to Maps' spot") put it at the Maps pill's place; the
+                    // owner's check of build 1.0.3414 found it passed over the navigation bar and asked for it centred; their
+                    // check of 1.0.3416 asked for it at the left (RECORD -1238: "can it move a bit to the left to accommodate
+                    // floating keyboards?", then "Yes, at the left (Recommended)").
+                    // Why it once passed over the navigation bar: this Column sits inside shortLandscapeContentInsets(), which
+                    // reserves the status bar, the cut-out and the keyboard but not a navigation bar on the side away from the
+                    // rail (the rail takes its own side's). On Maps the pill is padded by mapControlsPadding, which does include
+                    // the navigation bars. Robolectric reports zero insets; TabsMapChromeShapeLandscapeNavBarLeftTest dispatches
+                    // one.
+                    // Size: the Maps pill ends where the Maps compass strip begins (RECORD -732) and is its height (RECORD -729);
+                    // the strip is drawn on Maps only, so its last measurement in this landscape window (lastMapsStripWidth /
+                    // Height) is used: this area less the navigation bar's inset (navBarFarSide) and less the strip's width,
+                    // the strip's width left free on the rail's side. With no cut-out on the rail's side that is the Maps pill's
+                    // own place. Before Maps has measured its strip in this window: half the area, at its start, at the pill's
+                    // own height (the Maps pill's own fallback, RECORD -729). The padding beside it is not a surface and takes
+                    // no touch. Its dropdown takes the same width and place.
+                    val navBarFarSideDensity = LocalDensity.current
+                    val navBarFarSideDirection = LocalLayoutDirection.current
+                    val navBarFarSide: Dp = with(navBarFarSideDensity) {
+                        // Only the part the Row's own cut-out padding has not already reserved on that side.
+                        val px = if (portEdge == ScreenEdge.Right) {
+                            WindowInsets.navigationBars.getLeft(this, navBarFarSideDirection) - WindowInsets.displayCutout.getLeft(this, navBarFarSideDirection)
+                        } else {
+                            WindowInsets.navigationBars.getRight(this, navBarFarSideDirection) - WindowInsets.displayCutout.getRight(this, navBarFarSideDirection)
+                        }
+                        px.coerceAtLeast(0).toDp()
+                    }
+                    val tabLandscapePillPlace = if (railBeside) {
+                        val farIsLeft = portEdge == ScreenEdge.Right
+                        val area = Modifier.absolutePadding(left = if (farIsLeft) navBarFarSide else 0.dp, right = if (farIsLeft) 0.dp else navBarFarSide)
+                        if (lastMapsStripWidth > 0.dp) {
+                            area.absolutePadding(left = if (farIsLeft) 0.dp else lastMapsStripWidth, right = if (farIsLeft) lastMapsStripWidth else 0.dp).fillMaxWidth()
+                        } else {
+                            area.fillMaxWidth().wrapContentWidth(if (farIsLeft) Alignment.Start else Alignment.End).fillMaxWidth(0.5f)
+                        }
+                    } else {
+                        Modifier
+                    }
                     // Map tab only: SearchEntryBar moves into CompactMapTab's own searchBarSlot
                     // instead (that call site's own doc comment), composed as a real overlay inside
                     // the SAME Box that hosts the map, so its 80% fill reveals map imagery through it
@@ -991,13 +1055,43 @@ internal fun CompactMainScaffold(
                     // its search icon and Back clear it again). Portrait, every other tab and
                     // portrait windows are unchanged. The rail shows exactly in a landscape
                     // window (showRail), since -246 whatever its height.
+                    // Dispatch 2026-10-17-09: RECORD -1238 ("Always show it") replaced this for a while; RECORD -1242 ("Journal
+                    // back to J5; keep the rest (Recommended)") restored it as it was. Revealed, the pill takes the same place
+                    // as on List and Seasonal (tabLandscapePillPlace).
                     val journalHidesSearchHeader = showRail && compactTab() == CompactTab.JOURNAL && !journalScreenState.searchHeaderRevealed
                     // Hiding the header closes its dropdown too, so the dropdown's dismiss scrim
                     // (below) is never left over content with no bar above it.
                     LaunchedEffect(journalHidesSearchHeader) {
                         if (journalHidesSearchHeader) showSearchDropdown = false
                     }
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld && !journalHidesSearchHeader) {
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld) {
+                        // Dispatch 2026-10-17-09, RECORD -1244 (the owner: "And have the search bar slide up and down when
+                        // revealing/hiding"): J5's reveal on the Journal (journalHidesSearchHeader) slides the pill down into place
+                        // from above, and back up out of view, while the content below follows it (the expand and shrink), on
+                        // MotionTokens.panelMotionSpec, the spec the Maps tab's own search bar slides on into and out of fullscreen.
+                        // Keyed by the tab, so arriving on a tab shows its pill as it stands, with no slide: only a reveal or a
+                        // hide on the Journal plays one. Every other way the pill comes or goes is as before, at once. Under
+                        // reduced motion the reveal is at once too (docs/motion-spec.md §4).
+                        key(compactTab()) {
+                        val searchHeaderReduceMotion = LocalReduceMotion.current
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = !journalHidesSearchHeader,
+                            enter = if (searchHeaderReduceMotion) {
+                                EnterTransition.None
+                            } else {
+                                slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
+                                    expandVertically(animationSpec = MotionTokens.panelMotionSpec(), expandFrom = Alignment.Top)
+                            },
+                            exit = if (searchHeaderReduceMotion) {
+                                ExitTransition.None
+                            } else {
+                                slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
+                                    shrinkVertically(animationSpec = MotionTokens.panelMotionSpec(), shrinkTowards = Alignment.Top)
+                            },
+                        ) {
+                        Column {
+                        // SearchEntryBar takes no modifier, so its place goes on this wrapper (tabLandscapePillPlace).
+                        Box(modifier = tabLandscapePillPlace) {
                         SearchEntryBar(
                             uiState = uiState,
                             distanceUnit = distanceUnit,
@@ -1011,8 +1105,23 @@ internal fun CompactMainScaffold(
                             onClearSearch = onClearSearch,
                             onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                             onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
+                            // Dispatch 2026-10-17-09 (RECORD -1224, -1225; the owner: "The updated UI still needs to be applied to
+                            // the Journal, the Seasonal, and the List tab"): the Maps tab's pill, its corners and its outline all
+                            // round, with no divider, solid here since no map is behind it (overMap false; the owner: "In the places
+                            // that aren't covering a map, they can stay solid"). Its height is the Maps pill's, so it does not change
+                            // size across the tab switch. In landscape it is the Maps pill's size, at the left, clear of the
+                            // navigation bar (tabLandscapePillPlace), at the Maps strip's height (RECORD -729); with no strip
+                            // beside it here it rounds all four corners and is outlined all round.
+                            landscapeHeight = lastMapsStripHeight.takeIf { railBeside && it > 0.dp },
+                            pillCorners = MapCardCorners.ALL,
+                            pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
                         )
-                        SearchNotice(uiState)
+                        }
+                        // Under the pill, inside the readable-width cap, as it was before the pill moved.
+                        Box(modifier = readableContentCap) { SearchNotice(uiState) }
+                        }
+                        }
+                        }
                     }
 
                     // Switches to the Journal tab and starts the entry there — the gallery's own edit
@@ -1084,7 +1193,7 @@ internal fun CompactMainScaffold(
                         // compactTab(), so the outgoing tab goes on drawing itself; the one exception is the Maps search bar, which leaves
                         // at once (its slot's comment). Instant under reduced motion. The cost of keeping the map alive through the fade is
                         // the S22's to judge (RECORD -651).
-                        TabCrossfade(targetState = compactTab(), modifier = Modifier.fillMaxSize()) { tab ->
+                        TabCrossfade(targetState = compactTab(), modifier = Modifier.fillMaxSize().then(readableContentCap)) { tab ->
                         // Amendment 1 (RECORD -672), item 8: the Maps tab is kept through its fade (KEEP_MAP_THROUGH_TAB_FADE); the
                         // fallback, if the S22 finds that too costly, is this one constant, which drops the leaving Maps tab at once.
                         if (tab == CompactTab.MAP && tab != compactTab() && !KEEP_MAP_THROUGH_TAB_FADE) Unit else
@@ -1114,9 +1223,15 @@ internal fun CompactMainScaffold(
                                     landscapeSearchWidth = landscapeSearchWidth,
                                     onRailWidthMeasured = { mapRailWidthPx = it },
                                     // RECORD -729: the landscape strip's height, which the bar takes (mapSearchBarHeight).
-                                    onLandscapeStripHeightMeasured = { landscapeStripHeight = it },
+                                    onLandscapeStripHeightMeasured = {
+                                        landscapeStripHeight = it
+                                        if (it > 0.dp) lastMapsStripHeight = it
+                                    },
                                     // RECORD -732: and its width; the bar takes the rest of the room (landscapeSearchWidth).
-                                    onLandscapeStripWidthMeasured = { landscapeStripWidth = it },
+                                    onLandscapeStripWidthMeasured = {
+                                        landscapeStripWidth = it
+                                        if (it > 0.dp) lastMapsStripWidth = it
+                                    },
                                 ),
                                 // Attribution must rise above the floating bottom nav while the nav
                                 // is there — fullscreen-fixes dispatch, Item 1 (third design) — and
@@ -1643,6 +1758,15 @@ internal fun CompactMainScaffold(
                                         .width(landscapeSearchWidth)
                                         // RECORD -750, item 2: above a docked keyboard, as portrait's cap is (no nav band in landscape).
                                         .heightIn(max = (maxHeight - searchDropdownTopOffset - searchDropdownImeBottom).coerceAtLeast(0.dp))
+                                } else if (railBeside) {
+                                    // Dispatch 2026-10-17-09: beside the rail the pill is the Maps pill's size, at the left
+                                    // (tabLandscapePillPlace), so its panel takes the pill's width and place, as on Maps (Landscape B2,
+                                    // S2), instead of the readable-width column the pill used to sit in. No nav band in landscape.
+                                    Modifier
+                                        .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                                        .padding(top = searchDropdownTopOffset)
+                                        .then(tabLandscapePillPlace)
+                                        .heightIn(max = (maxHeight - searchDropdownTopOffset).coerceAtLeast(0.dp))
                                 } else {
                                     Modifier
                                         .align(Alignment.TopStart)
@@ -1708,6 +1832,8 @@ internal fun CompactMainScaffold(
                         isDrawerOpen = isDrawerOpen(),
                         onTabSelected = onBottomNavTabSelected,
                         portEdge = portEdge,
+                        // Dispatch 2026-10-17-09: the Maps rail's rounded inner corners and outline, solid here (the default fill).
+                        innerCornerRadius = MAP_CARD_CORNER_RADIUS,
                     )
                 }
             }
