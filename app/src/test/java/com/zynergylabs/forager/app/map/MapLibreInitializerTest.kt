@@ -26,7 +26,7 @@ class MapLibreInitializerTest {
     private val infos = mutableListOf<String>()
     private val errors = mutableListOf<Pair<String, Throwable>>()
 
-    private fun initializer(getInstance: (Context) -> Unit, installHttpClient: () -> Unit = {}) =
+    private fun initializer(installHttpClient: () -> Unit = {}, getInstance: (Context) -> Unit) =
         MapLibreInitializer(getInstance, installHttpClient, { infos += it }, { message, cause -> errors += message to cause })
 
     @Test
