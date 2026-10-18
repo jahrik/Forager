@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOn
@@ -247,6 +248,93 @@ class AvailabilityScreenJournalShortWindowTest {
         assertTrue("part way out, the row ($outRow) is between its two places", outRow > rowHidden + 0.5.dp && outRow < rowShown - 0.5.dp)
         assertTrue("hidden at the end", !exists(SEARCH_ENTRY_BAR_TAG))
         assertEquals("the row is back at the top", rowHidden.value, bounds(SHORT_HEADER).top.value, 0.5f)
+    }
+
+    // ── RECORD -1327 to -1330: an open Journal entry hides the search bar on the Journal only ──
+
+    private fun assertPillOnScreen(where: String) {
+        assertTrue("$where: the search pill is composed", exists(SEARCH_ENTRY_BAR_TAG))
+        node(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertTrue("$where: the search pill has a size ($pill)", pill.right - pill.left > 40.dp && pill.bottom - pill.top > 20.dp)
+        // F1's focus race (LeavingTheJournalFixesTest, RECORD -692): the bar coming back must not take focus and open its dropdown.
+        assertTrue("$where: the bar's dropdown has not opened by itself", !exists(SEARCH_DROPDOWN_TAG))
+    }
+
+    private fun goTo(tab: String) {
+        composeRule.onNodeWithText(tab).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(tab).assertIsSelected()
+    }
+
+    private fun openFirstEntry() {
+        composeRule.onNodeWithTag(cardTag(MANY_ENTRIES[0].id)).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertEquals("positive control: the entry opened", listOf(MANY_ENTRIES[0].id), openedEntries)
+    }
+
+    @Test
+    fun `RECORD -1330 from the start, List and Seasonal show the search pill in landscape`() {
+        setScreen(Surface.ROTATION_90)
+        goTo("List")
+        assertPillOnScreen("List")
+        goTo("Seasonal")
+        assertPillOnScreen("Seasonal")
+    }
+
+    @Test
+    fun `RECORD -1330 after the Journal with the pill hidden, List and Seasonal show the search pill`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        assertTrue("positive control: hidden on the Journal", !exists(SEARCH_ENTRY_BAR_TAG))
+        goTo("List")
+        assertPillOnScreen("List after the Journal")
+        goTo("Seasonal")
+        assertPillOnScreen("Seasonal after the Journal")
+    }
+
+    /** The owner's S26 path (RECORD -1330): an entry open on the Journal, then List, then Seasonal. Failed on every build until -1330. */
+    @Test
+    fun `RECORD -1330 with a Journal entry left open, List and Seasonal show the search pill`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        openFirstEntry()
+        goTo("List")
+        assertPillOnScreen("List with a Journal entry open")
+        goTo("Seasonal")
+        assertPillOnScreen("Seasonal with a Journal entry open")
+    }
+
+    /** -692 kept: back on the Journal with the entry still open, the bar and the search icon stay hidden there. */
+    @Test
+    fun `RECORD -1330 back on the Journal with the entry still open, the bar and the search icon stay hidden`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        openFirstEntry()
+        assertTrue("on the open entry: no bar", !exists(SEARCH_ENTRY_BAR_TAG))
+        goTo("List")
+        assertPillOnScreen("List with a Journal entry open")
+        goTo("Journal")
+        assertTrue("back on the open entry: no bar", !exists(SEARCH_ENTRY_BAR_TAG))
+        assertTrue("back on the open entry: no search icon", !exists(SEARCH_ICON))
+    }
+
+    /** The owner (RECORD -1330): "have the entries | records chip move up slightly from the map". */
+    @Test
+    fun `RECORD -1330 on Offline maps a small gap separates the switch line from the map`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        node(CHIP_OFFLINE).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        val line = bounds(SHORT_HEADER)
+        val map = bounds(SHORT_STUB_MAP_TAG)
+        println("MEASURED -1330 gap: switch line $line, map $map")
+        assertEquals("the map starts 8 dp below the switch line", 8f, (map.top - line.bottom).value, 0.5f)
     }
 
     // ── L1: one pinned 48 dp header row ──
@@ -762,7 +850,10 @@ private val TWO_DRAFTS: List<CartographyEntry> = listOf(
     CartographyEntry.draft(id = "draft-b", date = LocalDate.of(2026, 9, 24), updatedAtEpochMillis = 1L),
 )
 
-private val SHORT_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
+private val SHORT_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag(SHORT_STUB_MAP_TAG)) }
+
+/** The stub map's tag (RECORD -1330's gap test measures the Offline maps picker's map). */
+private const val SHORT_STUB_MAP_TAG = "short-stub-map"
 
 /** Enough waypoints that the All logbook scrolls in a short window. */
 private val MANY_WAYPOINTS = (1..16).map { i ->

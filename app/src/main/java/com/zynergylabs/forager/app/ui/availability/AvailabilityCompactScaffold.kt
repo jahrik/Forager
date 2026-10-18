@@ -1076,7 +1076,10 @@ internal fun CompactMainScaffold(
                     LaunchedEffect(journalHidesSearchHeader) {
                         if (journalHidesSearchHeader) showSearchDropdown = false
                     }
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld) {
+                    // RECORD -1330 (the owner: "when switching from an open entry to list, or to seasonal, the search bar is empty"): an
+                    // open Journal entry hides the bar on the Journal only, as -692 set it there. An entry stays open when the tab
+                    // changes (F3), and until -1330 this held the bar off List and Seasonal too, whichever tab showed.
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !(journalSearchHeld && compactTab() == CompactTab.JOURNAL)) {
                         // Dispatch 2026-10-17-09, RECORD -1244 (the owner: "And have the search bar slide up and down when
                         // revealing/hiding"): J5's reveal on the Journal (journalHidesSearchHeader) slides the pill down into place
                         // from above, and back up out of view, while the content below follows it (the expand and shrink), on
