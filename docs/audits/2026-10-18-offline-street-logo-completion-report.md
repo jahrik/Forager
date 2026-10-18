@@ -193,3 +193,77 @@ edit. The Topographical premise in the rewritten test is what covers it.
    stopped.
 
 The logo steps in the dispatch (2 and 3) wait for the owner's choice above.
+
+## Update: item 2 built on the owner's option 1 (RECORD -1315)
+
+The sections above stand as they were written when item 2 was stopped. The owner then chose **option 1**, relayed by the planner:
+the logo goes in a row beside the "i" at the bottom end, and they accept that it overlaps the end of the long Topo caption in
+portrait. The planner added: the logo follows the "i" in each of its placements, including the -954 short-landscape case; the logo
+stays visible; the legend is left alone.
+
+### What landed
+
+| Commit | What it does |
+|---|---|
+| `09a402fe` | `SightingsMap.kt`. The attribution effect (the one that already places the "i") now also calls `uiSettings.setLogoGravity` and `setLogoMargins`, using the new pure function `logoBesideAttribution`. The logo gets the "i"'s gravity and margins, with the button's assumed side plus a 4 dp gap (`ATTRIBUTION_BUTTON_DP` + `LOGO_ATTRIBUTION_GAP_DP`, 28 dp) added on the side away from the map's edge. The two share a bottom edge. The logo stays enabled. The legend and the "i"'s own placement are unchanged. New test: `LogoBesideAttributionTest`. |
+
+Where the logo now goes:
+
+| The "i"'s placement | Where the logo goes |
+|---|---|
+| Bottom end: every map, in portrait and in landscape, except the case below | Bottom end, just inboard (left) of the "i", on the same bottom line. It follows the "i" through the rail inset and the bottom inset. |
+| Bottom start beside the credit strip (RECORD -954: the compact Maps tab in a short landscape window) | Bottom start, just past the "i": credit strip, then "i", then logo. **This is not at the right.** It follows the "i", as the planner asked. The owner's phone check should confirm this is what they wanted for landscape. |
+
+What it meets, from the arithmetic above (estimates, not measured):
+
+- Portrait, Topo: the end of the caption, as the owner accepted. Street fits.
+- Short-landscape Maps tab: the logo is 88 dp past the "i". With the Topo caption (about 306 dp), the logo would end about 430 dp
+  from the left. The landscape navigation card at ROTATION_90 starts at 385.33 dp in the S22 window (`AttributionBesideCreditTest`'s
+  doc, from `LandscapeCardMeetsBar823Test`), so while navigating, that card would draw over the logo's end. With Street (about
+  190 dp) it ends near 314 dp, clear of the card. Not verified on a phone.
+- RTL: margins mirror the convention the existing "i" helpers use. Not checked on a phone.
+
+### Evidence
+
+A real MapView cannot be built under Robolectric (as the existing "i" tests record), so **the logo is not measured**. What is
+asserted are the settings `SightingsMap` hands MapLibre. They are laid out the way a FrameLayout lays out a gravity and margins,
+with MapLibre 13.5.0's own sizes: the logo 88 x 23 dp, the "i" 21 dp. `LogoBesideAttributionTest` holds:
+
+- at the bottom end: the logo shares the "i"'s gravity, its margins differ only on the end side by the offset, it doesn't overlap
+  the "i", and it ends 7 dp short of the "i" (the 24 dp assumed square plus the 4 dp gap, less the 21 dp real button), on one bottom
+  line;
+- with the rail inset, the logo moves inboard with the "i";
+- right-to-left at the bottom end: the offset is on the same index as the "i"'s end inset;
+- beside the credit strip (-954): the gravity is bottom-start, the logo is past the "i", and it is clear of both the "i" and a
+  306 dp strip, on one bottom line; right-to-left too;
+- the "i"'s own margins are not changed by placing the logo.
+
+What no test covers: that `SightingsMap` actually calls `setLogoGravity`/`setLogoMargins` with these values. The call site is in the
+`LaunchedEffect` beside the "i"'s two calls, and it can only be checked on a phone.
+
+### CI and revert checks for item 2
+
+For each run I checked: zero compile-error lines in the log, `compileDebugUnitTestKotlin` ran, and the counts come from the JUnit
+XML. Each run was filtered to `LogoBesideAttributionTest`, `AttributionBesideCreditTest` and `AttributionClearanceTest`. After both
+reverts, `SightingsMap.kt` on `offline-street-logo` still had the forward lines.
+
+| Branch | The one edit, on `09a402fe` | Run | Result |
+|---|---|---|---|
+| `offline-street-logo-logo-check` (`09a402fe`, the forward commit pushed under its own name while the PR run was in progress) | none | 39163951254 | 15 tests, 0 failures. |
+| `offline-street-logo-revert-3` (`40970d2e`) | `margins[side] += offsetPx` becomes `+= 0`, so the logo would sit on the "i" | 39163954023 | 15 tests, 5 failures: every `LogoBesideAttributionTest` case that places the logo, each off by exactly the 84 px offset (for example `expected:<96> but was:<12>` at index 2). The test that the "i"'s margins are unchanged passed, as it should. |
+| `offline-street-logo-revert-4` (`d941a18f`) | the bottom-end side index in left-to-right becomes 0, so the logo would go to the wrong side | 39163956446 | 15 tests, 2 failures: the two left-to-right bottom-end tests (`expected:<276> but was:<360>` at index 0). The right-to-left and beside-credit tests passed, as they should for this edit. |
+
+The report commit `42690d7b` ran green as well (run 39163912646: 684 files, 5,095 tests, 0 failures, 24 skipped). The full PR run at the item 2 head is reported to the planner. This report can't contain its own commit's run.
+
+### Phone steps for item 2 (S22 or S26)
+
+1. Maps tab, portrait, Street. Pass: the MapLibre logo is at the bottom right, just left of the "i", on the same line, touching
+   neither the "i" nor the caption. Evidence: a description in words.
+2. The same with Topo. Pass: the logo is beside the "i" as in step 1. Expected and accepted: it overlaps the end of the caption.
+   Record how much of the caption it covers.
+3. A Journal entry's map and the Offline maps picker, portrait. Pass: as step 1. The picker is always Street now.
+4. Maps tab, short landscape, Street then Topo. Pass: credit strip, then the "i", then the logo, at the bottom left, on one line,
+   none touching. Tell the owner this is where the logo goes in landscape (it follows the "i", not the right edge).
+5. The same at the other rotation (rail on the other edge). Pass: as step 4.
+6. Landscape while navigating, Topo, at ROTATION_90. Observation, not a gate: whether the navigation card covers the logo's end.
+7. Tap the "i" in each of the above. Pass: it opens the attribution dialog, as before.
