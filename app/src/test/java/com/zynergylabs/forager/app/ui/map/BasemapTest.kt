@@ -98,13 +98,24 @@ class BasemapTest {
     }
 
     /**
-     * Dispatch 2026-10-18-04, item 3: OpenTopoMap's own page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM |
-     * Kartendarstellung: © OpenTopoMap (CC-BY-SA)" (Juniper's research, Q2). The dispatch sets the English form below as
-     * the least the caption carries; the shortened "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)" dropped "contributors"
-     * and the separator between the data credit and the style credit.
+     * Dispatch 2026-10-18-04, item 3. OpenTopoMap's own page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM |
+     * Kartendarstellung: © OpenTopoMap (CC-BY-SA)" (Juniper's research, Q2). The owner's "option c": the short form stays
+     * in the always-visible caption, where the full one would wrap on the S22 in portrait, and the full English form goes
+     * in the tap-to-reveal attribution ([Basemap.fullAttribution]). Both texts are pinned here, and the caption is read
+     * through the function the map's caption draws ([attributionCaption] of [mapCreditsFor]).
      */
     @Test
-    fun `OpenTopoMap carries its full credit, data and style`() {
-        assertEquals("© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)", Basemap.OPEN_TOPO_MAP.attribution)
+    fun `OpenTopoMap's caption keeps the short credit and its full credit is the long form`() {
+        assertEquals("© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)", Basemap.OPEN_TOPO_MAP.fullAttribution)
+        assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)", Basemap.OPEN_TOPO_MAP.attribution)
+        assertEquals(
+            "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
+            attributionCaption(mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false)),
+        )
+    }
+
+    @Test
+    fun `Street's caption and full credit are the same line`() {
+        assertEquals(Basemap.OSM_STANDARD.attribution, Basemap.OSM_STANDARD.fullAttribution)
     }
 }

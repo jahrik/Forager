@@ -109,6 +109,7 @@ enum class Basemap(
      * tile.
      */
     internal val tileUrlTemplate: String,
+    val fullAttribution: String = attribution,
 ) {
     OPEN_TOPO_MAP(
         label = "OpenTopoMap",

@@ -98,6 +98,30 @@ class MapLibreInitializerTest {
     }
 
     /**
+     * The owner's "option i" (dispatch 2026-10-18-04, item 2): if the app's client cannot be installed, that is a MapLibre
+     * initialisation failure. It is logged and rethrown, nothing is remembered as done, and the next call tries both
+     * again, so MapLibre is never left running on its own client and User-Agent.
+     */
+    @Test
+    fun `a client that cannot be installed fails the initialisation, which the next call retries`() {
+        val boom = IllegalStateException("no client")
+        var sdkCalls = 0
+        var installs = 0
+        val initializer = initializer(installHttpClient = { if (installs++ == 0) throw boom }) { sdkCalls++ }
+
+        val thrown = assertThrows(IllegalStateException::class.java) { initializer.initialize(context) }
+        assertSame(boom, thrown)
+        assertSame(boom, errors.single().second)
+        assertTrue("an install failure was reported as initialised: $infos", infos.isEmpty())
+
+        initializer.initialize(context)
+        initializer.initialize(context)
+        assertEquals(2, sdkCalls)
+        assertEquals(2, installs)
+        assertEquals(1, infos.size)
+    }
+
+    /**
      * The real entry point: the `ForagerApplication` Robolectric boots. Under Robolectric MapLibre's native side never
      * initialises, which is exactly the start-up failure item 2 is about; the start must not then try the client anyway
      * and fall back to MapLibre's default User-Agent.
