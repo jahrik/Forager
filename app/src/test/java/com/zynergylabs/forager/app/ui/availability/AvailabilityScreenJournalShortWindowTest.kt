@@ -11,8 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOn
@@ -216,15 +214,8 @@ class AvailabilityScreenJournalShortWindowTest {
 
     /**
      * The owner (RECORD -1244): "And have the search bar slide up and down when revealing/hiding". On the test clock: a frame part
-     * way through each transition shows the pill partly above its place, so it is animated, not a jump; the end states are the pill
-     * at its place (the left, as on List and Seasonal) and then no pill.
-     *
-     * RECORD -1320 (dispatch 2026-10-18-08 Amendment 3; the owner: "Option 2") replaced this test's claim that the row below follows
-     * the pill. The pill now slides into room kept for it, so the row stays where it is, at every frame. The assertions this replaced:
-     * `assertTrue("revealed, the row below sits under the pill ...", rowShown >= pill.bottom - 0.5.dp && rowShown > rowHidden)`,
-     * `assertTrue("part way in, the row ($midRow) is between its two places ($rowHidden, $rowShown)", midRow > rowHidden + 0.5.dp && midRow < rowShown - 0.5.dp)`
-     * and `assertTrue("part way out, the row ($outRow) is between its two places", outRow > rowHidden + 0.5.dp && outRow < rowShown - 0.5.dp)`.
-     * The pill's slide assertions are unchanged.
+     * way through each transition shows the pill partly above its place and the row below it part way down, so it is animated, not
+     * a jump; the end states are the pill at its place (the left, as on List and Seasonal) and then no pill.
      */
     @Test
     fun `RECORD -1244 the revealed header slides down into place, and slides up when hidden`() {
@@ -240,10 +231,9 @@ class AvailabilityScreenJournalShortWindowTest {
         composeRule.waitForIdle()
         val pill = bounds(SEARCH_ENTRY_BAR_TAG)
         val rowShown = bounds(SHORT_HEADER).top
-        assertTrue("revealed, the row below sits under the pill ($rowShown, pill bottom ${pill.bottom})", rowShown >= pill.bottom - 0.5.dp)
-        assertEquals("RECORD -1320: revealed, the row has not moved", rowHidden.value, rowShown.value, 0.5f)
+        assertTrue("revealed, the row below sits under the pill ($rowShown, pill bottom ${pill.bottom})", rowShown >= pill.bottom - 0.5.dp && rowShown > rowHidden)
         assertTrue("part way in, the pill $midPill is above its place ${pill.top}", midPill.top < pill.top - 0.5.dp)
-        assertEquals("RECORD -1320: part way in, the row has not moved", rowHidden.value, midRow.value, 0.5f)
+        assertTrue("part way in, the row ($midRow) is between its two places ($rowHidden, $rowShown)", midRow > rowHidden + 0.5.dp && midRow < rowShown - 0.5.dp)
         assertEquals("the pill takes the left place, as on the other tabs (no insets: the window's left)", 0f, pill.left.value, 0.5f)
 
         composeRule.mainClock.autoAdvance = false
@@ -254,123 +244,9 @@ class AvailabilityScreenJournalShortWindowTest {
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
         assertTrue("part way out, the pill $outPill is above its place ${pill.top}", outPill.top < pill.top - 0.5.dp)
-        assertEquals("RECORD -1320: part way out, the row has not moved", rowHidden.value, outRow.value, 0.5f)
+        assertTrue("part way out, the row ($outRow) is between its two places", outRow > rowHidden + 0.5.dp && outRow < rowShown - 0.5.dp)
         assertTrue("hidden at the end", !exists(SEARCH_ENTRY_BAR_TAG))
         assertEquals("the row is back at the top", rowHidden.value, bounds(SHORT_HEADER).top.value, 0.5f)
-    }
-
-    // ── RECORD -1320: the pill's room is kept on every Journal screen in landscape ──
-
-    /** Every tagged node below the switch line's top, with its bounds: the switch line itself and the screen under it. */
-    private fun belowTheSwitchLine(): List<Pair<String, DpRect>> {
-        val lineTop = bounds(SHORT_HEADER).top
-        return composeRule.onAllNodes(SemanticsMatcherHasTag, useUnmergedTree = true).fetchSemanticsNodes()
-            .map { n ->
-                val r = n.boundsInRoot
-                val d = composeRule.density.density
-                n.config[SemanticsProperties.TestTag] to DpRect((r.left / d).dp, (r.top / d).dp, (r.right / d).dp, (r.bottom / d).dp)
-            }
-            .filter { (tag, r) -> r.top >= lineTop - 0.5.dp && tag != SEARCH_ENTRY_BAR_TAG && r.bottom > r.top }
-            .sortedWith(compareBy({ it.first }, { it.second.top.value }, { it.second.left.value }))
-    }
-
-    private fun assertSame(what: String, before: List<Pair<String, DpRect>>, after: List<Pair<String, DpRect>>) {
-        assertEquals("$what: the same tagged nodes below the switch line", before.map { it.first }, after.map { it.first })
-        for ((b, a) in before.zip(after)) {
-            val same = listOf(b.second.left - a.second.left, b.second.top - a.second.top, b.second.right - a.second.right, b.second.bottom - a.second.bottom).all { kotlin.math.abs(it.value) <= 0.5f }
-            assertTrue("$what: ${b.first} keeps its bounds (${b.second} then ${a.second})", same)
-        }
-    }
-
-    /** Opens [screen] on the Journal: Entries, or a Records chip by its tag. */
-    private fun openJournalScreen(screen: String) {
-        openJournal()
-        if (screen != ENTRIES_SCREEN) {
-            node(SWITCH_RECORDS).performClick()
-            composeRule.waitForIdle()
-            node(screen).performClick()
-            composeRule.mainClock.advanceTimeBy(2_000)
-            composeRule.waitForIdle()
-        }
-    }
-
-    private fun checkRevealMovesNothing(rotation: Int, screen: String) {
-        setScreen(rotation)
-        openJournalScreen(screen)
-        assertTrue("hidden to begin with", !exists(SEARCH_ENTRY_BAR_TAG))
-        val lineHidden = bounds(SHORT_HEADER)
-        val hidden = belowTheSwitchLine()
-        assertTrue("positive control, $screen: there is content below the switch line to compare (${hidden.size} nodes)", hidden.size >= 3)
-        val map = if (screen == CHIP_OFFLINE) bounds(SHORT_STUB_MAP_TAG) else null
-
-        composeRule.mainClock.autoAdvance = false
-        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
-        repeat(4) { composeRule.mainClock.advanceTimeByFrame() }
-        assertTrue("positive control, $screen: part way through, the pill is on its way in", exists(SEARCH_ENTRY_BAR_TAG))
-        assertSame("$screen, part way in", hidden, belowTheSwitchLine())
-        composeRule.mainClock.autoAdvance = true
-        composeRule.waitForIdle()
-
-        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
-        assertSame("$screen, revealed", hidden, belowTheSwitchLine())
-        // The room is checked after the bounds, so a build without it fails on what moved, not on a missing tag.
-        val room = bounds(JOURNAL_SEARCH_ROOM_TAG)
-        assertTrue("$screen: the room $room is above the switch line $lineHidden, which the pill was hidden over", room.bottom - room.top > 8.dp && room.bottom <= lineHidden.top + 0.5.dp)
-        assertTrue("$screen: the pill $pill lies in its room $room", pill.top >= room.top - 0.5.dp && pill.bottom <= room.bottom + 0.5.dp)
-        assertTrue("$screen: the pill $pill is clear of the switch line ${bounds(SHORT_HEADER)}", pill.bottom <= bounds(SHORT_HEADER).top + 0.5.dp)
-        if (map != null) {
-            val shown = bounds(SHORT_STUB_MAP_TAG)
-            assertEquals("Offline maps: the map's top does not move", map.top.value, shown.top.value, 0.5f)
-            assertEquals("Offline maps: the map's height does not change", (map.bottom - map.top).value, (shown.bottom - shown.top).value, 0.5f)
-            assertTrue("Offline maps: the pill $pill does not cover the map $shown", pill.bottom <= shown.top + 0.5.dp)
-        }
-        println("MEASURED rotation=$rotation $screen: room $room, pill $pill, map $map, ${hidden.size} nodes below the switch line unchanged")
-
-        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
-        composeRule.mainClock.advanceTimeBy(2_000)
-        composeRule.waitForIdle()
-        assertTrue("hidden again", !exists(SEARCH_ENTRY_BAR_TAG))
-        assertSame("$screen, hidden again", hidden, belowTheSwitchLine())
-    }
-
-    @Test fun `RECORD -1320 at ROTATION_90 on Entries the reveal moves nothing below the switch line`() = checkRevealMovesNothing(Surface.ROTATION_90, ENTRIES_SCREEN)
-    @Test fun `RECORD -1320 at ROTATION_90 on All the reveal moves nothing below the switch line`() = checkRevealMovesNothing(Surface.ROTATION_90, CHIP_ALL)
-    @Test fun `RECORD -1320 at ROTATION_90 on Finds the reveal moves nothing below the switch line`() = checkRevealMovesNothing(Surface.ROTATION_90, CHIP_FINDS)
-    @Test fun `RECORD -1320 at ROTATION_90 on Tracks the reveal moves nothing below the switch line`() = checkRevealMovesNothing(Surface.ROTATION_90, CHIP_TRACKS)
-    @Test fun `RECORD -1320 at ROTATION_90 on Waypoints the reveal moves nothing below the switch line`() = checkRevealMovesNothing(Surface.ROTATION_90, CHIP_WAYPOINTS)
-    @Test fun `RECORD -1320 at ROTATION_90 on Offline maps the reveal moves and resizes nothing, the map included`() = checkRevealMovesNothing(Surface.ROTATION_90, CHIP_OFFLINE)
-    @Test fun `RECORD -1320 at ROTATION_270 on Offline maps the reveal moves and resizes nothing, the map included`() = checkRevealMovesNothing(Surface.ROTATION_270, CHIP_OFFLINE)
-
-    @Test
-    fun `RECORD -1320 with the pill hidden, switching screens does not move the switch line`() {
-        setScreen(Surface.ROTATION_90)
-        openJournal()
-        val onEntries = bounds(SHORT_HEADER)
-        node(SWITCH_RECORDS).performClick()
-        composeRule.waitForIdle()
-        for (chip in listOf(CHIP_ALL, CHIP_FINDS, CHIP_TRACKS, CHIP_WAYPOINTS, CHIP_OFFLINE, CHIP_ALL)) {
-            node(chip).performClick()
-            composeRule.mainClock.advanceTimeBy(2_000)
-            composeRule.waitForIdle()
-            val line = bounds(SHORT_HEADER)
-            assertEquals("on $chip the switch line's top is where it is on Entries", onEntries.top.value, line.top.value, 0.5f)
-            assertEquals("on $chip the switch line's bottom is where it is on Entries", onEntries.bottom.value, line.bottom.value, 0.5f)
-        }
-        assertTrue("the pill stayed hidden throughout", !exists(SEARCH_ENTRY_BAR_TAG))
-    }
-
-    @Test
-    fun `RECORD -1320 the room stays while an entry is open, so opening and closing one moves nothing`() {
-        setScreen(Surface.ROTATION_90)
-        openJournal()
-        val room = bounds(JOURNAL_SEARCH_ROOM_TAG)
-        composeRule.onNodeWithTag(cardTag(MANY_ENTRIES[0].id)).performClick()
-        composeRule.mainClock.advanceTimeBy(2_000)
-        composeRule.waitForIdle()
-        assertEquals("positive control: the entry opened", listOf(MANY_ENTRIES[0].id), openedEntries)
-        val open = bounds(JOURNAL_SEARCH_ROOM_TAG)
-        assertEquals("with the entry open the room keeps its top", room.top.value, open.top.value, 0.5f)
-        assertEquals("with the entry open the room keeps its height", (room.bottom - room.top).value, (open.bottom - open.top).value, 0.5f)
     }
 
     // ── L1: one pinned 48 dp header row ──
@@ -851,13 +727,6 @@ private const val DRAFTS_CONTINUE = "entries-drafts-continue"
 private const val CHIP_WAYPOINTS = "records-chip-waypoints"
 private const val CHIP_ALL = "records-chip-all"
 private const val CHIP_OFFLINE = "records-chip-offline-maps"
-private const val CHIP_FINDS = "records-chip-finds"
-private const val CHIP_TRACKS = "records-chip-tracks"
-
-/** Not a tag: [openJournalScreen]'s name for the Entries side of the switch. */
-private const val ENTRIES_SCREEN = "entries"
-
-private val SemanticsMatcherHasTag = androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(SemanticsProperties.TestTag)
 
 private fun committedFind(id: String): com.zynergylabs.forager.app.domain.model.MushroomLogEntry =
     com.zynergylabs.forager.app.domain.model.MushroomLogEntry.draft(id = id, location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
@@ -893,10 +762,7 @@ private val TWO_DRAFTS: List<CartographyEntry> = listOf(
     CartographyEntry.draft(id = "draft-b", date = LocalDate.of(2026, 9, 24), updatedAtEpochMillis = 1L),
 )
 
-private val SHORT_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag(SHORT_STUB_MAP_TAG)) }
-
-/** The stub map's tag (RECORD -1320's tests measure the Offline maps picker's map). */
-private const val SHORT_STUB_MAP_TAG = "short-stub-map"
+private val SHORT_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
 /** Enough waypoints that the All logbook scrolls in a short window. */
 private val MANY_WAYPOINTS = (1..16).map { i ->
