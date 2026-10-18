@@ -5,6 +5,12 @@ answers). Branch `map-launch-fixes`, PR #257 into `pre-main`, **not merged**. Th
 from pushed head `b3ca6a56` after the previous Hazel session was stopped by mistake (-1281). That session wrote
 all the code and the six revert branches. This session read CI, checked the reverts and wrote this report.
 
+**Update, 16:08Z (Amendment 1; supersedes the two status lines below, which stand as written).** A failed map
+start-up now shows "The map couldn't start." and "Try again" in the map's place instead of throwing (`3c94dfc3`,
+`9388cb3f`). **Full CI 39142389938 at `9388cb3f` is green: 5,068 tests, 0 failures, 0 errors, 24 skipped** (JUnit XML,
+676 files). PR #257 is not merged. The S22 check below now covers both, on that run's debug APK. Details in "Update:
+Amendment 1" at the end.
+
 **Update, 15:16Z (supersedes the status line below; everything under it stands as written at 14:51Z).** The owner
 answered question 1 with option (a), and ruled on question 2 (RECORD -1283, `113ab4ad` on records-after-173).
 `f90d3049` replaces the failing test. **Full CI 39138361084 at `f90d3049` is green: 5,064 tests, 0 failures, 0
@@ -290,3 +296,125 @@ made while a run on it was in progress.
 
 **The device check** above stands unchanged. Use the debug APK from run 39138361084, or from the run on this report's
 commit if it is green and nothing but docs changed.
+
+## Update: Amendment 1, a failed map start-up shows a message (16:08Z)
+
+**Authorisation:** the owner, "Go on the fix" (RECORD -1284), for -1283 (2). The dispatch is Amendment 1 of
+`prompts/preserved/2026-10-18-04.md` (records-after-173, `d6b276dc`).
+
+### Verify first
+
+1. **The crash path is confirmed in code, and by a test.** `SightingsMap.kt:322-327` calls `initializeMapLibre` inside
+   `remember {}` with no catch, and `MapLibreInitializer.kt:42-49` logs and rethrows. Revert R12 below put the uncaught
+   call back, and composing the real map slot under Robolectric then threw out of composition:
+   `java.lang.UnsatisfiedLinkError: '…TileServerOptions.mapLibreConfiguration()'`. On a phone that is an uncaught
+   exception on the main thread, so the app closes. That last step is inferred, not seen on a phone.
+
+   **How tests composed `SightingsMap` before this change:** they didn't. No test references `SightingsMap(` or
+   `SightingsMapSlot` (grep of `app/src/test`). Every screen test passes its own stub `MapSlot`, and
+   `AvailabilityScreen.kt:776` is the only place the real slot is the default.
+2. **Every composable that creates a `MapView` or calls `initializeMapLibre`:** only `SightingsMap`
+   (`SightingsMap.kt:325-326`). It is composed only through `SightingsMapSlot` (`MapSlot.kt:559`), and that slot is
+   handed down to every map in the app as a `MapSlot` parameter:
+   - the Maps tab and the compact map;
+   - offline maps;
+   - the Journal and Records tabs;
+   - Cartography;
+   - the centre-pin location picker.
+
+   So one gate in that slot covers them all, and none is left without it. The other two callers are not composables:
+   - `ForagerApplication.kt:79` catches and logs, as before.
+   - `MapLibreOfflineMapRepository.kt:230` runs inside `runCatchingCancellable`, which catches `Throwable` and
+     returns `Result.failure` (`RunCatchingCancellable.kt:18-24`), so a start-up failure there is already a failed
+     result, not a crash.
+
+No stop was hit:
+- the change is in the map composables (`MapStartGate.kt`, new, and `MapSlot.kt`) plus the two strings the amendment
+  names in `strings.xml`;
+- Try again retries in-process;
+- no test was weakened;
+- no map composable was left out.
+
+### What was built
+
+**`MapStartGate` (new, `ui/map/MapStartGate.kt`).** It runs the start-up before the map is composed.
+- **On failure** it shows `map_start_failed` ("The map couldn't start.") and a `map_start_try_again` button ("Try
+  again") on a solid surface, where the map would be. Only the map's own area is replaced, so the tabs, the icon bar
+  and the rest of the screen are not touched.
+- **Try again** re-runs the start-up. The initialiser remembers nothing after a failure, so the retry is a real one
+  and needs no app restart.
+- **Logging:** each failure is logged by the initialiser, as before ("MapLibre initialisation failed; it will be
+  retried on the next call."). It is caught in the gate after that log, so it is not swallowed silently.
+- **On success** the map is composed exactly as before, with no wrapper layout around it.
+
+**`SightingsMapSlot`** now composes `SightingsMap` inside the gate (`MapSlot.kt:560-561`, with the body re-indented).
+`SightingsMap` itself is unchanged; its own `initializeMapLibre` call is a no-op once the gate has started MapLibre.
+
+### Evidence
+
+**`MapStartGateTest`, 4 tests:**
+1. The real `SightingsMapSlot`, with the real initialiser (which always fails under Robolectric), shows both texts and
+   does not throw.
+2. A real touch (`performTouchInput { click() }`) on Try again on the real slot logs one more start-up failure, so
+   the retry happened, and the message stays.
+3. A start-up that fails (`UnsatisfiedLinkError`) and then succeeds shows the map after Try again, with the message
+   gone and two calls made.
+4. A first-time success shows the map, with no message and one call.
+
+**First run, not evidence.** At `3c94dfc3`, full CI 39141268228 had 5,068 tests and 4 failed. All four were the new
+tests, erroring before composing anything: "Unable to resolve activity for Intent … androidx.activity.ComponentActivity".
+The compose rule's host activity is not in the app manifest. Revert runs 39141292950, 39141295013 and 39141297040, on
+branches `-9`, `-10` and `-11`, failed the same four tests with the same harness error. They never reached the code
+their edits changed, so they are **not cited as revert evidence**. `9388cb3f` declares the activity the way
+`WindowClassFollowsTheWindowTest` does, and the three reverts were redone from it as R12 to R14.
+
+**Revert checks, from `9388cb3f`.** Built with a temporary git index, so the working tree was never edited. Each run
+was filtered to `MapStartGateTest`, read through per-job logs (3,181 to 3,183 lines, zero Kotlin `e:` lines in any
+job) and its own JUnit XML.
+
+| Revert | Edit (one line) | Run | Result | Failures, each one this edit can cause |
+|---|---|---|---|---|
+| R12 | `MapStartGate.kt:52`: `remember(attempt) { start(context); true }`, the uncaught call put back | 39142394101 | 4 / 3 failed | both real-slot tests: `UnsatisfiedLinkError: '…TileServerOptions.mapLibreConfiguration()'`, the real start-up failure thrown out of composition; the fail-then-succeed test: `UnsatisfiedLinkError: no native library`, the fake's own throw. The first-time-success test passes, as it should. |
+| R13 | `MapStartGate.kt:56`: `onTryAgain = { }` | 39142396366 | 4 / 2 failed | real-slot retry: "Try again did not retry the start-up expected:<3> but was:<2>"; fail-then-succeed: "could not find any node … 'the map'". The two no-tap tests pass. |
+| R14 | `MapSlot.kt:561`: `run {` instead of `MapStartGate(modifier) {`, the slot without the gate | 39142399268 | 4 / 2 failed | both real-slot tests: the same `UnsatisfiedLinkError` thrown out of composition. The two gate-only tests pass, as they don't go through the slot. |
+
+The forward change is present at `9388cb3f`, which is still the branch head under this commit.
+
+**Full CI:** 39142389938 at `9388cb3f` is green, with lint, release compile and unit tests all passing. **5,068 tests,
+0 failures, 0 errors, 24 skipped.** That is the 5,064 from `f90d3049` plus the four new tests.
+
+### Not tested, said plainly
+
+- **Whether a real start-up failure on a phone looks like this.** It cannot be produced on a normal phone. The S22's
+  MapLibre starts, and no switch in the app makes it fail; adding one would be a dev tool, the owner's call. **The
+  message has only been seen through the Robolectric tests above**, as Compose semantics nodes. Its look (colours,
+  spacing, where it sits under the screen's own chrome) has not been seen.
+- **Whether `MapLibre.getInstance` can succeed on a retry after a real native-library failure on a phone.** The retry
+  runs, and that is tested. Whether the platform loads the library the second time is unverified.
+- **Whether chrome over the map covers the message or the button** on any screen (the search bar, the icon bar). The
+  tests compose the slot alone, so a real touch there proves the button takes a touch, not that every screen leaves
+  it reachable.
+- **The whole-screen claim** ("the tabs and the rest of the screen stay usable") rests on the gate replacing only the
+  slot's own area, read from the code. No test composes a whole screen with the real slot, because those screens need
+  their full set of view models.
+
+### Device check additions (S22, owner)
+
+Run them in the same session as the steps above, on the debug APK from run 39142389938 or a later green run with no
+code change. A real start-up failure cannot be produced on the phone, so these steps check that the normal path is
+unchanged, not the message.
+
+8. **Every map still opens.** Open each in turn, and pass if each one draws its map with no message and nothing
+   closes:
+   - the Maps tab (the compact map);
+   - offline maps;
+   - a Journal entry's map;
+   - Records' map;
+   - Cartography;
+   - the location picker.
+
+   Write down any that shows "The map couldn't start.", with which screen it was. That would be a real start-up
+   failure and a finding in itself.
+9. **Observation, not a gate.** If "The map couldn't start." ever appears, tap Try again once and write down what
+   happens: the map loads, or the message stays. Either answer is new information, because the retry has never run
+   on a phone.
