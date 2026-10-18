@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.map
 
+import android.app.Application
+import android.content.ComponentName
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
@@ -7,11 +10,15 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
+import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.Region
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.ExternalResource
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
+import org.robolectric.Shadows
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLog
@@ -28,8 +35,18 @@ import org.robolectric.shadows.ShadowLog
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class MapStartGateTest {
+    private val composeRule = createComposeRule()
+
+    // The compose rule's host activity is not in the app's manifest; declared here as WindowClassFollowsTheWindowTest does.
+    private val declareHostActivity = object : ExternalResource() {
+        override fun before() {
+            val app = ApplicationProvider.getApplicationContext<Application>()
+            Shadows.shadowOf(app.packageManager).addActivityIfNotPresent(ComponentName(app, ComponentActivity::class.java))
+        }
+    }
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private fun startFailuresLogged() =
         ShadowLog.getLogs().count { it.tag == "MapLibreStorage" && it.msg?.startsWith("MapLibre initialisation failed") == true }
