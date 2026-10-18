@@ -298,8 +298,7 @@ class AvailabilityScreenJournalShortWindowTest {
         setScreen(rotation)
         openJournalScreen(screen)
         assertTrue("hidden to begin with", !exists(SEARCH_ENTRY_BAR_TAG))
-        val room = bounds(JOURNAL_SEARCH_ROOM_TAG)
-        assertTrue("$screen: room is kept above the switch line while the pill is hidden ($room)", room.bottom - room.top > 8.dp && room.bottom <= bounds(SHORT_HEADER).top + 0.5.dp)
+        val lineHidden = bounds(SHORT_HEADER)
         val hidden = belowTheSwitchLine()
         assertTrue("positive control, $screen: there is content below the switch line to compare (${hidden.size} nodes)", hidden.size >= 3)
         val map = if (screen == CHIP_OFFLINE) bounds(SHORT_STUB_MAP_TAG) else null
@@ -314,6 +313,9 @@ class AvailabilityScreenJournalShortWindowTest {
 
         val pill = bounds(SEARCH_ENTRY_BAR_TAG)
         assertSame("$screen, revealed", hidden, belowTheSwitchLine())
+        // The room is checked after the bounds, so a build without it fails on what moved, not on a missing tag.
+        val room = bounds(JOURNAL_SEARCH_ROOM_TAG)
+        assertTrue("$screen: the room $room is above the switch line $lineHidden, which the pill was hidden over", room.bottom - room.top > 8.dp && room.bottom <= lineHidden.top + 0.5.dp)
         assertTrue("$screen: the pill $pill lies in its room $room", pill.top >= room.top - 0.5.dp && pill.bottom <= room.bottom + 0.5.dp)
         assertTrue("$screen: the pill $pill is clear of the switch line ${bounds(SHORT_HEADER)}", pill.bottom <= bounds(SHORT_HEADER).top + 0.5.dp)
         if (map != null) {
