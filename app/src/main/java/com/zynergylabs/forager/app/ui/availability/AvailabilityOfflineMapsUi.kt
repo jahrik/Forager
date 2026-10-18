@@ -22,6 +22,9 @@ package com.zynergylabs.forager.app.ui.availability
 //   OfflineRegionsSection. It is a different function, not a reference to the one here — a grep
 //   coincidence, not a dependency.
 
+import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_COMPACT_BUTTON_PADDING
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -249,12 +252,13 @@ internal fun OfflineMapsPanel(
     // one tap used to start a real download. Saveable, so a rotation or a night-mode rebuild with the
     // question up keeps asking it.
     var confirmingDownload by rememberSaveable { mutableStateOf(false) }
-    val downloadButton: @Composable (Modifier) -> Unit = { buttonModifier ->
+    val downloadButton: @Composable (Modifier, PaddingValues) -> Unit = { buttonModifier, padding ->
         Button(
             onClick = { confirmingDownload = true },
             enabled = hasValidRegion && !isDownloading,
+            contentPadding = padding,
             modifier = buttonModifier.fillMaxWidth(),
-        ) { Text("Download Maps") }
+        ) { Text("Download Maps", maxLines = 1) }
     }
     val confirmDownloadDialog: @Composable () -> Unit = {
         if (confirmingDownload) {
@@ -305,8 +309,16 @@ internal fun OfflineMapsPanel(
             details = details,
             usContinentalNote = usContinentalNote,
             regionsSection = regionsSection,
-            confirmActions = confirmActions,
-            downloadButton = downloadButton,
+            // RECORD -1253 (the owner: "C: OK, Cancel and Download on one line"): Download joins OK and Cancel's line, so the
+            // pinned part is one line shorter and the radius slider is in view on open, under the Name box (RECORD -1243).
+            pinnedActions = {
+                CentrePinConfirmActions(
+                    state = pinState,
+                    onConfirm = onRegionPicked,
+                    onCancel = {},
+                    trailing = { downloadButton(Modifier.weight(1f), CENTRE_PIN_COMPACT_BUTTON_PADDING) },
+                )
+            },
         )
         confirmDownloadDialog()
         return
@@ -344,7 +356,7 @@ internal fun OfflineMapsPanel(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             details()
-            downloadButton(Modifier)
+            downloadButton(Modifier, ButtonDefaults.ContentPadding)
         }
 
         regionsSection()
@@ -377,6 +389,9 @@ internal fun offlineDownloadConfirmationBody(name: String, radiusKm: Int, unit: 
  *   reachable without scrolling": that cannot hold at 384 dp): OK with its Cancel, and the "Pin at"
  *   line that sits over them in the stacked layout, and Download are pinned at the bottom of the
  *   controls side, always visible. Everything else scrolls above them, in the stacked order.
+ *   Since RECORD -1253 (the owner: "C: OK, Cancel and Download on one line"), OK, Cancel and Download share one line under
+ *   "Pin at", so the radius slider is in view on open under the Name box (RECORD -1243). Was OK and Cancel on one line and
+ *   Download on its own below them.
  * - **Which side** (the planner's ruling, 2026-09-28-49): the map on the punch-hole side and the
  *   controls on the rail side, as the landscape search sheet (P8), the navigation HUD (P9) and the
  *   tools drawer (P12) sit by the rail with the map beyond them
@@ -395,8 +410,8 @@ private fun OfflineMapsSideBySide(
     /** RECORD -1245: the continental-US note, the last line of the scrolling part. */
     usContinentalNote: @Composable () -> Unit,
     regionsSection: @Composable () -> Unit,
-    confirmActions: @Composable () -> Unit,
-    downloadButton: @Composable (Modifier) -> Unit,
+    /** RECORD -1253: "Pin at", then OK, Cancel and Download on one line, pinned under the scrolling part. */
+    pinnedActions: @Composable () -> Unit,
 ) {
     Row(modifier = modifier.fillMaxSize()) {
         val controls: @Composable RowScope.() -> Unit = {
@@ -418,8 +433,7 @@ private fun OfflineMapsSideBySide(
                     regionsSection()
                     usContinentalNote()
                 }
-                confirmActions()
-                downloadButton(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
+                pinnedActions()
             }
         }
         if (controlsFirst) controls()
