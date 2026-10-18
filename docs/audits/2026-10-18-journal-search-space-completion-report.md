@@ -4,7 +4,7 @@ Hazel (app coder), 2026-10-18, written 22:20Z. RECORD -1320 (the owner: "Option 
 without a map behave as today" for the Journal in landscape. Branch `journal-search-space`, cut from origin/pre-main
 `8c90626f` (PR #260 merged), as PR #261 into `pre-main`. **Not merged.**
 
-**Status: built, tests updated, the revert check done. The full CI result is in the table below. No Stop was hit:**
+**Status: built, tests updated, the revert check done. The full CI 39171539012 at `aa9d64aa` is green: 5,131 tests, 0 failures, 24 skipped (JUnit XML). No Stop was hit:**
 - The Offline maps file (`AvailabilityOfflineMapsUi.kt`) is untouched. The reserve is made in the scaffold.
 - No test was weakened. One existing claim was replaced, on the ruling (see Tests).
 
@@ -90,7 +90,7 @@ there are no `e: ` lines and no failed compile task. Only the test task failed.
 | --- | --- | --- |
 | 39168872192 (pull_request) | `598cd918` | green: 5,131 tests, 0 failures, 0 errors, 24 skipped (JUnit XML, 690 files) |
 | 39170164409 (pull_request) | `3b2f46b7` | 1 failure: `MushroomLogViewModelWiringTest` "a find deleted through the Journal's ViewModel leaves the Maps tab's records". This is the parked intermittent test, row 2 of `docs/process/known-bugs.md`, about 6% of runs. The commit changed six lines of one Journal test file. Reported, not touched. |
-| FULL_CI_PENDING | this commit | |
+| 39171539012 (pull_request) | `aa9d64aa` (report commit) | **green: 5,131 tests, 0 failures, 0 errors, 24 skipped** (JUnit XML, 690 files); every job green |
 
 ## Not verified
 
