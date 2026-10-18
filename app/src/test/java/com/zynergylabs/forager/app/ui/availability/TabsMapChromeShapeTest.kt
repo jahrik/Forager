@@ -17,7 +17,11 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
@@ -89,6 +93,12 @@ abstract class TabsMapChromeShapeTests(
     private val landscape: Boolean,
     /** The display's rotation in landscape (which edge the port and the punch hole are on); null in portrait. */
     private val rotation: Int? = null,
+    /**
+     * A system navigation bar on the screen's left, dispatched to the screen as real window insets after it is up
+     * (Robolectric's own are zero, CLAUDE.md "Known pitfalls"). The S22's three-button bar sits on the left in one landscape
+     * direction; the pill passed over it there (the owner, PR #252, build 1.0.3414).
+     */
+    private val navBarLeft: Dp = 0.dp,
 ) {
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -106,6 +116,20 @@ abstract class TabsMapChromeShapeTests(
         if (rotation != null) Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent { MapChromeTestScreen(state, map, roles, darkTheme = dark) }
         composeRule.waitForIdle()
+        if (navBarLeft > 0.dp) {
+            val px = (navBarLeft.value * composeRule.activity.resources.displayMetrics.density).toInt()
+            val insets = WindowInsetsCompat.Builder()
+                .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(px, 0, 0, 0))
+                .setVisible(WindowInsetsCompat.Type.navigationBars(), true)
+                .build()
+            composeRule.runOnUiThread {
+                ViewCompat.dispatchApplyWindowInsets(composeRule.activity.window.decorView.findViewById(android.R.id.content), insets)
+            }
+            composeRule.waitForIdle()
+            // The positive control for the injection itself: the Maps pill, which pads by the navigation bar
+            // (mapControlsPadding), must actually see the inset this class is about.
+            assertTrue("the injected navigation bar inset reached the screen's own Maps pill (left ${bounds(SEARCH_ENTRY_BAR_TAG).left})", bounds(SEARCH_ENTRY_BAR_TAG).left.value >= navBarLeft.value - 0.5f)
+        }
     }
 
     /** Chooses [label] on the bottom bar or rail (a semantic click: it only gets the test to the tab). */
@@ -206,10 +230,29 @@ abstract class TabsMapChromeShapeTests(
         val mapsPill = bounds(SEARCH_ENTRY_BAR_TAG)
         open(label)
         assertBoundsEqual("$label: the ${if (landscape) "rail" else "bar"} against Maps", mapsNav, bounds(navigationTag))
-        assertBoundsEqual("$label: the pill against Maps", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
+        if (landscape) {
+            // The owner on the S22 (PR #252, build 1.0.3414): "It can stay the same size as it is now in those tabs, but have it
+            // centered" (revising RECORD -1227 for position only). The Maps pill's size and height; centred between the system
+            // navigation bar's edge (navBarLeft; Robolectric's own insets are zero) and the rail.
+            assertLandscapeTabPill(label, mapsPill, bounds(SEARCH_ENTRY_BAR_TAG), mapsNav)
+        } else {
+            assertBoundsEqual("$label: the pill against Maps", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
+        }
         open("Maps")
         assertBoundsEqual("back on Maps from $label: the bar or rail", mapsNav, bounds(navigationTag))
         assertBoundsEqual("back on Maps from $label: the pill", mapsPill, bounds(SEARCH_ENTRY_BAR_TAG))
+    }
+
+    private fun assertLandscapeTabPill(label: String, mapsPill: DpRect, pill: DpRect, rail: DpRect) {
+        val tolerance = 0.5f
+        assertEquals("$label pill: top, the Maps pill's", mapsPill.top.value, pill.top.value, tolerance)
+        assertEquals("$label pill: bottom, the Maps pill's", mapsPill.bottom.value, pill.bottom.value, tolerance)
+        assertEquals("$label pill: width, the Maps pill's", (mapsPill.right - mapsPill.left).value, (pill.right - pill.left).value, tolerance)
+        assertTrue("$label pill: clear of the navigation bar (left ${pill.left} >= $navBarLeft)", pill.left.value >= navBarLeft.value - tolerance)
+        assertEquals(
+            "$label pill: centred between the navigation bar's edge ($navBarLeft) and the rail (${rail.left})",
+            (navBarLeft.value + rail.left.value) / 2f, (pill.left.value + pill.right.value) / 2f, tolerance,
+        )
     }
 
     private fun assertBoundsEqual(what: String, expected: DpRect, actual: DpRect) {
@@ -244,3 +287,8 @@ class TabsMapChromeShapeLandscape270DarkTest : TabsMapChromeShapeTests(dark = tr
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 class TabsMapChromeShapeLandscape90LightTest : TabsMapChromeShapeTests(dark = false, landscape = true, rotation = Surface.ROTATION_90)
+
+/** The owner's S22 case (PR #252, build 1.0.3414): a three-button navigation bar on the left in landscape, 48 dp. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+class TabsMapChromeShapeLandscapeNavBarLeftTest : TabsMapChromeShapeTests(dark = true, landscape = true, rotation = Surface.ROTATION_270, navBarLeft = 48.dp)

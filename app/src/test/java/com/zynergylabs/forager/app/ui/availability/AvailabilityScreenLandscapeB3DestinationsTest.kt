@@ -200,9 +200,11 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     // `the search bar above the tab content is capped and centred with it`, asserting
     // assertCappedAndCentred("the search bar", taggedBounds(SEARCH_ENTRY_BAR_TAG)) on List.
     // Superseded by the owner's ruling, RECORD -1227 (dispatch 2026-10-17-09): "Move to Maps'
-    // spot". The bar now takes the Maps pill's place and size, outside the cap, and the content
-    // below it stays capped (T1 and T2 above, unchanged). TabsMapChromeShapeTest compares the
-    // bounds at both rotations, on List, Seasonal and Journal; this keeps the check in the
+    // spot". Its position was then revised on the S22 (PR #252, build 1.0.3414): "It can stay
+    // the same size as it is now in those tabs, but have it centered". So the bar is the Maps
+    // pill's size, outside the 640 dp cap, centred beside the rail. The content below it stays
+    // capped (T1 and T2 above, unchanged). TabsMapChromeShapeTest checks this at both rotations,
+    // on List, Seasonal and Journal, and with a navigation bar inset; this keeps the check in the
     // class that pins B3's cap, on its own screen and state.
 
     private fun openFromRail(label: String) {
@@ -211,16 +213,16 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     }
 
     @Test
-    fun `the search bar above the tab content takes the Maps pill's place, outside the cap`() {
+    fun `the search bar above the tab content is the Maps pill's size, outside the cap, centred beside the rail`() {
         setScreen(Surface.ROTATION_90)
         openFromRail("Maps")
         val mapsPill = taggedBounds(SEARCH_ENTRY_BAR_TAG)
         openTab("List")
         val listBar = taggedBounds(SEARCH_ENTRY_BAR_TAG)
-        assertEquals("left, the Maps pill's", mapsPill.left.value, listBar.left.value, 0.5f)
+        assertEquals("width, the Maps pill's", mapsPill.width.value, listBar.width.value, 0.5f)
         assertEquals("top, the Maps pill's", mapsPill.top.value, listBar.top.value, 0.5f)
-        assertEquals("right, the Maps pill's", mapsPill.right.value, listBar.right.value, 0.5f)
         assertEquals("bottom, the Maps pill's", mapsPill.bottom.value, listBar.bottom.value, 0.5f)
+        assertEquals("centred in the area beside the rail", areaBesideRail().centreX(), listBar.centreX(), 1f)
     }
 
     // ── T4: the rail stays tappable beside the capped content ──
