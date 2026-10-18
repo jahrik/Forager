@@ -460,7 +460,9 @@ private fun OfflineMapsSideBySide(
             }
         }
         if (controlsFirst) controls()
-        map(Modifier.weight(1f).fillMaxHeight())
+        // RECORD -1330 to -1333 (the owner: "No, the maps do not move at all"): on the Journal the map stands below the room the
+        // search pill has not taken, plus a small gap, so it keeps its place while the switch line slides down with the pill.
+        map(Modifier.weight(1f).fillMaxHeight().journalSearchGap(LocalJournalSearchPillRoom.current))
         if (!controlsFirst) controls()
     }
 }

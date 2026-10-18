@@ -41,6 +41,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.FindDecision
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.log.CARTOGRAPHY_MAP_TEST_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -97,7 +98,12 @@ class AvailabilityScreenJournalShortWindowTest {
     private val openedEntries = mutableListOf<String>()
     private val cameraTargets = mutableListOf<com.zynergylabs.forager.app.ui.log.InAppCameraTarget>()
 
-    private fun setScreen(rotation: Int, entries: List<CartographyEntry> = MANY_ENTRIES, drafts: List<CartographyEntry> = emptyList()) {
+    private fun setScreen(
+        rotation: Int,
+        entries: List<CartographyEntry> = MANY_ENTRIES,
+        drafts: List<CartographyEntry> = emptyList(),
+        entryMapData: com.zynergylabs.forager.app.domain.CartographyEntryMapData? = null,
+    ) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             rotationSeenByScreen = LocalView.current.display?.rotation
@@ -111,6 +117,7 @@ class AvailabilityScreenJournalShortWindowTest {
                 },
                 onClose = { cartography = cartography.copy(editingEntry = null) },
                 onOpenCamera = { target -> cameraTargets += target },
+                entryMapData = entryMapData,
             )
         }
         composeRule.waitForIdle()
@@ -320,6 +327,124 @@ class AvailabilityScreenJournalShortWindowTest {
         assertTrue("back on the open entry: no bar", !exists(SEARCH_ENTRY_BAR_TAG))
         assertTrue("back on the open entry: no search icon", !exists(SEARCH_ICON))
     }
+
+    // ── RECORD -1330 to -1333: the switch line slides down with the pill; a map under it does not move ──
+
+    private fun near(a: DpRect, b: DpRect) = listOf(a.left - b.left, a.top - b.top, a.right - b.right, a.bottom - b.bottom).all { kotlin.math.abs(it.value) <= 0.5f }
+
+    private fun checkOfflineMapsReveal(rotation: Int) {
+        setScreen(rotation)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        node(CHIP_OFFLINE).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertTrue("hidden to begin with", !exists(SEARCH_ENTRY_BAR_TAG))
+        val lineHidden = bounds(SHORT_HEADER)
+        val map = bounds(SHORT_STUB_MAP_TAG)
+        assertEquals("search hidden: the switch line is at the top, with no strip above it", 0f, lineHidden.top.value, 0.5f)
+
+        composeRule.mainClock.autoAdvance = false
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        val inFrames = (1..6).map { composeRule.mainClock.advanceTimeByFrame(); bounds(SHORT_HEADER) to bounds(SHORT_STUB_MAP_TAG) }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val lineShown = bounds(SHORT_HEADER)
+        println("MEASURED -1333 rotation=$rotation: line hidden $lineHidden, shown $lineShown, pill $pill, map $map, frames ${inFrames.map { it.first.top.value }}")
+        assertTrue("positive control: part way in, the switch line is between its two places", inFrames.any { it.first.top > lineHidden.top + 0.5.dp && it.first.top < lineShown.top - 0.5.dp })
+        for ((i, f) in inFrames.withIndex()) assertTrue("frame ${i + 1} in: the map keeps its bounds ($map, then ${f.second})", near(map, f.second))
+        assertEquals("search open: the switch line has moved down by the bar's height", (pill.bottom - pill.top).value, (lineShown.top - lineHidden.top).value, 0.5f)
+        assertTrue("search open: the map keeps its bounds ($map, then ${bounds(SHORT_STUB_MAP_TAG)})", near(map, bounds(SHORT_STUB_MAP_TAG)))
+        assertTrue("search open: the bar $pill does not reach the map $map", pill.bottom <= map.top + 0.5.dp)
+        assertTrue("search open: the switch line $lineShown does not reach the map $map", lineShown.bottom <= map.top + 0.5.dp)
+        assertEquals("search open: the small gap between the switch line and the map", JOURNAL_MAP_TOP_GAP.value, (map.top - lineShown.bottom).value, 0.5f)
+
+        composeRule.mainClock.autoAdvance = false
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        val outFrames = (1..6).map { composeRule.mainClock.advanceTimeByFrame(); bounds(SHORT_STUB_MAP_TAG) }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        for ((i, f) in outFrames.withIndex()) assertTrue("frame ${i + 1} out: the map keeps its bounds ($map, then $f)", near(map, f))
+        assertTrue("hidden again", !exists(SEARCH_ENTRY_BAR_TAG))
+        assertEquals("search closed: the switch line is back at the top", lineHidden.top.value, bounds(SHORT_HEADER).top.value, 0.5f)
+        assertTrue("search closed: the map keeps its bounds", near(map, bounds(SHORT_STUB_MAP_TAG)))
+    }
+
+    @Test fun `RECORD -1333 at ROTATION_90 on Offline maps the switch line slides down with the bar and the map does not move`() = checkOfflineMapsReveal(Surface.ROTATION_90)
+    @Test fun `RECORD -1333 at ROTATION_270 on Offline maps the switch line slides down with the bar and the map does not move`() = checkOfflineMapsReveal(Surface.ROTATION_270)
+
+    @Test
+    fun `RECORD -1333 on Entries the switch line sits at the top and slides down with the bar, and back`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        val hidden = bounds(SHORT_HEADER)
+        assertEquals("search hidden: the switch line is at the top", 0f, hidden.top.value, 0.5f)
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertEquals("search open: the line has moved down by the bar's height", (pill.bottom - pill.top).value, (bounds(SHORT_HEADER).top - hidden.top).value, 0.5f)
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertEquals("search closed: the line is back at the top", hidden.top.value, bounds(SHORT_HEADER).top.value, 0.5f)
+    }
+
+    /**
+     * The owner (RECORD -1333): "Make sure the map doesn't move." An open entry's map, opening and closing the entry, with search
+     * hidden and with it open beforehand. The map grows in a moment after the report opens (GrowIn, RECORD -682), so its height is
+     * not compared until it has arrived; its top is compared at every frame it is on screen, and its bounds from its arrival to the
+     * last frame before it leaves.
+     */
+    private fun checkEntryMapStill(searchOpenFirst: Boolean) {
+        setScreen(Surface.ROTATION_90, entryMapData = ENTRY_MAP_DATA)
+        openJournal()
+        if (searchOpenFirst) {
+            touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+            composeRule.mainClock.advanceTimeBy(2_000)
+            composeRule.waitForIdle()
+            assertTrue("positive control: search is open before the entry opens", exists(SEARCH_ENTRY_BAR_TAG))
+        }
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNodeWithTag(cardTag(MANY_ENTRIES[0].id)).performClick()
+        val opening = mutableListOf<DpRect>()
+        repeat(40) {
+            composeRule.mainClock.advanceTimeByFrame()
+            if (exists(CARTOGRAPHY_MAP_TEST_TAG)) opening += bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertEquals("positive control: the entry opened", listOf(MANY_ENTRIES[0].id), openedEntries)
+        assertTrue("positive control: the entry's map is shown", exists(CARTOGRAPHY_MAP_TEST_TAG))
+        val settled = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        assertTrue("with the entry open, search is held hidden", !exists(SEARCH_ENTRY_BAR_TAG))
+        assertEquals("with the entry open, the switch line is at the top", 0f, bounds(SHORT_HEADER).top.value, 0.5f)
+        println("MEASURED -1333 entry map, search open first=$searchOpenFirst: settled $settled, opening tops ${opening.map { it.top.value }}, heights ${opening.map { (it.bottom - it.top).value }}")
+        assertTrue("positive control: the map was seen while the entry opened (${opening.size} frames)", opening.isNotEmpty())
+        for ((i, f) in opening.withIndex()) assertEquals("opening, frame ${i + 1}: the map's top does not move", settled.top.value, f.top.value, 0.5f)
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        val closing = mutableListOf<DpRect>()
+        repeat(40) {
+            composeRule.mainClock.advanceTimeByFrame()
+            if (exists(CARTOGRAPHY_MAP_TEST_TAG)) closing += bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        println("MEASURED -1333 entry map closing tops ${closing.map { it.top.value }}, heights ${closing.map { (it.bottom - it.top).value }}")
+        for ((i, f) in closing.withIndex()) {
+            assertEquals("closing, frame ${i + 1}: the map's top does not move", settled.top.value, f.top.value, 0.5f)
+            assertEquals("closing, frame ${i + 1}: the map's height does not change", (settled.bottom - settled.top).value, (f.bottom - f.top).value, 0.5f)
+        }
+        assertTrue("the entry closed", !exists(CARTOGRAPHY_MAP_TEST_TAG))
+    }
+
+    @Test fun `RECORD -1333 an open entry's map does not move as the entry opens and closes, search hidden`() = checkEntryMapStill(searchOpenFirst = false)
+    @Test fun `RECORD -1333 an open entry's map does not move as the entry opens and closes, search open first`() = checkEntryMapStill(searchOpenFirst = true)
 
     // ── L1: one pinned 48 dp header row ──
 
@@ -839,6 +964,13 @@ private val SHORT_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(
 /** The stub map's tag (RECORD -1330's gap test measures the Offline maps picker's map). */
 private const val SHORT_STUB_MAP_TAG = "short-stub-map"
 
+/** An entry map with one waypoint, so an open entry's report draws its map (RECORD -1333's entry check). */
+private val ENTRY_MAP_DATA = com.zynergylabs.forager.app.domain.CartographyEntryMapData(
+    emptyList(), emptyList(),
+    listOf(com.zynergylabs.forager.app.domain.model.RecordPoint("wp-entry", com.zynergylabs.forager.app.domain.model.LatLng(45.52, -122.68))),
+    emptyList(), emptyList(),
+)
+
 /** Enough waypoints that the All logbook scrolls in a short window. */
 private val MANY_WAYPOINTS = (1..16).map { i ->
     com.zynergylabs.forager.app.domain.model.Waypoint(
@@ -856,6 +988,7 @@ private fun ShortWindowScreenUnderTest(
     onOpenCamera: (com.zynergylabs.forager.app.ui.log.InAppCameraTarget) -> Unit = {},
     logState: com.zynergylabs.forager.app.ui.log.MushroomLogUiState = com.zynergylabs.forager.app.ui.log.MushroomLogUiState(),
     tracks: List<com.zynergylabs.forager.app.domain.model.Track> = emptyList(),
+    entryMapData: com.zynergylabs.forager.app.domain.CartographyEntryMapData? = null,
 ) {
     AvailabilityScreen(
         uiState = AvailabilityUiState(),
@@ -892,5 +1025,8 @@ private fun ShortWindowScreenUnderTest(
         onOpenCamera = onOpenCamera,
         logUiState = logState,
         tracks = tracks,
+        getCartographyEntryMapData = { _, _ ->
+            entryMapData ?: com.zynergylabs.forager.app.domain.CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+        },
     )
 }
