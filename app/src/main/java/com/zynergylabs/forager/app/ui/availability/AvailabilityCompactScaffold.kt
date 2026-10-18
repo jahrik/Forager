@@ -66,7 +66,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.ui.layout.layout
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -467,9 +469,19 @@ internal fun CompactMainScaffold(
         // above, which Maps resets on leaving and measures again on its way back, so the Maps tab reads exactly what it read
         // before. 0 until Maps has been shown in this landscape window; the other tabs then take the Maps pill's own
         // before-measurement half width (RECORD -729) and its own height.
-        var lastMapsStripWidth by remember { mutableStateOf(0.dp) }
-        var lastMapsStripHeight by remember { mutableStateOf(0.dp) }
-        LaunchedEffect(isLandscapeWindow) { if (!isLandscapeWindow) { lastMapsStripWidth = 0.dp; lastMapsStripHeight = 0.dp } }
+        // Dispatch 2026-10-18-03, item 2 (Forager RECORD -1269; Elder's top-up audit, item 2: half width, and the pill's own
+        // height, until Maps had been shown in the window): the other tabs' pill is now worked out from the window as the Maps
+        // strip is sized, before Maps is ever shown (landscapeTabPillFit for the width, the strip's one line for the height,
+        // below). The measured height is kept only for what that one line does not model, the strip's evening lines (sundown,
+        // Back by); saveable, so a process restart in landscape keeps it. Was `lastMapsStripWidth` and this, both plain
+        // `remember`, 0 until Maps was shown.
+        var lastMapsStripHeightDp by rememberSaveable { mutableFloatStateOf(0f) }
+        val lastMapsStripHeight = lastMapsStripHeightDp.dp
+        LaunchedEffect(isLandscapeWindow) { if (!isLandscapeWindow) lastMapsStripHeightDp = 0f }
+        // The same inputs CompactMapTab sizes its landscape strip from (landscapeStripFit), from the same state.
+        val tabPillStripNeed = rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, quickSettings != null)
+        val tabPillBarFloorPx = rememberLandscapeBarFloorPx(uiState, uiState.distanceUnit)
+        val tabPillStripLineHeight = rememberLandscapeStripLineHeight(uiState.liveLocation, quickSettings != null)
         // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): the Maps tab's compass strip as measured,
         // handed up through searchBarSlot; 0 while it is not measured (before its first layout, while navigating, in a landscape
         // window), where the dropdown keeps the one-line clearance above. See CompactMapTab's compassStripBottomClearance.
@@ -1001,12 +1013,12 @@ internal fun CompactMainScaffold(
                     // the navigation bars. Robolectric reports zero insets; TabsMapChromeShapeLandscapeNavBarLeftTest dispatches
                     // one.
                     // Size: the Maps pill ends where the Maps compass strip begins (RECORD -732) and is its height (RECORD -729);
-                    // the strip is drawn on Maps only, so its last measurement in this landscape window (lastMapsStripWidth /
-                    // Height) is used: this area less the navigation bar's inset (navBarFarSide) and less the strip's width,
-                    // the strip's width left free on the rail's side. With no cut-out on the rail's side that is the Maps pill's
-                    // own place. Before Maps has measured its strip in this window: half the area, at its start, at the pill's
-                    // own height (the Maps pill's own fallback, RECORD -729). The padding beside it is not a surface and takes
-                    // no touch. Its dropdown takes the same width and place.
+                    // the strip is drawn on Maps only, so since dispatch 2026-10-18-03 its width and its one line's height are
+                    // worked out here as the strip's are (landscapeTabPillFit, tabPillStripLineHeight): this area less the
+                    // navigation bar's inset (navBarFarSide) and less the strip's width, the strip's width left free on the rail's
+                    // side. With no cut-out on the rail's side that is the Maps pill's own place. Until then the strip's last
+                    // measurement on Maps was used, with half the area and the pill's own height before Maps had been shown. The
+                    // padding beside it is not a surface and takes no touch. Its dropdown takes the same width and place.
                     val navBarFarSideDensity = LocalDensity.current
                     val navBarFarSideDirection = LocalLayoutDirection.current
                     val navBarFarSide: Dp = with(navBarFarSideDensity) {
@@ -1018,14 +1030,14 @@ internal fun CompactMainScaffold(
                         }
                         px.coerceAtLeast(0).toDp()
                     }
+                    // Dispatch 2026-10-18-03, item 2: the width is the room less the strip's width, the strip's width worked out by
+                    // landscapeStripWidthPx from the same need and bar floor CompactMapTab's strip uses, at layout time, so it is
+                    // the Maps pill's from the first frame (landscapeTabPillFit). Was the strip's last measurement on Maps
+                    // (lastMapsStripWidth), and half the area before Maps had been shown.
                     val tabLandscapePillPlace = if (railBeside) {
                         val farIsLeft = portEdge == ScreenEdge.Right
                         val area = Modifier.absolutePadding(left = if (farIsLeft) navBarFarSide else 0.dp, right = if (farIsLeft) 0.dp else navBarFarSide)
-                        if (lastMapsStripWidth > 0.dp) {
-                            area.absolutePadding(left = if (farIsLeft) 0.dp else lastMapsStripWidth, right = if (farIsLeft) lastMapsStripWidth else 0.dp).fillMaxWidth()
-                        } else {
-                            area.fillMaxWidth().wrapContentWidth(if (farIsLeft) Alignment.Start else Alignment.End).fillMaxWidth(0.5f)
-                        }
+                        area.landscapeTabPillFit(farIsLeft, tabPillStripNeed, tabPillBarFloorPx)
                     } else {
                         Modifier
                     }
@@ -1069,20 +1081,31 @@ internal fun CompactMainScaffold(
                         // revealing/hiding"): J5's reveal on the Journal (journalHidesSearchHeader) slides the pill down into place
                         // from above, and back up out of view, while the content below follows it (the expand and shrink), on
                         // MotionTokens.panelMotionSpec, the spec the Maps tab's own search bar slides on into and out of fullscreen.
-                        // Keyed by the tab, so arriving on a tab shows its pill as it stands, with no slide: only a reveal or a
-                        // hide on the Journal plays one. Every other way the pill comes or goes is as before, at once. Under
-                        // reduced motion the reveal is at once too (docs/motion-spec.md §4).
-                        key(compactTab()) {
+                        // Arriving on a tab shows its pill as it stands, with no slide: only a reveal or a hide on the Journal plays
+                        // one. Every other way the pill comes or goes is as before, at once. Under reduced motion the reveal is at
+                        // once too (docs/motion-spec.md §4).
+                        // Dispatch 2026-10-18-03, item 3 (Forager RECORD -1269, "Fix item 4 too"; Elder's top-up audit, item 4):
+                        // this was a key(compactTab()) around the AnimatedVisibility, which re-created the pill on every tab
+                        // switch, so its field lost focus and its cursor. Now the pill is composed once: a switch of tab is told
+                        // apart from a reveal or hide on the same tab (searchHeaderSlideTab, the tab the last visibility change
+                        // settled on), and the switch's change of visibility takes no transition.
                         val searchHeaderReduceMotion = LocalReduceMotion.current
+                        val searchHeaderVisibility = remember { MutableTransitionState(!journalHidesSearchHeader) }
+                        searchHeaderVisibility.targetState = !journalHidesSearchHeader
+                        var searchHeaderSlideTab by remember { mutableStateOf(compactTab()) }
+                        val searchHeaderArriving = searchHeaderSlideTab != compactTab()
+                        LaunchedEffect(compactTab(), searchHeaderVisibility.isIdle) {
+                            if (searchHeaderVisibility.isIdle) searchHeaderSlideTab = compactTab()
+                        }
                         androidx.compose.animation.AnimatedVisibility(
-                            visible = !journalHidesSearchHeader,
-                            enter = if (searchHeaderReduceMotion) {
+                            visibleState = searchHeaderVisibility,
+                            enter = if (searchHeaderReduceMotion || searchHeaderArriving) {
                                 EnterTransition.None
                             } else {
                                 slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
                                     expandVertically(animationSpec = MotionTokens.panelMotionSpec(), expandFrom = Alignment.Top)
                             },
-                            exit = if (searchHeaderReduceMotion) {
+                            exit = if (searchHeaderReduceMotion || searchHeaderArriving) {
                                 ExitTransition.None
                             } else {
                                 slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
@@ -1112,14 +1135,15 @@ internal fun CompactMainScaffold(
                             // size across the tab switch. In landscape it is the Maps pill's size, at the left, clear of the
                             // navigation bar (tabLandscapePillPlace), at the Maps strip's height (RECORD -729); with no strip
                             // beside it here it rounds all four corners and is outlined all round.
-                            landscapeHeight = lastMapsStripHeight.takeIf { railBeside && it > 0.dp },
+                            // Dispatch 2026-10-18-03, item 2: the strip's height as Maps last measured it, else its one line
+                            // worked out here (the strip's evening lines are not modelled; listed in known-bugs).
+                            landscapeHeight = if (railBeside) lastMapsStripHeight.takeIf { it > 0.dp } ?: tabPillStripLineHeight else null,
                             pillCorners = MapCardCorners.ALL,
                             pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
                         )
                         }
                         // Under the pill, inside the readable-width cap, as it was before the pill moved.
                         Box(modifier = readableContentCap) { SearchNotice(uiState) }
-                        }
                         }
                         }
                     }
@@ -1225,12 +1249,11 @@ internal fun CompactMainScaffold(
                                     // RECORD -729: the landscape strip's height, which the bar takes (mapSearchBarHeight).
                                     onLandscapeStripHeightMeasured = {
                                         landscapeStripHeight = it
-                                        if (it > 0.dp) lastMapsStripHeight = it
+                                        if (it > 0.dp) lastMapsStripHeightDp = it.value
                                     },
                                     // RECORD -732: and its width; the bar takes the rest of the room (landscapeSearchWidth).
                                     onLandscapeStripWidthMeasured = {
                                         landscapeStripWidth = it
-                                        if (it > 0.dp) lastMapsStripWidth = it
                                     },
                                 ),
                                 // Attribution must rise above the floating bottom nav while the nav
@@ -1887,4 +1910,45 @@ private fun glidingSnackbarBottom(target: Dp, tab: CompactTab): Dp {
         }
     }
     return if (jump) target else animatable.value.coerceAtLeast(0.dp)
+}
+
+/**
+ * Dispatch 2026-10-18-03, item 2 (Forager RECORD -1269; Elder's top-up audit, item 2): the landscape pill on List, Seasonal and
+ * Journal at the Maps pill's width and place from the first frame. Goes after the area's own padding (the navigation bar on
+ * the far side), so the width offered is the room the Maps strip and pill share (the Maps pill's room is the window less the
+ * map's controls insets; with the rail beside the content here the two are equal, as TabsMapChromeShapeTest's no-jump checks
+ * and TabsFirstVisitPillTest compare whole). The strip's width is [landscapeStripWidthPx] on that room, from the need and bar
+ * floor CompactMapTab's [landscapeStripFit] uses, so the pill ends where the strip would begin, on the far side ([farIsLeft]).
+ * Worked out from text measurements at layout time, never read back from the Maps tab's layout, as landscapeStripFit is.
+ */
+internal fun Modifier.landscapeTabPillFit(farIsLeft: Boolean, need: LandscapeStripNeed, barFloorPx: Int): Modifier =
+    layout { measurable, constraints ->
+        if (!constraints.hasBoundedWidth) {
+            val placeable = measurable.measure(constraints)
+            return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+        }
+        val room = constraints.maxWidth
+        val width = (room - landscapeStripWidthPx(room, need, barFloorPx)).coerceIn(0, room)
+        val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+        layout(room, placeable.height) { placeable.place(if (farIsLeft) 0 else room - width, 0) }
+    }
+
+/**
+ * Dispatch 2026-10-18-03, item 2 (H2, the planner's call): the landscape compass strip's height with its readout line alone,
+ * which the Maps pill takes (RECORD -729): the larger of the three-dot button's square ([QUICK_SETTINGS_TAP_TARGET], when there
+ * is one) and the readout line as laid out (the coordinates, or the no-fix line), in the strip's readout style. That is what
+ * LandscapeStripPortraitHeightTest measures the strip against. The strip's evening lines (sundown while recording, Back by in
+ * its last hour) add to its height and are not modelled here: the scaffold prefers the strip's own measurement once Maps has
+ * been shown, and the gap before that is listed in docs/process/known-bugs.md.
+ */
+@Composable
+private fun rememberLandscapeStripLineHeight(location: LatLng?, hasQuickSettings: Boolean): Dp {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val readoutStyle = stripReadoutStyle().copy(fontFeatureSettings = "tnum")
+    val text = if (location == null) NO_FIX_MESSAGE else coordinatesStripText(location, false)
+    val lineHeightPx = measurer.measure(text, readoutStyle, maxLines = 1, softWrap = false).size.height
+    return with(density) {
+        maxOf(lineHeightPx.toDp(), if (hasQuickSettings) QUICK_SETTINGS_TAP_TARGET else 0.dp)
+    }
 }

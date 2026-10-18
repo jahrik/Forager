@@ -9,7 +9,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -115,8 +117,12 @@ abstract class OfflineMapsPanelTextTests(private val landscape: Boolean) {
         assertTrue("the instruction (\"Pan the map below…\") is gone", absent("Pan the map below"))
         assertTrue("the centre-pin instruction is gone from this screen", absent("Pan the map to position the pin, then confirm."))
         assertTrue("\"No location picked yet…\" is gone", absent("No location picked yet"))
-        // A pick, by the picker's own OK: the picked form of the same line is gone too.
-        composeRule.onNodeWithText("OK").performClick()
+        // A pick: the picked form of the same line is gone too. Since dispatch 2026-10-18-03 the pick is Download Maps' (this
+        // screen has no OK); was `onNodeWithText("OK").performClick()`. Its confirmation is closed again by its own Cancel.
+        // A semantic click, as OK's was: in landscape Download Maps is pinned outside the scrolling part (no scroll to it).
+        composeRule.onNodeWithText("Download Maps").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
         composeRule.waitForIdle()
         assertTrue("a pick was confirmed (the screen has a region to download)", uiState.value.offlineMapLatText.isNotEmpty())
         assertTrue("\"Download region: …\" is gone", absent("Download region:"))

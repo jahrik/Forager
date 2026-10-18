@@ -231,6 +231,12 @@ internal fun CentrePinConfirmActions(
      * line half and half, as before.
      */
     trailing: (@Composable RowScope.() -> Unit)? = null,
+    /**
+     * Dispatch 2026-10-18-03, item 1 (Forager RECORD -1269; the owner: "Remove both OK and Cancel and just have the Download Maps
+     * option"): `false` drops OK and Cancel, leaving the "Pin at" line and [trailing] (the offline-maps screen, whose Download
+     * Maps reads the pin itself). `true`, the default, is every other picker's, unchanged.
+     */
+    showConfirmButtons: Boolean = true,
 ) {
     CentrePinConfirmRow(
         // UI-defects dispatch, §2: this is the pin's current map position, live from
@@ -244,6 +250,7 @@ internal fun CentrePinConfirmActions(
         onConfirm = { onConfirm(state.cameraCenter) },
         onCancel = onCancel,
         trailing = trailing,
+        showConfirmButtons = showConfirmButtons,
     )
 }
 
@@ -460,6 +467,7 @@ private fun CentrePinConfirmRow(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
     trailing: (@Composable RowScope.() -> Unit)? = null,
+    showConfirmButtons: Boolean = true,
 ) {
     Column(
         modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
@@ -467,6 +475,11 @@ private fun CentrePinConfirmRow(
     ) {
         if (selectedText != null) {
             Text(selectedText, style = MaterialTheme.typography.bodySmall)
+        }
+        // Dispatch 2026-10-18-03: with no OK and Cancel, only what the caller adds, and no row at all when it adds nothing.
+        if (!showConfirmButtons) {
+            if (trailing != null) Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically, content = trailing)
+            return@Column
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             if (trailing == null) {
