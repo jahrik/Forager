@@ -19,9 +19,11 @@ import android.content.Context
  * and left the class in its failed state. Here the client cannot be installed before MapLibre is ready, and every
  * entry point (application start, the map, the offline repository) goes through this one function.
  *
- * If the install itself throws after a good initialisation, the failure is logged and MapLibre keeps its default
- * client, as before this change. Whether that path should instead stop the map is with the owner (the dispatch's
- * stop; options (i) to (iii) in the coder's verify-first report), so this keeps today's behaviour until answered.
+ * If the install throws, that is an initialisation failure like any other: logged, rethrown, nothing remembered as
+ * done, and the next call tries both again. MapLibre is never left running on its own client, whose User-Agent
+ * OpenStreetMap's tile policy says "will be blocked". The owner chose this ("option i") over keeping the map running
+ * on that User-Agent, or running it with OpenStreetMap and OpenTopoMap tiles blocked and a message; the map is blank,
+ * as on any initialisation failure, until a call succeeds. `MapLibre.getInstance` is safe to repeat.
  */
 internal class MapLibreInitializer(
     private val getInstance: (Context) -> Unit,
@@ -36,6 +38,7 @@ internal class MapLibreInitializer(
         if (initialized) return
         try {
             getInstance(context.applicationContext)
+            installHttpClient()
         } catch (e: Throwable) {
             // Throwable, not Exception: a missing or unloadable native library is an UnsatisfiedLinkError.
             error("MapLibre initialisation failed; it will be retried on the next call.", e)
@@ -43,10 +46,5 @@ internal class MapLibreInitializer(
         }
         initialized = true
         info("MapLibre initialised.")
-        try {
-            installHttpClient()
-        } catch (e: Throwable) {
-            error("The map's HTTP client was not installed after MapLibre initialised; MapLibre keeps its own client and User-Agent.", e)
-        }
     }
 }
