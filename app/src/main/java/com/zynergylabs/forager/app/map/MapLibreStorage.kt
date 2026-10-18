@@ -25,6 +25,7 @@ private const val TAG = "MapLibreStorage"
 
 private val mapLibreInitializer = MapLibreInitializer(
     getInstance = { context -> MapLibre.getInstance(context) },
+    installHttpClient = {},
     info = { message -> Log.i(TAG, message) },
     error = { message, cause -> Log.e(TAG, message, cause) },
 )

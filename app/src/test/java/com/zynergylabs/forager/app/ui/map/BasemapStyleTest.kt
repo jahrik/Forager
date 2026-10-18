@@ -6,6 +6,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
@@ -34,6 +35,21 @@ class BasemapStyleTest {
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun parsedStyle(basemap: Basemap) = json.parseToJsonElement(styleJsonFor(basemap)).jsonObject
+
+    /**
+     * Dispatch 2026-10-18-04, item 1: MapLibre's demo host (`demotiles.maplibre.org`) is not a production service
+     * (Juniper's research, `docs/audits/2026-10-18-map-services-policy-and-cost-research.md` Q4: "Dev only"). Every style
+     * the app builds, day and night, for every basemap, is read in full: no URL in it may point there.
+     */
+    @Test
+    fun `no style the app builds asks MapLibre's demo server for anything`() {
+        Basemap.entries.forEach { basemap ->
+            listOf(false, true).forEach { night ->
+                val style = styleJsonFor(basemap, night)
+                assertFalse("${basemap.name} (night=$night) still names the demo host: $style", style.contains("demotiles.maplibre.org"))
+            }
+        }
+    }
 
     @Test
     fun `every basemap produces valid, parseable style JSON`() {

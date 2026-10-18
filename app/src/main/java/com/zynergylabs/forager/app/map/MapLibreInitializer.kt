@@ -12,6 +12,7 @@ import android.content.Context
  */
 internal class MapLibreInitializer(
     private val getInstance: (Context) -> Unit,
+    private val installHttpClient: () -> Unit,
     private val info: (String) -> Unit,
     private val error: (String, Throwable) -> Unit,
 ) {

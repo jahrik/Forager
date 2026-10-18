@@ -26,8 +26,8 @@ class MapLibreInitializerTest {
     private val infos = mutableListOf<String>()
     private val errors = mutableListOf<Pair<String, Throwable>>()
 
-    private fun initializer(getInstance: (Context) -> Unit) =
-        MapLibreInitializer(getInstance, { infos += it }, { message, cause -> errors += message to cause })
+    private fun initializer(getInstance: (Context) -> Unit, installHttpClient: () -> Unit = {}) =
+        MapLibreInitializer(getInstance, installHttpClient, { infos += it }, { message, cause -> errors += message to cause })
 
     @Test
     fun `the SDK is initialised once however many callers ask`() {
@@ -61,5 +61,51 @@ class MapLibreInitializerTest {
         val logged = ShadowLog.getLogs().filter { it.tag == "MapLibreStorage" }
 
         assertTrue("no MapLibre initialisation was attempted at application start: $logged", logged.isNotEmpty())
+    }
+
+    /**
+     * Dispatch 2026-10-18-04, item 2. MapLibre's `HttpRequestImpl` reads `MapLibre.getApplicationContext()` in its static
+     * initialiser, which throws while MapLibre is not initialised (`javap` on 13.5.0: `HttpIdentifier.getIdentifier()`
+     * calls it outside its own try, and `validateMapLibre` throws `MapLibreConfigurationException`). Installing the app's
+     * client before a successful initialisation therefore fails, and that failure was the path on which tiles would go out
+     * with MapLibre's own User-Agent. The client goes in straight after the SDK call succeeds, inside the one function every
+     * entry point calls, and never before it.
+     */
+    @Test
+    fun `the map's HTTP client is installed straight after MapLibre initialises, and once`() {
+        val order = mutableListOf<String>()
+        val initializer = initializer(getInstance = { order += "sdk" }, installHttpClient = { order += "client" })
+
+        repeat(3) { initializer.initialize(context) }
+
+        assertEquals(listOf("sdk", "client"), order)
+    }
+
+    @Test
+    fun `no HTTP client is installed while MapLibre has failed to initialise, and it is on the next success`() {
+        var installs = 0
+        var calls = 0
+        val initializer = initializer(
+            getInstance = { if (calls++ == 0) throw IllegalStateException("boom") },
+            installHttpClient = { installs++ },
+        )
+
+        assertThrows(IllegalStateException::class.java) { initializer.initialize(context) }
+        assertEquals("the client was installed although MapLibre had not initialised", 0, installs)
+
+        initializer.initialize(context)
+        assertEquals(1, installs)
+    }
+
+    /**
+     * The real entry point: the `ForagerApplication` Robolectric boots. Under Robolectric MapLibre's native side never
+     * initialises, which is exactly the start-up failure item 2 is about; the start must not then try the client anyway
+     * and fall back to MapLibre's default User-Agent.
+     */
+    @Test
+    fun `application start never falls back to MapLibre's default User-Agent`() {
+        val fallbacks = ShadowLog.getLogs().filter { it.msg?.contains("default User-Agent") == true }
+
+        assertTrue("application start logged a default-User-Agent fallback: ${fallbacks.map { it.tag to it.msg }}", fallbacks.isEmpty())
     }
 }

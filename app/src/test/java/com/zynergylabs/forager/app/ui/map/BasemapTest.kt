@@ -96,4 +96,15 @@ class BasemapTest {
             )
         }
     }
+
+    /**
+     * Dispatch 2026-10-18-04, item 3: OpenTopoMap's own page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM |
+     * Kartendarstellung: © OpenTopoMap (CC-BY-SA)" (Juniper's research, Q2). The dispatch sets the English form below as
+     * the least the caption carries; the shortened "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)" dropped "contributors"
+     * and the separator between the data credit and the style credit.
+     */
+    @Test
+    fun `OpenTopoMap carries its full credit, data and style`() {
+        assertEquals("© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)", Basemap.OPEN_TOPO_MAP.attribution)
+    }
 }
