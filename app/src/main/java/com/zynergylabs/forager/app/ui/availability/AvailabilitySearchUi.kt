@@ -121,7 +121,8 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapPillColorDark
 import com.zynergylabs.forager.app.ui.map.MapPillColorLight
 import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
-import com.zynergylabs.forager.app.ui.map.mapChromeEdges
+import com.zynergylabs.forager.app.ui.map.mapChromeEdgesReported
+import com.zynergylabs.forager.app.ui.map.mapChromeShape
 import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
@@ -262,15 +263,16 @@ internal fun SearchEntryBar(
         isDarkTheme -> MapPillColorDark
         else -> MapPillColorLight
     }
+    val barShape = pillCorners?.shape() ?: RectangleShape
     Surface(
         color = barFill,
         contentColor = contentColor,
         tonalElevation = 0.dp,
         shadowElevation = if (pillCorners != null) MAP_CARD_SHADOW_ELEVATION else 0.dp,
-        shape = pillCorners?.shape() ?: RectangleShape,
-        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(barFill).then(
+        shape = barShape,
+        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(barFill).mapChromeShape(barShape).then(
             if (pillCorners != null && pillOutlineSides != null) {
-                Modifier.mapChromeEdges(
+                Modifier.mapChromeEdgesReported(
                     mapChromeOutline(), pillCorners.topLeft, pillCorners.topRight, pillCorners.bottomRight, pillCorners.bottomLeft, pillOutlineSides,
                 )
             } else {
