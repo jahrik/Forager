@@ -12,7 +12,6 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -120,7 +119,8 @@ abstract class OfflineMapsPanelTextTests(private val landscape: Boolean) {
         assertTrue("\"No location picked yet…\" is gone", absent("No location picked yet"))
         // A pick: the picked form of the same line is gone too. Since dispatch 2026-10-18-03 the pick is Download Maps' (this
         // screen has no OK); was `onNodeWithText("OK").performClick()`. Its confirmation is closed again by its own Cancel.
-        composeRule.onNodeWithText("Download Maps").performScrollTo().performClick()
+        // A semantic click, as OK's was: in landscape Download Maps is pinned outside the scrolling part (no scroll to it).
+        composeRule.onNodeWithText("Download Maps").performClick()
         composeRule.waitForIdle()
         composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
         composeRule.waitForIdle()
