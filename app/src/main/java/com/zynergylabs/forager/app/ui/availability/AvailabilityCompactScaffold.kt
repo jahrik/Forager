@@ -887,6 +887,8 @@ internal fun CompactMainScaffold(
                 // controls are padded one by one instead — mapControlsPadding above.
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
             } else if (showRail) {
+                // RECORD -1242: no keyboard in these (see shortLandscapeContentInsets), so the docked rail keeps its full
+                // height under a keyboard; the content column reserves it instead (below).
                 shortLandscapeContentInsets()
             } else if (compactTab() == CompactTab.MAP) {
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
@@ -966,7 +968,10 @@ internal fun CompactMainScaffold(
                         // Landscape B3 (P11, R9)'s readable-width cap moved from here to the tab's content
                         // (readableContentCap, below) by dispatch 2026-10-17-09 (RECORD -1227): the search
                         // pill above the content now takes the Maps pill's place, which is not inside the cap.
-                        .fillMaxHeight(),
+                        .fillMaxHeight()
+                        // RECORD -1242: beside the rail, the keyboard is reserved here, on the content column only, not on the
+                        // Row (shortLandscapeChromeInsets above), so the page ends above the keyboard and the rail does not.
+                        .then(if (railBeside) Modifier.windowInsetsPadding(WindowInsets.ime.only(WindowInsetsSides.Bottom)) else Modifier),
                 ) {
                     // Landscape B3 (P11, R9): beside the opaque rail, the tab's content is capped at the
                     // readable width and centred in what the rail leaves. Once, here, not per destination.
@@ -1040,13 +1045,23 @@ internal fun CompactMainScaffold(
                     // closes, was flagged as an unexercised race before this was built — now exercised and
                     // ruled out by `AvailabilityScreenBackNavigationTest`'s own "backgrounding and
                     // resuming mid-edit, then closing normally..." test.
-                    // Journal redesign J5 (owner's ruling 1, "Hide header; icon reveals it (Recommended)") hid the header on
-                    // the Journal tab of a landscape window until the Journal's own header row brought it up
-                    // (JournalScreenState.searchHeaderRevealed, journalHidesSearchHeader). Replaced by the owner's RECORD -1238
-                    // (dispatch 2026-10-17-09, PR #252): "And can it be set in the Journal at the same position at top?", then
-                    // "Always show it". The Journal shows the header in landscape as every other tab does; its row has no
-                    // search icon any more (JournalTab).
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld) {
+                    // Journal redesign J5 (owner's ruling 1, "Hide header; icon reveals it
+                    // (Recommended)"): on the Journal tab of a short landscape window the header is
+                    // hidden, since height is the scarce axis there, until the Journal's own
+                    // short-window header row brings it up (JournalScreenState.searchHeaderRevealed;
+                    // its search icon and Back clear it again). Portrait, every other tab and
+                    // portrait windows are unchanged. The rail shows exactly in a landscape
+                    // window (showRail), since -246 whatever its height.
+                    // Dispatch 2026-10-17-09: RECORD -1238 ("Always show it") replaced this for a while; RECORD -1242 ("Journal
+                    // back to J5; keep the rest (Recommended)") restored it as it was. Revealed, the pill takes the same place
+                    // as on List and Seasonal (tabLandscapePillPlace).
+                    val journalHidesSearchHeader = showRail && compactTab() == CompactTab.JOURNAL && !journalScreenState.searchHeaderRevealed
+                    // Hiding the header closes its dropdown too, so the dropdown's dismiss scrim
+                    // (below) is never left over content with no bar above it.
+                    LaunchedEffect(journalHidesSearchHeader) {
+                        if (journalHidesSearchHeader) showSearchDropdown = false
+                    }
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld && !journalHidesSearchHeader) {
                         // SearchEntryBar takes no modifier, so its place goes on this wrapper (tabLandscapePillPlace).
                         Box(modifier = tabLandscapePillPlace) {
                         SearchEntryBar(

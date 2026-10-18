@@ -646,14 +646,15 @@ internal fun JournalTab(
     val shortLandscape = isLandscapeJournal()
     // Amendment 1: the action Entries puts in the L1 row's last slot, for the row drawn above the pages.
     val cartographyHeaderAction = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
+    // Any entry open, find or Cartography entry: the scaffold hides the search header then anyway
+    // (its isEditingJournalEntry rule, the same two fields), so the row's search icon is left out.
+    val journalEntryOpen = editing != null || cartographyUiState.editingEntry != null
     val shortWindowHeader: (@Composable ((@Composable () -> Unit)?) -> Unit)? = if (shortLandscape) {
         { action ->
             ShortWindowJournalHeader(
                 selectedTopTab = selectedTopTab,
                 onSelectTopTab = ::selectTopTab,
-                // RECORD -1238 ("Always show it"): the scaffold shows the search header on the Journal in landscape too, so the
-                // row's search icon, which brought it up (J5, ruling 1), has nothing to do and is not shown.
-                showSearch = false,
+                showSearch = !journalEntryOpen,
                 searchRevealed = journalState.searchHeaderRevealed,
                 onToggleSearch = { journalState.searchHeaderRevealed = !journalState.searchHeaderRevealed },
                 action = action,
@@ -898,9 +899,13 @@ internal fun JournalTab(
     }
     }
 
-    // J5 (owner's ruling 1) had Back put a brought-up search header away here, before anything else in the Journal took Back.
-    // Removed with the hiding (RECORD -1238, "Always show it"): there is nothing to put away, and a revealed flag restored
-    // from saved state would otherwise have taken one Back press for nothing.
+    // J5 (owner's ruling 1): Back puts a brought-up search header away before anything else in the
+    // Journal takes Back. Composed after both branches, so it outranks their own handlers (the most
+    // recently composed enabled handler wins). Off while an entry is open: the header is hidden then
+    // regardless, and Back belongs to the entry.
+    BackHandler(enabled = backEnabled && shortLandscape && journalState.searchHeaderRevealed && !journalEntryOpen) {
+        journalState.searchHeaderRevealed = false
+    }
 }
 
 /**

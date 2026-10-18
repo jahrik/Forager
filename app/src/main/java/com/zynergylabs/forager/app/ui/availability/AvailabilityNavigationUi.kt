@@ -55,7 +55,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.add
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -381,15 +380,19 @@ private val RailItemsEvenly: Arrangement.Vertical = object : Arrangement.Vertica
  * ([ForagerNavigationRail], which takes the `navigationBars` inset on the port side itself), so:
  * at the top, `statusBars`; on the sides, `displayCutout`, so nothing sits in the cut-out band (in
  * practice only the punch-hole side has one); at the bottom nothing for a system bar, since in
- * landscape the 3-button bar is on the port side. The IME still pushes content up, as
- * `safeDrawing` did for these tabs in portrait. The Map tab does not use this: its map is
+ * landscape the 3-button bar is on the port side. The Map tab does not use this: its map is
  * full-bleed and only its controls are padded (compactMainScaffold's `mapControlsPadding`).
+ *
+ * No keyboard, since dispatch 2026-10-17-09, RECORD -1242 (the owner: "A: Ignore the keyboard, like Maps (Recommended)").
+ * This was `.add(WindowInsets.ime.only(WindowInsetsSides.Bottom))` so the keyboard pushed content up, as `safeDrawing` does in
+ * portrait; but it shrank the whole Row, the docked rail included ("Maps" clipped and the lower items hidden on the owner's
+ * S22, build 1.0.3416). The keyboard is now reserved on the content column beside the rail (compactMainScaffold), so the
+ * page still ends above it and the rail keeps its full height under it, as the Maps tab's overlaid rail does.
  */
 @Composable
 internal fun shortLandscapeContentInsets(): WindowInsets =
     WindowInsets.statusBars.only(WindowInsetsSides.Top)
         .add(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-        .add(WindowInsets.ime.only(WindowInsetsSides.Bottom))
 
 /** The bottom navigation bar (either instance), for tests (dispatch 2026-09-28-104, continuation -12, item 6). */
 internal const val COMPACT_BOTTOM_NAV_TAG = "compact-bottom-nav"
