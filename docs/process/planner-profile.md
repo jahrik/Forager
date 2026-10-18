@@ -21,7 +21,8 @@ The owner, 2026-10-16: "Forager team: Rowan, Hazel, Elder, and Sorrel." On 2026-
 | Name | Role | Model | Profile |
 |---|---|---|---|
 | Rowan Waymark | planner: plans, asks, records, relays | the session's own | this file |
-| Hazel Cairnwright | coder: builds one dispatched task | Opus | `coder-profile.md` |
+| Hazel Cairnwright | coder for the Forager app: builds one dispatched task | Opus | `coder-profile.md` |
+| Ash Transect | coder for forager-forecast: data pulls, counts, fits | Opus | forager-forecast `docs/process/coder-profile.md` |
 | Elder Ford | UX auditor: audits each promotion into main | Fable | `auditor-profile.md` |
 | Sorrel Tally | independent reviewer: reviews research results (D18) | Fable | `reviewer-profile.md` |
 | Juniper Sounding | researcher: read-only research, licences quoted at source | Fable | `researcher-profile.md` |
