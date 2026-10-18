@@ -112,6 +112,25 @@ internal fun naturalHoldQuarterTurns(displayRotation: Int, fullScreen: Boolean):
         else -> 0
     }
 
+/**
+ * Whether the viewfinder draws in the natural frame (a `TextureView`, `Preview.targetRotation` = `ROTATION_0`), which is not
+ * the same question as "held right now" (dispatch 2026-10-17-08; RECORD -1214, -1215).
+ *
+ * Until that dispatch the viewfinder keyed on [LocalNaturalOrientationHold] alone. That is false at `ROTATION_0` and true at
+ * the other three, so every turn between portrait and landscape on a tablet swapped the `PreviewView` between a
+ * `SurfaceView` and a `TextureView`. Each swap asked CameraX for a new surface and the camera rebuilt its session: the
+ * restart and black flash in the owner's tablet log, on each of the 8 turns that touched `ROTATION_0` and on none of the 7
+ * that stayed among 90, 180 and 270.
+ *
+ * So the question is now "could this window be held": a full-screen window on a large screen (smallest width 600 dp and up,
+ * the platform's large-screen line, where the portrait request is ignored). That answer is the same at all four rotations,
+ * so a turn re-requests nothing. Anything already held keeps the natural frame, as before. Phones (under 600 dp, never
+ * held) and split screen are unchanged. At `ROTATION_0`, with no layer, the natural-frame setup should draw what the
+ * display's own did (the `TextureView`'s correction is `-target`, 0, and the display is at 0); that is device-only.
+ */
+internal fun viewfinderInNaturalFrame(held: Boolean, fullScreen: Boolean, smallestScreenWidthDp: Int): Boolean =
+    held
+
 /** The natural frame's shape: the window's after an even number of quarter turns, the other after an odd one. */
 internal fun naturalFrameIsLandscape(windowIsLandscape: Boolean, quarterTurns: Int): Boolean =
     if (quarterTurns % 2 == 1) !windowIsLandscape else windowIsLandscape
