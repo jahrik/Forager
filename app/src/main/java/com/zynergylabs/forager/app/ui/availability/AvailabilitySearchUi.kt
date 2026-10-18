@@ -489,17 +489,21 @@ internal fun SearchDropdown(
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val currentKeyboardUp by rememberUpdatedState(keyboardUp)
+    // Dispatch 2026-10-17-09 (RECORD -1238, the owner: "Yes, both (Recommended)"; the page's text read through this panel in the
+    // owner's floating-keyboard screenshot): at the map chrome's alpha over the Maps tab's map, as before (MapIconStackButtonColor
+    // is that role at 0.8), and solid off the map (owner: "In the places that aren't covering a map, they can stay solid").
+    val panelFill = mapChromeFill((if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight).copy(alpha = 1f), overMap)
     CompositionLocalProvider(LocalContentColor provides mapChromeContentColor(isDarkTheme)) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
                 // Rule 1 above: Box + background, never Surface, over the map.
                 .background(
-                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                    color = panelFill,
                     shape = RectangleShape,
                 )
                 .testTag(SEARCH_DROPDOWN_TAG)
-                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
+                .mapChromeContainerColor(panelFill),
         ) {
             val scrollState = rememberScrollState()
             // Map/navigation search-UI redo dispatch: "scrolling the drawer dismisses the

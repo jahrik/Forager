@@ -981,23 +981,24 @@ internal fun CompactMainScaffold(
                     } else {
                         Modifier
                     }
-                    // Dispatch 2026-10-17-09: beside the rail the pill is the Maps pill's size, centred between the system
-                    // navigation bar and the rail. The owner's addition, RECORD -1227 ("Move to Maps' spot"), put it at the Maps
-                    // pill's place; their check of PR #252 on the S22 (build 1.0.3414) revised the position only: "It can stay
-                    // the same size as it is now in those tabs, but have it centered", since at the Maps spot it "passes over
-                    // the navigation bar".
-                    // Why it passed over it: this Column sits inside shortLandscapeContentInsets(), which reserves the status
-                    // bar, the cut-out and the keyboard but not a navigation bar on the side away from the rail (the rail takes
-                    // its own side's). On Maps the pill is padded by mapControlsPadding, which does include the navigation
-                    // bars, so it was clear there. Robolectric reports zero insets, so no test saw it until
-                    // TabsMapChromeShapeLandscapeNavBarLeftTest dispatched one.
+                    // Dispatch 2026-10-17-09: beside the rail the pill is the Maps pill's size, its start just clear of the system
+                    // navigation bar (or of the cut-out, which the Row already reserves), so the screen's other side stays free
+                    // for a floating keyboard. History: RECORD -1227 ("Move to Maps' spot") put it at the Maps pill's place; the
+                    // owner's check of build 1.0.3414 found it passed over the navigation bar and asked for it centred; their
+                    // check of 1.0.3416 asked for it at the left (RECORD -1238: "can it move a bit to the left to accommodate
+                    // floating keyboards?", then "Yes, at the left (Recommended)").
+                    // Why it once passed over the navigation bar: this Column sits inside shortLandscapeContentInsets(), which
+                    // reserves the status bar, the cut-out and the keyboard but not a navigation bar on the side away from the
+                    // rail (the rail takes its own side's). On Maps the pill is padded by mapControlsPadding, which does include
+                    // the navigation bars. Robolectric reports zero insets; TabsMapChromeShapeLandscapeNavBarLeftTest dispatches
+                    // one.
                     // Size: the Maps pill ends where the Maps compass strip begins (RECORD -732) and is its height (RECORD -729);
                     // the strip is drawn on Maps only, so its last measurement in this landscape window (lastMapsStripWidth /
-                    // Height) is used. That is this area less the strip's width, less the navigation bar's (navBarFarSide);
-                    // centred, it leaves half the strip's width on each side of it. Before Maps has measured its strip in this
-                    // window: half the area, centred, at the pill's own height (the Maps pill's own fallback, RECORD -729, is
-                    // half the width). The padding beside it is not a surface and takes no touch. Its dropdown takes the same
-                    // width and place.
+                    // Height) is used: this area less the navigation bar's inset (navBarFarSide) and less the strip's width,
+                    // the strip's width left free on the rail's side. With no cut-out on the rail's side that is the Maps pill's
+                    // own place. Before Maps has measured its strip in this window: half the area, at its start, at the pill's
+                    // own height (the Maps pill's own fallback, RECORD -729). The padding beside it is not a surface and takes
+                    // no touch. Its dropdown takes the same width and place.
                     val navBarFarSideDensity = LocalDensity.current
                     val navBarFarSideDirection = LocalLayoutDirection.current
                     val navBarFarSide: Dp = with(navBarFarSideDensity) {
@@ -1013,9 +1014,9 @@ internal fun CompactMainScaffold(
                         val farIsLeft = portEdge == ScreenEdge.Right
                         val area = Modifier.absolutePadding(left = if (farIsLeft) navBarFarSide else 0.dp, right = if (farIsLeft) 0.dp else navBarFarSide)
                         if (lastMapsStripWidth > 0.dp) {
-                            area.padding(horizontal = lastMapsStripWidth / 2).fillMaxWidth()
+                            area.absolutePadding(left = if (farIsLeft) 0.dp else lastMapsStripWidth, right = if (farIsLeft) lastMapsStripWidth else 0.dp).fillMaxWidth()
                         } else {
-                            area.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally).fillMaxWidth(0.5f)
+                            area.fillMaxWidth().wrapContentWidth(if (farIsLeft) Alignment.Start else Alignment.End).fillMaxWidth(0.5f)
                         }
                     } else {
                         Modifier
@@ -1039,20 +1040,13 @@ internal fun CompactMainScaffold(
                     // closes, was flagged as an unexercised race before this was built — now exercised and
                     // ruled out by `AvailabilityScreenBackNavigationTest`'s own "backgrounding and
                     // resuming mid-edit, then closing normally..." test.
-                    // Journal redesign J5 (owner's ruling 1, "Hide header; icon reveals it
-                    // (Recommended)"): on the Journal tab of a short landscape window the header is
-                    // hidden, since height is the scarce axis there, until the Journal's own
-                    // short-window header row brings it up (JournalScreenState.searchHeaderRevealed;
-                    // its search icon and Back clear it again). Portrait, every other tab and
-                    // portrait windows are unchanged. The rail shows exactly in a landscape
-                    // window (showRail), since -246 whatever its height.
-                    val journalHidesSearchHeader = showRail && compactTab() == CompactTab.JOURNAL && !journalScreenState.searchHeaderRevealed
-                    // Hiding the header closes its dropdown too, so the dropdown's dismiss scrim
-                    // (below) is never left over content with no bar above it.
-                    LaunchedEffect(journalHidesSearchHeader) {
-                        if (journalHidesSearchHeader) showSearchDropdown = false
-                    }
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld && !journalHidesSearchHeader) {
+                    // Journal redesign J5 (owner's ruling 1, "Hide header; icon reveals it (Recommended)") hid the header on
+                    // the Journal tab of a landscape window until the Journal's own header row brought it up
+                    // (JournalScreenState.searchHeaderRevealed, journalHidesSearchHeader). Replaced by the owner's RECORD -1238
+                    // (dispatch 2026-10-17-09, PR #252): "And can it be set in the Journal at the same position at top?", then
+                    // "Always show it". The Journal shows the header in landscape as every other tab does; its row has no
+                    // search icon any more (JournalTab).
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !journalSearchHeld) {
                         // SearchEntryBar takes no modifier, so its place goes on this wrapper (tabLandscapePillPlace).
                         Box(modifier = tabLandscapePillPlace) {
                         SearchEntryBar(
@@ -1072,9 +1066,9 @@ internal fun CompactMainScaffold(
                             // the Journal, the Seasonal, and the List tab"): the Maps tab's pill, its corners and its outline all
                             // round, with no divider, solid here since no map is behind it (overMap false; the owner: "In the places
                             // that aren't covering a map, they can stay solid"). Its height is the Maps pill's, so it does not change
-                            // size across the tab switch. In landscape it is the Maps pill's size, centred beside the rail
-                            // (tabLandscapePillPlace), at the Maps strip's height (RECORD -729); with no strip beside it here it
-                            // rounds all four corners and is outlined all round.
+                            // size across the tab switch. In landscape it is the Maps pill's size, at the left, clear of the
+                            // navigation bar (tabLandscapePillPlace), at the Maps strip's height (RECORD -729); with no strip
+                            // beside it here it rounds all four corners and is outlined all round.
                             landscapeHeight = lastMapsStripHeight.takeIf { railBeside && it > 0.dp },
                             pillCorners = MapCardCorners.ALL,
                             pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
@@ -1719,7 +1713,7 @@ internal fun CompactMainScaffold(
                                         // RECORD -750, item 2: above a docked keyboard, as portrait's cap is (no nav band in landscape).
                                         .heightIn(max = (maxHeight - searchDropdownTopOffset - searchDropdownImeBottom).coerceAtLeast(0.dp))
                                 } else if (railBeside) {
-                                    // Dispatch 2026-10-17-09: beside the rail the pill is the Maps pill's size, centred
+                                    // Dispatch 2026-10-17-09: beside the rail the pill is the Maps pill's size, at the left
                                     // (tabLandscapePillPlace), so its panel takes the pill's width and place, as on Maps (Landscape B2,
                                     // S2), instead of the readable-width column the pill used to sit in. No nav band in landscape.
                                     Modifier
