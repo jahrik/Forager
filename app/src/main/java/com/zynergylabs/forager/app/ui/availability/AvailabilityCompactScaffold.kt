@@ -981,25 +981,41 @@ internal fun CompactMainScaffold(
                     } else {
                         Modifier
                     }
-                    // Dispatch 2026-10-17-09, the owner's addition (RECORD -1227, "Move to Maps' spot"): beside the rail the pill
-                    // sits where the Maps pill sits, on the punch-hole side, ending where the Maps compass strip begins
-                    // (lastMapsStripWidth, kept from Maps, as padding on the rail's side, the way the Maps pill takes it, RECORD
-                    // -732), at the strip's height. Before Maps has measured its strip in this window: half the width, on the
-                    // punch-hole side, at the pill's own height, as the Maps pill is before its strip is measured (RECORD -729).
-                    // The padding beside it is not a surface and takes no touch. Its dropdown takes the same width and side.
-                    val tabLandscapePillPlace = if (railBeside) {
-                        if (lastMapsStripWidth > 0.dp) {
-                            Modifier
-                                .absolutePadding(
-                                    left = if (portEdge == ScreenEdge.Left) lastMapsStripWidth else 0.dp,
-                                    right = if (portEdge == ScreenEdge.Right) lastMapsStripWidth else 0.dp,
-                                )
-                                .fillMaxWidth()
+                    // Dispatch 2026-10-17-09: beside the rail the pill is the Maps pill's size, centred between the system
+                    // navigation bar and the rail. The owner's addition, RECORD -1227 ("Move to Maps' spot"), put it at the Maps
+                    // pill's place; their check of PR #252 on the S22 (build 1.0.3414) revised the position only: "It can stay
+                    // the same size as it is now in those tabs, but have it centered", since at the Maps spot it "passes over
+                    // the navigation bar".
+                    // Why it passed over it: this Column sits inside shortLandscapeContentInsets(), which reserves the status
+                    // bar, the cut-out and the keyboard but not a navigation bar on the side away from the rail (the rail takes
+                    // its own side's). On Maps the pill is padded by mapControlsPadding, which does include the navigation
+                    // bars, so it was clear there. Robolectric reports zero insets, so no test saw it until
+                    // TabsMapChromeShapeLandscapeNavBarLeftTest dispatched one.
+                    // Size: the Maps pill ends where the Maps compass strip begins (RECORD -732) and is its height (RECORD -729);
+                    // the strip is drawn on Maps only, so its last measurement in this landscape window (lastMapsStripWidth /
+                    // Height) is used. That is this area less the strip's width, less the navigation bar's (navBarFarSide);
+                    // centred, it leaves half the strip's width on each side of it. Before Maps has measured its strip in this
+                    // window: half the area, centred, at the pill's own height (the Maps pill's own fallback, RECORD -729, is
+                    // half the width). The padding beside it is not a surface and takes no touch. Its dropdown takes the same
+                    // width and place.
+                    val navBarFarSideDensity = LocalDensity.current
+                    val navBarFarSideDirection = LocalLayoutDirection.current
+                    val navBarFarSide: Dp = with(navBarFarSideDensity) {
+                        // Only the part the Row's own cut-out padding has not already reserved on that side.
+                        val px = if (portEdge == ScreenEdge.Right) {
+                            WindowInsets.navigationBars.getLeft(this, navBarFarSideDirection) - WindowInsets.displayCutout.getLeft(this, navBarFarSideDirection)
                         } else {
-                            Modifier
-                                .fillMaxWidth()
-                                .wrapContentWidth(if (punchHoleEdge == ScreenEdge.Left) Alignment.Start else Alignment.End)
-                                .fillMaxWidth(0.5f)
+                            WindowInsets.navigationBars.getRight(this, navBarFarSideDirection) - WindowInsets.displayCutout.getRight(this, navBarFarSideDirection)
+                        }
+                        px.coerceAtLeast(0).toDp()
+                    }
+                    val tabLandscapePillPlace = if (railBeside) {
+                        val farIsLeft = portEdge == ScreenEdge.Right
+                        val area = Modifier.absolutePadding(left = if (farIsLeft) navBarFarSide else 0.dp, right = if (farIsLeft) 0.dp else navBarFarSide)
+                        if (lastMapsStripWidth > 0.dp) {
+                            area.padding(horizontal = lastMapsStripWidth / 2).fillMaxWidth()
+                        } else {
+                            area.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally).fillMaxWidth(0.5f)
                         }
                     } else {
                         Modifier
@@ -1056,9 +1072,9 @@ internal fun CompactMainScaffold(
                             // the Journal, the Seasonal, and the List tab"): the Maps tab's pill, its corners and its outline all
                             // round, with no divider, solid here since no map is behind it (overMap false; the owner: "In the places
                             // that aren't covering a map, they can stay solid"). Its height is the Maps pill's, so it does not change
-                            // size across the tab switch. In landscape it takes the Maps pill's place (RECORD -1227,
-                            // tabLandscapePillPlace) and its height, the Maps strip's (RECORD -729); with no strip beside it here
-                            // it rounds all four corners and is outlined all round.
+                            // size across the tab switch. In landscape it is the Maps pill's size, centred beside the rail
+                            // (tabLandscapePillPlace), at the Maps strip's height (RECORD -729); with no strip beside it here it
+                            // rounds all four corners and is outlined all round.
                             landscapeHeight = lastMapsStripHeight.takeIf { railBeside && it > 0.dp },
                             pillCorners = MapCardCorners.ALL,
                             pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
@@ -1703,8 +1719,8 @@ internal fun CompactMainScaffold(
                                         // RECORD -750, item 2: above a docked keyboard, as portrait's cap is (no nav band in landscape).
                                         .heightIn(max = (maxHeight - searchDropdownTopOffset - searchDropdownImeBottom).coerceAtLeast(0.dp))
                                 } else if (railBeside) {
-                                    // Dispatch 2026-10-17-09 (RECORD -1227): beside the rail the pill takes the Maps pill's place
-                                    // (tabLandscapePillPlace), so its panel takes the pill's width and side, as on Maps (Landscape B2,
+                                    // Dispatch 2026-10-17-09: beside the rail the pill is the Maps pill's size, centred
+                                    // (tabLandscapePillPlace), so its panel takes the pill's width and place, as on Maps (Landscape B2,
                                     // S2), instead of the readable-width column the pill used to sit in. No nav band in landscape.
                                     Modifier
                                         .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
