@@ -5,6 +5,12 @@ answers). Branch `map-launch-fixes`, PR #257 into `pre-main`, **not merged**. Th
 from pushed head `b3ca6a56` after the previous Hazel session was stopped by mistake (-1281). That session wrote
 all the code and the six revert branches. This session read CI, checked the reverts and wrote this report.
 
+**Update, 18:33Z (the pre-main merge and Amendment 2; supersedes the status lines below, which stand as written).**
+`a878f66e` merges pre-main (`712ff277`, PR #256) into this branch. `db8afc2e` makes Street the opening map.
+**Full CI 39153584356 at `db8afc2e` is green: 5,094 tests, 0 failures, 0 errors, 24 skipped** (JUnit XML, 684 files).
+PR #257 is not merged. The S22 check that was run on 1.0.3446+g98d5a880 predates both changes, so a re-check on the
+final build is listed in "S22 re-check" at the end. Details are in the two update sections at the end.
+
 **Update, 16:08Z (Amendment 1; supersedes the two status lines below, which stand as written).** A failed map
 start-up now shows "The map couldn't start." and "Try again" in the map's place instead of throwing (`3c94dfc3`,
 `9388cb3f`). **Full CI 39142389938 at `9388cb3f` is green: 5,068 tests, 0 failures, 0 errors, 24 skipped** (JUnit XML,
@@ -418,3 +424,138 @@ unchanged, not the message.
 9. **Observation, not a gate.** If "The map couldn't start." ever appears, tap Try again once and write down what
    happens: the map loads, or the message stays. Either answer is new information, because the retry has never run
    on a phone.
+
+## Update: the pre-main merge (18:33Z)
+
+`a878f66e` merges `origin/pre-main` at `712ff277` (PR #256, topup-items, merged; RECORD -1293) into this branch.
+
+- **Merge, not rebase.** The only conflict was `docs/audits/README.md`, and every row was kept. The topup-items row
+  goes first, because it merged first. This branch's three rows follow, so their "the row above" still points at the
+  right row. A diff confirmed that no row from either side is missing.
+- **No code conflicts.** Among the changes the merge brought in, `CentrePinLocationPicker.kt` (the location
+  picker's map) and `AvailabilityOfflineMapsUi.kt` (offline maps) touch maps. Both draw through the same map slot,
+  so both sit behind Amendment 1's start-up gate.
+- **Full CI 39148839180 at `a878f66e`: green, 5,093 tests, 0 failures, 0 errors, 24 skipped** (JUnit XML, 684
+  files). The 25 more than `ae80cfed` come from topup-items. That split is inferred from the totals; I did not count
+  them test by test.
+
+## Update: Amendment 2, Street is the opening map (18:33Z)
+
+**Authorisation:** the owner, "1 go" (RECORD -1297), on the step path in Amendment 2 of
+`prompts/preserved/2026-10-18-04.md` (records-after-173, `fd30ee96`).
+
+### Verify first
+
+1. **`MapMode.DEFAULT` is the only opening default.** `Basemap.DEFAULT` is derived from it (`Basemap.kt:148-152`).
+   Every reader in `app/src/main`, checked by grep, and whether Street is right there:
+   - **`AvailabilityViewModel.kt:776`** (nothing stored) and **`:789-790`** (a failed read): these are the opening
+     map. Street is right.
+   - **`AvailabilityScreen.kt:1002`**: the fallback used before the ViewModel's read lands. The map is not drawn
+     until that read lands (the comment at `:995-1000`), so a user never sees it. Street is right.
+   - **`CartographyScreen.kt:105`** and **`CartographyEntryReportScreen.kt:271`**: default parameter values. The app
+     always passes the Maps tab's own basemap (`JournalTab.kt:754`, `MapMode.forBasemap(basemap)`), so only test
+     hosts use the default. Street is right.
+   - **`SightingsMap.kt:222`** (`basemap = Basemap.DEFAULT`): a default parameter. The real map slot always passes
+     the render mode's basemap (`MapSlot.kt`), so it is not used in production. Street is right.
+
+   The offline-maps picker is pinned to `Basemap.OPEN_TOPO_MAP` (`AvailabilityOfflineMapsUi.kt:187`), not the
+   default, so it is unchanged.
+2. **Nothing is stored until the user picks**, so "no stored choice" is a real case. There are two writes in
+   `AvailabilityViewModel`:
+   - `onMapModeSelected` (`:715-717`), reached only from the map-type chips in the Layers sheet
+     (`MapLayersSheet.kt:284`, `onClick`);
+   - the unknown-key replacement (`:784`).
+
+   When nothing is stored, the read returns `MapMode.DEFAULT` and stores nothing (`:775-776`). The test "nothing
+   stored opens on Street, stores nothing" asserts that no write happens. Not a stop.
+3. **The topo-night crossfade** depends on the basemap being OpenTopoMap (`BasemapStyles.kt:139`), not on the
+   default. A user on Topographical gets it exactly as before. On Street there is no crossfade, as there was not
+   before. Nothing else reads the default.
+
+No stop was hit:
+- first launch writes nothing;
+- every reader is right on Street;
+- no test was weakened.
+
+### What was built
+
+- **`MapMode.DEFAULT = STREET`.** Its KDoc says why, and the comment on `REPLACEMENT_FOR_UNKNOWN` no longer claims
+  the two "happen to be equal today". **`REPLACEMENT_FOR_UNKNOWN` stays `TOPOGRAPHIC`.**
+- **Tests that pinned Topographical as the default now pin Street.** Each quotes its old assertion or title:
+  - `MapModeTest`;
+  - `BasemapTest`;
+  - `AvailabilityViewModelBasemapTest` (nothing stored, and a failed read);
+  - `AvailabilityScreenSettingsPanelTest`;
+  - `CartographyEntryReportScreenFullscreenTest`;
+  - `MapChromeResumedTest`;
+  - the layers-row descriptions in `MapLayersUiFixtures`, `AvailabilityScreenAdaptiveLayoutTest`,
+    `AvailabilityScreenMapIconStackTest` and `CartographyEntryMapLayersTest`.
+- **Tests that picked Street to move off the default now pick Topographical.** Left as they were, they would have
+  re-picked the default and passed without changing anything, a check that could no longer fail (CLAUDE.md,
+  Testing). They are:
+  - the ViewModel's pick test and its failed-write test;
+  - the restart persistence test, which now opens on Street, picks Topographical and restores Topographical;
+  - the entry-map tests in `MapChromeResumedTest`;
+  - the Layers-sheet chip tests in `AvailabilityScreenMapLayersTest`, `AvailabilityScreenMapIconStackTest` (both
+    edges) and `AvailabilityScreenSettingsPanelTest`.
+
+  No assertion was removed or loosened.
+
+### Evidence
+
+- **Through the ViewModel's basemap load** (`AvailabilityViewModelBasemapTest`):
+  - nothing stored opens on Street, storing and logging nothing;
+  - **a stored "topographic" opens on Topographical** (new test), storing and logging nothing;
+  - a stored "satellite", an unknown key, opens on Topographical, logged, with Topographical stored in its place
+    (unchanged);
+  - a failed read opens on Street, logged.
+- **Revert R15**, `map-launch-fixes-revert-15` (`50add27a`), one line, `MapMode.kt:46`: `val DEFAULT = TOPOGRAPHIC`.
+  - Run 39153614209, filtered to `AvailabilityViewModelBasemapTest`, `MapModeTest`, `BasemapTest` and
+    `AvailabilityScreenBasemapPersistenceTest`.
+  - Per-job logs read through the API (3,189 lines), with zero Kotlin compile errors (`e:` lines) in any job.
+  - **25 tests, 5 failed**, each one the default can cause:
+    - `the default map mode is Street`: `expected:<STREET> but was:<TOPOGRAPHIC>`;
+    - `the default basemap is OpenStreetMap's Street…`: `expected:<OSM_STANDARD> but was:<OPEN_TOPO_MAP>`;
+    - `nothing stored opens on Street…`: `expected:<STREET> but was:<TOPOGRAPHIC>`;
+    - `a failed read opens on Street…`: the same;
+    - `a basemap picked in the sheet survives a restart…`: `expected:<OSM_STANDARD> but was:<OPEN_TOPO_MAP>`, the
+      first launch's opening map.
+  - The stored-Topographical and stored-Satellite tests pass under the revert, as they should: neither depends on
+    the default.
+- **Full CI 39153584356 at `db8afc2e`: green, 5,094 tests, 0 failures, 0 errors, 24 skipped.** That is 5,093 plus
+  the one new test.
+
+### Not tested, said plainly
+
+- **The stored-Topographical test cannot tell whether a stored choice beats the default while the two are equal.**
+  It passes under R15, where the default is Topographical again. It holds "a stored Topographical opens
+  Topographical" only now that the default is Street, and nothing reverts that particular path.
+- **What an existing user's phone holds.** Whether anyone's phone has nothing stored, and so moves to Street after
+  the update, depends on whether they ever picked a map type. That is not knowable from here.
+- **Anything on the S22.**
+
+## S22 re-check (owner, on the final build)
+
+Use the debug APK from the green run on this report's commit, or from run 39153584356 (`db8afc2e`); the two differ
+only in docs. The earlier check ran on 1.0.3446+g98d5a880, which has neither the pre-main merge nor Amendment 2, so
+start these from the top. Write down the build's version name first.
+
+1. **A new install opens on Street.** Clear the app's data (Settings > Apps > Forager > Storage > Clear data), or
+   uninstall and reinstall, then open Maps.
+   - Pass: the Street map shows, and the Layers row reads "Street".
+   - Write down which map showed.
+   - **If this fails, stop.**
+2. **A chosen Topographical is kept.** In Layers, choose Topographical. Force-stop the app (Settings > Apps >
+   Forager > Force stop) and open it again.
+   - Pass: Maps opens on Topographical.
+   - Write down which map showed.
+3. **The location picker and offline maps open normally.** These are the screens the topup-items merge changed.
+   - Open the location picker (logging a find, or planning a trip, where the centre pin shows).
+   - Open Offline maps.
+   - Pass: each draws its map, with no "The map couldn't start." and nothing closing.
+   - Write down any screen that fails.
+4. **Steps 1 to 9 above, the map credits and the start-up message.** Run them on this same build if they have not
+   been run on it.
+
+**The row to write:** S22 Ultra (SM-S908U), Android version, build version name, and the results of re-check steps
+1 to 4.
