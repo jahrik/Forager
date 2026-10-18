@@ -670,7 +670,6 @@ internal fun CartographyEntryReportScreen(
         }
         }
         }
-        }
 
         },
         body = {
