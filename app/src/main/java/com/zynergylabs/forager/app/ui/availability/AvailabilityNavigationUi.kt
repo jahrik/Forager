@@ -173,8 +173,9 @@ internal fun ForagerBottomNav(
      * Dispatch 2026-10-12-06, RECORD -937 (the owner: "let's give the botton navigation buttons the same rounded edge treatment
      * so it looks uniform"): the radius of the bar's two top corners. The Map tab's overlay instance passes the card's radius;
      * the bar stays full width, runs to the bottom edge and keeps its fill. A clip, so the corners are cut from its touch area as
-     * well as its drawing: a touch in a corner gap reaches the map beneath. 0 (the docked instances on the other tabs, where
-     * nothing but the screen's own background would show in the gap): square, as before.
+     * well as its drawing: a touch in a corner gap reaches the map beneath. 0: square. Since dispatch 2026-10-17-09 (RECORD
+     * -1224, -1225) the docked instance on the other tabs passes the same radius, solid, so the bar keeps its shape across the
+     * tab switch; its corner gaps show the page's background, and nothing is under them to touch.
      */
     topCornerRadius: Dp = 0.dp,
 ) {
@@ -263,8 +264,8 @@ internal fun ForagerNavigationRail(
      * Dispatch 2026-10-12-08, RECORD -952 (the owner: "In landscape mode: Can we have the rounded corners on the app navigation
      * buttons (the one on the right side of the display) like it is in portrait?"): the radius of the rail's two corners that face
      * the map, its inner side's top and bottom, as [ForagerBottomNav]'s `topCornerRadius` rounds the bar's two top corners. A
-     * clip, so the corners are cut from its touch area as well as its drawing and a touch in a corner gap reaches the map. 0, the
-     * docked rail beside the other tabs' content: square, as before.
+     * clip, so the corners are cut from its touch area as well as its drawing and a touch in a corner gap reaches the map. 0:
+     * square. Since dispatch 2026-10-17-09 the docked rail beside the other tabs' content passes the same radius, solid.
      */
     innerCornerRadius: Dp = 0.dp,
 ) {

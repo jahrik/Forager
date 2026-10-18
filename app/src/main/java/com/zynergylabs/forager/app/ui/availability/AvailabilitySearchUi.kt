@@ -196,6 +196,8 @@ internal fun SearchEntryBar(
      * strip tuck under (see RoundedMapCard.kt): these corners, a 2 dp shadow, and no divider (the divider was the seam against
      * the square strip; the pill's own edge is the seam now, and a 1 dp spacer keeps the bar's height). `null`, the other tabs,
      * keeps the square bar with its divider, unchanged (RECORD -934: "the pill is over the map only").
+     * Superseded for List, Seasonal and Journal by dispatch 2026-10-17-09 (RECORD -1224, -1225): they pass the pill too, solid
+     * ([overMap] false), so `null` is now no caller's choice; the square bar is kept as a path, not removed.
      */
     pillCorners: MapCardCorners? = null,
     /**
@@ -258,10 +260,12 @@ internal fun SearchEntryBar(
     // finished tone), not something Material's elevation-tint system should be allowed to touch.
     // Dispatch 2026-10-12-08 (RECORD -945, -951): over the map the pill is a shade lighter than the strip and card tucked under
     // it (MapPillColorLight / MapPillColorDark, still at 0.8); the square bar on the other tabs keeps the chrome token.
+    // Dispatch 2026-10-17-09 (RECORD -1224, -1225): the pill is on the other tabs too, solid there; mapChromeFill gives the role
+    // at MAP_CHROME_OVER_MAP_ALPHA over the map (the Maps tab, unchanged: MapPillColorDark/Light are that role at 0.8) and the
+    // role itself, solid, where no map is behind it.
     val barFill = when {
         pillCorners == null -> if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
-        isDarkTheme -> MapPillColorDark
-        else -> MapPillColorLight
+        else -> mapChromeFill((if (isDarkTheme) MapPillColorDark else MapPillColorLight).copy(alpha = 1f), overMap)
     }
     val barShape = pillCorners?.shape() ?: RectangleShape
     Surface(
