@@ -70,3 +70,7 @@ Not added: the dispatch's scope is the revert checks, and the planner is taking 
 
 - A tablet look on a real device. Robolectric reports zero window insets (CLAUDE.md), so the bar's place beside a real navigation bar is not covered by any of these runs.
 - #264's known-bugs rows were not re-read for this report (RECORD -1352 says the planner had not re-read them either).
+
+## Correction, 2026-10-19
+
+ListTab's outer Column is at AvailabilityResultsUi.kt:88-92, not :165, which is ResultsSection's. The "gap in the List tests" section above names `:165` and quotes `Column(modifier = modifier.fillMaxWidth())`. Both belong to `ResultsSection`, which `ListTab` calls at `:105`. `ListTab`'s own Column is `modifier.fillMaxWidth().padding(horizontal = Spacing.lg)`. Hazel found this in the verify-first for dispatch 2026-10-19-06, which adds the tag there. The line above is left as written.
