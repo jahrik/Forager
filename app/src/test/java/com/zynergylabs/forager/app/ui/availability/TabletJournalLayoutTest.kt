@@ -247,6 +247,10 @@ class TabletJournalLayoutTest {
     private fun checkOfflineMapsReveal(rotation: Int) {
         setScreen(rotation, expectLarge = true)
         openOfflineMaps()
+        checkOfflineMapsRevealOnScreen()
+    }
+
+    private fun checkOfflineMapsRevealOnScreen() {
         assertTrue("hidden to begin with", !exists(SEARCH_ENTRY_BAR_TAG))
         val map = bounds(OFFLINE_PICKER_MAP_TAG)
         val lineHidden = bounds(SHORT_HEADER_TAG)
@@ -257,7 +261,7 @@ class TabletJournalLayoutTest {
         composeRule.waitForIdle()
         assertTrue("positive control: the search bar is shown", exists(SEARCH_ENTRY_BAR_TAG))
         val lineShown = bounds(SHORT_HEADER_TAG)
-        println("MEASURED tablet reveal rotation=$rotation: map $map, line hidden $lineHidden, shown $lineShown, frames ${inFrames.map { it.first.top.value }}")
+        println("MEASURED tablet reveal: map $map, line hidden $lineHidden, shown $lineShown, frames ${inFrames.map { it.first.top.value }}")
         assertTrue(
             "positive control: part way in, the switch line is between its two places",
             inFrames.any { it.first.top > lineHidden.top + 0.5.dp && it.first.top < lineShown.top - 0.5.dp },
@@ -278,6 +282,28 @@ class TabletJournalLayoutTest {
     @Test fun `landscape tablet at ROTATION_90 the square map holds still through the search reveal`() = checkOfflineMapsReveal(Surface.ROTATION_90)
 
     @Test fun `landscape tablet at ROTATION_270 the square map holds still through the search reveal`() = checkOfflineMapsReveal(Surface.ROTATION_270)
+
+    /**
+     * A large screen where the height decides the square (an unfolded foldable, 1000 x 700 dp). At the owner's tablet size under
+     * Robolectric the controls' 240 dp floor and the held height come out close, so that size alone cannot tell "a square from the
+     * height under the gap" from "a square from the width"; here the height is well under the width's cap, so it can. On a real
+     * tablet the status and navigation bars take height, so this is the regime the tablet itself is in.
+     */
+    @Test
+    @Config(qualifiers = FOLDABLE_LANDSCAPE)
+    fun `landscape foldable where the height decides, the square is as tall as the room under the line and holds through the reveal`() {
+        setScreen(Surface.ROTATION_90, expectLarge = true)
+        openOfflineMaps()
+        val map = bounds(OFFLINE_PICKER_MAP_TAG)
+        val controls = bounds(OFFLINE_PICKER_CONTROLS_SCROLL_TAG)
+        val room = root().bottom.value - map.top.value
+        println("MEASURED foldable offline: map $map, controls $controls, room $room")
+        assertEquals("the map ($map) is square", width(map), height(map), 1f)
+        assertEquals("the square is as tall as the room under the line and its gap", room, height(map), 1f)
+        assertTrue("positive control: here the height decides, the controls get more than 240 dp (${width(controls)})", width(controls) > 240f + 20f)
+        assertTrue("the controls ($controls) are beside the map ($map)", controls.left.value >= map.right.value - 0.5f)
+        checkOfflineMapsRevealOnScreen()
+    }
 
     // ── Landscape tablet: the entry page ──
 
@@ -438,6 +464,7 @@ class TabletJournalLayoutTest {
 private const val TABLET_LANDSCAPE = "sw824dp-w1318dp-h824dp-land"
 private const val TABLET_PORTRAIT = "sw824dp-w824dp-h1318dp-port"
 private const val PHONE_LANDSCAPE = "w823dp-h384dp-land"
+private const val FOLDABLE_LANDSCAPE = "sw700dp-w1000dp-h700dp-land"
 private const val PHONE_PORTRAIT = "w384dp-h823dp-port"
 
 /** TABLET_JOURNAL_CONTENT_MAX_WIDTH, as a number the assertions read. */
