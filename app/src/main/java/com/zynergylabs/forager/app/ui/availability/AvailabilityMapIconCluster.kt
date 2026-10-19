@@ -599,7 +599,7 @@ internal fun BoxScope.MapIconCluster(
         state.horizontalDragPx = 0f
         // RECORD -711: a drag has ended, so its side and height are stored (AvailabilityScreen watches this).
         state.position.onDragSettled()
-        if (glides && from != null) {
+        if (glides) {
             state.glide.fromLeftInRootPx = from
             startGlide()
         }
