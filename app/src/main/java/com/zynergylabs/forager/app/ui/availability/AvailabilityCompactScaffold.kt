@@ -53,6 +53,7 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
@@ -700,6 +701,8 @@ internal fun CompactMainScaffold(
         // landscape layout of any window, tall or short, so a landscape tablet has it too.
         val showRail = isLandscapeWindow
         val railBeside = showRail && compactTab() != CompactTab.MAP
+        // Dispatch 2026-10-18-10: a tablet or an unfolded foldable (smallest width 600 dp or more); see contentCapWidth below.
+        val largeScreen = isLargeScreenWindow()
         // R18: no bottom band for a bar that is not there. The measured height is the portrait
         // bar's while turning into landscape (onGloballyPositioned stops firing once the bar
         // leaves composition), so it is zeroed, and read as zero in the meantime. In landscape
@@ -997,10 +1000,15 @@ internal fun CompactMainScaffold(
                     // Seasonal's own cap (SeasonalTab) is the same 640 dp, so the two compose to 640.
                     // Scrolling stays each destination's own. Portrait and non-short windows skip this.
                     // Until dispatch 2026-10-17-09 the search bar was inside this cap too.
+                    // Dispatch 2026-10-18-10 (RECORD -1340, the owner: "A: wider column", "Match content"): on a large screen the
+                    // Journal's cap is 960 dp, one cap for every Journal screen, so its top line spans the same width as the content
+                    // under it and does not change width between chips. Phones (smallest width under 600 dp) and the other tabs keep
+                    // the 640 dp readable width.
+                    val contentCapWidth = if (compactTab() == CompactTab.JOURNAL && largeScreen) TABLET_JOURNAL_CONTENT_MAX_WIDTH else READABLE_CONTENT_MAX_WIDTH
                     val readableContentCap = if (railBeside) {
                         Modifier
                             .wrapContentWidth(Alignment.CenterHorizontally)
-                            .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
+                            .widthIn(max = contentCapWidth)
                             .fillMaxWidth()
                     } else {
                         Modifier

@@ -40,6 +40,11 @@ import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
+import com.zynergylabs.forager.app.ui.log.LANDSCAPE_ENTRY_INFO_MIN_WIDTH
 import com.zynergylabs.forager.app.ui.map.CentrePinConfirmActions
 import com.zynergylabs.forager.app.ui.map.CentrePinMap
 import com.zynergylabs.forager.app.ui.map.rememberCentrePinState
@@ -367,7 +372,10 @@ internal fun OfflineMapsPanel(
         // picker's three pieces are composed here directly, in CentrePinLocationPicker's own order,
         // so the map can move to the side-by-side layout; this layout is unchanged.
         Column(modifier = Modifier.fillMaxWidth()) {
-            pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(MAP_PICKER_ASPECT_RATIO))
+            // Dispatch 2026-10-18-10 (RECORD -1340): on a large screen in portrait the map is a square on top, the info under it.
+            // A phone keeps the 4:3 map.
+            val portraitMapRatio = if (isLargeScreenWindow()) 1f else MAP_PICKER_ASPECT_RATIO
+            pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(portraitMapRatio).testTag(OFFLINE_PICKER_MAP_TAG))
             confirmActions()
         }
 
@@ -462,10 +470,45 @@ private fun OfflineMapsSideBySide(
         if (controlsFirst) controls()
         // RECORD -1330 to -1333 (the owner: "No, the maps do not move at all"): on the Journal the map stands below the room the
         // search pill has not taken, plus a small gap, so it keeps its place while the switch line slides down with the pill.
-        map(Modifier.weight(1f).fillMaxHeight().journalSearchGap(LocalJournalSearchPillRoom.current))
+        // Dispatch 2026-10-18-10 (RECORD -1337, -1340): on a large screen the map is a square whose side is its height after the
+        // search gap, which holds through the reveal (the gap and the room shrink together), so the square keeps its place and its
+        // size too. Capped so the controls keep OFFLINE_CONTROLS_MIN_WIDTH; the controls take the rest. A phone keeps half the width.
+        val searchRoom = LocalJournalSearchPillRoom.current
+        val mapModifier = if (isLargeScreenWindow()) {
+            Modifier.fillMaxHeight().journalSearchGap(searchRoom).squareFromHeight(OFFLINE_CONTROLS_MIN_WIDTH)
+        } else {
+            Modifier.weight(1f).fillMaxHeight().journalSearchGap(searchRoom)
+        }
+        map(mapModifier.testTag(OFFLINE_PICKER_MAP_TAG))
         if (!controlsFirst) controls()
     }
 }
+
+/**
+ * Dispatch 2026-10-18-10: a map's square, side by side with something else in a Row, as a non-weighted child. The side is the
+ * height it is given, at most the width less [otherSideMin], so the weighted part beside it keeps at least that. Placed at the top
+ * of its slot when the width decides, so it does not move down when it is smaller than the slot's height.
+ */
+private fun Modifier.squareFromHeight(otherSideMin: Dp): Modifier = layout { measurable, constraints ->
+    if (!constraints.hasBoundedHeight && !constraints.hasBoundedWidth) {
+        val unbounded = measurable.measure(constraints)
+        return@layout layout(unbounded.width, unbounded.height) { unbounded.place(0, 0) }
+    }
+    val byWidth = if (constraints.hasBoundedWidth) (constraints.maxWidth - otherSideMin.roundToPx()).coerceAtLeast(0) else Int.MAX_VALUE
+    val byHeight = if (constraints.hasBoundedHeight) constraints.maxHeight else Int.MAX_VALUE
+    val side = minOf(byWidth, byHeight)
+    val placeable = measurable.measure(Constraints.fixed(side, side))
+    layout(constraints.constrainWidth(side), constraints.constrainHeight(side)) { placeable.place(0, 0) }
+}
+
+/**
+ * Dispatch 2026-10-18-10 (RECORD -1340): beside the square map on a large screen the controls keep at least this width. The owner's
+ * 240 dp for the info beside the entry page's map (RECORD -1260), reused so both of the Journal's maps leave the same room.
+ */
+internal val OFFLINE_CONTROLS_MIN_WIDTH: Dp = LANDSCAPE_ENTRY_INFO_MIN_WIDTH
+
+/** The offline-maps picker's map, in either layout, for tests (dispatch 2026-10-18-10). */
+internal const val OFFLINE_PICKER_MAP_TAG = "offline-picker-map"
 
 /** [OfflineMapsSideBySide]'s scrolling part, above the pinned actions: what a test drags to reach the slider. */
 internal const val OFFLINE_PICKER_CONTROLS_SCROLL_TAG = "offline-picker-controls-scroll"

@@ -155,6 +155,13 @@ private fun seasonalShowsOpenMeteoFigures(uiState: AvailabilityUiState): Boolean
  */
 internal val READABLE_CONTENT_MAX_WIDTH = 640.dp
 
+/**
+ * Dispatch 2026-10-18-10 (Forager RECORD -1340, the owner's "A: wider column (Recommended)": the same columns in a wider centred
+ * column of about 960 dp): the Journal's content cap beside the landscape rail on a large screen (smallest width 600 dp or more),
+ * in place of [READABLE_CONTENT_MAX_WIDTH]. Rejected by the owner: more columns across the full width, and stretched cards.
+ */
+internal val TABLET_JOURNAL_CONTENT_MAX_WIDTH = 960.dp
+
 /** Lets [AvailabilityScreenAdaptiveLayoutTest] measure the readable-width column directly. */
 const val SEASONAL_CONTENT_TAG = "seasonal-content"
 
