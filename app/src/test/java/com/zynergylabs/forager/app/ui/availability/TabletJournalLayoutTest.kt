@@ -25,7 +25,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.printToString
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertIsSelected
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -185,8 +186,11 @@ class TabletJournalLayoutTest {
         openJournal()
         composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.RECORDS)).performClick()
         settle()
-        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.OFFLINE_MAPS)).performClick()
+        // Scrolled to first: on a phone the chip lies past the end of the chip row's visible part, where a click misses it (CI run
+        // 39187881766's tree: the chip at 722-867 px, the row's visible part ending at 572 px), as OfflineNotDownloadedRegionTest does.
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.OFFLINE_MAPS)).performScrollTo().performClick()
         settle()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.OFFLINE_MAPS)).assertIsSelected()
     }
 
     private fun openFirstEntry() {
@@ -219,11 +223,6 @@ class TabletJournalLayoutTest {
         val area = areaBesideRail()
         assertEquals("$what ($line) is the $column dp column less its 16 dp side padding", column - 2 * Spacing.lg.value, width(line), 1f)
         assertEquals("$what ($line) is centred beside the rail ($area)", centreX(area), centreX(line), 1f)
-    }
-
-    /** Diagnostics for a lookup that failed: the unmerged semantics tree, to the test's output. */
-    private fun dumpTree(label: String) {
-        println("TREE $label\n" + composeRule.onRoot(useUnmergedTree = true).printToString())
     }
 
     private fun screenshot(name: String) {
@@ -409,7 +408,6 @@ class TabletJournalLayoutTest {
     fun `phone landscape Offline maps keeps half and half in the 640 dp column`() {
         setScreen(Surface.ROTATION_90, expectLarge = false)
         openOfflineMaps()
-        if (!exists(OFFLINE_PICKER_MAP_TAG)) dumpTree("phone landscape Offline maps")
         val map = bounds(OFFLINE_PICKER_MAP_TAG)
         val controls = bounds(OFFLINE_PICKER_CONTROLS_SCROLL_TAG)
         println("MEASURED phone offline: map $map, controls $controls")
@@ -435,7 +433,6 @@ class TabletJournalLayoutTest {
     fun `phone portrait Offline maps keeps the 4 by 3 map`() {
         setScreen(Surface.ROTATION_0, expectLarge = false)
         openOfflineMaps()
-        if (!exists(OFFLINE_PICKER_MAP_TAG)) dumpTree("phone portrait Offline maps")
         val map = bounds(OFFLINE_PICKER_MAP_TAG)
         assertEquals("the map ($map) is 4:3", width(map) * 3f / 4f, height(map), 1f)
     }
