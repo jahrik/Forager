@@ -97,7 +97,6 @@ import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
-import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.map.mapIconBarRecordAccent
@@ -1218,16 +1217,16 @@ internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInf
  * **[AssistChip], not the filled Material [Button] this tile used at first.** A solid
  * `colorScheme.primary`-filled button is its own large block of colour, and three of them side by
  * side visually crowded out the tile's own theme-aware card fill entirely — from the project
- * owner's own side-by-side comparison against [MapModePicker], whose unselected [FilterChip]s stay
+ * owner's own side-by-side comparison against `MapModePicker` (removed 2026-10-19, RECORD -1392), whose unselected [FilterChip]s stay
  * outlined and let that same card fill read clearly instead. [AssistChip] is the semantically
  * correct match, not [FilterChip] borrowed wholesale: these three rows perform an action each and
- * share no "currently selected" state the way [MapModePicker]'s three modes do, so nothing here is
+ * share no "currently selected" state the way `MapModePicker`'s three modes do, so nothing here is
  * ever passed a `selected` value.
  *
  * Same theme-aware, 80%-opacity fill as [MapIconBar]
  * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) rather than a plain
  * [MaterialTheme.colorScheme.surface] — one visual language for every control floating over the
- * map, the same reasoning [MapModePicker] gives for the same choice.
+ * map, the same reasoning `MapModePicker` gives for the same choice.
  *
  * A scrim (its own [AnimatedVisibility], faded independently of the tile) makes the map behind it
  * unmistakably unavailable to tap while a choice is pending — the same modal intent the dialog it
@@ -1235,7 +1234,7 @@ internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInf
  * visible label of its own (unlike the three buttons beside it), so it is addressed in tests by
  * [ADD_ACTION_TILE_SCRIM_TAG] rather than text.
  *
- * [anchor]/[anchorOffset] mirror [MapModePicker]'s own pair exactly (expanded-panels dispatch):
+ * [anchor]/[anchorOffset] mirror `MapModePicker`'s (removed 2026-10-19, RECORD -1392) own pair exactly (expanded-panels dispatch):
  * this used to hardcode `CenterEnd` / `-Spacing.sm` / [ADD_TILE_ANCHOR_OFFSET] internally, which
  * was fine while [MapIconBar] could only ever sit at its default right-centre position, and
  * silently wrong once the bar became draggable — the tile kept opening at the bar's *old*

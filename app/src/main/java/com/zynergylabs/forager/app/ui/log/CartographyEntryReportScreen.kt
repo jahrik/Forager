@@ -955,20 +955,3 @@ private fun EntryReportLayout(
 
 /** Lets tests select the offline-map [Switch] directly, rather than relying on an untagged toggleable-semantics query. */
 internal const val OFFLINE_TOGGLE_TEST_TAG = "cartography-entry-offline-toggle"
-
-private data class ReportItem(val title: String, val subtitle: String?)
-
-/** One category of kept items — omitted entirely when [items] is empty, never shown with a "nothing yet" placeholder. See this file's own doc comment for why. */
-@Composable
-private fun ReportItemsSection(title: String, items: List<ReportItem>) {
-    if (items.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
-        items.forEach { item ->
-            Column {
-                Text(item.title, style = MaterialTheme.typography.bodyMedium)
-                item.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
-        }
-    }
-}
