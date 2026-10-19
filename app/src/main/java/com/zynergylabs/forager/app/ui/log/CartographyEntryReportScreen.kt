@@ -99,6 +99,7 @@ import java.util.UUID
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -414,6 +415,10 @@ internal fun CartographyEntryReportScreen(
     // either arrangement, and EntryReportLayout only places them, so the one mapSlot call below never moves in the
     // composition when the phone turns (this file's doc comment, "Fullscreen").
     val landscapeSplit = isLandscapeWindow()
+    // Dispatch 2026-10-18-10 (RECORD -1337, the owner: "The tall map in tablet mode would look better as a 1:1 box with the info
+    // next to it. Journal entry page can be spread further apart in the same way"; -1340): on a large screen the map is a square, on
+    // the left beside the details in landscape, on top with the details under it in portrait. A phone keeps the 4:3 box.
+    val mapAspectRatio = if (isLargeScreenWindow()) 1f else 4f / 3f
 
     @Composable
     fun OfflineRow(horizontalPadding: Dp) {
@@ -446,6 +451,7 @@ internal fun CartographyEntryReportScreen(
         split = landscapeSplit && entryMapShown && !isMapFullscreen,
         fullscreen = isMapFullscreen,
         infoMinWidth = LANDSCAPE_ENTRY_INFO_MIN_WIDTH,
+        squareMap = mapAspectRatio == 1f,
         modifier = modifier.fillMaxWidth().testTag(ENTRY_REPORT_TAG),
         header = {
         // Hidden via composition (an if, not an opacity/size-zero modifier), same convention
@@ -539,7 +545,7 @@ internal fun CartographyEntryReportScreen(
                     // L2 (dispatch 2026-09-28-47): see shortWindowEntryMapHeight.
                     Modifier.fillMaxWidth().shortWindowEntryMapHeight(shortWindowMapCap)
                 } else {
-                    Modifier.fillMaxWidth().aspectRatio(4f / 3f)
+                    Modifier.fillMaxWidth().aspectRatio(mapAspectRatio)
                 }.testTag(CARTOGRAPHY_MAP_TEST_TAG),
             ) {
                 // One call, textually, regardless of isMapFullscreen — see this file's own doc
@@ -881,6 +887,9 @@ internal const val ENTRY_REPORT_INFO_TAG = "cartography-entry-report-info"
  * height" cannot always hold: on a landscape tablet a map as tall as the window would be wider than the whole column. Rejected
  * alternatives the owner was shown: the map at most half the width (320 x 240 everywhere), and lifting the 640 dp cap for the
  * entry, which reaches into the Journal tab's layout.
+ *
+ * On a large screen since dispatch 2026-10-18-10 (RECORD -1340) the Journal's column is 960 dp and the map is a square, so the
+ * square is the largest that fits the height and leaves this width; the owner's "info next to it".
  */
 internal val LANDSCAPE_ENTRY_INFO_MIN_WIDTH = 240.dp
 
@@ -893,7 +902,7 @@ internal val LANDSCAPE_ENTRY_INFO_MIN_WIDTH = 240.dp
  * - Not [split] (portrait, and any window without a map or with the map fullscreen): stacked as before. The header at the top
  *   at its own height; the map under it at its own height, at most what is left (all of it in [fullscreen]); the body takes
  *   the rest exactly, as the `weight(1f)` it replaced did.
- * - [split] (dispatch 2026-10-18-01, a landscape window with a map): the map on the left in a 4:3 box, the largest whose
+ * - [split] (dispatch 2026-10-18-01, a landscape window with a map; a square box with [squareMap], dispatch 2026-10-18-10): the map on the left in a 4:3 box, the largest whose
  *   height fits and which leaves [infoMinWidth] beside it; the header at the top of the right side, pinned; the body under it
  *   taking the rest of the right side's height exactly, so it scrolls on its own.
  */
@@ -902,6 +911,8 @@ private fun EntryReportLayout(
     split: Boolean,
     fullscreen: Boolean,
     infoMinWidth: Dp,
+    /** Dispatch 2026-10-18-10: a large screen's square box in [split] in place of the 4:3 one (the map's own ratio is the caller's). */
+    squareMap: Boolean,
     header: @Composable () -> Unit,
     map: @Composable () -> Unit,
     body: @Composable () -> Unit,
@@ -912,8 +923,8 @@ private fun EntryReportLayout(
         val height = if (constraints.hasBoundedHeight) constraints.maxHeight else constraints.minHeight
         val loose = Constraints(maxWidth = width, maxHeight = height)
         if (split) {
-            val boxWidth = minOf(height * 4 / 3, (width - infoMinWidth.roundToPx()).coerceAtLeast(0))
-            val boxHeight = boxWidth * 3 / 4
+            val boxWidth = minOf(if (squareMap) height else height * 4 / 3, (width - infoMinWidth.roundToPx()).coerceAtLeast(0))
+            val boxHeight = if (squareMap) boxWidth else boxWidth * 3 / 4
             val mapPlaceables = mapParts.map { it.measure(Constraints(maxWidth = boxWidth, maxHeight = boxHeight)) }
             val infoWidth = width - boxWidth
             val headerPlaceables = headerParts.map { it.measure(Constraints(maxWidth = infoWidth, maxHeight = height)) }
