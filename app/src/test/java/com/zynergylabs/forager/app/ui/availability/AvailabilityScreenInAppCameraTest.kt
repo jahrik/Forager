@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.adaptive.ProvideConfigurationAndWindow
 import android.Manifest
 import android.app.Application
 import android.content.ComponentName
@@ -160,7 +161,7 @@ class AvailabilityScreenInAppCameraTest {
             setWidthDp = { widthDp = it }
             setTarget = { target = it }
             val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
-            CompositionLocalProvider(LocalConfiguration provides configuration) {
+            ProvideConfigurationAndWindow(configuration) {
                 AvailabilityScreen(
                     uiState = SEARCHED_STATE.copy(autoSaveLocationToPhotos = autoSaveLocation),
                     onUseCurrentLocation = {},

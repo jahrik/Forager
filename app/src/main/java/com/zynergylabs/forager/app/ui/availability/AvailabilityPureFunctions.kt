@@ -7,6 +7,7 @@ import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.ui.geometry.Offset
+import androidx.core.net.toUri
 import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -150,7 +151,7 @@ private const val NO_MAPS_APP_MESSAGE = "No maps app is installed to show direct
  */
 internal fun directionsIntent(name: String, location: LatLng): Intent {
     val label = Uri.encode(name)
-    val uri = Uri.parse("geo:0,0?q=${location.lat},${location.lng}($label)")
+    val uri = "geo:0,0?q=${location.lat},${location.lng}($label)".toUri()
     return Intent(Intent.ACTION_VIEW, uri)
 }
 
@@ -210,7 +211,7 @@ private const val INATURALIST_PACKAGE = "org.inaturalist.android"
  * itself publishes, not a scheme this app owns.
  */
 internal fun inaturalistObservationIntent(observationId: Long): Intent {
-    val uri = Uri.parse("https://www.inaturalist.org/observations/$observationId")
+    val uri = "https://www.inaturalist.org/observations/$observationId".toUri()
     return Intent(Intent.ACTION_VIEW, uri)
 }
 

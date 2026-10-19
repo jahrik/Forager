@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -82,6 +83,7 @@ fun CentrePinLocationPicker(
     mapSlot: MapSlot,
     region: Region,
     basemap: Basemap,
+    modifier: Modifier = Modifier,
     /**
      * Night mode, passed through to the map the same way the main screen's does. Defaulted so the
      * journal's own pickers keep today's behaviour until their callers thread it — see this
@@ -109,7 +111,6 @@ fun CentrePinLocationPicker(
      * the map and letting the chrome add its own height is what actually makes the viewport 4:3.
      */
     mapAspectRatio: Float? = null,
-    modifier: Modifier = Modifier,
 ) {
     val state = rememberCentrePinState(region)
     // Fills its slot only when the map is the leftover (mapAspectRatio == null). With a ratio, the
@@ -220,7 +221,23 @@ internal fun CentrePinMap(state: CentrePinState, mapSlot: MapSlot, basemap: Base
 
 /** The "Pin at:" line and the OK/Cancel row under it. */
 @Composable
-internal fun CentrePinConfirmActions(state: CentrePinState, onConfirm: (LatLng) -> Unit, onCancel: () -> Unit) {
+internal fun CentrePinConfirmActions(
+    state: CentrePinState,
+    onConfirm: (LatLng) -> Unit,
+    onCancel: () -> Unit,
+    /**
+     * Dispatch 2026-10-17-09, RECORD -1253 (the owner: "C: OK, Cancel and Download on one line"): more buttons on OK and Cancel's
+     * line, after them (the offline-maps panel's Download, in landscape). `null` (every other caller): OK and Cancel share the
+     * line half and half, as before.
+     */
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+    /**
+     * Dispatch 2026-10-18-03, item 1 (Forager RECORD -1269; the owner: "Remove both OK and Cancel and just have the Download Maps
+     * option"): `false` drops OK and Cancel, leaving the "Pin at" line and [trailing] (the offline-maps screen, whose Download
+     * Maps reads the pin itself). `true`, the default, is every other picker's, unchanged.
+     */
+    showConfirmButtons: Boolean = true,
+) {
     CentrePinConfirmRow(
         // UI-defects dispatch, §2: this is the pin's current map position, live from
         // onCameraIdle above — it updates continuously as the map is panned, whether or not
@@ -232,6 +249,8 @@ internal fun CentrePinConfirmActions(state: CentrePinState, onConfirm: (LatLng) 
         selectedText = "Pin at: ${"%.4f".format(state.cameraCenter.lat)}, ${"%.4f".format(state.cameraCenter.lng)}",
         onConfirm = { onConfirm(state.cameraCenter) },
         onCancel = onCancel,
+        trailing = trailing,
+        showConfirmButtons = showConfirmButtons,
     )
 }
 
@@ -442,7 +461,14 @@ internal fun centrePinCasingVector(casing: Int): ImageVector {
 }
 
 @Composable
-private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+private fun CentrePinConfirmRow(
+    selectedText: String?,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+    showConfirmButtons: Boolean = true,
+) {
     Column(
         modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -450,14 +476,33 @@ private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, on
         if (selectedText != null) {
             Text(selectedText, style = MaterialTheme.typography.bodySmall)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(onClick = onConfirm, modifier = Modifier.weight(1f)) { Text("OK") }
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+        // Dispatch 2026-10-18-03: with no OK and Cancel, only what the caller adds, and no row at all when it adds nothing.
+        if (!showConfirmButtons) {
+            if (trailing != null) Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically, content = trailing)
+            return@Column
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            if (trailing == null) {
+                Button(onClick = onConfirm, modifier = Modifier.weight(1f)) { Text("OK") }
+                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            } else {
+                // RECORD -1253: three on one line in a half-width panel. OK and Cancel take their labels' width, with the
+                // compact padding (CENTRE_PIN_COMPACT_BUTTON_PADDING), and the trailing buttons the rest.
+                Button(onClick = onConfirm, contentPadding = CENTRE_PIN_COMPACT_BUTTON_PADDING) { Text("OK", maxLines = 1) }
+                OutlinedButton(onClick = onCancel, contentPadding = CENTRE_PIN_COMPACT_BUTTON_PADDING) { Text("Cancel", maxLines = 1) }
+                trailing()
+            }
         }
     }
 }
 
 private val CENTRE_PIN_SIZE = 40.dp
+
+/**
+ * RECORD -1253: the horizontal padding of buttons sharing OK and Cancel's line with more buttons: [Spacing.md] in place of
+ * Material's 24 dp, so three fit a half-width panel on one line. The vertical padding is Material's own (8 dp).
+ */
+internal val CENTRE_PIN_COMPACT_BUTTON_PADDING = PaddingValues(horizontal = Spacing.md, vertical = 8.dp)
 
 /** [CentrePinLocationPickerOverlay]'s own OK/Cancel surface — what tests measure its real placement by. */
 const val CENTRE_PIN_CONFIRM_ROW_TAG = "centre-pin-confirm-row"

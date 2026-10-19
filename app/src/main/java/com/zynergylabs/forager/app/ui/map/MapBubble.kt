@@ -128,8 +128,8 @@ private val BUBBLE_TAIL_BASE_HALF_WIDTH = Spacing.xs
 internal fun AnchoredAtScreenPoint(
     anchorPx: Offset,
     bearingDeg: Float,
-    minY: Dp = 0.dp,
     modifier: Modifier = Modifier,
+    minY: Dp = 0.dp,
     insetLeft: Dp = 0.dp,
     insetRight: Dp = 0.dp,
     content: @Composable (tipInBubble: State<Offset?>) -> Unit,
@@ -327,7 +327,7 @@ internal fun MapBubbleLayer(
     ) {
         shown?.let { bubble ->
             when (val target = bubble.tapped.target) {
-                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, minY, Modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
+                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight) { tip ->
                     ObservationBubble(
                         sighting = target.sighting,
                         onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
@@ -338,7 +338,7 @@ internal fun MapBubbleLayer(
                 }
 
                 is MapBubbleTarget.FeatureTarget -> bubble.content?.let { content ->
-                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, minY, Modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
+                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight) { tip ->
                         MapFeatureBubble(
                             content = content,
                             tipInBubble = tip,

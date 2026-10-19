@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.runtime.remember
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -73,7 +74,7 @@ class NavigationInfoLayoutTest {
     private fun setScreen() {
         composeRule.setContent {
             NavigationHud(
-                heading = mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(182f)),
+                heading = remember { mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(182f)) },
                 liveFix = fix,
                 target = start,
                 distanceUnit = DistanceUnit.MILES,

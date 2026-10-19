@@ -44,6 +44,8 @@ import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
 import com.zynergylabs.forager.app.ui.adaptive.WindowWidthClass
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowWidthClass
+import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import com.zynergylabs.forager.app.ui.credits.OpenMeteoCredit
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -74,6 +76,10 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
     // READABLE_CONTENT_MAX_WIDTH is that constraint; COMPACT keeps fillMaxWidth exactly as
     // before, since a phone-width screen never approaches that cap anyway.
     val windowWidthClass = currentWindowWidthClass()
+    // Amendment 4 to dispatch 2026-10-18-10 (RECORD -1355, the owner: "Same as the Journal (960)"): beside the rail on a large
+    // screen the tab is the 960 dp column the scaffold gives it, in place of this 640 dp readable cap, whose reasoning above the
+    // owner's choice overrides there. Portrait on a tablet, and phones, keep 640.
+    val seasonalMaxWidth = if (isLargeScreenWindow() && isLandscapeWindow()) TABLET_JOURNAL_CONTENT_MAX_WIDTH else READABLE_CONTENT_MAX_WIDTH
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -82,7 +88,7 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
                     if (windowWidthClass == WindowWidthClass.COMPACT) {
                         Modifier.fillMaxWidth()
                     } else {
-                        Modifier.widthIn(max = READABLE_CONTENT_MAX_WIDTH).fillMaxWidth()
+                        Modifier.widthIn(max = seasonalMaxWidth).fillMaxWidth()
                     },
                 )
                 .verticalScroll(rememberScrollState())
@@ -126,8 +132,27 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
 
                 uiState.seasonalPattern != null -> SeasonalPatternContent(uiState.seasonalPattern)
             }
+            // Open-Meteo's licence: a link next to any place their data are shown (dispatch 2026-10-13-05). Since dispatch
+            // 2026-10-18-01 (the owner: "open meteo is cited twice in the seasonal tab. Once at the bottom is sufficient") the
+            // tab carries one, the last thing in this column, in place of one in the Current Conditions card and one under the
+            // fruiting-lag counts. Only while a figure of theirs is on the tab: a loading or failed fetch shows none.
+            if (seasonalShowsOpenMeteoFigures(uiState)) {
+                OpenMeteoCredit()
+            }
         }
     }
+}
+
+/**
+ * Whether the Seasonal tab is drawing any figure of Open-Meteo's, and so carries their credit at its foot: recent rain, today's
+ * forecast (Current Conditions), or the fruiting-lag pattern, whose lags are counted from their historical rainfall (dispatch
+ * 2026-10-13-05, the planner's answer Q3). The pattern is drawn only once a search has run and nothing is loading or failed, as
+ * [SeasonalTab]'s `when` decides.
+ */
+private fun seasonalShowsOpenMeteoFigures(uiState: AvailabilityUiState): Boolean {
+    val patternDrawn = uiState.hasSearched && !uiState.isLoadingSeasonalPattern &&
+        uiState.seasonalPatternErrorMessage == null && uiState.seasonalPattern != null
+    return uiState.conditions != null || uiState.todaysForecast != null || patternDrawn
 }
 
 /**
@@ -135,6 +160,13 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
  * `internal` since landscape B3 (R9): the compact scaffold caps every tab beside the landscape rail with it.
  */
 internal val READABLE_CONTENT_MAX_WIDTH = 640.dp
+
+/**
+ * Dispatch 2026-10-18-10 (Forager RECORD -1340, the owner's "A: wider column (Recommended)": the same columns in a wider centred
+ * column of about 960 dp): the Journal's content cap beside the landscape rail on a large screen (smallest width 600 dp or more),
+ * in place of [READABLE_CONTENT_MAX_WIDTH]. Rejected by the owner: more columns across the full width, and stretched cards.
+ */
+internal val TABLET_JOURNAL_CONTENT_MAX_WIDTH = 960.dp
 
 /** Lets [AvailabilityScreenAdaptiveLayoutTest] measure the readable-width column directly. */
 const val SEASONAL_CONTENT_TAG = "seasonal-content"
@@ -155,9 +187,6 @@ private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
         SeasonalSampleSizeSummary(distribution)
         FruitingLagChart(distribution, modifier = Modifier.fillMaxWidth())
         FruitingLagBucketCounts(distribution.buckets)
-        // The lags above are counted from Open-Meteo's historical rainfall, so its credit sits beside them (dispatch
-        // 2026-10-13-05, the planner's answer Q3).
-        OpenMeteoCredit()
 
         HorizontalDivider()
         // The observer-effort caveat: not polish, per this feature's own honesty requirement —
@@ -327,11 +356,6 @@ private fun ConditionsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 SeasonalBarChart(chart)
-            }
-            // Open-Meteo's licence: a link next to any place their data are shown (dispatch 2026-10-13-05). Only while a
-            // figure of theirs is in the card; a loading or failed fetch shows none.
-            if (conditions != null || todaysForecast != null) {
-                OpenMeteoCredit()
             }
         }
     }

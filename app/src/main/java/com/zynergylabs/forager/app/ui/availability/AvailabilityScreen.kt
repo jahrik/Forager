@@ -1033,7 +1033,7 @@ fun AvailabilityScreen(
     // the Maps tab and coming back keeps them (CLAUDE.md, UX defaults; the legend's flag above is
     // held the same way). Cleared when navigation stops, so the next Return starts in the view.
     var navigationFollowBroken by rememberSaveable { mutableStateOf(false) }
-    var navigationViewRequestId by rememberSaveable { mutableStateOf(0) }
+    var navigationViewRequestId by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(isNavigating) { if (!isNavigating) navigationFollowBroken = false }
     // Dispatch 2026-09-28-440: the set zoom is applied once per navigation, when it starts: pending
     // from the start until the map reports it applied. Held above the tab, so a tab change does not
@@ -1959,6 +1959,13 @@ fun AvailabilityScreen(
         // nor swipe-to-close worked. While open it also re-enables swipe-to-close; while
         // closed it stays false, so swipe-to-open stays off. See the pre-build report above.
         gesturesEnabled = drawerState.isOpen,
+        // Dispatch 2026-10-18-08 Amendment 1, RECORD -1313 (the owner: "When opening it, there should be no coloring of the
+        // app", then "Portrait too" and "yes same behavior, just no added color"): no tint over the app behind the open drawer.
+        // Transparent, not Color.Unspecified: material3 1.5.0-alpha26's Scrim (Scrim.kt) draws, and takes the tap that closes
+        // the drawer, only `if (color.isSpecified)`, so Unspecified would also drop the tap-outside close. Transparent keeps the
+        // scrim's full-screen tap target and its "Close drawer" semantics and draws nothing. Until -1313 the default,
+        // DrawerDefaults.scrimColor (ScrimTokens' colour at ScrimTokens.ContainerOpacity).
+        scrimColor = Color.Transparent,
         drawerContent = {
             // The sheet itself stays in drawerDirection, so its rounded edge faces the
             // content and its start-side inset padding lands on the window edge it sits on.

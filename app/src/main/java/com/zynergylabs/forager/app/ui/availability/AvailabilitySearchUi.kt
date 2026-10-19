@@ -93,6 +93,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -120,7 +121,8 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapPillColorDark
 import com.zynergylabs.forager.app.ui.map.MapPillColorLight
 import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
-import com.zynergylabs.forager.app.ui.map.mapChromeEdges
+import com.zynergylabs.forager.app.ui.map.mapChromeEdgesReported
+import com.zynergylabs.forager.app.ui.map.mapChromeShape
 import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
@@ -194,6 +196,8 @@ internal fun SearchEntryBar(
      * strip tuck under (see RoundedMapCard.kt): these corners, a 2 dp shadow, and no divider (the divider was the seam against
      * the square strip; the pill's own edge is the seam now, and a 1 dp spacer keeps the bar's height). `null`, the other tabs,
      * keeps the square bar with its divider, unchanged (RECORD -934: "the pill is over the map only").
+     * Superseded for List, Seasonal and Journal by dispatch 2026-10-17-09 (RECORD -1224, -1225): they pass the pill too, solid
+     * ([overMap] false), so `null` is now no caller's choice; the square bar is kept as a path, not removed.
      */
     pillCorners: MapCardCorners? = null,
     /**
@@ -256,20 +260,23 @@ internal fun SearchEntryBar(
     // finished tone), not something Material's elevation-tint system should be allowed to touch.
     // Dispatch 2026-10-12-08 (RECORD -945, -951): over the map the pill is a shade lighter than the strip and card tucked under
     // it (MapPillColorLight / MapPillColorDark, still at 0.8); the square bar on the other tabs keeps the chrome token.
+    // Dispatch 2026-10-17-09 (RECORD -1224, -1225): the pill is on the other tabs too, solid there; mapChromeFill gives the role
+    // at MAP_CHROME_OVER_MAP_ALPHA over the map (the Maps tab, unchanged: MapPillColorDark/Light are that role at 0.8) and the
+    // role itself, solid, where no map is behind it.
     val barFill = when {
         pillCorners == null -> if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
-        isDarkTheme -> MapPillColorDark
-        else -> MapPillColorLight
+        else -> mapChromeFill((if (isDarkTheme) MapPillColorDark else MapPillColorLight).copy(alpha = 1f), overMap)
     }
+    val barShape = pillCorners?.shape() ?: RectangleShape
     Surface(
         color = barFill,
         contentColor = contentColor,
         tonalElevation = 0.dp,
         shadowElevation = if (pillCorners != null) MAP_CARD_SHADOW_ELEVATION else 0.dp,
-        shape = pillCorners?.shape() ?: RectangleShape,
-        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(barFill).then(
+        shape = barShape,
+        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(barFill).mapChromeShape(barShape).then(
             if (pillCorners != null && pillOutlineSides != null) {
-                Modifier.mapChromeEdges(
+                Modifier.mapChromeEdgesReported(
                     mapChromeOutline(), pillCorners.topLeft, pillCorners.topRight, pillCorners.bottomRight, pillCorners.bottomLeft, pillOutlineSides,
                 )
             } else {
@@ -482,17 +489,21 @@ internal fun SearchDropdown(
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val currentKeyboardUp by rememberUpdatedState(keyboardUp)
+    // Dispatch 2026-10-17-09 (RECORD -1238, the owner: "Yes, both (Recommended)"; the page's text read through this panel in the
+    // owner's floating-keyboard screenshot): at the map chrome's alpha over the Maps tab's map, as before (MapIconStackButtonColor
+    // is that role at 0.8), and solid off the map (owner: "In the places that aren't covering a map, they can stay solid").
+    val panelFill = mapChromeFill((if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight).copy(alpha = 1f), overMap)
     CompositionLocalProvider(LocalContentColor provides mapChromeContentColor(isDarkTheme)) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
                 // Rule 1 above: Box + background, never Surface, over the map.
                 .background(
-                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                    color = panelFill,
                     shape = RectangleShape,
                 )
                 .testTag(SEARCH_DROPDOWN_TAG)
-                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
+                .mapChromeContainerColor(panelFill),
         ) {
             val scrollState = rememberScrollState()
             // Map/navigation search-UI redo dispatch: "scrolling the drawer dismisses the
@@ -931,7 +942,8 @@ private fun RecentSearchRow(
                 .padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            val month = Month.of(summary.month).getDisplayName(TextStyle.FULL, Locale.getDefault())
+            // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
+            val month = Month.of(summary.month).getDisplayName(TextStyle.FULL, LocalConfiguration.current.locales[0])
             Text("${summary.filter.label} · $month", style = MaterialTheme.typography.titleSmall)
             Text(
                 "${"%.4f".format(summary.region.lat)}, ${"%.4f".format(summary.region.lng)} · " +
@@ -971,6 +983,8 @@ private fun SpeciesSearchControls(
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
+    // The root's modifier, by Compose's convention; the field's own is queryFieldModifier (lint ModifierParameter, dispatch 2026-10-17-03).
+    modifier: Modifier = Modifier,
     queryFieldModifier: Modifier = Modifier,
     onQueryFieldFocusChanged: (Boolean) -> Unit = {},
     /**
@@ -1005,7 +1019,7 @@ private fun SpeciesSearchControls(
     /** Whether the suggestions open over a map drawn on screen; they are then at the map chrome's alpha (owner, "1 A"). */
     suggestionsOverMap: Boolean = false,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty() || uiState.taxonSearchHasNoResults
         val queryFieldInteractionSource = remember { MutableInteractionSource() }
         ExposedDropdownMenuBox(
@@ -1130,7 +1144,9 @@ private fun TaxonSuggestionContent(result: TaxonSearchResult) {
 @Composable
 private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, overMap: Boolean = false) {
     var expanded by remember { mutableStateOf(false) }
-    val monthName = Month.of(selectedMonth).getDisplayName(TextStyle.FULL, Locale.getDefault())
+    // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
+    val locale = LocalConfiguration.current.locales[0]
+    val monthName = Month.of(selectedMonth).getDisplayName(TextStyle.FULL, locale)
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
@@ -1160,7 +1176,7 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, ov
                 val readInside = Modifier.mapChromeContentColor(LocalContentColor.current)
                 (1..12).forEach { month ->
                     DropdownMenuItem(
-                        text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault())) },
+                        text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, locale)) },
                         onClick = {
                             onMonthSelected(month)
                             expanded = false

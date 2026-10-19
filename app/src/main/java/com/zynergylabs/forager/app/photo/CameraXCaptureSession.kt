@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -46,6 +47,8 @@ import com.zynergylabs.forager.app.domain.mapCameraCapabilities
 import com.zynergylabs.forager.app.domain.mapEncoderCapabilities
 import com.zynergylabs.forager.app.domain.toLogLine
 import com.zynergylabs.forager.app.domain.toLogLines
+import com.zynergylabs.forager.app.ui.log.currentWindowIsFullScreen
+import com.zynergylabs.forager.app.ui.log.viewfinderInNaturalFrame
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
@@ -368,6 +371,27 @@ internal class CameraXCaptureSession(
     internal fun installImageCapture(capture: ImageCapture) {
         imageCapture = capture
     }
+
+    /**
+     * Installs a [Preview] as [open]'s bind would. For the viewfinder-turn test (dispatch 2026-10-17-08), which needs a
+     * real, unbound [Preview] for [Viewfinder] to attach its surface provider to; CameraX's camera does not run under
+     * Robolectric.
+     */
+    internal fun installPreview(preview: Preview) {
+        this.preview = preview
+    }
+
+    /**
+     * How many times [Viewfinder] has attached its surface provider to the bound [Preview] in this session's life. On a
+     * device each attachment after the first is a new surface request, and the camera rebuilds its session (the black
+     * flash of dispatch 2026-10-17-08), so a turn must not add one. Read by tests only.
+     */
+    internal var viewfinderSurfaceAttachments: Int = 0
+        private set
+
+    /** The viewfinder's `PreviewView` mode while composed, `null` otherwise. Read by tests only. */
+    internal val viewfinderImplementationMode: PreviewView.ImplementationMode?
+        get() = previewView?.implementationMode
 
     override suspend fun capture(destination: File): Result<Unit> {
         val capture = imageCapture
@@ -827,8 +851,16 @@ internal class CameraXCaptureSession(
     ) {
         val context = LocalContext.current
         val view = remember { PreviewView(context) }
+        // Keyed on whether this window could be held, not on whether it is held right now: the second flips on every
+        // portrait-landscape turn of a tablet, and each flip swapped the PreviewView's surface and restarted the camera
+        // (dispatch 2026-10-17-08). See viewfinderInNaturalFrame.
+        val naturalFrame = viewfinderInNaturalFrame(
+            held = held,
+            fullScreen = currentWindowIsFullScreen(),
+            smallestScreenWidthDp = LocalConfiguration.current.smallestScreenWidthDp,
+        )
 
-        DisposableEffect(view, held) {
+        DisposableEffect(view, naturalFrame) {
             previewView = view
             val bound = preview
             if (bound == null) {
@@ -836,17 +868,18 @@ internal class CameraXCaptureSession(
                 // assumed: if it ever happens, this is where the spinner-forever bug would hide.
                 Log.w(TAG, "Viewfinder composed before the camera was bound; nothing to draw into it yet.")
             } else {
-                if (held) {
+                if (naturalFrame) {
                     // Before the surface provider: the mode is read when the next surface is requested.
                     view.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                     bound.targetRotation = Surface.ROTATION_0
-                    Log.i(TAG, "Viewfinder held in the natural frame: COMPATIBLE, Preview targetRotation=ROTATION_0, display=${view.display?.rotation}.")
+                    Log.i(TAG, "Viewfinder in the natural frame: COMPATIBLE, Preview targetRotation=ROTATION_0, held=$held, display=${view.display?.rotation}.")
                 }
                 bound.setSurfaceProvider(view.surfaceProvider)
+                viewfinderSurfaceAttachments++
             }
             onDispose {
                 preview?.setSurfaceProvider(null)
-                if (held) {
+                if (naturalFrame) {
                     view.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
                     preview?.targetRotation = view.display?.rotation ?: Surface.ROTATION_0
                 }

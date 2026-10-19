@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import androidx.core.graphics.createBitmap
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.theme.MapPalette
@@ -203,7 +204,7 @@ internal fun updateRouteHomeLayers(style: Style, route: RouteOnMap?) {
  */
 private fun arrivedRingImage(colour: Int, density: Float): Bitmap {
     val size = (ARRIVED_RING_DP * density).toInt()
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val stroke = 3f * density
     val centre = size / 2f

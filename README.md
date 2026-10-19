@@ -41,8 +41,7 @@ Source paths named below that do not start with a top-level folder are under
     the bubble first, then the fan; and Back from a journal entry opened from a bubble's "kept in" line returns
     to the map with that bubble and the fan it was opened from.
   - **Forecast layers.** Two colour-field layers for forecast data exist in the map, but the app has no real
-    source for that data today: the debug build draws a synthetic test set behind a Diagnostics switch, and
-    the release build reports that there is no forecast data.
+    source for that data today, so every build reports that there is no forecast data.
 - **Journal** has two sides, **Entries** and **Records**. Entries are the trip write-ups you author; an
   entry can keep finds, photos, waypoints and tracks. Records holds All, Finds, Tracks, Waypoints and Offline
   maps. A find can carry photos, taken with the camera or imported. Recorded tracks can be exported as GPX.
@@ -70,8 +69,8 @@ installs the SDK pieces CI uses. The Gradle wrapper pins Gradle 9.7.0.
 ./gradlew testDebugUnitTest      # the unit tests (on the JVM; Robolectric stands in for Android)
 ```
 
-The app runs on Android 8.0 (API 26) and up and targets API 37. It has debug and release variants; the debug
-build adds the Diagnostics switch and the synthetic forecast data described above.
+The app runs on Android 8.0 (API 26) and up and targets API 37. It has debug and release variants, built
+from the same source; development tools are not part of either (removed 2026-10-12, RECORD -930).
 
 ## Continuous integration
 
@@ -80,6 +79,16 @@ build adds the Diagnostics switch and the synthetic forecast data described abov
 builds the debug APK, reads the version back out of the built APK with `aapt2` to prove the history was
 there, runs the unit tests, and checks the skipped ones against an exact list of allowed skips. It uploads
 two artifacts: `app-debug-apk` and `unit-test-report`.
+
+A second job, `lint`, runs Android lint on the debug variant (`./gradlew lintDebug`) and fails on any
+lint error, with no baseline (dispatch 2026-10-17-03, RECORD -1195). The checks switched off, each with its
+reason, are in the `lint {}` block of `app/build.gradle.kts`. It uploads `lint-reports`.
+
+A third job, `release-compile`, proves the release variant compiles and packages: it runs
+`./gradlew packageRelease packageReleaseBundle` with no signing key, so a release-only compile error, or code in
+`src/main` that needs a debug-only dependency, fails CI (dispatch 2026-10-17-04, RECORD -1201). It stops short of
+`assembleRelease` and `bundleRelease`, which fail by design without the signing identity, and it does not upload
+the unsigned APK or bundle, only its Gradle log, as `release-compile-log`.
 
 ### Run this branch on CI
 
@@ -140,12 +149,12 @@ What the code talks to, and what each needs. No API key or token for any of them
 
 | Path | What it is |
 |---|---|
-| `app/` | the Android app: `app/src/main`, `app/src/debug`, `app/src/release`, `app/src/test` (JVM tests), `app/src/androidTest` |
+| `app/` | the Android app: `app/src/main`, `app/src/test` (JVM tests), `app/src/testDebug` (JVM tests run against the debug build only), `app/src/androidTest` |
 | `app/src/main/java/.../domain/` | the rules: ranking, trips, tracks, records |
 | `.../data/` | the Room database, the iNaturalist and Open-Meteo clients, repositories, backup |
-| `.../ui/` | Compose screens: `availability` (tabs, search, settings), `map`, `log` (Journal), `track`, `backup`, `crash`, `theme`, `motion`, `adaptive` |
+| `.../ui/` | Compose screens: `availability` (tabs, search, settings), `map`, `log` (Journal), `track`, `backup`, `credits`, `format`, `theme`, `motion`, `adaptive` |
 | `.../map/` | MapLibre set-up and the offline-region repository |
-| `.../photo/`, `.../location/`, `.../sensor/`, `.../service/`, `.../alert/`, `.../export/`, `.../crash/`, `.../net/` | camera and photo storage; location; compass and level; the recording service; alerts; GPX export; crash files; the HTTP user-agent |
+| `.../photo/`, `.../location/`, `.../sensor/`, `.../service/`, `.../alert/`, `.../export/`, `.../importgpx/`, `.../net/` | camera and photo storage; location; compass and level; the recording service; alerts; GPX export; GPX import; the HTTP user-agent |
 | `data/species-index/` | how the bundled species-name index is built, and its inputs |
 | `server/pmtiles-worker/` | the tile worker behind offline downloads |
 | `scripts/` | SDK set-up and the checks that probe outside services |

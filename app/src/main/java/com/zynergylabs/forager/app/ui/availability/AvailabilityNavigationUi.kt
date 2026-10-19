@@ -51,10 +51,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.add
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -64,7 +65,8 @@ import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
-import com.zynergylabs.forager.app.ui.map.mapChromeEdges
+import com.zynergylabs.forager.app.ui.map.mapChromeEdgesReported
+import com.zynergylabs.forager.app.ui.map.mapChromeShape
 import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 
@@ -171,23 +173,26 @@ internal fun ForagerBottomNav(
      * Dispatch 2026-10-12-06, RECORD -937 (the owner: "let's give the botton navigation buttons the same rounded edge treatment
      * so it looks uniform"): the radius of the bar's two top corners. The Map tab's overlay instance passes the card's radius;
      * the bar stays full width, runs to the bottom edge and keeps its fill. A clip, so the corners are cut from its touch area as
-     * well as its drawing: a touch in a corner gap reaches the map beneath. 0 (the docked instances on the other tabs, where
-     * nothing but the screen's own background would show in the gap): square, as before.
+     * well as its drawing: a touch in a corner gap reaches the map beneath. 0: square. Since dispatch 2026-10-17-09 (RECORD
+     * -1224, -1225) the docked instance on the other tabs passes the same radius, solid, so the bar keeps its shape across the
+     * tab switch; its corner gaps show the page's background, and nothing is under them to touch.
      */
     topCornerRadius: Dp = 0.dp,
 ) {
+    // Dispatch 2026-10-17-09: the shape the bar is clipped to, also set on the node for tests (mapChromeShape).
+    val barShape = if (topCornerRadius > 0.dp) RoundedCornerShape(topStart = topCornerRadius, topEnd = topCornerRadius) else RectangleShape
     NavigationBar(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
-            .then(if (topCornerRadius > 0.dp) Modifier.clip(RoundedCornerShape(topStart = topCornerRadius, topEnd = topCornerRadius)) else Modifier)
+            .then(if (topCornerRadius > 0.dp) Modifier.clip(barShape) else Modifier)
             // Dispatch 2026-10-13-02 (RECORD -966, -967): over the map (rounded, the Map tab's instance), the icon bar's outline
             // along the bar's top edge and its two rounded corners. RECORD -989 (the owner: "give the side of the bottom navigation
             // strip the outline too. All the way down. Just not the bottom since it's supposed to meld into the android navbar"):
             // down both sides to the bar's bottom as well; its bottom edge carries none. Until -989 its sides carried none either.
             .then(
                 if (topCornerRadius > 0.dp) {
-                    Modifier.mapChromeEdges(
+                    Modifier.mapChromeEdgesReported(
                         mapChromeOutline(), topCornerRadius, topCornerRadius, 0.dp, 0.dp,
                         MapChromeOutlineSides(left = true, top = true, right = true, bottom = false),
                     )
@@ -196,7 +201,8 @@ internal fun ForagerBottomNav(
                 },
             )
             .testTag(COMPACT_BOTTOM_NAV_TAG)
-            .mapChromeContainerColor(containerColor),
+            .mapChromeContainerColor(containerColor)
+            .mapChromeShape(barShape),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
@@ -233,7 +239,8 @@ internal fun ForagerBottomNav(
  * rotations.
  *
  * The same destinations, labels, icons, colours and selection behaviour as [ForagerBottomNav], in
- * the same order top to bottom ([CompactTab.entries]), sharing its `onTabSelected` handler, so a
+ * [RAIL_ORDER_TOP_TO_BOTTOM]: the bar's left-to-right order read from the bottom up, List lowest and Tools highest (RECORD
+ * -1312; until then [CompactTab.entries] top to bottom, List highest). It shares the bar's `onTabSelected` handler, so a
  * tab switch is one piece of logic in either orientation. [CompactTab.TOOLS] highlights on
  * [isDrawerOpen] exactly as it does there. No header Search action yet: that comes with P8's
  * search sheet in B2 (R14).
@@ -258,8 +265,8 @@ internal fun ForagerNavigationRail(
      * Dispatch 2026-10-12-08, RECORD -952 (the owner: "In landscape mode: Can we have the rounded corners on the app navigation
      * buttons (the one on the right side of the display) like it is in portrait?"): the radius of the rail's two corners that face
      * the map, its inner side's top and bottom, as [ForagerBottomNav]'s `topCornerRadius` rounds the bar's two top corners. A
-     * clip, so the corners are cut from its touch area as well as its drawing and a touch in a corner gap reaches the map. 0, the
-     * docked rail beside the other tabs' content: square, as before.
+     * clip, so the corners are cut from its touch area as well as its drawing and a touch in a corner gap reaches the map. 0:
+     * square. Since dispatch 2026-10-17-09 the docked rail beside the other tabs' content passes the same radius, solid.
      */
     innerCornerRadius: Dp = 0.dp,
 ) {
@@ -269,13 +276,20 @@ internal fun ForagerNavigationRail(
     } else {
         AbsoluteRoundedCornerShape(topLeft = innerCornerRadius, bottomLeft = innerCornerRadius)
     }
+    // Dispatch 2026-10-17-09: the shape the rail is clipped to, also set on the node for tests (mapChromeShape).
+    val railShape = if (innerCornerRadius > 0.dp) innerCorners else RectangleShape
     NavigationRail(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        windowInsets = WindowInsets.navigationBars.only(portEdge.horizontalInsetsSide()),
+        // Dispatch 2026-10-18-01 (the owner, S22 check group 2: "have the rail extend fully to the side so there's no cutoff"):
+        // the cut-out's band on the rail's side is the rail's too, as the navigation bar's always was. The surface runs under
+        // both to the screen's edge and only the items are padded clear of them, on every tab. Until then this was the
+        // navigation bar alone, and beside List, Seasonal and Journal the content insets reserved the cut-out outside the rail,
+        // so a strip of page background showed between it and the edge whenever the punch hole was on the rail's side.
+        windowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout).only(portEdge.horizontalInsetsSide()),
         modifier = modifier
             .fillMaxHeight()
-            .then(if (innerCornerRadius > 0.dp) Modifier.clip(innerCorners) else Modifier)
+            .then(if (innerCornerRadius > 0.dp) Modifier.clip(railShape) else Modifier)
             // Dispatch 2026-10-13-02 (RECORD -966, -967): over the map, the icon bar's outline along the rail's inner edge and its
             // two rounded corners there. The inner edge is the one line between the rail and the landscape strip and navigation
             // card beside it, which leave that side open while the rail is shown (MapChromeOutlineSides). RECORD -990 (the owner:
@@ -285,12 +299,12 @@ internal fun ForagerNavigationRail(
             .then(
                 if (innerCornerRadius > 0.dp) {
                     if (portEdge == ScreenEdge.Left) {
-                        Modifier.mapChromeEdges(
+                        Modifier.mapChromeEdgesReported(
                             mapChromeOutline(), 0.dp, innerCornerRadius, innerCornerRadius, 0.dp,
                             MapChromeOutlineSides(left = false, top = true, right = true, bottom = true),
                         )
                     } else {
-                        Modifier.mapChromeEdges(
+                        Modifier.mapChromeEdgesReported(
                             mapChromeOutline(), innerCornerRadius, 0.dp, 0.dp, innerCornerRadius,
                             MapChromeOutlineSides(left = true, top = true, right = false, bottom = true),
                         )
@@ -300,7 +314,8 @@ internal fun ForagerNavigationRail(
                 },
             )
             .testTag(COMPACT_NAVIGATION_RAIL_TAG)
-            .mapChromeContainerColor(containerColor),
+            .mapChromeContainerColor(containerColor)
+            .mapChromeShape(railShape),
     ) {
         // Dispatch 2026-10-13-02, RECORD -976 (the owner: "Landscape: the side navigation buttons (list, seasonal, maps, journal,
         // tools) is crammed on the bar, unevenly stacked between the top and the bottom. Can the buttons be evenly spaced?"):
@@ -318,7 +333,7 @@ internal fun ForagerNavigationRail(
             verticalArrangement = RailItemsEvenly,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            CompactTab.entries.forEach { tab ->
+            RAIL_ORDER_TOP_TO_BOTTOM.forEach { tab ->
                 NavigationRailItem(
                     selected = if (tab == CompactTab.TOOLS) isDrawerOpen else selectedTab == tab,
                     onClick = { onTabSelected(tab) },
@@ -333,6 +348,22 @@ internal fun ForagerNavigationRail(
         }
     }
 }
+
+/**
+ * Dispatch 2026-10-18-08, RECORD -1312 (the owner, from the S26 promotion check: "the app's navigation tab had the icons reversed
+ * when going from portrait to landscape. A button a user would expect to be at one side ends up on the other", then "List is on
+ * the left/bottom always"): the rail's items, top to bottom. The bottom bar's left-to-right order, [CompactTab.entries], read from
+ * the bottom up, so List is lowest and Tools highest, in both landscape rotations (the rail is on the screen's right in both,
+ * `mainWindowRailEdgeFor`). The one place the rail's order is decided: every rail, over the map and beside the other tabs, on a
+ * phone and a tablet, is a [ForagerNavigationRail], which reads only this. The bar's order is not changed.
+ *
+ * The list itself is reversed, not the arrangement, so the semantics tree runs in the same order as the screen, top to bottom, and
+ * a screen reader reads the rail as it is drawn: Tools first, List last. Rejected: keeping [CompactTab.entries] and laying the items
+ * out from the bottom, which would leave the tree List first while the screen shows List last, so the reading order would rest on
+ * how the platform sorts by position rather than on this list. With no room at all [RailItemsEvenly] still stacks from the top, so
+ * in that case it is now List, not Tools, that is squeezed at the bottom.
+ */
+internal val RAIL_ORDER_TOP_TO_BOTTOM: List<CompactTab> = CompactTab.entries.reversed()
 
 /** The least gap between two rail items: Material's NavigationRail spaces its items 4 dp apart. Declared before
  * [RailItemsEvenly], whose initializer reads it: a top-level property is initialised in file order (CI run 38515463361 at
@@ -370,17 +401,22 @@ private val RailItemsEvenly: Arrangement.Vertical = object : Arrangement.Vertica
  * The Scaffold content insets for every tab but Map in a short landscape window (landscape B1,
  * P4/P5 and Resolutions R12 and R17 as revised). These tabs have the opaque rail beside them
  * ([ForagerNavigationRail], which takes the `navigationBars` inset on the port side itself), so:
- * at the top, `statusBars`; on the sides, `displayCutout`, so nothing sits in the cut-out band (in
- * practice only the punch-hole side has one); at the bottom nothing for a system bar, since in
- * landscape the 3-button bar is on the port side. The IME still pushes content up, as
- * `safeDrawing` did for these tabs in portrait. The Map tab does not use this: its map is
+ * at the top, `statusBars`; on the side away from [railEdge], `displayCutout`, so nothing sits in the cut-out band there;
+ * at the bottom nothing for a system bar, since in landscape the 3-button bar is on the port side. On the rail's own side
+ * nothing since dispatch 2026-10-18-01: the rail takes that side's cut-out itself and runs to the screen's edge under it
+ * ([ForagerNavigationRail]'s `windowInsets`); until then both sides' cut-outs were reserved here, outside the rail. The Map tab does not use this: its map is
  * full-bleed and only its controls are padded (compactMainScaffold's `mapControlsPadding`).
+ *
+ * No keyboard, since dispatch 2026-10-17-09, RECORD -1242 (the owner: "A: Ignore the keyboard, like Maps (Recommended)").
+ * This was `.add(WindowInsets.ime.only(WindowInsetsSides.Bottom))` so the keyboard pushed content up, as `safeDrawing` does in
+ * portrait; but it shrank the whole Row, the docked rail included ("Maps" clipped and the lower items hidden on the owner's
+ * S22, build 1.0.3416). The keyboard is now reserved on the content column beside the rail (compactMainScaffold), so the
+ * page still ends above it and the rail keeps its full height under it, as the Maps tab's overlaid rail does.
  */
 @Composable
-internal fun shortLandscapeContentInsets(): WindowInsets =
+internal fun shortLandscapeContentInsets(railEdge: ScreenEdge): WindowInsets =
     WindowInsets.statusBars.only(WindowInsetsSides.Top)
-        .add(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-        .add(WindowInsets.ime.only(WindowInsetsSides.Bottom))
+        .add(WindowInsets.displayCutout.only(railEdge.opposite.horizontalInsetsSide()))
 
 /** The bottom navigation bar (either instance), for tests (dispatch 2026-09-28-104, continuation -12, item 6). */
 internal const val COMPACT_BOTTOM_NAV_TAG = "compact-bottom-nav"

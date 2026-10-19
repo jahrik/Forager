@@ -26,7 +26,4 @@ bucket_name = "forager-maps"
 # client (e.g. a future web viewer) ever calls this Worker directly.
 ALLOWED_ORIGINS = "*"
 
-# The Pi tile origin, tried first for z/x/y tiles with R2 as fallback (src/index.ts, "Pi origin").
-# Behind Cloudflare Access: the service token's two values are Worker secrets, CF_ACCESS_CLIENT_ID
-# and CF_ACCESS_CLIENT_SECRET, set in the dashboard and never written here.
-PI_ORIGIN_URL = "https://origin.zynergy-labs.com"
+# PI_ORIGIN_URL removed: the Pi serves nothing live (RECORD -879, -1303); dispatch 2026-10-18-05 (Part 2) removes the Pi-first code.

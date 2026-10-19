@@ -483,3 +483,127 @@ jobs:
             app/build/reports/tests/testDebugUnitTest/
             app/build/test-results/testDebugUnitTest/
           if-no-files-found: error
+
+  # Android lint on the debug variant (production release T3; dispatch 2026-10-17-03, owner's go RECORD -1195).
+  # A separate job, so the build job above is unchanged. lintDebug fails on any error (lint's abortOnError default)
+  # and there is no baseline; the checks switched off, and why, are in app/build.gradle.kts's lint block. Debug
+  # covers the main code and the tests; the 2026-10-17 survey found release lint adds nothing (no release-only
+  # sources) and skips the tests. Set up as the build job is (same pinned checkout, JDK, Gradle and SDK steps).
+  lint:
+    name: Android lint (debug)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # As in the build job: resolveBuildIdentity needs the real history.
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@67621b124fd2e251c5e8a0e6e3b91318f2287669 # v6.3.0
+
+      - name: Install the Android SDK with the repo's own setup script
+        run: ./scripts/setup-android-sdk.sh
+
+      - name: Run lint on the debug variant
+        # The log goes under app/build (gitignored), so it cannot mark the checkout dirty for resolveBuildIdentity.
+        run: |
+          set -euo pipefail
+          mkdir -p app/build
+          ./gradlew --stacktrace --console=plain lintDebug 2>&1 | tee app/build/lint-gradle.log
+
+      - name: Upload the lint reports
+        # if: always(), so a failing run still leaves the report that says why.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lint-reports
+          path: |
+            app/build/reports/lint-results-debug*
+            app/build/lint-gradle.log
+          if-no-files-found: error
+
+  # Release compile check (production release T8; dispatch 2026-10-17-04, owner's go RECORD -1201). CI otherwise
+  # builds only the debug variant, so a release-only compile error, or src/main code that leans on a debug-only
+  # dependency (debugImplementation), would first surface on the owner's machine at release time. This job
+  # compiles and packages the release variant as far as it goes with no signing key: packageRelease (Kotlin and
+  # Java, resources, manifest merge, dex, an unsigned APK) and packageReleaseBundle (the unsigned app bundle, the
+  # form Play receives). It deliberately does not run assembleRelease or bundleRelease: those depend on
+  # verifyReleaseNeverSignsWithDebugKeystore in app/build.gradle.kts, which fails by design when no signing
+  # identity is configured, and no key, secret or stand-in identity is given to CI. The unsigned outputs are not
+  # uploaded. A separate job, so the build job above is unchanged; set up as the build job is.
+  release-compile:
+    name: Release compiles and packages (unsigned)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The version is read from git history (app/build.gradle.kts, buildIdentity), as in the build job.
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@67621b124fd2e251c5e8a0e6e3b91318f2287669 # v6.3.0
+
+      - name: Install the Android SDK with the repo's own setup script
+        run: ./scripts/setup-android-sdk.sh
+
+      - name: Compile and package the release variant without signing
+        # The log goes under app/build (gitignored), so it cannot mark the checkout dirty for resolveBuildIdentity.
+        run: |
+          set -euo pipefail
+          mkdir -p app/build
+          log=app/build/release-compile-gradle.log
+          ./gradlew --stacktrace --console=plain packageRelease packageReleaseBundle 2>&1 | tee "$log"
+
+          # A green Gradle exit is only evidence if the release compile actually ran in this invocation, and the
+          # outputs it claims exist. Each check below names what it guards against.
+          failed=0
+          for task in compileReleaseKotlin processReleaseResources packageRelease packageReleaseBundle; do
+            if ! grep -q "^> Task :app:$task\b" "$log"; then
+              echo "::error:::app:$task does not appear in the Gradle log; the release variant was not built as claimed."
+              failed=1
+            fi
+          done
+          if grep -q "^> Task :app:verifyReleaseNeverSignsWithDebugKeystore\b" "$log"; then
+            echo "::error::The signing guard ran; this job must stop short of it, not pass through it."
+            failed=1
+          fi
+          apks="$(find app/build/outputs/apk/release -name '*.apk' 2>/dev/null || true)"
+          bundles="$(find app/build/intermediates -path '*release*' -name '*.aab' 2>/dev/null || true)"
+          [ -n "$apks" ] || { echo "::error::No release APK under app/build/outputs/apk/release."; failed=1; }
+          [ -n "$bundles" ] || { echo "::error::No release app bundle under app/build/intermediates."; failed=1; }
+          [ "$failed" -eq 0 ] || exit 1
+
+          {
+            echo "### Release variant (unsigned)"
+            echo
+            echo "Compiled and packaged with no signing key; the signing guard did not run."
+            echo
+            for f in $apks $bundles; do echo "- \`$f\` ($(stat -c %s "$f") bytes)"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the release compile log
+        # if: always(), so a failing run still leaves the log that says why.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-compile-log
+          path: app/build/release-compile-gradle.log
+          if-no-files-found: error

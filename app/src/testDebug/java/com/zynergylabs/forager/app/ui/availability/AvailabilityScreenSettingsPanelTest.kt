@@ -32,6 +32,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -258,12 +260,14 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `the map opens on the OpenTopoMap basemap, MapMode's default`() {
+    // Was "…opens on the OpenTopoMap basemap…", asserting Basemap.OPEN_TOPO_MAP; the default became Street (dispatch
+    // 2026-10-18-04, Amendment 2; RECORD -1297).
+    fun `the map opens on the OpenStreetMap Street basemap, MapMode's default`() {
         setScreen()
 
-        // Basemap.DEFAULT resolves through MapMode.DEFAULT (Topographical, via OpenStreetMap) —
+        // Basemap.DEFAULT resolves through MapMode.DEFAULT (Street, via OpenStreetMap) —
         // see MapMode's own doc comment for why this changed from PR #13's USGS Topo default.
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
     }
 
     /**
@@ -368,7 +372,7 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
-    private val mapModeContentDescription = "Layers: Topographical map. Choose the map type and overlays."
+    private val mapModeContentDescription = "Layers: Street map. Choose the map type and overlays."
 
     /**
      * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
@@ -419,25 +423,27 @@ class AvailabilityScreenSettingsPanelTest {
 
     @Test
     fun `tapping the quick-fire icon opens the Layers sheet, and a chip there changes the basemap while the sheet stays open`() {
+        // The map now opens on Street (dispatch 2026-10-18-04, Amendment 2), so the two chips are taken the other way
+        // round: Topographical first, then back to Street. It was Street first, then Topographical.
         setScreen()
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
 
         composeRule.onNodeWithContentDescription(mapModeContentDescription).performClick()
-        composeRule.onNodeWithText("Street").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Topographical").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
-        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
+        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
         // Map layers L0b (owner's ruling on Q3, "Stays open"): the sheet stays open on a map-type
         // tap, so the other chip is still on screen. Before L0b the picker closed itself here and
         // this asserted Satellite's count was 0; until dispatch 2026-09-28-708 it then went on to
         // Satellite, which that dispatch removed, so it now goes back to Topographical and checks
         // that no Satellite chip is offered.
         composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
-        composeRule.onNodeWithText("Topographical").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Street").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
-        assertNotEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertNotEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
     }
 
     @Test
@@ -575,7 +581,7 @@ class AvailabilityScreenSettingsPanelTest {
     /**
      * The behavior this project's owner explicitly asked for: offline downloads always use a fixed
      * source internally, so reaching the submenu never depends on which map mode is selected for
-     * live browsing. Topographical is the default (untouched) mode for this test.
+     * live browsing. The default (untouched) mode, Street since Amendment 2 of dispatch 2026-10-18-04, is used here.
      */
     @Test
     fun `Offline Maps is reachable under the default map mode, with no gating message`() {
@@ -589,9 +595,18 @@ class AvailabilityScreenSettingsPanelTest {
         ).assertCountEquals(0)
     }
 
+    /**
+     * Dispatch 2026-10-18-07 (Forager RECORD -1309; the owner: "Offline maps displays topo maps. Have it display the street
+     * map", then, asked whether it should always be Street or follow the Layers choice, "Always be street."). Until then this
+     * test was `the Offline Maps submenu always resolves the picker map to OpenTopoMap`, ending
+     * `assertEquals(Basemap.OPEN_TOPO_MAP, capturedOfflinePickerBasemap)`: the behaviour that ruling replaces. The Maps tab is
+     * set to Topographical here, so a picker that followed the Layers choice would fail this, not only one pinned to Topo.
+     */
     @Test
-    fun `the Offline Maps submenu always resolves the picker map to OpenTopoMap`() {
-        setScreen()
+    fun `the Offline Maps submenu always resolves the picker map to Street, even with the Maps tab on Topographical`() {
+        setScreen(uiState = SEARCHED_STATE.copy(mapMode = MapMode.TOPOGRAPHIC))
+        composeRule.waitForIdle()
+        assertEquals("premise: the Maps tab's map is on Topographical", Basemap.OPEN_TOPO_MAP, capturedBasemap)
         openOfflineMapsSubTab()
         // A synchronizing node query (as every other test in this file that reads capture state
         // right after a click already has, via assertIsDisplayed/assertIsNotEnabled) is what
@@ -599,7 +614,7 @@ class AvailabilityScreenSettingsPanelTest {
         // doesn't guarantee it here.
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
 
-        assertEquals(Basemap.OPEN_TOPO_MAP, capturedOfflinePickerBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedOfflinePickerBasemap)
     }
 
     /**
@@ -632,12 +647,15 @@ class AvailabilityScreenSettingsPanelTest {
     // removed every "Delete" text from the app, so that line passed whatever it checked, and with
     // no region there was no row for a delete control to be on anyway. The empty-list half stays
     // here; what the line was guarding moved to the next test, which has a row to look at.
+    // Dispatch 2026-10-18-03 (Forager RECORD -1269; the owner: "Remove both OK and Cancel and just have the Download Maps option";
+    // Download Maps "is enabled whenever the map has a position and no download is running, and is never greyed waiting for OK").
+    // Was `Download Maps is disabled with no region picked, ...`, asserting `.assertIsNotEnabled()` here.
     @Test
-    fun `Download Maps is disabled with no region picked, and no regions show with nothing downloaded`() {
+    fun `Download Maps is enabled with no region picked, and no regions show with nothing downloaded`() {
         setScreen()
         openOfflineMapsSubTab()
 
-        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsEnabled()
         composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
     }
 
@@ -666,22 +684,29 @@ class AvailabilityScreenSettingsPanelTest {
             .assertCountEquals(0)
     }
 
+    // Dispatch 2026-10-18-03 (Forager RECORD -1269): this screen has no OK; Download Maps picks the pin's point and asks first. Was
+    // `panning the picker map and confirming with OK sets the region and enables Download Maps`: Download Maps not enabled on
+    // arrival, then `onNodeWithText("OK").performClick()`, then enabled.
     @Test
-    fun `panning the picker map and confirming with OK sets the region and enables Download Maps`() {
+    fun `panning the picker map and tapping Download Maps picks the panned point and asks first`() {
         setScreenWithOfflineMapsState()
         openOfflineMapsSubTab()
-        composeRule.onNodeWithText("Download Maps").assertIsNotEnabled()
+        composeRule.onNodeWithText("Download Maps").assertIsEnabled()
 
         composeRule.onNodeWithText("Simulate pan to test location").performClick()
-        composeRule.onNodeWithText("OK").performClick()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Download this area?").assertIsDisplayed()
+        composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
         composeRule.waitForIdle()
 
-        // performScrollTo, as "Download Maps"/"No regions downloaded yet" above already need:
-        // map-pan dispatch §2b gave the picker map its own 4:3 viewport (360x270dp here, up from
-        // 360x146dp), which pushes this line below the fold on a 360x640dp window. The line is
-        // present and reachable in the panel's own scroll — only its position changed.
+        // Dispatch 2026-10-17-09, RECORD -1245 (the owner: "Option 1, but do the same for portrait"): the panel's
+        // "Download region: <lat>, <lng>" line is gone, both forms of it; this read it as the evidence that OK set the region
+        // (`onNodeWithText("Download region: …").performScrollTo().assertIsDisplayed()`). The evidence is now the pinned "Pin at"
+        // line showing the picked point, and Download Maps enabled (since dispatch 2026-10-18-03 it is enabled whenever the pin is
+        // on a real place and no download runs).
         composeRule.onNodeWithText(
-            "Download region: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
+            "Pin at: ${"%.4f".format(PICKED_LOCATION.lat)}, ${"%.4f".format(PICKED_LOCATION.lng)}",
         ).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsEnabled()
     }
@@ -805,10 +830,10 @@ class AvailabilityScreenSettingsPanelTest {
 
         composeRule.onAllNodesWithText("Pin at:", substring = true).assertCountEquals(1)
         composeRule.onAllNodesWithText("Selected:", substring = true).assertCountEquals(0)
-        // performScrollTo since map-pan dispatch §2b: the 4:3 map viewport puts this line below
-        // the fold on a 360x640dp window — see the Download-region assertion above.
-        composeRule.onNodeWithText("No location picked yet — pan the map above and tap OK.")
-            .performScrollTo().assertIsDisplayed()
+        // Dispatch 2026-10-17-09, RECORD -1245: the panel's not-yet-picked line is gone (the owner: "Option 1, but do the same
+        // for portrait"), so nothing can contradict the pin's label; this asserted it was displayed
+        // (`onNodeWithText("No location picked yet — pan the map above and tap OK.").performScrollTo().assertIsDisplayed()`).
+        composeRule.onAllNodesWithText("No location picked yet", substring = true).assertCountEquals(0)
     }
 
     /**

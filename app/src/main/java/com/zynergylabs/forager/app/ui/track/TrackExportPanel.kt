@@ -67,6 +67,7 @@ import com.zynergylabs.forager.app.ui.format.is24HourClock
 @Composable
 internal fun TrackExportList(
     tracks: List<Track>,
+    modifier: Modifier = Modifier,
     /** All saved waypoints — filtered per track (by [Waypoint.trackId]) at the row that needs it. Defaults empty so a caller not exercising export (most existing screen tests) is unaffected. */
     waypoints: List<Waypoint> = emptyList(),
     /**
@@ -75,7 +76,6 @@ internal fun TrackExportList(
      * an empty record, same reasoning as [waypoints]; `MainActivity` wires the real one.
      */
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
-    modifier: Modifier = Modifier,
     /**
      * Journal redesign J5c: a tap on a row opens that track's details sheet (`RecordDetailsSheet`),
      * given the track's id. `null`, the default, leaves the rows without a tap, as before.

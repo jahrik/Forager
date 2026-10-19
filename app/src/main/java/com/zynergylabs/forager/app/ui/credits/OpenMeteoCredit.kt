@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.ui.credits
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
@@ -18,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 
 /** Open-Meteo's required attribution wording (open-meteo.com/en/licence, read 2026-10-13). */
@@ -56,7 +56,7 @@ internal fun OpenMeteoCredit(modifier: Modifier = Modifier) {
 }
 
 /** A plain web link; a test asserts its action and address without anything installed to open it. */
-internal fun webLinkIntent(url: String): Intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+internal fun webLinkIntent(url: String): Intent = Intent(Intent.ACTION_VIEW, url.toUri())
 
 /** Shown when nothing installed can open a web link. CLAUDE.md: report, don't swallow. */
 internal const val NO_BROWSER_MESSAGE = "Nothing installed can open this link."

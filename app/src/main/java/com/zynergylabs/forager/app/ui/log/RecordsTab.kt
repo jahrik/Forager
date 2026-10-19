@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.DisposableEffect
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import com.zynergylabs.forager.app.ui.motion.PageSlide
@@ -89,6 +91,7 @@ internal fun RecordsTab(
      * confirm dialog.
      */
     onDeleteWaypoint: (String) -> Unit,
+    modifier: Modifier = Modifier,
     /**
      * How many journal entries keep each waypoint (`TrackRecordingUiState.waypointEntryReferenceCounts`).
      * Unread from journal redesign J4 (its warning moved into the Undo snackbar) until J5c, whose
@@ -187,7 +190,6 @@ internal fun RecordsTab(
     shortWindow: Boolean = false,
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
-    modifier: Modifier = Modifier,
     /**
      * Dispatch 2026-09-28-502 (plan task T9): a waypoint's Navigate, in its rows (the All logbook and the
      * Waypoints chip) and its details sheet, given where it was tapped, so Back can come back here. `null`
@@ -211,6 +213,13 @@ internal fun RecordsTab(
      */
     openTrackDetails: String? = null,
     onOpenTrackDetailsConsumed: () -> Unit = {},
+    /**
+     * Dispatch 2026-10-17-09, RECORD -1243 (the owner: "still have the chips be on the same line as the entries | records";
+     * "All of Records, landscape (Recommended)"): in a short window the filter chips are drawn on the Journal's switch line,
+     * which `JournalTab` draws above the pages. This tab hands its chip row up through [chipsOnSwitchLine] and draws no row of
+     * its own. `null` (portrait, the wide tree, and a short window with no holder) keeps the row here, as before.
+     */
+    chipsOnSwitchLine: MutableState<(@Composable () -> Unit)?>? = null,
 ) {
     var selectedTab by selectedTabState
 
@@ -297,7 +306,39 @@ internal fun RecordsTab(
                 metrics = if (shortWindow) RecordsChipRowMetrics.ShortWindow else RecordsChipRowMetrics.Default,
             )
         }
-        if (shortWindow) ShortWindowSecondRow(chipRowScroll) { chipRow() } else chipRow()
+        if (shortWindow && chipsOnSwitchLine != null) {
+            // RECORD -1243: one chip row, handed up once and kept for as long as this tab is shown, reading the current
+            // selection, counts and handler when it draws (rememberUpdatedState), so handing it up never recomposes the line
+            // in a loop.
+            val currentCounts by rememberUpdatedState(
+                RecordsFilterCounts(
+                    finds = finds?.size,
+                    tracks = tracks.size,
+                    waypoints = waypoints.size,
+                    offlineMaps = availabilityUiState.visibleOfflineRegions.size,
+                ),
+            )
+            val currentSelect by rememberUpdatedState<(RecordsSubTab) -> Unit>({ tab -> selectTab(tab) })
+            val chipsForLine: @Composable () -> Unit = remember(selectedTabState) {
+                {
+                    RecordsFilterChipRow(
+                        selected = selectedTabState.value,
+                        counts = currentCounts,
+                        onSelect = { tab -> currentSelect(tab) },
+                        metrics = RecordsChipRowMetrics.ShortWindow,
+                        onSwitchLine = true,
+                    )
+                }
+            }
+            DisposableEffect(chipsOnSwitchLine, chipsForLine) {
+                chipsOnSwitchLine.value = chipsForLine
+                onDispose { if (chipsOnSwitchLine.value === chipsForLine) chipsOnSwitchLine.value = null }
+            }
+        } else if (shortWindow) {
+            ShortWindowSecondRow(chipRowScroll) { chipRow() }
+        } else {
+            chipRow()
+        }
 
         // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout R1, R2): a chip's list opens over the default
         // chip's, sliding in from the right, and Back (which steps to the default) or the default chip slides it out again.

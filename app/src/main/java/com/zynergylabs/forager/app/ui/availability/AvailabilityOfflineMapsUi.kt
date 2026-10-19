@@ -13,15 +13,25 @@ package com.zynergylabs.forager.app.ui.availability
 // Two things worth knowing rather than re-deriving:
 // - For the pending offline style swap (Stage 2e-ii, see MapSlot.kt's deliberately inert
 //   offline-region parameter and MapLibreOfflineMapRepository's OFFLINE_STYLE_URL): the region
-//   picker below pins `basemap = Basemap.OPEN_TOPO_MAP` in its CentrePinLocationPicker call. If
-//   the offline style is meant to show inside the picker, that pin is the exact line 2e-ii
-//   touches. This move changed its file, not its shape. Nothing here touches MapLibre
+//   picker below pins its basemap in its CentrePinMap call. If the offline style is meant to show
+//   inside the picker, that pin is the exact line 2e-ii touches. This move changed its file, not
+//   its shape. The pin was `Basemap.OPEN_TOPO_MAP` until dispatch 2026-10-18-07 (Forager RECORD
+//   -1309; the owner, from a screenshot of this screen showing Topo: "Offline maps displays topo
+//   maps. Have it display the street map", then, asked whether it should always be Street or
+//   follow the Layers choice, "Always be street."). It is `Basemap.OSM_STANDARD` now, named
+//   directly rather than read from `MapMode.DEFAULT` (which is also Street today), so a later
+//   change to the app's opening map does not move this one, and rather than the Layers choice,
+//   which the owner turned down. Night mode is unchanged (Street's night paint, as on the Maps
+//   tab), and so is what gets downloaded: the Worker's offline style, which this picker map has
+//   never shown. Nothing here touches MapLibre
 //   initialisation (initializeMapLibre lives in MapLibreStorage.kt and is called only from
 //   SightingsMap and MapLibreOfflineMapRepository); this panel reaches the map through MapSlot.
 // - CartographyEntryEditScreen (log package) has its own *private* function also named
 //   OfflineRegionsSection. It is a different function, not a reference to the one here — a grep
 //   coincidence, not a dependency.
 
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -30,8 +40,14 @@ import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.constrainWidth
+import androidx.compose.ui.unit.Dp
+import com.zynergylabs.forager.app.ui.log.LANDSCAPE_ENTRY_INFO_MIN_WIDTH
 import com.zynergylabs.forager.app.ui.map.CentrePinConfirmActions
-import com.zynergylabs.forager.app.ui.map.CentrePinInstruction
 import com.zynergylabs.forager.app.ui.map.CentrePinMap
 import com.zynergylabs.forager.app.ui.map.rememberCentrePinState
 import androidx.compose.foundation.layout.Arrangement
@@ -115,21 +131,26 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  *
  * ## Picking a region via [CentrePinLocationPicker]
  *
- * [onRegionPicked] fires from [CentrePinLocationPicker]'s own OK button — see that composable's
- * class doc comment for why every location-placing site in this app, this one included, replaced
- * long-press with a fixed centre pin (an accessibility decision, not a style one). There is no
- * name-and-date dialog in between OK and the pick landing: a confirmed point becomes the region's
- * centre immediately, since there is nothing else to ask the user for. [Basemap.OPEN_TOPO_MAP] here
- * is only terrain context for choosing *where* to download — this picker map is unrelated to which
- * source the download itself actually reads from underneath. Was `Basemap.USGS_TOPO` (US-only)
- * until [MapMode] removed it from the app entirely; [Basemap.OPEN_TOPO_MAP] is the worldwide
- * equivalent, a better fit for a picker with no reason to inherit a US-only limit it never needed.
+ * [onRegionPicked] fires from Download Maps, with the pin's point, just before the confirmation opens
+ * (dispatch 2026-10-18-03, Forager RECORD -1269; the owner: "Remove both OK and Cancel and just have the
+ * Download Maps option"). Until then it fired from the picker's own OK, which this screen no longer
+ * has; every other picker keeps OK and Cancel. See [CentrePinLocationPicker]'s class doc comment for
+ * why every location-placing site in this app, this one included, replaced long-press with a fixed
+ * centre pin (an accessibility decision, not a style one). [Basemap.OSM_STANDARD] here
+ * is only context for choosing *where* to download — this picker map is unrelated to which
+ * source the download itself actually reads from underneath. Always Street since dispatch
+ * 2026-10-18-07 (Forager RECORD -1309; the owner: "Always be street."), whatever the Layers choice;
+ * see this file's header comment. Before that it was [Basemap.OPEN_TOPO_MAP], and before that
+ * `Basemap.USGS_TOPO` (US-only), until [MapMode] removed it from the app entirely.
  *
- * Before anything is confirmed, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank, so
- * the picker centres on [OFFLINE_MAP_PICKER_DEFAULT_CENTER] purely so there is a map to navigate
- * — not a claim about where the user is or wants to download. "Download Maps" stays disabled until
- * a real point has been confirmed (see `hasValidRegion` below), so that default viewport can never
- * itself be submitted as a region.
+ * Before anything is picked, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank, so the
+ * picker opens on the device's location when there is one ([AvailabilityUiState.offlineMapPickerDefaultCenter])
+ * or else on [OFFLINE_MAP_PICKER_DEFAULT_CENTER], so there is a map to navigate. Download Maps
+ * downloads wherever the pin sits, and the "Download this area?" confirmation names the radius and
+ * the tile count before anything starts. Until dispatch 2026-10-18-03 Download Maps stayed disabled
+ * until OK confirmed a point, so the opening viewport could never be submitted unconfirmed; the
+ * owner's step path replaces that guard with the confirmation (Elder's top-up audit, item 1: the
+ * greyed button with nothing saying why read as broken).
  *
  * The map keeps a fixed aspect ratio rather than filling leftover space — see the `Box` below's
  * own comment for why `weight(1f)` stopped working once this whole panel became one scrolling unit.
@@ -158,7 +179,6 @@ internal fun OfflineMapsPanel(
 ) {
     val pickedLat = uiState.offlineMapLatText.toDoubleOrNull()
     val pickedLng = uiState.offlineMapLngText.toDoubleOrNull()
-    val hasValidRegion = pickedLat != null && pickedLat in -90.0..90.0 && pickedLng != null && pickedLng in -180.0..180.0
     val defaultCenter = uiState.offlineMapPickerDefaultCenter ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER
     val now = currentTime.nowEpochMillis()
 
@@ -169,39 +189,45 @@ internal fun OfflineMapsPanel(
     )
     // One pin for both layouts below (L1): turning the phone swaps the layout, not the pin.
     val pinState = rememberCentrePinState(pickerRegion)
+    // Dispatch 2026-10-18-03: Download Maps downloads wherever the pin sits, so the tile figures read the pin too (the line under
+    // the slider and the confirmation's). They read the last confirmed point while OK existed; with OK gone that point would lag.
+    val pin = pinState.cameraCenter
+    val pinRegion = Region(lat = pin.lat, lng = pin.lng, radiusKm = uiState.offlineMapRadiusKm)
+    val pinIsAPlace = pin.lat in -90.0..90.0 && pin.lng in -180.0..180.0
     // The map moves between the two layouts rather than being composed twice: a second mapSlot call
     // would tear down and rebuild the MapView on every turn (the same guarantee
     // CartographyEntryReportScreen's fullscreen relies on), losing the camera the pin reads.
     val pickerMap = remember(pinState, mapSlot) {
         movableContentOf { night: Boolean, mapModifier: Modifier ->
-            // Basemap.OPEN_TOPO_MAP: the pin this file's header comment names for Stage 2e-ii.
-            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.OPEN_TOPO_MAP, night = night, modifier = mapModifier)
+            // Always Street (dispatch 2026-10-18-07, RECORD -1309): the pin this file's header comment names, for Stage 2e-ii too.
+            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.OSM_STANDARD, night = night, modifier = mapModifier)
         }
     }
-    // Nothing to cancel back to: this panel had no confirm step before this picker
-    // existed either — the offlineMapLatText/offlineMapLngText fields just keep
-    // whatever they already held (blank, or a prior confirmed pick).
+    // Dispatch 2026-10-18-03 (Forager RECORD -1269): the "Pin at" line alone under the map, with no OK and no Cancel. Back leaves
+    // the screen, as Cancel did (Cancel here was a no-op: this panel had nothing to cancel back to).
     val confirmActions: @Composable () -> Unit = {
-        CentrePinConfirmActions(state = pinState, onConfirm = onRegionPicked, onCancel = {})
+        CentrePinConfirmActions(state = pinState, onConfirm = onRegionPicked, onCancel = {}, showConfirmButtons = false)
     }
-    val instruction: @Composable () -> Unit = {
+    // Dispatch 2026-10-17-09, RECORD -1243 and -1245 (the owner: "Trim the top text out, the design is intuitive to use without
+    // explaining (3 times). Add at the bottom the note on the Continental US vector map. Have the user be faced with the
+    // optional name box at top with the radius slider shown"; to the three lines as listed, "Option 1, but do the same for
+    // portrait"). Gone from this screen, in both orientations:
+    //  1. the instruction above the map, "Offline downloads cover the continental United States with vector map data. Pan the
+    //     map below to position the pin, then tap OK to choose where to download.", whose first sentence is now the note at the
+    //     bottom (usContinentalNote);
+    //  2. the centre-pin instruction, "Pan the map to position the pin, then confirm." (CentrePinInstruction; only here: every
+    //     other picker keeps it);
+    //  3. the picked-region line, "No location picked yet — pan the map above and tap OK." or "Download region: <lat>, <lng>":
+    //     the pinned "Pin at: <lat>, <lng>" line under the map already shows where the pin is.
+    // So the controls start with the Name box, the radius and its slider under it.
+    val usContinentalNote: @Composable () -> Unit = {
         Text(
-            "Offline downloads cover the continental United States with vector map data. " +
-                "Pan the map below to position the pin, then tap OK to choose where to download.",
+            OFFLINE_US_CONTINENTAL_NOTE,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
     }
     val details: @Composable ColumnScope.() -> Unit = {
-        Text(
-            if (hasValidRegion) {
-                "Download region: ${"%.4f".format(pickedLat)}, ${"%.4f".format(pickedLng)}"
-            } else {
-                "No location picked yet — pan the map above and tap OK."
-            },
-            style = MaterialTheme.typography.bodySmall,
-        )
-
         OutlinedTextField(
             value = uiState.offlineMapNameText,
             onValueChange = onOfflineMapNameChanged,
@@ -227,7 +253,7 @@ internal fun OfflineMapsPanel(
         // Against the zoom the deployed source actually serves (SERVED_MAX_ZOOM, now equal to
         // MAX_ZOOM; the min inside is kept as the seam for their next divergence) — see
         // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch; two-data-corrections dispatch).
-        val estimatedTiles = estimateServedOfflineTileCount(pickerRegion)
+        val estimatedTiles = estimateServedOfflineTileCount(pinRegion)
         val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
         val exceedsBudget = estimatedTiles > remainingBudget
         Text(
@@ -248,12 +274,19 @@ internal fun OfflineMapsPanel(
     // one tap used to start a real download. Saveable, so a rotation or a night-mode rebuild with the
     // question up keeps asking it.
     var confirmingDownload by rememberSaveable { mutableStateOf(false) }
-    val downloadButton: @Composable (Modifier) -> Unit = { buttonModifier ->
+    // Dispatch 2026-10-18-03 (Forager RECORD -1269; the owner's step path: "pan the map to place the pin → ... → tap Download
+    // Maps → the existing 'Download this area?' confirmation → it downloads"): the tap picks the pin's point (the two text fields
+    // the download reads, as OK did) and asks. Enabled whenever the pin is on a real place and no download is running.
+    val downloadButton: @Composable (Modifier, PaddingValues) -> Unit = { buttonModifier, padding ->
         Button(
-            onClick = { confirmingDownload = true },
-            enabled = hasValidRegion && !isDownloading,
+            onClick = {
+                onRegionPicked(pinState.cameraCenter)
+                confirmingDownload = true
+            },
+            enabled = pinIsAPlace && !isDownloading,
+            contentPadding = padding,
             modifier = buttonModifier.fillMaxWidth(),
-        ) { Text("Download Maps") }
+        ) { Text("Download Maps", maxLines = 1) }
     }
     val confirmDownloadDialog: @Composable () -> Unit = {
         if (confirmingDownload) {
@@ -267,7 +300,7 @@ internal fun OfflineMapsPanel(
                 modifier = Modifier.testTag(DOWNLOAD_CONFIRM_DIALOG_TAG).mapChromeContainerColor(downloadDialogColor),
                 title = { Text("Download this area?") },
                 text = {
-                    Text(offlineDownloadConfirmationBody(uiState.offlineMapNameText, uiState.offlineMapRadiusKm, distanceUnit, estimateServedOfflineTileCount(pickerRegion)))
+                    Text(offlineDownloadConfirmationBody(uiState.offlineMapNameText, uiState.offlineMapRadiusKm, distanceUnit, estimateServedOfflineTileCount(pinRegion)))
                 },
                 confirmButton = {
                     TextButton(onClick = { confirmingDownload = false; onDownloadOfflineMaps() }) { Text("Download") }
@@ -301,11 +334,20 @@ internal fun OfflineMapsPanel(
             // when the port edge is the left", which put them on the left at ROTATION_270.
             controlsFirst = false,
             map = { mapModifier -> pickerMap(isNightMode, mapModifier) },
-            instruction = instruction,
             details = details,
+            usContinentalNote = usContinentalNote,
             regionsSection = regionsSection,
-            confirmActions = confirmActions,
-            downloadButton = downloadButton,
+            // Dispatch 2026-10-18-03 (Forager RECORD -1269): "Pin at: …", then Download Maps across the controls side. Was, under
+            // RECORD -1253 ("C: OK, Cancel and Download on one line"), OK, Cancel and Download on one line under "Pin at".
+            pinnedActions = {
+                CentrePinConfirmActions(
+                    state = pinState,
+                    onConfirm = onRegionPicked,
+                    onCancel = {},
+                    trailing = { downloadButton(Modifier.weight(1f), ButtonDefaults.ContentPadding) },
+                    showConfirmButtons = false,
+                )
+            },
         )
         confirmDownloadDialog()
         return
@@ -318,7 +360,6 @@ internal fun OfflineMapsPanel(
     // parent), so verticalScroll here is meaningful rather than a no-op: weight(1f) gives a bounded,
     // not infinite, height to scroll within.
     Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-        instruction()
 
         // A fixed aspect ratio, not weight(1f): the picker map used to claim all leftover space in
         // an unscrolled panel, but a panel that now scrolls as a whole has no "leftover space" for
@@ -333,8 +374,10 @@ internal fun OfflineMapsPanel(
         // picker's three pieces are composed here directly, in CentrePinLocationPicker's own order,
         // so the map can move to the side-by-side layout; this layout is unchanged.
         Column(modifier = Modifier.fillMaxWidth()) {
-            CentrePinInstruction()
-            pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(MAP_PICKER_ASPECT_RATIO))
+            // Dispatch 2026-10-18-10 (RECORD -1340): on a large screen in portrait the map is a square on top, the info under it.
+            // A phone keeps the 4:3 map.
+            val portraitMapRatio = if (isLargeScreenWindow()) 1f else MAP_PICKER_ASPECT_RATIO
+            pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(portraitMapRatio).testTag(OFFLINE_PICKER_MAP_TAG))
             confirmActions()
         }
 
@@ -345,10 +388,12 @@ internal fun OfflineMapsPanel(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             details()
-            downloadButton(Modifier)
+            downloadButton(Modifier, ButtonDefaults.ContentPadding)
         }
 
         regionsSection()
+        // RECORD -1245: the continental-US note, the screen's last line.
+        usContinentalNote()
     }
     confirmDownloadDialog()
 }
@@ -376,6 +421,10 @@ internal fun offlineDownloadConfirmationBody(name: String, radiusKm: Int, unit: 
  *   reachable without scrolling": that cannot hold at 384 dp): OK with its Cancel, and the "Pin at"
  *   line that sits over them in the stacked layout, and Download are pinned at the bottom of the
  *   controls side, always visible. Everything else scrolls above them, in the stacked order.
+ *   Since RECORD -1253 (the owner: "C: OK, Cancel and Download on one line"), OK, Cancel and Download share one line under
+ *   "Pin at", so the radius slider is in view on open under the Name box (RECORD -1243). Was OK and Cancel on one line and
+ *   Download on its own below them.
+ *   Since dispatch 2026-10-18-03 (Forager RECORD -1269), no OK and no Cancel: "Pin at", then Download Maps across the side.
  * - **Which side** (the planner's ruling, 2026-09-28-49): the map on the punch-hole side and the
  *   controls on the rail side, as the landscape search sheet (P8), the navigation HUD (P9) and the
  *   tools drawer (P12) sit by the rail with the map beyond them
@@ -390,11 +439,12 @@ private fun OfflineMapsSideBySide(
     modifier: Modifier,
     controlsFirst: Boolean,
     map: @Composable (Modifier) -> Unit,
-    instruction: @Composable () -> Unit,
     details: @Composable ColumnScope.() -> Unit,
+    /** RECORD -1245: the continental-US note, the last line of the scrolling part. */
+    usContinentalNote: @Composable () -> Unit,
     regionsSection: @Composable () -> Unit,
-    confirmActions: @Composable () -> Unit,
-    downloadButton: @Composable (Modifier) -> Unit,
+    /** Dispatch 2026-10-18-03: "Pin at", then Download Maps, pinned under the scrolling part. */
+    pinnedActions: @Composable () -> Unit,
 ) {
     Row(modifier = modifier.fillMaxSize()) {
         val controls: @Composable RowScope.() -> Unit = {
@@ -406,8 +456,6 @@ private fun OfflineMapsSideBySide(
                         .verticalScroll(rememberScrollState())
                         .testTag(OFFLINE_PICKER_CONTROLS_SCROLL_TAG),
                 ) {
-                    instruction()
-                    CentrePinInstruction()
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -416,19 +464,62 @@ private fun OfflineMapsSideBySide(
                         content = details,
                     )
                     regionsSection()
+                    usContinentalNote()
                 }
-                confirmActions()
-                downloadButton(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
+                pinnedActions()
             }
         }
         if (controlsFirst) controls()
-        map(Modifier.weight(1f).fillMaxHeight())
+        // RECORD -1330 to -1333 (the owner: "No, the maps do not move at all"): on the Journal the map stands below the room the
+        // search pill has not taken, plus a small gap, so it keeps its place while the switch line slides down with the pill.
+        // Dispatch 2026-10-18-10 (RECORD -1337, -1340): on a large screen the map is a square whose side is its height after the
+        // search gap, which holds through the reveal (the gap and the room shrink together), so the square keeps its place and its
+        // size too. Capped so the controls keep OFFLINE_CONTROLS_MIN_WIDTH; the controls take the rest. A phone keeps half the width.
+        val searchRoom = LocalJournalSearchPillRoom.current
+        val mapModifier = if (isLargeScreenWindow()) {
+            Modifier.fillMaxHeight().journalSearchGap(searchRoom).squareFromHeight(OFFLINE_CONTROLS_MIN_WIDTH)
+        } else {
+            Modifier.weight(1f).fillMaxHeight().journalSearchGap(searchRoom)
+        }
+        map(mapModifier.testTag(OFFLINE_PICKER_MAP_TAG))
         if (!controlsFirst) controls()
     }
 }
 
+/**
+ * Dispatch 2026-10-18-10: a map's square, side by side with something else in a Row, as a non-weighted child. The side is the
+ * height it is given, at most the width less [otherSideMin], so the weighted part beside it keeps at least that. Placed at the top
+ * of its slot when the width decides, so it does not move down when it is smaller than the slot's height.
+ */
+private fun Modifier.squareFromHeight(otherSideMin: Dp): Modifier = layout { measurable, constraints ->
+    if (!constraints.hasBoundedHeight && !constraints.hasBoundedWidth) {
+        val unbounded = measurable.measure(constraints)
+        return@layout layout(unbounded.width, unbounded.height) { unbounded.place(0, 0) }
+    }
+    val byWidth = if (constraints.hasBoundedWidth) (constraints.maxWidth - otherSideMin.roundToPx()).coerceAtLeast(0) else Int.MAX_VALUE
+    val byHeight = if (constraints.hasBoundedHeight) constraints.maxHeight else Int.MAX_VALUE
+    val side = minOf(byWidth, byHeight)
+    val placeable = measurable.measure(Constraints.fixed(side, side))
+    layout(constraints.constrainWidth(side), constraints.constrainHeight(side)) { placeable.place(0, 0) }
+}
+
+/**
+ * Dispatch 2026-10-18-10 (RECORD -1340): beside the square map on a large screen the controls keep at least this width. The owner's
+ * 240 dp for the info beside the entry page's map (RECORD -1260), reused so both of the Journal's maps leave the same room.
+ */
+internal val OFFLINE_CONTROLS_MIN_WIDTH: Dp = LANDSCAPE_ENTRY_INFO_MIN_WIDTH
+
+/** The offline-maps picker's map, in either layout, for tests (dispatch 2026-10-18-10). */
+internal const val OFFLINE_PICKER_MAP_TAG = "offline-picker-map"
+
 /** [OfflineMapsSideBySide]'s scrolling part, above the pinned actions: what a test drags to reach the slider. */
 internal const val OFFLINE_PICKER_CONTROLS_SCROLL_TAG = "offline-picker-controls-scroll"
+
+/**
+ * The offline-maps screen's last line (RECORD -1245), word for word the first sentence of the instruction that used to open the
+ * screen ("Offline downloads cover the continental United States with vector map data. Pan the map below…").
+ */
+internal const val OFFLINE_US_CONTINENTAL_NOTE = "Offline downloads cover the continental United States with vector map data."
 
 /** The picker map's fixed width:height ratio — see [OfflineMapsPanel]'s doc comment for why this replaced `Modifier.weight(1f)`. */
 private const val MAP_PICKER_ASPECT_RATIO = 4f / 3f
@@ -438,7 +529,7 @@ private const val MAP_PICKER_ASPECT_RATIO = 4f / 3f
  * picked — the geographic center of the contiguous United States (near Lebanon, Kansas), since
  * offline downloads only ever cover the continental-US PMTiles archive
  * `com.zynergylabs.forager.app.map.MapLibreOfflineMapRepository` reads from. Not a default region and never
- * submitted as one: "Download Maps" stays disabled until the centre pin has been confirmed with OK.
+ * submitted unasked: Download Maps opens the "Download this area?" confirmation first (dispatch 2026-10-18-03).
  */
 private val OFFLINE_MAP_PICKER_DEFAULT_CENTER = LatLng(39.8283, -98.5795)
 
@@ -544,10 +635,10 @@ private fun OfflineRegionsSection(
     ) {
         Text("Downloaded Maps", style = MaterialTheme.typography.titleSmall)
 
+        // RECORD -1245 (the owner: "Keep the figure, drop the explanation (Recommended)"): was followed by "Sizes don't add up to
+        // total disk usage — overlapping regions share tiles, so deleting one may free less than its own size suggests."
         Text(
-            "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}. Sizes don't add up to " +
-                "total disk usage — overlapping regions share tiles, so deleting one may free less " +
-                "than its own size suggests.",
+            "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}",
             style = MaterialTheme.typography.bodySmall,
         )
 

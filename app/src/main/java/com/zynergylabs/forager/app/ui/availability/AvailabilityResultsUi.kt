@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
@@ -61,7 +62,6 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Month
 import java.time.format.TextStyle
-import java.util.Locale
 
 
 /**
@@ -160,6 +160,8 @@ private fun ResultsSection(
     onViewOnMap: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
+    val locale = LocalConfiguration.current.locales[0]
     Column(modifier = modifier.fillMaxWidth()) {
         when {
             uiState.isLoading -> Column(
@@ -186,7 +188,7 @@ private fun ResultsSection(
                 Text(
                     "Based on ${forecast.totalObservationsConsidered} historical iNaturalist observations " +
                         "of ${forecast.filter.label} within ${formatDistanceKm(forecast.region.radiusKm, distanceUnit)} for " +
-                        Month.of(forecast.month).getDisplayName(TextStyle.FULL, Locale.getDefault()) + ".",
+                        Month.of(forecast.month).getDisplayName(TextStyle.FULL, locale) + ".",
                     style = MaterialTheme.typography.bodySmall,
                     fontStyle = FontStyle.Italic,
                 )
