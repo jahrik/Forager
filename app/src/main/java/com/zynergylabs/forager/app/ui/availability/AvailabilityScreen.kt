@@ -306,7 +306,6 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
-import com.zynergylabs.forager.app.ui.map.MapFloatingIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
 import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
@@ -328,7 +327,6 @@ import com.zynergylabs.forager.app.ui.map.MapForecastFeed
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
-import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading

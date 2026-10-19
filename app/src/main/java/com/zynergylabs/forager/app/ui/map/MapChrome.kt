@@ -1,12 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,9 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -32,11 +25,9 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
@@ -69,7 +60,6 @@ import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.SurfaceContainerDark
 import com.zynergylabs.forager.app.ui.theme.SurfaceContainerHighestDark
@@ -106,7 +96,7 @@ internal val MAP_ICON_BAR_EDGE_INSET = Spacing.sm
 internal val MAP_ICON_BAR_LANDSCAPE_ROW_SPACING = 0.dp
 
 /**
- * Offset from [MapIconBar]'s own vertical center (where both `AddActionTile` and [MapModePicker]
+ * Offset from [MapIconBar]'s own vertical center (where both `AddActionTile` and `MapModePicker` (removed 2026-10-19, RECORD -1392)
  * anchor their `Alignment.CenterEnd`-based popups) to the center of one of its rows, counting from
  * the top. Promoted here from `AvailabilityScreen.kt` (fullscreen-fixes dispatch, Item 2) so the
  * Cartography entry map's own `MapModePicker` call can anchor against [MapIconBar]'s real row 4
@@ -125,112 +115,8 @@ internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int, rowSpacing: Dp = Sp
     return rowCenterFromTop - contentHeight / 2
 }
 
-/**
- * [MapModePicker]'s own panel `Surface`, for tests that measure where the panel actually opened
- * (expanded-panels dispatch). A test hook only — no behaviour, layout, or API change to this
- * shared composable. See `ADD_ACTION_TILE_TAG`'s own doc comment for why the chips inside are not
- * a usable proxy for the panel's edges under Robolectric.
- */
-internal const val MAP_MODE_PICKER_TAG = "map-mode-picker"
-
 /** The map icon bar's own fill (portrait cluster, landscape L, tablet and the entry map's bar), for tests reading its container colour. */
 internal const val MAP_ICON_BAR_TAG = "map-icon-bar"
-
-/**
- * The picker [MapModeToggle] (medium/expanded) and [MapIconBar]'s layers row (compact) both open —
- * three real [FilterChip]s, not a list of full-width text rows: the exact "too wide" hardware
- * finding [AddActionTile] carried (a full-width button per row makes the whole tile as wide as its
- * longest label) is avoided here from the start rather than repeated. `selected` shows the current
- * mode without a separate label; tapping any chip both applies it and dismisses the picker — one
- * tap, not select-then-confirm.
- *
- * Same theme-aware, 80%-opacity fill as [MapIconBar]
- * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) rather than a plain
- * [MaterialTheme.colorScheme.surface] popup — one visual language for every control floating over
- * the map, not a Material default that reads as a different kind of thing next to the bar it opens
- * from.
- *
- * **Same animation/sizing/anchoring shape as [AddActionTile]**, per the project owner's own
- * comparison of the two once both existed on screen together: two independent [AnimatedVisibility]s
- * (scrim, then content, so the scrim's own fade doesn't gate the tile's expand/shrink), the content
- * one sized to what three chips need rather than [fillMaxSize], and anchored precisely against
- * whichever control opened it rather than a fixed corner offset that merely sat close by. [anchor]
- * and [anchorOffset] are how the two callers differ here where [AddActionTile] didn't need to: that
- * tile only ever grows from the icon bar's own add row, but this picker opens from two different
- * shapes of control — a lone circular [MapModeToggle] floating at the map's own top-right corner on
- * medium/expanded, and [MapIconBar]'s layers row (row 4 of 5) on compact — so the anchor is a
- * parameter instead of a second constant hardcoded in here. [mapIconBarRowAnchorOffset] computes
- * the compact case for both this picker's row 4 and the add row's row 5; the medium/expanded
- * default below matches [MapModeToggle]'s own fixed position.
- */
-@Composable
-internal fun MapModePicker(
-    visible: Boolean,
-    mapMode: MapMode,
-    onModeSelected: (MapMode) -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-    anchor: Alignment = Alignment.TopEnd,
-    anchorOffset: DpOffset = DpOffset(x = -Spacing.sm, y = MIN_TOUCH_TARGET + Spacing.lg),
-) {
-    val isDarkTheme = LocalForagerDarkTheme.current
-    Box(modifier = modifier.fillMaxSize()) {
-        // docs/motion-spec.md §2 "Panels and navigation" — same spec AddActionTile's own scrim uses.
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
-            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.32f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onDismiss,
-                    ),
-            )
-        }
-
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()) +
-                expandIn(animationSpec = MotionTokens.panelMotionSpec(), expandFrom = anchor),
-            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()) +
-                shrinkOut(animationSpec = MotionTokens.panelMotionSpec(), shrinkTowards = anchor),
-            modifier = Modifier
-                .align(anchor)
-                .offset(x = anchorOffset.x, y = anchorOffset.y),
-        ) {
-            Surface(
-                modifier = Modifier.testTag(MAP_MODE_PICKER_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
-                shape = RoundedCornerShape(Spacing.md),
-                color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
-                contentColor = if (isDarkTheme) Color.White else Bark,
-                shadowElevation = 4.dp,
-                border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
-            ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                ) {
-                    MapMode.entries.forEach { mode ->
-                        FilterChip(
-                            selected = mode == mapMode,
-                            onClick = {
-                                onModeSelected(mode)
-                                onDismiss()
-                            },
-                            label = { Text(mode.label) },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 /** The filled circle behind an active/permanent-accent row (add, record while recording) inside [MapIconBar] — smaller than [MIN_TOUCH_TARGET] so it reads as a badge within the row rather than filling it edge to edge. */
 private val MAP_ICON_BAR_FILL_DIAMETER = 36.dp
@@ -591,7 +477,7 @@ internal val MAP_ICON_STACK_BORDER_COLOR_DARK = Color.White.copy(alpha = 0.4f)
 internal val MAP_ICON_STACK_BORDER_COLOR_LIGHT = Bark.copy(alpha = 0.4f)
 
 /**
- * The add row's (and [MapFloatingIconButton]'s) permanent accent fill, and the record row's while
+ * The add row's (and `MapFloatingIconButton`'s (removed 2026-10-19, RECORD -1392)) permanent accent fill, and the record row's while
  * active — deliberately [MapIconBarAccent], not [MaterialTheme.colorScheme.primary]/
  * [MaterialTheme.colorScheme.error] directly, even though every value it holds is one of those same
  * roles' own hues. See [MapIconBarAccent]'s own doc comment for the full reasoning (Material's tonal
@@ -618,7 +504,7 @@ internal fun mapIconBarRecordAccent(isDarkTheme: Boolean) =
  * [SightingsMap] once this existed — see that composable's own doc comment).
  *
  * Top to bottom: fullscreen, orientation-reset, GPS/locate-me, map mode (slot 4 opens
- * [MapModePicker] — the same picker [MapModeToggle] opens for the untouched MEDIUM/EXPANDED path,
+ * `MapModePicker` (removed 2026-10-19, RECORD -1392) — the same picker [MapModeToggle] opens for the untouched MEDIUM/EXPANDED path,
  * restyled rather than reused directly so MEDIUM/EXPANDED's own styling stays untouched), add. The
  * add button keeps its own green fill — real state, not decoration — everything else tints its
  * icon rather than its own background, since the bar itself is the shared background now.
@@ -798,7 +684,7 @@ internal fun MapIconBar(
  *
  * Kept as its own [Surface], a sibling of [MapIconBar] at the call site rather than folded into
  * that composable's own Column as a 6th row: [mapIconBarRowAnchorOffset]'s own `rowCount` and the
- * two popups anchored against specific rows ([MapModePicker], `AddActionTile`) assume exactly 5,
+ * two popups anchored against specific rows (`MapModePicker` (removed 2026-10-19, RECORD -1392), `AddActionTile`) assume exactly 5,
  * re-derived directly against the tree per that function's own doc comment — adding a 6th row here
  * would silently invalidate that arithmetic for an unrelated feature.
  *
@@ -1156,56 +1042,6 @@ internal const val MAP_BAR_PRESS_HIGHLIGHT_TAG = "map-bar-press-highlight"
 internal enum class MapBarHighlight(val shape: Shape, val inset: Dp) {
     ROUNDED_SQUARE(RoundedCornerShape(Spacing.md), Spacing.xs),
     BADGE(CircleShape, (MIN_TOUCH_TARGET - MAP_ICON_BAR_FILL_DIAMETER) / 2),
-}
-
-/**
- * A single freestanding circular icon button — MEDIUM/EXPANDED's own add-trip/log-find trigger is
- * the one remaining user of the compact bar's old per-icon-circle look, now that [MapIconBar]'s
- * rows share one background instead. Kept as its own small composable rather than folded into
- * [MapBarIconButton]: a lone button floating directly over the map still needs its own fill (at
- * [MAP_CHROME_OVER_MAP_ALPHA], or the solid accent when `filled`) plus hairline border to read against the map, the way [MapIconStackButtonColorDark]'s own
- * doc comment documents — a bar row can lean on the shared bar background for that instead.
- *
- * `filled`'s own accent is [mapIconBarAddAccent], the same theme-swapped [MapIconBarAccent]
- * [MapIconBar]'s add row uses and for the same reason (see that type's own doc comment) — this is
- * the same button on a window class with no bar for it to sit inside, so it keeps the same accent
- * rather than falling back to `MaterialTheme.colorScheme.primary`.
- */
-@Composable
-internal fun MapFloatingIconButton(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    filled: Boolean = false,
-) {
-    val isDarkTheme = LocalForagerDarkTheme.current
-    val addAccent = mapIconBarAddAccent(isDarkTheme)
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = when {
-            filled -> addAccent.fill
-            isDarkTheme -> MapIconStackButtonColorDark
-            else -> MapIconStackButtonColorLight
-        },
-        contentColor = when {
-            filled -> addAccent.onFill
-            isDarkTheme -> Color.White
-            else -> Bark
-        },
-        shadowElevation = 2.dp,
-        border = if (filled) {
-            null
-        } else {
-            BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
-        },
-        modifier = modifier.size(MIN_TOUCH_TARGET),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(imageVector = icon, contentDescription = contentDescription)
-        }
-    }
 }
 
 /**

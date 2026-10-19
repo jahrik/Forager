@@ -1038,26 +1038,6 @@ private fun CompactMapMapSlot(
     )
 }
 
-/** Motion Part 2, item 3: how the strip and the navigation display come and go; see [CompactMapTopStrip]. Moved out unchanged (RECORD -741). */
-@Composable
-private fun navigationChromeTransitions(): Pair<EnterTransition, ExitTransition> {
-    val reduceMotion = LocalReduceMotion.current
-    val navigationChromeSlide = MotionTokens.navigationViewChromeSpec<IntOffset>()
-    val navigationChromeTimedFade = MotionTokens.navigationViewChromeSpec<Float>()
-    val reducedFade = MotionTokens.mapPopUpFadeSpec<Float>()
-    val navigationChromeEnter = if (reduceMotion) {
-        fadeIn(animationSpec = reducedFade)
-    } else {
-        slideInVertically(animationSpec = navigationChromeSlide) { fullHeight -> -fullHeight } + fadeIn(animationSpec = navigationChromeTimedFade)
-    }
-    val navigationChromeExit = if (reduceMotion) {
-        fadeOut(animationSpec = reducedFade)
-    } else {
-        slideOutVertically(animationSpec = navigationChromeSlide) { fullHeight -> -fullHeight } + fadeOut(animationSpec = navigationChromeTimedFade)
-    }
-    return navigationChromeEnter to navigationChromeExit
-}
-
 /**
  * RECORD -955, C: the highest the landscape card's top may reach, in the root: the walker's dot's bottom, and, where the L is in the
  * card's columns, the bottom of Reset north (the L's second row). `null` before the map is measured.
@@ -1081,7 +1061,7 @@ private fun cardTopLimitInRootPx(cluster: MapIconClusterState, density: androidx
 internal val WALKER_DOT_CLEARANCE = 12.dp
 
 /**
- * RECORD -953: the landscape navigation card's motion, [navigationChromeTransitions] flipped: it slides up from the screen's bottom
+ * RECORD -953: the landscape navigation card's motion, `navigationChromeTransitions` (removed 2026-10-19, RECORD -1392) flipped: it slides up from the screen's bottom
  * edge by its own height, with a fade, on the same timing, and back down; under reduced motion it only fades.
  */
 @Composable

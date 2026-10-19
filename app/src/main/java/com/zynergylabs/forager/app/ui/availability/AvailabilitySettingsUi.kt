@@ -78,7 +78,6 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.backup.BackupControls
 import com.zynergylabs.forager.app.ui.backup.BackupSection
 import com.zynergylabs.forager.app.ui.credits.CreditsNavigationRow
@@ -306,7 +305,7 @@ internal const val SETTINGS_SOURCES_ROW_TAG = "settings-sources-and-credits-row"
  * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
  * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
  * pinned Street/Topographical to OpenStreetMap and added Satellite (USGS) as a third option
- * reachable only from the map's own [MapModePicker] (Satellite itself removed since, dispatch
+ * reachable only from the map's own `MapModePicker` (removed 2026-10-19, RECORD -1392) (Satellite itself removed since, dispatch
  * 2026-09-28-708). See [MapMode]'s own doc comment for the
  * full account of what this removed and why.
  *
