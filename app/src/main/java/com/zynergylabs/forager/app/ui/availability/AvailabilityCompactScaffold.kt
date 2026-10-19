@@ -1052,8 +1052,13 @@ internal fun CompactMainScaffold(
                     // to edge with its switch line and content (readableContentCap), not at the screen's edge. fillMaxWidth first, so
                     // the column is centred in the whole width here as the tab's content is. List and Seasonal keep the Maps pill's
                     // place at the left (RECORD -1238, "at the left ... to accommodate floating keyboards"); they have no 960 column.
+                    // (Until Amendment 3, below.)
                     // Phones are unchanged.
-                    val tabLandscapePillPlace = if (railBeside && largeScreen && compactTab() == CompactTab.JOURNAL) {
+                    // Amendment 3 (RECORD -1353, superseding -1238's "at the left" for tablets only; the owner: "Yes move those tabs
+                    // also. Those were the ones I was mainly complaining about", "Line up with their content (Recommended)"): on a large
+                    // screen List and Seasonal's pill and open panel take their own content column the same way, 640 dp
+                    // (readableContentCap carries each tab's width: 960 on the Journal, 640 elsewhere). Every tab beside the rail.
+                    val tabLandscapePillPlace = if (railBeside && largeScreen) {
                         Modifier.fillMaxWidth().then(readableContentCap)
                     } else if (railBeside) {
                         val farIsLeft = portEdge == ScreenEdge.Right
