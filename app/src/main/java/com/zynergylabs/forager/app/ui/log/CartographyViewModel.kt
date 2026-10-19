@@ -293,7 +293,7 @@ class CartographyViewModel(
         val current = _uiState.value.editingEntry
         val closingUnsavedEdit = current != null && !current.isDraft && _uiState.value.hasUnsavedChanges
         if (closingUnsavedEdit) {
-            Log.i(TAG, "Closing entry '${current?.id}' with unsaved changes: the Entries list keeps the stored row.")
+            Log.i(TAG, "Closing entry '${current.id}' with unsaved changes: the Entries list keeps the stored row.")
         }
         _uiState.update { state ->
             state.copy(
