@@ -372,6 +372,92 @@ class TabletJournalLayoutTest {
         assertTopLineInColumn("Records' top line", bounds(SHORT_HEADER_TAG), TABLET_COLUMN)
     }
 
+    // ── Amendment 2 (RECORD -1350): the search bar and its open panel in the 960 dp column ──
+    //
+    // The owner: "can the search bar in the journal be moved a bit from the edge? It sits very close to it. For tablets". On the
+    // tablet (-1348) the revealed bar and the open panel started at the screen's edge, about 1,040 dp wide. The bar is opened by
+    // a real touch on 🔍 and the panel by a real touch on the bar.
+
+    private fun revealSearch() {
+        touchSearchIcon()
+        settle()
+        assertTrue("positive control: the search bar is shown", exists(SEARCH_ENTRY_BAR_TAG))
+    }
+
+    private fun openSearchPanel() {
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        composeRule.onRoot().performTouchInput { click(Offset(centreX(bar) * density, (bar.top.value + bar.bottom.value) / 2f * density)) }
+        settle()
+        assertTrue("positive control: the search panel is open", exists(SEARCH_DROPDOWN_TAG))
+    }
+
+    /** [what]'s left and right edges are the 960 dp column's, within 1 dp; [column] is the Journal's content in that column. */
+    private fun assertEdgesOf(what: String, r: DpRect, column: DpRect) {
+        assertEquals("$what ($r) starts where the column ($column) starts", column.left.value, r.left.value, 1f)
+        assertEquals("$what ($r) ends where the column ($column) ends", column.right.value, r.right.value, 1f)
+    }
+
+    private fun checkSearchInColumn(rotation: Int) {
+        setScreen(rotation, expectLarge = true)
+        openJournal()
+        val column = bounds(ENTRIES_GRID_TAG)
+        assertTabletColumn("positive control: the Entries grid", column)
+        revealSearch()
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        println("MEASURED tablet search rotation=$rotation: bar $bar, column $column, area ${areaBesideRail()}")
+        assertEdgesOf("the revealed search bar", bar, column)
+        openSearchPanel()
+        val panel = bounds(SEARCH_DROPDOWN_TAG)
+        println("MEASURED tablet search panel rotation=$rotation: panel $panel")
+        assertEdgesOf("the open search panel", panel, column)
+        for (tag in listOf(SEARCH_DROPDOWN_SET_ON_MAP_TAG, SEARCH_DROPDOWN_SEARCH_TAG)) {
+            val r = bounds(tag)
+            assertTrue("$tag ($r) lies inside the column ($column)", r.left.value >= column.left.value - 0.5f && r.right.value <= column.right.value + 0.5f)
+        }
+    }
+
+    @Test fun `landscape tablet at ROTATION_90 the revealed search bar and its open panel sit in the 960 dp column`() =
+        checkSearchInColumn(Surface.ROTATION_90)
+
+    @Test fun `landscape tablet at ROTATION_270 the revealed search bar and its open panel sit in the 960 dp column`() =
+        checkSearchInColumn(Surface.ROTATION_270)
+
+    /** List keeps the Maps pill's place at the left (RECORD -1238); it has no 960 column. A control that the change is the Journal's. */
+    @Test
+    fun `landscape tablet List keeps the search bar at the left, as the owner set it`() {
+        setScreen(Surface.ROTATION_90, expectLarge = true)
+        composeRule.onNodeWithText("List").performClick()
+        settle()
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        val area = areaBesideRail()
+        println("MEASURED tablet List search: bar $bar, area $area")
+        assertEquals("List's bar starts at the area's left edge (no navigation bar under Robolectric)", area.left.value, bar.left.value, 1f)
+        assertTrue("List's bar is wider than the Journal's column (${width(bar)})", width(bar) > TABLET_COLUMN + 1f)
+    }
+
+    @Test
+    @Config(qualifiers = PHONE_LANDSCAPE)
+    fun `phone landscape the Journal's revealed search bar is at the left, unchanged`() {
+        setScreen(Surface.ROTATION_90, expectLarge = false)
+        openJournal()
+        revealSearch()
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        val area = areaBesideRail()
+        println("MEASURED phone search: bar $bar, area $area")
+        assertEquals("the phone's bar starts at the area's left edge", area.left.value, bar.left.value, 1f)
+        val column = (area.right.value - area.left.value - READABLE_CONTENT_MAX_WIDTH.value) / 2f + area.left.value
+        assertTrue("positive control: the phone's 640 dp column starts away from the area's edge ($column)", column > area.left.value + 10f)
+    }
+
+    @Test
+    fun `screenshot landscape tablet open search panel`() {
+        setScreen(Surface.ROTATION_90, expectLarge = true)
+        openJournal()
+        revealSearch()
+        openSearchPanel()
+        screenshot("landscape-search-panel")
+    }
+
     // ── Portrait tablet: the square on top, the info under it ──
 
     @Test
