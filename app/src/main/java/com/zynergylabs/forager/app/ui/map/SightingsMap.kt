@@ -1,8 +1,5 @@
 package com.zynergylabs.forager.app.ui.map
 
-import android.Manifest
-import android.annotation.SuppressLint
-import android.content.Context
 import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
@@ -13,8 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
@@ -32,11 +27,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color as ComposeColor
-import com.zynergylabs.forager.app.location.hasLocationPermission
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import androidx.compose.ui.layout.onSizeChanged
@@ -51,7 +43,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.fixOrNull
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights
@@ -97,20 +88,13 @@ import com.zynergylabs.forager.app.ui.map.layers.resolveTap
 import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.TRACK_WIDTH_ZOOM_STOPS
 import com.zynergylabs.forager.app.ui.map.layers.ZoomWidthStop
-import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
-import org.maplibre.android.geometry.LatLngBounds
-import org.maplibre.android.location.CompassEngine
-import org.maplibre.android.location.LocationComponentActivationOptions
-import org.maplibre.android.location.LocationComponentOptions
 import org.maplibre.android.location.modes.CameraMode
-import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
-import kotlin.math.roundToInt
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
@@ -1491,37 +1475,6 @@ fun SightingsMap(
 }
 
 /**
- * The map's credit line, bottom left over the map. Dispatch 2026-10-12-06, RECORD -937 (the owner: "The open street maps tint
- * strip can also have a rounded corner on the right side only, since the left runs to the edge"; then, correcting it, "curve
- * only the upper right side since it's the only side exposed"): only its top-right corner was rounded. Dispatch 2026-10-12-08,
- * RECORD -952 (the owner: "In either mode: can the openstreetmaps tint strip have all corners rounded instead of just the one
- * corner, like a pill?"): all four corners round, half its height, a pill, in both orientations; this replaces -938's top-right
- * corner only. Its tint is unchanged. A background and text, no pointer input, so a touch anywhere on it, its corner gaps
- * included, reaches the map, as it always did (`MapCreditCaptionTouchTest`).
- */
-@Composable
-internal fun MapCreditCaption(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = ComposeColor.White,
-        modifier = modifier
-            // The tag first, so its bounds are the tinted strip's, padding included.
-            .testTag(MAP_CREDIT_CAPTION_TAG)
-            .background(
-                ComposeColor.Black.copy(alpha = 0.55f),
-                androidx.compose.foundation.shape.RoundedCornerShape(percent = MAP_CREDIT_PILL_PERCENT),
-            )
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-    )
-}
-
-/** RECORD -952: the credit line's corners, all four at half its height: a pill. Was RECORD -938's top-right corner, 8 dp. */
-internal const val MAP_CREDIT_PILL_PERCENT = 50
-
-internal const val MAP_CREDIT_CAPTION_TAG = "map-credit-caption"
-
-/**
  * Adds every overlay source and layer this composable draws, all starting with empty
  * `FeatureCollection`s — called once per loaded [Style], from [SightingsMap]'s basemap-swap effect.
  *
@@ -1769,65 +1722,6 @@ private fun refreshOverlayData(
     }
 }
 
-/**
- * The data+camera refresh effect's own decision of whether to move the camera to [target] —
- * extracted as a plain function, the same reason [locationIndicatorTrackingAnimationMultiplier]
- * below is one, so the actual defect (not just the surrounding native-object plumbing) is
- * unit-testable. Real hardware report this fixes: that effect is keyed on `loadedStyle` (needed so
- * [refreshOverlayData] above re-runs after a basemap swap blanks the style), but with no guard, it
- * also re-ran the camera move below whenever GPS tracking wasn't active — including on a basemap
- * or night-mode swap (a night toggle reloads the style on every basemap) that changed neither `region` nor `focusOverride` — which read as "changing
- * map style brought the map back to my location" even though the GPS/locate-me icon is the only
- * control meant to do that. Comparing [target] against [lastAppliedCameraTarget] — what was
- * actually last applied, not merely that the effect ran again — is what tells "the search moved"
- * apart from "the style reloaded." [isGpsTracking] itself is left as a native-backed computation
- * at the call site (see that effect's own doc comment on why moving the camera while it's true
- * would fight the puck), not folded into this function, so this stays a pure comparison.
- */
-/**
- * Whether a MapLibre camera-move-started [reason] is the user's touch — see
- * [MapRenderMode.onUserCameraGesture]. A plain function so the one constant it keys on is pinned
- * by a headless test rather than only by a device.
- */
-internal fun isUserCameraGesture(reason: Int): Boolean =
-    reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE
-
-internal fun shouldMoveCameraToTarget(
-    isGpsTracking: Boolean,
-    target: Pair<Region, LatLng?>,
-    lastAppliedCameraTarget: Pair<Region, LatLng?>?,
-): Boolean = !isGpsTracking && target != lastAppliedCameraTarget
-
-/**
- * Whether [request] moves the camera now: a request is applied once per id, and never while GPS
- * tracking owns the camera (the rule [shouldMoveCameraToTarget] follows).
- */
-/** RECORD -750, item 5: what a search's frame request does to the camera. */
-internal enum class SearchFrameMove {
-    /** No new request: the region move below follows its own rule. */
-    NONE,
-
-    /** A new request while the camera is not following: frame the region. */
-    FRAME,
-
-    /** A new request while the camera follows the GPS fix: stop following, then frame the region. */
-    STOP_FOLLOWING_AND_FRAME,
-}
-
-/**
- * RECORD -750, item 5: a search's frame request ([MapOverlayContent.searchFrameRequestId]) is applied once per id, and, unlike
- * [shouldMoveCameraToTarget] and [shouldApplyCameraRequest], also while GPS tracking owns the camera, which it ends: the user
- * asked to see the searched place. 0 is no request.
- */
-internal fun searchFrameMove(isGpsTracking: Boolean, requestId: Int, lastAppliedId: Int): SearchFrameMove = when {
-    requestId == 0 || requestId == lastAppliedId -> SearchFrameMove.NONE
-    isGpsTracking -> SearchFrameMove.STOP_FOLLOWING_AND_FRAME
-    else -> SearchFrameMove.FRAME
-}
-
-/** RECORD -750, item 5: the log tag for a search frame applied, so a device check can read it. */
-internal const val SEARCH_FRAME_LOG_TAG = "ForagerSearchFrame"
-
 /** RECORD -761: where a returning map's cover is. */
 private enum class CoverPhase { COVERING, HANDED_OVER, GONE }
 
@@ -1836,331 +1730,6 @@ internal const val MAPS_COMEBACK_LOG_TAG = "ForagerMapsComeback"
 
 /** RECORD -752: how many of a new MapView's first rendered frames are logged. */
 private const val MAPS_COMEBACK_FRAMES_LOGGED = 8
-
-internal fun shouldApplyCameraRequest(
-    isGpsTracking: Boolean,
-    request: MapCameraRequest?,
-    lastAppliedRequestId: String?,
-): Boolean = !isGpsTracking && request != null && request.id != lastAppliedRequestId
-
-/**
- * What a map restores from a [MapCameraSnapshot] (Part 1 layout fixes, item 4): the camera, the region
- * target taken as already applied, and the location component's camera mode.
- */
-internal data class MapCameraRestore(
-    val target: LatLng,
-    val zoom: Double,
-    val bearing: Double,
-    val tilt: Double,
-    val appliedTarget: Pair<Region, LatLng?>?,
-    /** A [CameraMode] constant: [CameraMode.TRACKING] if the snapshot was following, [CameraMode.NONE] if not. */
-    val cameraMode: Int,
-)
-
-/**
- * The restore a map makes as it first loads a style, or `null` for none (Part 1 layout fixes, item 4):
- * [saved], the camera the user left, when there is one and the location component has no mode of its
- * own yet ([previousCameraMode] `null`, a new `MapView`). A style swap on a live map keeps its own
- * camera and mode, as before. Following restores [CameraMode.TRACKING] and panned away
- * [CameraMode.NONE]; either is non-null, so the first activation's zoom-in does not run.
- */
-internal fun cameraRestoreFor(saved: MapCameraSnapshot?, previousCameraMode: Int?): MapCameraRestore? {
-    if (saved == null || previousCameraMode != null) return null
-    return MapCameraRestore(
-        target = saved.target,
-        zoom = saved.zoom,
-        bearing = saved.bearing,
-        tilt = saved.tilt,
-        appliedTarget = saved.appliedTarget,
-        cameraMode = if (saved.following) CameraMode.TRACKING else CameraMode.NONE,
-    )
-}
-
-/** Moves [map]'s camera to [restore]'s, at once, as the region move does. */
-private fun applyCameraRestore(map: MapLibreMap, restore: MapCameraRestore) {
-    map.cameraPosition = CameraPosition.Builder()
-        .target(MapLibreLatLng(restore.target.lat, restore.target.lng))
-        .zoom(restore.zoom)
-        .bearing(restore.bearing)
-        .tilt(restore.tilt)
-        .build()
-}
-
-/**
- * MapLibre's attribution margins, as `[left, top, right, bottom]` px (Part 1 layout fixes, item 5):
- * [defaults], MapLibre's own, with [bottomInsetPx] added at the bottom and [endInsetPx] at the end edge,
- * which is the right in a left-to-right layout and the left in a right-to-left one (the button's
- * gravity is `BOTTOM or END`).
- */
-/**
- * RECORD -954: MapLibre's attribution margins for its button at the bottom START, beside the map credit strip: the start margin is
- * the strip's width plus [gapPx] (MapLibre's own start default replaced, since the strip itself starts at the map's edge), and the
- * bottom margin is the strip's own bottom inset, so the two share a bottom edge. Top and end keep MapLibre's defaults. The pure
- * half, so the arithmetic is a unit test (`AttributionBesideCreditTest`); what MapLibre draws there is device-only.
- */
-internal fun attributionBesideCreditMarginsPx(defaults: IntArray, creditWidthPx: Int, gapPx: Int, creditBottomPx: Int, isRtl: Boolean): IntArray {
-    val (left, top, right, _) = defaults
-    val start = creditWidthPx + gapPx
-    return if (isRtl) intArrayOf(left, top, start, creditBottomPx) else intArrayOf(start, top, right, creditBottomPx)
-}
-
-/**
- * Where MapLibre's logo goes, as a gravity and `[left, top, right, bottom]` px margins for `UiSettings.setLogoGravity` and
- * `setLogoMargins` (dispatch 2026-10-18-07, RECORD -1309 and -1315, the owner's option 1): in a row with the attribution button
- * ("i"), just past it on the side away from the map's edge. Same gravity as the button, same margins except on that side, where
- * [offsetPx] (the button's side plus the gap, [ATTRIBUTION_BUTTON_DP] + [LOGO_ATTRIBUTION_GAP_DP]) is added. Which index that is
- * follows the convention [attributionMarginsPx] and [attributionBesideCreditMarginsPx] already use for the button: at the bottom
- * end, the right (index 2) in a left-to-right layout and the left (0) in a right-to-left one; at the bottom start (RECORD -954,
- * the short landscape window), the left (0), or the right (2) in right-to-left. Bottoms are shared, so the logo (88 x 23 dp in
- * MapLibre 13.5.0) and the button (21 dp) sit on one line. The pure half, so it is a unit test (`LogoBesideAttributionTest`);
- * what MapLibre draws there is device-only, since a real MapView cannot be built under Robolectric.
- */
-internal fun logoBesideAttribution(attributionGravity: Int, attributionMargins: IntArray, offsetPx: Int, isRtl: Boolean): LogoPlacement {
-    val atEnd = (attributionGravity and Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) == Gravity.END
-    val side = if (atEnd) (if (isRtl) 0 else 2) else (if (isRtl) 2 else 0)
-    val margins = attributionMargins.copyOf()
-    margins[side] += offsetPx
-    return LogoPlacement(gravity = attributionGravity, margins = margins)
-}
-
-/** MapLibre's logo placement: see [logoBesideAttribution]. */
-internal class LogoPlacement(val gravity: Int, val margins: IntArray)
-
-/** The gap between the attribution button's assumed square ([ATTRIBUTION_BUTTON_DP]) and the logo beside it, in dp. */
-internal const val LOGO_ATTRIBUTION_GAP_DP = 4f
-
-/** RECORD -954: the gap between the map credit strip's end and the attribution button beside it. */
-internal const val ATTRIBUTION_BESIDE_CREDIT_GAP_DP = 4f
-
-internal fun attributionMarginsPx(defaults: IntArray, bottomInsetPx: Int, endInsetPx: Int, isRtl: Boolean): IntArray {
-    val (left, top, right, bottom) = defaults
-    return if (isRtl) {
-        intArrayOf(left + endInsetPx, top, right, bottom + bottomInsetPx)
-    } else {
-        intArrayOf(left, top, right + endInsetPx, bottom + bottomInsetPx)
-    }
-}
-
-/** The zoom a fitted frame opens at: [fittedZoom], capped at [maxZoom]. */
-internal fun cappedFrameZoom(fittedZoom: Double, maxZoom: Double): Double = minOf(fittedZoom, maxZoom)
-
-/**
- * Moves [map]'s camera to [frame], at once rather than eased, as the region move does. A
- * [EntryMapFrame.Fit] goes through MapLibre's own `getCameraForLatLngBounds`, with the frame's
- * padding in px on every side, and its zoom capped by [cappedFrameZoom]. Whether that fit is right
- * at the preview's size and at the phone's density is device-only: the native call cannot run
- * headless. `false`, logged, when MapLibre gives no camera for the bounds (it is `@Nullable`) or
- * rejects them, so the caller falls back to the region move instead of leaving the camera unset.
- */
-private fun applyCameraFrame(map: MapLibreMap, frame: EntryMapFrame, density: Float): Boolean {
-    val position = when (frame) {
-        is EntryMapFrame.SinglePoint -> CameraPosition.Builder()
-            .target(MapLibreLatLng(frame.at.lat, frame.at.lng))
-            .zoom(frame.zoom)
-            .build()
-        is EntryMapFrame.Fit -> {
-            val bounds = try {
-                LatLngBounds.from(frame.bounds.north, frame.bounds.east, frame.bounds.south, frame.bounds.west)
-            } catch (e: IllegalArgumentException) {
-                Log.w(SIGHTINGS_MAP_TAG, "Camera frame bounds ${frame.bounds} rejected; falling back to the region move.", e)
-                return false
-            }
-            val paddingPx = (frame.paddingDp * density).roundToInt()
-            val fitted = map.getCameraForLatLngBounds(bounds, intArrayOf(paddingPx, paddingPx, paddingPx, paddingPx))
-            if (fitted == null) {
-                Log.w(SIGHTINGS_MAP_TAG, "No camera for bounds ${frame.bounds}; falling back to the region move.")
-                return false
-            }
-            CameraPosition.Builder(fitted).zoom(cappedFrameZoom(fitted.zoom, frame.maxZoom)).build()
-        }
-    }
-    map.cameraPosition = position
-    return true
-}
-
-/**
- * MapLibre's own puck-movement animation runs on a fixed internal base duration
- * ([org.maplibre.android.location.LocationComponentOptions.trackingAnimationDurationMultiplier]
- * scales it, rather than taking an absolute millisecond value) — verified against the pinned
- * `13.5.0` artifact with `javap -v` on the package-private `LocationComponentConstants` class,
- * since it isn't part of the public API surface: `TRANSITION_ANIMATION_DURATION_MS = 750L`. Not
- * guaranteed stable across SDK versions; re-verify the same way after any MapLibre bump.
- */
-internal const val LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS = 750f
-
-/** Dispatch 2026-09-28-510: the dot's look decisions, `adb logcat -s ForagerDot`. Diagnostic; nothing reads it. */
-internal const val POSITION_DOT_LOG_TAG = "ForagerDot"
-
-/**
- * docs/motion-spec.md §2 "User location": animate only on meaningful GPS change, avoid jitter.
- * [LocationComponentOptions.trackingAnimationDurationMultiplier] is the one knob MapLibre
- * exposes for how long the puck takes to glide to a new fix -- a multiplier on
- * [LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS], not an absolute millisecond value -- so this
- * scales [MotionTokens.LOCATION_INDICATOR_MOVE_DURATION_MS] against that base rather than
- * leaving the SDK default in place. A plain function, not inlined into
- * [activateLiveLocationIfPermitted], so the computed value is unit-testable without the native
- * MapLibre objects that function needs.
- */
-internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
-    MotionTokens.LOCATION_INDICATOR_MOVE_DURATION_MS / LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS
-
-/**
- * The options [activateLiveLocationIfPermitted] hands MapLibre for the puck. Its own function so the
- * options are unit-testable: `LocationComponentOptions` is a plain value class, unlike the
- * native-backed `Style` the activation itself needs.
- */
-internal fun liveLocationComponentOptions(context: Context, navigating: Boolean = false, look: PositionLook = PositionLook.PRECISE): LocationComponentOptions =
-    LocationComponentOptions.builder(context)
-        // Dispatch 2026-09-28-457, Parts B and C: while navigating, MapLibre's own tracking-gesture
-        // management (off by default, 13.5.0) raises the move thresholds while following: a one-finger
-        // drag must pass NAVIGATION_NUDGE_THRESHOLD_DP and a two-finger movement
-        // NAVIGATION_MULTI_FINGER_MOVE_THRESHOLD_DP before tracking ends. Seen at the desk without it:
-        // a pinch's second finger, then about 0.1 to 0.2 s later "tracking changed to 8" by the library,
-        // and a one-finger nudge the same within 40 ms. Off outside navigation, so the map there is unchanged.
-        .trackingGesturesManagement(navigating)
-        .apply {
-            if (navigating) {
-                val density = context.resources.displayMetrics.density
-                trackingInitialMoveThreshold(NAVIGATION_NUDGE_THRESHOLD_DP * density)
-                trackingMultiFingerMoveThreshold(NAVIGATION_MULTI_FINGER_MOVE_THRESHOLD_DP * density)
-            }
-        }
-        // Duration ratio, not an absolute value: see locationIndicatorTrackingAnimationMultiplier()
-        // above — its base (750ms) came from javap-inspecting the pinned MapLibre artifact, not
-        // public API or documentation, so it can silently go stale on a MapLibre version bump.
-        .trackingAnimationDurationMultiplier(locationIndicatorTrackingAnimationMultiplier())
-        // Below the fan's lowest layer, so an open fan draws over the puck (dispatch 2026-09-28-290).
-        // The owner, on seeing the puck over an open fan: "When the icon expands over user location,
-        // the user location overlaps it. Can the fan icons move on top of the user location instead
-        // of beneath?" With no position given MapLibre adds the puck on top of the style, over the
-        // fan. Only the puck's topmost layer is placed by this; the rest of its layers (accuracy
-        // circle, background, shadow, and the bearing or foreground) are each added directly below
-        // the one before, so the whole puck sits just under the fan, above every registry layer
-        // (13.5.0, read with javap on LocationComponentPositionManager and
-        // SymbolLocationLayerRenderer). The layer must already be in the style: see
-        // addFanOutLayers, which initializeOverlayLayers runs before either activation call.
-        .layerBelow(FanOutIds.LEGS_CASING_LAYER)
-        // Dispatch 2026-09-28-510: how the dot is drawn for the position the app has judged (MapPosition.kt).
-        // PRECISE adds nothing, so a GPS dot is MapLibre's own exactly as before. The other two point the dot
-        // at the app's own images, by name (registered on every style load, addPositionLookImages), and never
-        // change MapLibre's own: two causes, both seen at the S22 desk step, kept the GPS dot pale after GPS
-        // took over. MapLibre tints with setTint and no mutate(), so a tint applied to its own vector dot stays
-        // on every later copy; and MapLibre does not redraw an image replaced by one of the same size under the
-        // same name (PuckImageTintTest). A different name is a different image, so switching looks switches
-        // what is drawn. The heading arrow is left MapLibre's, since the compass is live whatever the position.
-        // Both turn off MapLibre's 30 s stale greying: the app decides when a position is old, and a network
-        // reading arriving every 20 s or so would otherwise flicker between soft and grey.
-        .apply {
-            when (look) {
-                PositionLook.PRECISE -> Unit
-                PositionLook.APPROXIMATE -> {
-                    foregroundName(PUCK_APPROXIMATE_IMAGE)
-                    accuracyAlpha(APPROXIMATE_ACCURACY_ALPHA)
-                    enableStaleState(false)
-                }
-                PositionLook.LAST_KNOWN -> {
-                    foregroundName(PUCK_LAST_KNOWN_IMAGE)
-                    accuracyColor(LAST_KNOWN_COLOR)
-                    enableStaleState(false)
-                }
-            }
-        }
-        .build()
-
-/**
- * The options to apply to an already-initialised LocationComponent just before [liveLocationComponentOptions],
- * or `null` when nothing is needed first (dispatch 2026-09-28-318, fail 3).
- *
- * After a basemap swap the SDK has already put the puck's layers back, before this app's layers exist (see
- * `LiveLocationPuckSwapTest` for the chain, read from 13.5.0 with javap), so the puck sits under the markers and the fan.
- * Re-activating hands the SDK the options it already holds, and it moves nothing for those. Applying the same options with
- * no position first makes the next application a change, so the SDK takes the puck's layers out and adds them again
- * below [FanOutIds.LEGS_CASING_LAYER], which exists by then. Both happen in one call on the main thread, so no frame is
- * drawn between them. Rejected: moving the puck's layers by their own ids (those names are the SDK's, not public API),
- * and adding this app's layers through `Style.Builder` so they exist before the SDK re-places the puck (it restructures
- * working code). A component not yet initialised builds its layers where [options] say, so it needs nothing first.
- */
-internal fun puckReplacementOptions(alreadyInitialised: Boolean, options: LocationComponentOptions): LocationComponentOptions? =
-    if (alreadyInitialised) options.toBuilder().layerAbove(null).layerBelow(null).build() else null
-
-/**
- * Turns on MapLibre's own "blue dot" location puck and has the camera follow it — "like regular
- * GPS," the project owner's own framing, rather than the compass strip's pre-existing one-shot
- * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
- * map's camera). A no-op, not a crash or a silent guess, when [Manifest.permission.ACCESS_FINE_LOCATION]/
- * [Manifest.permission.ACCESS_COARSE_LOCATION] aren't granted — same "explicit unsupported state,
- * never fabricated" rule the one-shot path ([com.zynergylabs.forager.app.location.AndroidLocationProvider]) behind the shared [hasLocationPermission]
- * already follows; the map simply won't show a puck until permission exists
- * and something re-triggers this (a fresh style load, or the locate-me icon — see
- * [resumeTrackingRequestId][MapOverlayContent.resumeTrackingRequestId]'s own doc comment).
- *
- * [restoreCameraMode] is what this composable's own basemap-swap effect passes to avoid a real
- * hardware-reported bug: `setStyle` (any basemap change, or a night-mode toggle, which shares this
- * same path on every basemap) discards the LocationComponent outright, so this function has to run again on every
- * such swap just to keep the puck visible — but always re-forcing [CameraMode.TRACKING] here, as
- * this used to do, snapped the camera back onto the user's location on every basemap switch even
- * after they had deliberately panned away, which the GPS/locate-me icon is the control for, not
- * this one. `null` (the default, and what the locate-me icon's own re-activation call passes)
- * means "genuinely first activation" and still defaults to [CameraMode.TRACKING] plus the
- * zoom-in below; a non-null value restores exactly that mode instead, whatever it was.
- *
- * The zoom-in only fires on that genuine first activation ([restoreCameraMode] `== null`) — the
- * project owner's own ask ("when starting the maps, on any map mode, have it zoom in
- * automatically and center on user location") — not on every basemap-swap re-activation, where it
- * would just be the same unwanted recenter one step removed (this time snapping zoom rather than
- * position). Zoom only, not target: [CameraMode.TRACKING] already owns panning to the live fix,
- * so this doesn't fight it by also specifying a target.
- *
- * Breaking out of [CameraMode.TRACKING] again is built into MapLibre's
- * [LocationComponent][org.maplibre.android.location.LocationComponent] itself, not code this app
- * wrote: the SDK's own gesture detection drops to [CameraMode.NONE] the moment the user pans,
- * drags, or zooms, which is also what the data+camera refresh effect above checks to decide
- * whether it's safe to move the camera itself without fighting an active puck.
- */
-@SuppressLint("MissingPermission") // hasLocationPermission(context) is the real (runtime) check.
-private fun activateLiveLocationIfPermitted(
-    map: MapLibreMap,
-    style: Style,
-    context: Context,
-    // @CameraMode.Mode is an IntDef (see org.maplibre.android.location.modes.CameraMode's own
-    // javap output -- a final class of `int` constants, not a real Kotlin type), so this and
-    // LocationComponent's own cameraMode property are both plain Int, not CameraMode.
-    restoreCameraMode: Int? = null,
-    // Ruling A (continuation 2026-09-28-432): the app's true-heading engine, when the map has one.
-    compassEngine: CompassEngine? = null,
-    // Dispatch 2026-09-28-510: the app's position for the dot, when the map has one, and how to draw it.
-    // Without one, MapLibre's own engine stays, as before.
-    locationEngine: AppLocationEngine? = null,
-    look: PositionLook = PositionLook.PRECISE,
-) {
-    if (!hasLocationPermission(context)) return
-    val locationComponent = map.locationComponent
-    val options = liveLocationComponentOptions(context, look = look)
-    puckReplacementOptions(locationComponent.isLocationComponentActivated, options)?.let { locationComponent.applyStyle(it) }
-    locationComponent.activateLocationComponent(
-        LocationComponentActivationOptions.builder(context, style)
-            .locationComponentOptions(options)
-            .apply { if (locationEngine != null) locationEngine(locationEngine) else useDefaultLocationEngine(true) }
-            .build(),
-    )
-    locationComponent.isLocationComponentEnabled = true
-    compassEngine?.let { locationComponent.compassEngine = it }
-    // COMPASS, not NORMAL: the puck itself points the device's own heading, the same live sensor
-    // the compass strip's heading text already reads — matching, not duplicating, that readout.
-    locationComponent.renderMode = RenderMode.COMPASS
-    locationComponent.cameraMode = restoreCameraMode ?: CameraMode.TRACKING
-    if (restoreCameraMode == null) {
-        map.easeCamera(CameraUpdateFactory.zoomTo(FIRST_ACTIVATION_ZOOM))
-    }
-}
-
-/**
- * The zoom level a first-ever GPS activation eases to, once — a close, orienting view rather than
- * whatever the region-search zoom heuristic ([zoomForRadiusKm], topping out at 13.0) happened to
- * leave the camera at. 16.0 is the conventional "street level" a locate-me control zooms to
- * elsewhere (mainstream maps apps, among others) — not derived from anything specific to this app.
- */
-private const val FIRST_ACTIVATION_ZOOM = 16.0
 
 private fun emptyFeatureCollection(): FeatureCollection = FeatureCollection.fromFeatures(emptyList())
 
@@ -2710,7 +2279,7 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
     }
 }
 
-private const val SIGHTINGS_MAP_TAG = "SightingsMap"
+internal const val SIGHTINGS_MAP_TAG = "SightingsMap"
 private const val FAN_OUT_RESTORE_TAG = "MarkerFanOut"
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
@@ -2738,16 +2307,3 @@ private const val OFFLINE_REGION_OUTLINE_GAP_DP = 4f
  * question, not yet re-confirmed.
  */
 internal val BREADCRUMB_DASH_PATTERN = arrayOf(0.4f, 1.0f)
-
-/**
- * A visual-only heuristic mapping search radius to a legible starting zoom level, not a domain
- * prediction. Unchanged from the deleted osmdroid version — see that history for the full pixel-math
- * reasoning; it does not depend on which renderer draws the result. `internal` so
- * `SightingsMapOverlayDataTest` can assert it directly instead of duplicating the thresholds.
- */
-internal fun zoomForRadiusKm(radiusKm: Int): Double = when {
-    radiusKm <= 5 -> 13.0
-    radiusKm <= 15 -> 12.0
-    radiusKm <= 30 -> 10.5
-    else -> 9.0
-}
