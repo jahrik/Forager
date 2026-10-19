@@ -969,9 +969,9 @@ fun SightingsMap(
         // A later target change (a locate-me pan) still moves the camera, as before.
         val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, lastAppliedCameraRequestId)
         if (frameWanted) cameraMoveClassifier.markAppMove()
-        val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest!!.frame, resources.displayMetrics.density)
+        val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest.frame, resources.displayMetrics.density)
         if (frameApplied) {
-            lastAppliedCameraRequestId = cameraRequest?.id
+            lastAppliedCameraRequestId = cameraRequest.id
             lastAppliedCameraTarget = target
         } else if (shouldMoveCameraToTarget(isGpsTracking, target, lastAppliedCameraTarget)) {
             val center = MapLibreLatLng(region.lat, region.lng)
