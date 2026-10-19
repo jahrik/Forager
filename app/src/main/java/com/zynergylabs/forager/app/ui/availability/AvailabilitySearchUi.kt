@@ -227,7 +227,7 @@ internal fun SearchEntryBar(
     // "the way it was before" broken: this box is short because OutlinedTextField reserves its
     // own fixed vertical padding around the text line regardless of style, not because the text
     // itself needs to be smaller. contentPadding below is the actual fix.
-    val fieldContentPadding = OutlinedTextFieldDefaults.contentPadding(top = 2.dp, bottom = 2.dp)
+    val fieldContentPadding = OutlinedTextFieldDefaults.contentPaddingWithoutLabel(top = 2.dp, bottom = 2.dp)
     // RECORD -736 (the owner: "Yes for landscape I'm willing to accept a shorter search bar. The compass strip must remain the
     // same height as portrait"): with the strip's height, the field and Clear are at most what is above the divider, so at a
     // large font they are shorter than twice the line rather than the strip growing to them. Unchanged at font 1.0 (32 dp in 35).
@@ -1013,9 +1013,9 @@ private fun SpeciesSearchControls(
      * itself. This is the owner's own direct follow-up call — reduce the padding, not the text
      * further. Implemented via the low-level [BasicTextField] + [OutlinedTextFieldDefaults.DecorationBox]
      * pair (the only Material3 path that exposes content padding at all) for every call site, but
-     * defaulted to [OutlinedTextFieldDefaults.contentPadding], Material's own stock value.
+     * defaulted to [OutlinedTextFieldDefaults.contentPaddingWithoutLabel], Material's own stock value (what the deprecated `contentPadding` returned).
      */
-    contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPadding(),
+    contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPaddingWithoutLabel(),
     /** Whether the suggestions open over a map drawn on screen; they are then at the map chrome's alpha (owner, "1 A"). */
     suggestionsOverMap: Boolean = false,
 ) {
