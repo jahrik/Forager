@@ -1046,7 +1046,16 @@ internal fun CompactMainScaffold(
                     // landscapeStripWidthPx from the same need and bar floor CompactMapTab's strip uses, at layout time, so it is
                     // the Maps pill's from the first frame (landscapeTabPillFit). Was the strip's last measurement on Maps
                     // (lastMapsStripWidth), and half the area before Maps had been shown.
-                    val tabLandscapePillPlace = if (railBeside) {
+                    // Dispatch 2026-10-18-10 Amendment 2 (RECORD -1350; the owner: "can the search bar in the journal be moved a bit from
+                    // the edge? It sits very close to it. For tablets"): on a large screen the Journal's revealed pill, and the open
+                    // search panel that takes this same place (searchDropdown, below), sit in the Journal's centred 960 dp column, edge
+                    // to edge with its switch line and content (readableContentCap), not at the screen's edge. fillMaxWidth first, so
+                    // the column is centred in the whole width here as the tab's content is. List and Seasonal keep the Maps pill's
+                    // place at the left (RECORD -1238, "at the left ... to accommodate floating keyboards"); they have no 960 column.
+                    // Phones are unchanged.
+                    val tabLandscapePillPlace = if (railBeside && largeScreen && compactTab() == CompactTab.JOURNAL) {
+                        Modifier.fillMaxWidth().then(readableContentCap)
+                    } else if (railBeside) {
                         val farIsLeft = portEdge == ScreenEdge.Right
                         val area = Modifier.absolutePadding(left = if (farIsLeft) navBarFarSide else 0.dp, right = if (farIsLeft) 0.dp else navBarFarSide)
                         area.landscapeTabPillFit(farIsLeft, tabPillStripNeed, tabPillBarFloorPx)
