@@ -22,6 +22,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -454,10 +455,23 @@ class TabletJournalLayoutTest {
         openTab(label)
         val column = readableColumn(TABLET_COLUMN)
         if (label == "Seasonal") {
-            // The column checked against the tab's own content: Seasonal's text sits inside the column's 16 dp side padding.
+            // The column checked against the tab's own content. SEASONAL_CONTENT_TAG's node spans the whole column: the tag shares
+            // its layout node with the Column's verticalScroll, which comes before padding(horizontal = Spacing.lg), and the node
+            // reports the scroll's bounds (pre-main CI run 39199565610: 139 to 1099, the column's own edges). Until then this asserted
+            // `assertEquals("positive control: Seasonal's content ($content) starts 16 dp inside the column ($column)",
+            // column.left.value + Spacing.lg.value, content.left.value, 1f)` and the same at the right, a premise about the tag, not
+            // the layout. So the node spans the column, and what it holds (the text) sits inside the 16 dp padding.
             val content = bounds(SEASONAL_CONTENT_TAG)
-            assertEquals("positive control: Seasonal's content ($content) starts 16 dp inside the column ($column)", column.left.value + Spacing.lg.value, content.left.value, 1f)
-            assertEquals("positive control: Seasonal's content ($content) ends 16 dp inside the column ($column)", column.right.value - Spacing.lg.value, content.right.value, 1f)
+            assertEdgesOf("Seasonal's scrolling column", content, column)
+            val children = composeRule.onNodeWithTag(SEASONAL_CONTENT_TAG).onChildren()
+            val count = children.fetchSemanticsNodes().size
+            assertTrue("positive control: Seasonal's column holds something to measure ($count nodes)", count > 0)
+            for (i in 0 until count) {
+                val r = children[i].getUnclippedBoundsInRoot()
+                println("MEASURED tablet Seasonal child $i: $r")
+                assertTrue("Seasonal's content node $i ($r) starts at least 16 dp inside the column ($column)", r.left.value >= column.left.value + Spacing.lg.value - 0.5f)
+                assertTrue("Seasonal's content node $i ($r) ends at least 16 dp inside the column ($column)", r.right.value <= column.right.value - Spacing.lg.value + 0.5f)
+            }
         }
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         println("MEASURED tablet $label search rotation=$rotation: bar $bar, column $column, area ${areaBesideRail()}")
