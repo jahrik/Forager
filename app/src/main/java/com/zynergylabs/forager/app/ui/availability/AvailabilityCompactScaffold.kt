@@ -1004,7 +1004,9 @@ internal fun CompactMainScaffold(
                     // Journal's cap is 960 dp, one cap for every Journal screen, so its top line spans the same width as the content
                     // under it and does not change width between chips. Phones (smallest width under 600 dp) and the other tabs keep
                     // the 640 dp readable width.
-                    val contentCapWidth = if (compactTab() == CompactTab.JOURNAL && largeScreen) TABLET_JOURNAL_CONTENT_MAX_WIDTH else READABLE_CONTENT_MAX_WIDTH
+                    // Amendment 4 (RECORD -1355, the owner: "Good. Make season and list the same", "Same as the Journal (960)"): List and
+                    // Seasonal too, so on a large screen every tab beside the rail is the 960 dp column. Superseded: the Journal only.
+                    val contentCapWidth = if (largeScreen) TABLET_JOURNAL_CONTENT_MAX_WIDTH else READABLE_CONTENT_MAX_WIDTH
                     val readableContentCap = if (railBeside) {
                         Modifier
                             .wrapContentWidth(Alignment.CenterHorizontally)
@@ -1057,7 +1059,7 @@ internal fun CompactMainScaffold(
                     // Amendment 3 (RECORD -1353, superseding -1238's "at the left" for tablets only; the owner: "Yes move those tabs
                     // also. Those were the ones I was mainly complaining about", "Line up with their content (Recommended)"): on a large
                     // screen List and Seasonal's pill and open panel take their own content column the same way, 640 dp
-                    // (readableContentCap carries each tab's width: 960 on the Journal, 640 elsewhere). Every tab beside the rail.
+                    // (readableContentCap carries each tab's width; 960 dp on every tab since Amendment 4, -1355). Every tab beside the rail.
                     val tabLandscapePillPlace = if (railBeside && largeScreen) {
                         Modifier.fillMaxWidth().then(readableContentCap)
                     } else if (railBeside) {
