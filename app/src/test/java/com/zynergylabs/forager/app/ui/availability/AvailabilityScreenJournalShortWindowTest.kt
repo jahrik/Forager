@@ -394,9 +394,10 @@ class AvailabilityScreenJournalShortWindowTest {
 
     /**
      * The owner (RECORD -1333): "Make sure the map doesn't move." An open entry's map, opening and closing the entry, with search
-     * hidden and with it open beforehand. The map grows in a moment after the report opens (GrowIn, RECORD -682), so its height is
-     * not compared until it has arrived; its top is compared at every frame it is on screen, and its bounds from its arrival to the
-     * last frame before it leaves.
+     * hidden and with it open beforehand. The map's arrival a moment after the report opens (GrowIn, -682) stays, on the owner's
+     * word (RECORD -1334), so the map is checked from the frame it reaches its place to the end of the opening, then at every frame
+     * of the close while it is on screen. Search cannot show over an open entry (it is held hidden on the Journal, -692), so there
+     * is no search case while the entry is open.
      */
     private fun checkEntryMapStill(searchOpenFirst: Boolean) {
         setScreen(Surface.ROTATION_90, entryMapData = ENTRY_MAP_DATA)
@@ -424,7 +425,11 @@ class AvailabilityScreenJournalShortWindowTest {
         assertEquals("with the entry open, the switch line is at the top", 0f, bounds(SHORT_HEADER).top.value, 0.5f)
         println("MEASURED -1333 entry map, search open first=$searchOpenFirst: settled $settled, opening tops ${opening.map { it.top.value }}, heights ${opening.map { (it.bottom - it.top).value }}")
         assertTrue("positive control: the map was seen while the entry opened (${opening.size} frames)", opening.isNotEmpty())
-        for ((i, f) in opening.withIndex()) assertEquals("opening, frame ${i + 1}: the map's top does not move", settled.top.value, f.top.value, 0.5f)
+        // RECORD -1334 (the owner: "That map sliding is fine since it's acting like it's opening the map. ... Keep it."): the
+        // map's arrival (GrowIn, -682) is left to play; from the frame it reaches its place, it holds there.
+        val arrived = opening.indexOfFirst { near(it, settled) }
+        assertTrue("the map's arrival ends in its place within the frames watched (tops ${opening.map { it.top.value }})", arrived >= 0)
+        for (i in arrived until opening.size) assertTrue("opening, frame ${i + 1}, after the arrival: the map holds its place (${opening[i]}, settled $settled)", near(opening[i], settled))
 
         composeRule.mainClock.autoAdvance = false
         composeRule.activity.onBackPressedDispatcher.onBackPressed()
@@ -436,6 +441,7 @@ class AvailabilityScreenJournalShortWindowTest {
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
         println("MEASURED -1333 entry map closing tops ${closing.map { it.top.value }}, heights ${closing.map { (it.bottom - it.top).value }}")
+        assertTrue("positive control: the map was seen while the entry closed (${closing.size} frames)", closing.isNotEmpty())
         for ((i, f) in closing.withIndex()) {
             assertEquals("closing, frame ${i + 1}: the map's top does not move", settled.top.value, f.top.value, 0.5f)
             assertEquals("closing, frame ${i + 1}: the map's height does not change", (settled.bottom - settled.top).value, (f.bottom - f.top).value, 0.5f)
