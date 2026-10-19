@@ -2066,12 +2066,15 @@ private fun BoxScope.CompactMapPickers(
     CentrePinLocationPickerPopUp(
         visible = pendingAction != null || pickingSearchLocation,
         onConfirm = {
-            if (pendingAction != null) {
-                when (pendingAction) {
+            // Read once into a local (dispatch 2026-10-19-06, item 2): the compiler knows a local val is non-null inside the if,
+            // so the when needs no null branch. Every write to this state is a UI callback on the main thread, and nothing ran
+            // between the two reads this replaces, so the value is the same.
+            val action = pendingAction
+            if (action != null) {
+                when (action) {
                     PendingMapAction.PLAN_TRIP -> pendingTripLocation = currentCameraCenter()
                     PendingMapAction.LOG_FIND -> onLogFindHere(currentCameraCenter())
                     PendingMapAction.DROP_WAYPOINT -> pendingWaypointLocation = currentCameraCenter()
-                    null -> Unit
                 }
                 pendingAction = null
             } else if (pickingSearchLocation) {
