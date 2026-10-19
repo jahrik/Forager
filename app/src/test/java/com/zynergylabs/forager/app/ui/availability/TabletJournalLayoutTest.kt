@@ -422,17 +422,83 @@ class TabletJournalLayoutTest {
     @Test fun `landscape tablet at ROTATION_270 the revealed search bar and its open panel sit in the 960 dp column`() =
         checkSearchInColumn(Surface.ROTATION_270)
 
-    /** List keeps the Maps pill's place at the left (RECORD -1238); it has no 960 column. A control that the change is the Journal's. */
-    @Test
-    fun `landscape tablet List keeps the search bar at the left, as the owner set it`() {
-        setScreen(Surface.ROTATION_90, expectLarge = true)
-        composeRule.onNodeWithText("List").performClick()
+    // ── Amendment 3 (RECORD -1353): List and Seasonal's bar and open panel line up with their 640 dp column ──
+    //
+    // The owner: "Yes move those tabs also. Those were the ones I was mainly complaining about"; "Line up with their content
+    // (Recommended)". This replaced Amendment 2's control `landscape tablet List keeps the search bar at the left, as the owner set
+    // it`, which asserted -1238's place on a tablet: `assertEquals("List's bar starts at the area's left edge (no navigation bar
+    // under Robolectric)", area.left.value, bar.left.value, 1f)` and `assertTrue("List's bar is wider than the Journal's column
+    // (${width(bar)})", width(bar) > TABLET_COLUMN + 1f)`. -1353 supersedes -1238's "at the left" for tablets only; the phone
+    // controls below hold it for phones.
+
+    /** The tab's 640 dp column: centred in the area beside the rail, as the scaffold's readable cap places it. */
+    private fun readableColumn(): DpRect {
+        val area = areaBesideRail()
+        val side = (width(area) - READABLE_CONTENT_MAX_WIDTH.value) / 2f
+        return DpRect(area.left + side.dp, area.top, area.right - side.dp, area.bottom)
+    }
+
+    private fun openTab(label: String) {
+        composeRule.onNodeWithText(label).performClick()
         settle()
+        assertTrue("positive control: the search bar shows on $label", exists(SEARCH_ENTRY_BAR_TAG))
+    }
+
+    private fun checkTabSearchInColumn(label: String, rotation: Int) {
+        setScreen(rotation, expectLarge = true)
+        openTab(label)
+        val column = readableColumn()
+        if (label == "Seasonal") {
+            // The column checked against the tab's own content: Seasonal's text sits inside the column's 16 dp side padding.
+            val content = bounds(SEASONAL_CONTENT_TAG)
+            assertEquals("positive control: Seasonal's content ($content) starts 16 dp inside the column ($column)", column.left.value + Spacing.lg.value, content.left.value, 1f)
+            assertEquals("positive control: Seasonal's content ($content) ends 16 dp inside the column ($column)", column.right.value - Spacing.lg.value, content.right.value, 1f)
+        }
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        println("MEASURED tablet $label search rotation=$rotation: bar $bar, column $column, area ${areaBesideRail()}")
+        assertEdgesOf("$label's search bar", bar, column)
+        openSearchPanel()
+        val panel = bounds(SEARCH_DROPDOWN_TAG)
+        println("MEASURED tablet $label search panel rotation=$rotation: panel $panel")
+        assertEdgesOf("$label's open search panel", panel, column)
+        for (tag in listOf(SEARCH_DROPDOWN_SET_ON_MAP_TAG, SEARCH_DROPDOWN_SEARCH_TAG)) {
+            val r = bounds(tag)
+            assertTrue("$tag ($r) lies inside the column ($column)", r.left.value >= column.left.value - 0.5f && r.right.value <= column.right.value + 0.5f)
+        }
+    }
+
+    @Test fun `landscape tablet at ROTATION_90 List's search bar and open panel line up with its 640 dp column`() = checkTabSearchInColumn("List", Surface.ROTATION_90)
+
+    @Test fun `landscape tablet at ROTATION_270 List's search bar and open panel line up with its 640 dp column`() = checkTabSearchInColumn("List", Surface.ROTATION_270)
+
+    @Test fun `landscape tablet at ROTATION_90 Seasonal's search bar and open panel line up with its 640 dp column`() = checkTabSearchInColumn("Seasonal", Surface.ROTATION_90)
+
+    @Test fun `landscape tablet at ROTATION_270 Seasonal's search bar and open panel line up with its 640 dp column`() = checkTabSearchInColumn("Seasonal", Surface.ROTATION_270)
+
+    private fun checkPhoneTabBarAtLeft(label: String) {
+        setScreen(Surface.ROTATION_90, expectLarge = false)
+        openTab(label)
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         val area = areaBesideRail()
-        println("MEASURED tablet List search: bar $bar, area $area")
-        assertEquals("List's bar starts at the area's left edge (no navigation bar under Robolectric)", area.left.value, bar.left.value, 1f)
-        assertTrue("List's bar is wider than the Journal's column (${width(bar)})", width(bar) > TABLET_COLUMN + 1f)
+        println("MEASURED phone $label search: bar $bar, area $area")
+        assertEquals("the phone's $label bar starts at the area's left edge (-1238)", area.left.value, bar.left.value, 1f)
+        assertTrue("positive control: the phone's 640 dp column starts away from that edge", readableColumn().left.value > area.left.value + 10f)
+    }
+
+    @Test
+    @Config(qualifiers = PHONE_LANDSCAPE)
+    fun `phone landscape List's search bar is at the left, unchanged`() = checkPhoneTabBarAtLeft("List")
+
+    @Test
+    @Config(qualifiers = PHONE_LANDSCAPE)
+    fun `phone landscape Seasonal's search bar is at the left, unchanged`() = checkPhoneTabBarAtLeft("Seasonal")
+
+    @Test
+    fun `screenshot landscape tablet List open search panel`() {
+        setScreen(Surface.ROTATION_90, expectLarge = true)
+        openTab("List")
+        openSearchPanel()
+        screenshot("landscape-list-search-panel")
     }
 
     @Test
