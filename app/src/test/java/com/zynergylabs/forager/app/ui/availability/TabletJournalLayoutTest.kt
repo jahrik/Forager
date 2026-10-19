@@ -25,6 +25,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.printToString
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -209,6 +211,21 @@ class TabletJournalLayoutTest {
         assertEquals("$what ($r) is centred beside the rail ($area)", centreX(area), centreX(r), 1f)
     }
 
+    /**
+     * The top line is the column less its own side padding (`ShortWindowJournalHeader`'s `padding(horizontal = Spacing.lg)`, which
+     * its tag sits inside), centred in the same place.
+     */
+    private fun assertTopLineInColumn(what: String, line: DpRect, column: Float) {
+        val area = areaBesideRail()
+        assertEquals("$what ($line) is the $column dp column less its 16 dp side padding", column - 2 * Spacing.lg.value, width(line), 1f)
+        assertEquals("$what ($line) is centred beside the rail ($area)", centreX(area), centreX(line), 1f)
+    }
+
+    /** Diagnostics for a lookup that failed: the unmerged semantics tree, to the test's output. */
+    private fun dumpTree(label: String) {
+        println("TREE $label\n" + composeRule.onRoot(useUnmergedTree = true).printToString())
+    }
+
     private fun screenshot(name: String) {
         val bitmap = composeRule.onRoot().captureToImage().asAndroidBitmap()
         val dir = File("build/test-results/testDebugUnitTest/tablet-journal-screenshots").apply { mkdirs() }
@@ -230,7 +247,7 @@ class TabletJournalLayoutTest {
         assertTrue("the controls keep at least 240 dp (${width(controls)})", width(controls) >= 240f - 0.5f)
         val span = DpRect(map.left, map.top, controls.right, map.bottom)
         assertTabletColumn("the map and the controls together", span)
-        assertTabletColumn("the top line", line)
+        assertTopLineInColumn("the top line", line, TABLET_COLUMN)
         // The largest square: as tall as the room under the switch line and its gap, unless that would leave the controls under 240.
         val room = root().bottom.value - map.top.value
         val expected = minOf(room, TABLET_COLUMN - 240f)
@@ -338,7 +355,7 @@ class TabletJournalLayoutTest {
         openJournal()
         val grid = bounds(ENTRIES_GRID_TAG)
         assertTabletColumn("the Entries grid", grid)
-        assertTabletColumn("the top line", bounds(SHORT_HEADER_TAG))
+        assertTopLineInColumn("the top line", bounds(SHORT_HEADER_TAG), TABLET_COLUMN)
         val first = bounds(entryCardTestTag(TABLET_ENTRIES[0].id))
         val second = bounds(entryCardTestTag(TABLET_ENTRIES[1].id))
         println("MEASURED tablet entries: grid $grid, first $first, second $second")
@@ -353,7 +370,7 @@ class TabletJournalLayoutTest {
         openJournal()
         composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.RECORDS)).performClick()
         settle()
-        assertTabletColumn("Records' top line", bounds(SHORT_HEADER_TAG))
+        assertTopLineInColumn("Records' top line", bounds(SHORT_HEADER_TAG), TABLET_COLUMN)
     }
 
     // ── Portrait tablet: the square on top, the info under it ──
@@ -392,13 +409,14 @@ class TabletJournalLayoutTest {
     fun `phone landscape Offline maps keeps half and half in the 640 dp column`() {
         setScreen(Surface.ROTATION_90, expectLarge = false)
         openOfflineMaps()
+        if (!exists(OFFLINE_PICKER_MAP_TAG)) dumpTree("phone landscape Offline maps")
         val map = bounds(OFFLINE_PICKER_MAP_TAG)
         val controls = bounds(OFFLINE_PICKER_CONTROLS_SCROLL_TAG)
         println("MEASURED phone offline: map $map, controls $controls")
         assertEquals("the map and the controls share the 640 dp column", READABLE_CONTENT_MAX_WIDTH.value, (controls.right - map.left).value, 1f)
         assertEquals("the map is half of it, as before", width(controls), width(map), 1f)
         assertTrue("the map is not square on a phone (${width(map)} x ${height(map)})", kotlin.math.abs(width(map) - height(map)) > 10f)
-        assertEquals("the top line is 640 dp", READABLE_CONTENT_MAX_WIDTH.value, width(bounds(SHORT_HEADER_TAG)), 1f)
+        assertTopLineInColumn("the top line", bounds(SHORT_HEADER_TAG), READABLE_CONTENT_MAX_WIDTH.value)
     }
 
     @Test
@@ -417,6 +435,7 @@ class TabletJournalLayoutTest {
     fun `phone portrait Offline maps keeps the 4 by 3 map`() {
         setScreen(Surface.ROTATION_0, expectLarge = false)
         openOfflineMaps()
+        if (!exists(OFFLINE_PICKER_MAP_TAG)) dumpTree("phone portrait Offline maps")
         val map = bounds(OFFLINE_PICKER_MAP_TAG)
         assertEquals("the map ($map) is 4:3", width(map) * 3f / 4f, height(map), 1f)
     }
