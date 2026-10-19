@@ -431,10 +431,15 @@ class TabletJournalLayoutTest {
     // (${width(bar)})", width(bar) > TABLET_COLUMN + 1f)`. -1353 supersedes -1238's "at the left" for tablets only; the phone
     // controls below hold it for phones.
 
-    /** The tab's 640 dp column: centred in the area beside the rail, as the scaffold's readable cap places it. */
-    private fun readableColumn(): DpRect {
+    // Amendment 4 (RECORD -1355, the owner: "Same as the Journal (960)") widened List and Seasonal to the 960 dp column on a
+    // large screen. The checks below asserted Amendment 3's 640 dp column there (`checkTabSearchInColumn` used
+    // `readableColumn()`, 640 dp centred beside the rail, and the tests were named "... line up with its 640 dp column"); they now
+    // take the 960 dp column. The phone controls keep 640.
+
+    /** A column of [columnWidth] dp centred in the area beside the rail, as the scaffold's readable cap places it. */
+    private fun readableColumn(columnWidth: Float = READABLE_CONTENT_MAX_WIDTH.value): DpRect {
         val area = areaBesideRail()
-        val side = (width(area) - READABLE_CONTENT_MAX_WIDTH.value) / 2f
+        val side = (width(area) - columnWidth) / 2f
         return DpRect(area.left + side.dp, area.top, area.right - side.dp, area.bottom)
     }
 
@@ -447,7 +452,7 @@ class TabletJournalLayoutTest {
     private fun checkTabSearchInColumn(label: String, rotation: Int) {
         setScreen(rotation, expectLarge = true)
         openTab(label)
-        val column = readableColumn()
+        val column = readableColumn(TABLET_COLUMN)
         if (label == "Seasonal") {
             // The column checked against the tab's own content: Seasonal's text sits inside the column's 16 dp side padding.
             val content = bounds(SEASONAL_CONTENT_TAG)
@@ -467,13 +472,13 @@ class TabletJournalLayoutTest {
         }
     }
 
-    @Test fun `landscape tablet at ROTATION_90 List's search bar and open panel line up with its 640 dp column`() = checkTabSearchInColumn("List", Surface.ROTATION_90)
+    @Test fun `landscape tablet at ROTATION_90 List's content, search bar and open panel share the 960 dp column`() = checkTabSearchInColumn("List", Surface.ROTATION_90)
 
-    @Test fun `landscape tablet at ROTATION_270 List's search bar and open panel line up with its 640 dp column`() = checkTabSearchInColumn("List", Surface.ROTATION_270)
+    @Test fun `landscape tablet at ROTATION_270 List's content, search bar and open panel share the 960 dp column`() = checkTabSearchInColumn("List", Surface.ROTATION_270)
 
-    @Test fun `landscape tablet at ROTATION_90 Seasonal's search bar and open panel line up with its 640 dp column`() = checkTabSearchInColumn("Seasonal", Surface.ROTATION_90)
+    @Test fun `landscape tablet at ROTATION_90 Seasonal's content, search bar and open panel share the 960 dp column`() = checkTabSearchInColumn("Seasonal", Surface.ROTATION_90)
 
-    @Test fun `landscape tablet at ROTATION_270 Seasonal's search bar and open panel line up with its 640 dp column`() = checkTabSearchInColumn("Seasonal", Surface.ROTATION_270)
+    @Test fun `landscape tablet at ROTATION_270 Seasonal's content, search bar and open panel share the 960 dp column`() = checkTabSearchInColumn("Seasonal", Surface.ROTATION_270)
 
     private fun checkPhoneTabBarAtLeft(label: String) {
         setScreen(Surface.ROTATION_90, expectLarge = false)

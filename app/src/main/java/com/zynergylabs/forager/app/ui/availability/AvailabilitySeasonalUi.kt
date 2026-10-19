@@ -44,6 +44,8 @@ import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
 import com.zynergylabs.forager.app.ui.adaptive.WindowWidthClass
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowWidthClass
+import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import com.zynergylabs.forager.app.ui.credits.OpenMeteoCredit
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -74,6 +76,10 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
     // READABLE_CONTENT_MAX_WIDTH is that constraint; COMPACT keeps fillMaxWidth exactly as
     // before, since a phone-width screen never approaches that cap anyway.
     val windowWidthClass = currentWindowWidthClass()
+    // Amendment 4 to dispatch 2026-10-18-10 (RECORD -1355, the owner: "Same as the Journal (960)"): beside the rail on a large
+    // screen the tab is the 960 dp column the scaffold gives it, in place of this 640 dp readable cap, whose reasoning above the
+    // owner's choice overrides there. Portrait on a tablet, and phones, keep 640.
+    val seasonalMaxWidth = if (isLargeScreenWindow() && isLandscapeWindow()) TABLET_JOURNAL_CONTENT_MAX_WIDTH else READABLE_CONTENT_MAX_WIDTH
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -82,7 +88,7 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
                     if (windowWidthClass == WindowWidthClass.COMPACT) {
                         Modifier.fillMaxWidth()
                     } else {
-                        Modifier.widthIn(max = READABLE_CONTENT_MAX_WIDTH).fillMaxWidth()
+                        Modifier.widthIn(max = seasonalMaxWidth).fillMaxWidth()
                     },
                 )
                 .verticalScroll(rememberScrollState())
