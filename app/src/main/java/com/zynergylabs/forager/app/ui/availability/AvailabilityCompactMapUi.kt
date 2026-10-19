@@ -2071,6 +2071,7 @@ private fun BoxScope.CompactMapPickers(
                     PendingMapAction.PLAN_TRIP -> pendingTripLocation = currentCameraCenter()
                     PendingMapAction.LOG_FIND -> onLogFindHere(currentCameraCenter())
                     PendingMapAction.DROP_WAYPOINT -> pendingWaypointLocation = currentCameraCenter()
+                    null -> Unit
                 }
                 pendingAction = null
             } else if (pickingSearchLocation) {
