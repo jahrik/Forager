@@ -5,7 +5,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.MotionEvent
-import android.view.Gravity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -37,8 +36,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -50,11 +47,8 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
-import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveCause
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
-import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
-import com.zynergylabs.forager.app.ui.map.fanout.MapTapSinks
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutBackHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutHost
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutState
@@ -63,8 +57,6 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.TAP_BOX_DP
 import com.zynergylabs.forager.app.ui.map.layers.activeLayerCredits
 import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
-import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
-import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
@@ -276,15 +268,10 @@ fun SightingsMap(
     // below — without this indirection, a listener registered once would keep calling whichever
     // onTap/onLongPress lambda instance was current at registration time, not the caller's latest.
     val currentOnTapState = rememberUpdatedState(onTap)
-    val currentOnTap by currentOnTapState
     val currentOnSightingTapState = rememberUpdatedState(onSightingTap)
-    val currentOnSightingTap by currentOnSightingTapState
     val currentOnLongPressState = rememberUpdatedState(onLongPress)
-    val currentOnLongPress by currentOnLongPressState
     val currentOnCameraIdleState = rememberUpdatedState(onCameraIdle)
-    val currentOnCameraIdle by currentOnCameraIdleState
     val currentOnUserCameraGestureState = rememberUpdatedState(onUserCameraGesture)
-    val currentOnUserCameraGesture by currentOnUserCameraGestureState
     val currentNavigationViewState = rememberUpdatedState(navigationView)
     val currentNavigationView by currentNavigationViewState
     // Ruling A (continuation 2026-09-28-432): the puck, and a facing-up map, take the app's own true
@@ -317,9 +304,7 @@ fun SightingsMap(
     val navigationMapHeightPxState = remember { mutableIntStateOf(0) }
     var navigationMapHeightPx by navigationMapHeightPxState
     val currentOnFeatureTapState = rememberUpdatedState(onFeatureTap)
-    val currentOnFeatureTap by currentOnFeatureTapState
     val currentOnCloseBubbleState = rememberUpdatedState(onCloseBubble)
-    val currentOnCloseBubble by currentOnCloseBubbleState
     // Read by the click listener (the draw order the tap precedence ranks against) and by each
     // style load (the order the layers are added in): both were registered or launched before a
     // later state change could otherwise reach them.
@@ -333,7 +318,6 @@ fun SightingsMap(
         withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty())
     }
     val currentLayersStateState = rememberUpdatedState(drawnLayersState)
-    val currentLayersState by currentLayersStateState
     // The map chrome's colour (the navigation bar's), read here because it follows the app's theme.
     val chromeColour = navigationBarContainerColor().toArgb()
     val currentChromeColourState = rememberUpdatedState(chromeColour)
@@ -347,18 +331,15 @@ fun SightingsMap(
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
     val cameraIdleCountState = remember { mutableIntStateOf(0) }
-    var cameraIdleCount by cameraIdleCountState
     // Read inside the click listener below (registered once, see that DisposableEffect's own
     // comment) so a tapped dot resolves against whichever sightings list is current, not whichever
     // one was in scope the moment the listener was registered.
     val currentSightingsState = rememberUpdatedState(sightings)
-    val currentSightings by currentSightingsState
     // See MapOverlayContent.focusedObservationId's own doc comment for the dismiss-then-reappear
     // bug this closes: read fresh on every camera-idle event rather than latched into a local var
     // at tap time, so a caller-side dismissal (which only ever changes this parameter, never reaches
     // the click listener below) is visible here too.
     val currentFocusedObservationIdState = rememberUpdatedState(focusedObservationId)
-    val currentFocusedObservationId by currentFocusedObservationIdState
     // M1 (F2): the point feature a caller's bubble is showing, and the lists it is looked up in, read
     // fresh on every camera idle for the reason currentFocusedObservationId is.
     val currentFocusedFeatureState = rememberUpdatedState(focusedFeature)
@@ -371,13 +352,9 @@ fun SightingsMap(
     val currentReturnMemoryState = rememberUpdatedState(returnMemory)
     val currentReturnMemory by currentReturnMemoryState
     val currentPlannedTripsState = rememberUpdatedState(plannedTrips)
-    val currentPlannedTrips by currentPlannedTripsState
     val currentWaypointsState = rememberUpdatedState(waypoints)
-    val currentWaypoints by currentWaypointsState
     val currentFindMarkersState = rememberUpdatedState(findMarkers)
-    val currentFindMarkers by currentFindMarkersState
     val currentPhotoMarkersState = rememberUpdatedState(photoMarkers)
-    val currentPhotoMarkers by currentPhotoMarkersState
     val mapLibreMapState = remember { mutableStateOf<MapLibreMap?>(null) }
     var mapLibreMap by mapLibreMapState
     // Dispatch 2026-09-28-463: a nudge under the drag threshold gives, then springs back, while
@@ -512,7 +489,6 @@ fun SightingsMap(
     // Part 1 layout fixes, item 5: MapLibre's own attribution margins, read once the map is ready, which
     // the caption's insets are added to below.
     val attributionDefaultMarginsState = remember { mutableStateOf<IntArray?>(null) }
-    var attributionDefaultMargins by attributionDefaultMarginsState
 
     // Item 1 (dispatch 2026-09-29-57, amendment -262): the map's own size, written by the layout below and read by the
     // attribution placement. Declared here, with the holder's other states, since UI split Phase 2.2 (dispatch 2026-10-19-29);
@@ -578,268 +554,12 @@ fun SightingsMap(
         )
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    mapView.onResume()
-                    mapLibreMap?.locationComponent?.onStart()
-                }
-                Lifecycle.Event.ON_PAUSE -> {
-                    mapView.onPause()
-                    mapLibreMap?.locationComponent?.onStop()
-                }
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            tearDownMap(object : MapTeardownTarget {
-                override fun stopLocationUpdates() {
-                    mapLibreMap?.locationComponent?.onStop()
-                }
+    // Lifecycle and teardown: MapLifecycle.kt. Called here, before the listeners and after the nudge's DisposableEffect,
+    // so the three DisposableEffects keep their creation order and so their dispose order (Compose forgets in reverse).
+    MapLifecycle(state = sightingsMapState, lifecycleOwner = lifecycleOwner)
 
-                override fun destroyLocationComponent() {
-                    mapLibreMap?.locationComponent?.onDestroy()
-                }
-
-                override fun destroyMapView() = mapView.onDestroy()
-            })
-        }
-    }
-
-    // Re-projects the glyph a shown bubble belongs to and reports it, so the bubble follows the glyph. Called at
-    // every camera idle, and (Part 2 follow-ups F1 item 1) when the map's own size changes: a device rotation
-    // resizes the view without any camera idle, and the bubble used to stay at its portrait place until the
-    // next pan. Reads the latest lists and callbacks through the current* states, as the idle listener always did.
-    fun reanchorFocusedBubble(map: MapLibreMap) {
-        // Keeps a shown observation bubble glued to its own marker's real screen position
-        // across a pan/zoom/rotate — a hardware report asked for exactly this ("have it stay
-        // there when we move the map, so we know which one it belongs to"), and re-projecting
-        // whichever sighting currentFocusedObservationId currently names on every idle (the
-        // same projection call the click listener above uses once, at tap time) is what
-        // answers it without this composable needing to reimplement MapLibre's own
-        // screen<->geo math. Resolved fresh against currentSightings/currentFocusedObservationId
-        // rather than a sighting captured at tap time, so a dismissal that's since cleared
-        // the caller's own focused id (see MapOverlayContent.focusedObservationId's doc
-        // comment) is reflected here too instead of silently re-reviving a closed bubble. The
-        // bearing carried alongside — also re-read fresh here, not just at tap time — is what
-        // lets the caller keep the bubble's own placement direction correct (screen position
-        // and orientation both live, not just position) after a rotate gesture; see
-        // AnchoredAtScreenPoint's own doc comment in AvailabilityScreen.kt for what it does
-        // with this value.
-        currentFocusedObservationId
-            ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
-            ?.let { sighting ->
-                val screenPoint = map.projection.toScreenLocation(MapLibreLatLng(sighting.lat, sighting.lng))
-                currentOnSightingTap(sighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
-            }
-        // M1 (F2): the same for a point feature's bubble. Its glyph's own position is re-found
-        // in the lists this map draws (focusedFeaturePosition) and reported as a feature tap
-        // at that point, so the caller's bubble follows the glyph. A record no longer drawn
-        // is not re-fired, and a dismissed bubble has no focusedFeature, so nothing revives it.
-        currentFocusedFeature?.let { focus ->
-            focusedFeaturePosition(focus, currentPlannedTrips, currentWaypoints, currentFindMarkers, currentPhotoMarkers)?.let { at ->
-                val glyph = map.projection.toScreenLocation(MapLibreLatLng(at.lat, at.lng))
-                currentOnFeatureTap(
-                    MapFeatureTap(focus.layerId, focus.featureId, Offset(glyph.x, glyph.y), map.cameraPosition.bearing.toFloat(), at),
-                )
-            }
-        }
-    }
-
-    // Registered once per composition of this MapView, not per recomposition: getMapAsync's
-    // callback fires exactly once for the life of the MapView, so there's no re-registration to
-    // guard against the way applyBasemap's guard above is needed for setStyle.
-    DisposableEffect(mapView) {
-        // A style that cannot be loaded — the offline style with no region covering the camera
-        // and no network, or a worker URL that moved — fails here rather than in setStyle's own
-        // callback, which simply never fires. Logged, never silently swallowed (CLAUDE.md); the
-        // message is MapLibre's own. addOnDidFailLoadingMapListener verified against the pinned
-        // 13.5.0 artifact with javap, the same way every other SDK call in this file was.
-        mapView.addOnDidFailLoadingMapListener { message ->
-            Log.w(SIGHTINGS_MAP_TAG, "MapLibre failed to load the map style: $message")
-        }
-        // RECORD -752 (dispatch 2026-09-28-755, item 4): logging only, to find the S22's blank and magnified frame on a return
-        // to Maps. The first few frames this MapView renders, with its size and camera then; the restore's own logs are below.
-        // A MapView cannot run under Robolectric, so this is read from the phone's logcat (MAPS_COMEBACK_LOG_TAG).
-        val firstFramesLogged = intArrayOf(0)
-        val frameLogger = MapView.OnDidFinishRenderingFrameListener { fully, _, _ ->
-            // RECORD -761: the first full frame after the style has loaded (the camera was restored before it) takes over from
-            // the cover.
-            if (fully && loadedStyle != null && coverPhase == CoverPhase.COVERING) {
-                coverPhase = CoverPhase.HANDED_OVER
-                Log.i(MAPS_COMEBACK_LOG_TAG, "cover: handed over at the first full frame, zoom=${mapLibreMap?.cameraPosition?.zoom}")
-            }
-            if (firstFramesLogged[0] < MAPS_COMEBACK_FRAMES_LOGGED) {
-                firstFramesLogged[0]++
-                val camera = mapLibreMap?.cameraPosition
-                Log.i(MAPS_COMEBACK_LOG_TAG, "frame ${firstFramesLogged[0]} fully=$fully view=${mapView.width}x${mapView.height} render=${mapView.renderView.width}x${mapView.renderView.height} zoom=${camera?.zoom} target=${camera?.target} style=${loadedStyle != null}")
-            }
-        }
-        mapView.addOnDidFinishRenderingFrameListener(frameLogger)
-        mapView.getMapAsync { map ->
-            // Marker fan-out (dispatch 2026-09-28-197): the tap is decided by MapTapHandler, which is the
-            // resolution this listener used to do inline (resolveTap over every tappable layer, a point
-            // query then a TAP_BOX_DP box, then mapTapOutcome), with the fan-out in front of and behind it.
-            // The four outcomes come back through the sinks below, unchanged from what the listener did.
-            val handler = MapTapHandler(
-                fan = fanOut,
-                probe = MapLibreProbe(map, resources.displayMetrics.density) { key ->
-                    // Where a fanned record is now, from the lists the map draws (the projection of it is the probe's): the
-                    // same lookup a shown bubble's re-anchoring uses. Null once the record is no longer drawn.
-                    focusedFeaturePosition(FocusedMapFeature(key.layerId, key.featureId), currentPlannedTrips, currentWaypoints, currentFindMarkers, currentPhotoMarkers)
-                },
-                space = fanSpace,
-                // One layer at a time (amendment -255): a bubble showing on a sighting or a point glyph, which is
-                // what a fanned marker's bubble is, means an empty-map tap closes it and leaves the fan.
-                bubbleOpen = { currentFocusedObservationId != null || currentFocusedFeature != null },
-                drawOrder = { orderedLayers(MAP_LAYER_REGISTRY, currentLayersState) },
-                // A record on a layer switched off is not drawn, so it is not a fan member.
-                warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
-                layerDrawn = { id -> MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.let { layerPaintFor(it, currentLayersState).visible } ?: false },
-                sinks = object : MapTapSinks {
-                    override fun onPlainTap() = currentOnTap()
-
-                    override fun onSightingTap(observationId: Long?, xPx: Float, yPx: Float) {
-                        // The sighting path as before L0a: the dot's observationId looked back up in
-                        // the current list, the bubble anchored at the tap point, onTap when the id no
-                        // longer resolves.
-                        val tappedSighting = observationId?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
-                        if (tappedSighting != null) {
-                            currentOnSightingTap(tappedSighting, Offset(xPx, yPx), map.cameraPosition.bearing.toFloat())
-                        } else {
-                            currentOnTap()
-                        }
-                    }
-
-                    override fun onFeatureTap(layerId: String, featureId: String, xPx: Float, yPx: Float, at: LatLng) {
-                        // M1 (owner's ruling 1, "Bubble only"): a feature tap opens its bubble and nothing
-                        // else, as a sighting tap already did.
-                        currentOnFeatureTap(MapFeatureTap(layerId, featureId, Offset(xPx, yPx), map.cameraPosition.bearing.toFloat(), at))
-                    }
-
-                    override fun onCloseBubble() = currentOnCloseBubble()
-
-                    override fun onUnidentifiedFeature(layerId: String) {
-                        // Logged, never silent: a feature with no id cannot name its record, so no
-                        // bubble can show, and the tap is taken as a plain one.
-                        Log.w(SIGHTINGS_MAP_TAG, "Tapped a feature on $layerId with no $FEATURE_ID_PROPERTY; taken as a plain tap.")
-                        currentOnTap()
-                    }
-                },
-            )
-            tapHandlerRef.handler = handler
-            map.addOnMapClickListener { latLng ->
-                // toScreenLocation confirmed via javap against the pinned org.maplibre.gl:android-sdk:13.5.0.
-                val screenPoint = map.projection.toScreenLocation(latLng)
-                handler.onMapTap(LatLng(latLng.latitude, latLng.longitude), screenPoint.x, screenPoint.y)
-                // false: unconsumed, matching the deleted osmdroid MapEventsOverlay's
-                // singleTapConfirmedHelper — a plain tap isn't meant to swallow the event.
-                false
-            }
-            map.addOnMapLongClickListener { latLng ->
-                currentOnLongPress(LatLng(latLng.latitude, latLng.longitude))
-                true
-            }
-            // Only a touch counts: REASON_API_GESTURE is dispatched from MapGestureDetector's
-            // listeners alone, every programmatic move from Transform as REASON_API_ANIMATION —
-            // see MapRenderMode.onUserCameraGesture's doc comment for the javap check.
-            // Dispatch 2026-09-28-430, ruling C: while navigating the map turns with the compass and
-            // rarely rests, so a shown bubble is kept on its glyph on every camera move, not only at
-            // idle. Outside navigation it is re-anchored at idle as before.
-            map.addOnCameraMoveListener {
-                if (currentNavigationView != null) reanchorFocusedBubble(map)
-                navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
-            }
-            // Dispatch -477, Part A: every fling MapLibre reports while navigating, with the camera mode then.
-            // Logging only.
-            map.addOnFlingListener {
-                if (currentNavigationView != null) {
-                    Log.i(NAVIGATION_VIEW_LOG_TAG, "fling reported: mode=${map.locationComponent.takeIf { it.isLocationComponentActivated }?.cameraMode}")
-                }
-            }
-            map.addOnCameraMoveStartedListener { reason ->
-                navigationModeChange.noteCameraMoveStarted(reason) // dispatch -470, Part A: logging only
-                // A fanned stack folds on a camera move the user made or asked for, a gesture or the app's own; it stays open when the map re-centres
-                // itself while it follows the location (dispatch 2026-09-28-380: the user did not mean that move, and the fan travels with the map).
-                val following = map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE
-                val cause = cameraMoveClassifier.classify(isUserCameraGesture(reason), following)
-                if (cause == CameraMoveCause.UNKNOWN) {
-                    Log.w(SIGHTINGS_MAP_TAG, "A camera move (reason $reason) is not a touch, not marked as the app's and not the location follower's; the open fan is folded as it always was.")
-                }
-                tapHandlerRef.handler?.onCameraMoveStarted(cause)
-                if (isUserCameraGesture(reason)) currentOnUserCameraGesture()
-            }
-            // OnCameraIdleListener.onCameraIdle() takes no argument (verified via javap against
-            // the pinned org.maplibre.gl:android-sdk:13.5.0 artifact — MapLibreMap$OnCameraIdleListener
-            // declares only `void onCameraIdle()`), so the position has to be read back explicitly
-            // via getCameraPosition() inside the callback, not received as a parameter the way
-            // addOnMapLongClickListener's latLng is.
-            map.addOnCameraIdleListener {
-                cameraMoveClassifier.onCameraIdle()
-                cameraIdleCount++
-                // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
-                // javap: the vendor's own constructor carries an org.jetbrains.annotations.Nullable
-                // on this parameter) — null before the map has finished laying out a first camera
-                // position, which an idle event can fire for. Nothing to report yet in that case, so
-                // this skips the callback rather than fabricating a coordinate.
-                map.cameraPosition.target?.let { target ->
-                    currentOnCameraIdle(LatLng(target.latitude, target.longitude))
-                }
-                // Part 1 layout fixes, item 4: the camera this map settled on, for the map that comes
-                // back after a tab change. Not before this MapView's first style has loaded: until then
-                // the camera is the SDK's default, and the restore has yet to read what was saved.
-                if (loadedStyle != null) {
-                    val camera = map.cameraPosition
-                    camera.target?.let { target ->
-                        currentCameraMemory?.saved = MapCameraSnapshot(
-                            target = LatLng(target.latitude, target.longitude),
-                            zoom = camera.zoom,
-                            bearing = camera.bearing,
-                            tilt = camera.tilt,
-                            following = map.locationComponent.isLocationComponentActivated &&
-                                map.locationComponent.cameraMode != CameraMode.NONE,
-                            appliedTarget = lastAppliedCameraTarget,
-                        )
-                    }
-                }
-                // Item 8 (dispatch 2026-09-29-57, amendment -262, "Remember and reopen"): the fan a user left when they opened a
-                // find on the Journal reopens here, at the first idle after this map's style has loaded (the camera memory's
-                // restore has been applied by then, and the style load's own content fold, onContentChanged, has run), through
-                // openFanFor. A reopen that comes to nothing is logged, never silent. Whether a later camera move or content
-                // change folds it again is device-only: a real MapView cannot be built under Robolectric.
-                fanReopen.onCameraIdle(loadedStyle != null)
-                // Keeps a shown bubble glued to its glyph across a pan, zoom or rotate gesture: see
-                // reanchorFocusedBubble, which a rotation of the device also calls (onViewportResized below).
-                reanchorFocusedBubble(map)
-            }
-            // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
-            // corner this composable's own always-visible Basemap.attribution caption occupies (see
-            // below), so the two painted over each other: MapLibre's control and this app's own
-            // basemap-specific credit, both real and both required, neither readable. Moved to
-            // bottom-end so each has its own corner rather than trying to stack them, which would
-            // need a margin computed from this caption's own (basemap-dependent) text height to stay
-            // correct — confirmed via javap against the pinned org.maplibre.gl:android-sdk artifact
-            // that UiSettings exposes setAttributionGravity/setAttributionMargins for exactly this.
-            map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
-            // Part 1 layout fixes, item 5: MapLibre's own margins, which the insets below are added to.
-            attributionDefaultMargins = map.uiSettings.let {
-                intArrayOf(it.attributionMarginLeft, it.attributionMarginTop, it.attributionMarginRight, it.attributionMarginBottom)
-            }
-            // MapLibre's own compass view (a floating circular reset-to-north control it draws
-            // itself, top-right by default) is replaced by the map icon bar's own orientation-
-            // reset control — a real hardware report found the two overlapping, and the SDK's own
-            // compass has no callback this project could otherwise hook into for the icon bar's
-            // matching entry, only a tap target of its own with fixed positioning. Disabled here
-            // rather than repositioned: keeping both would mean two controls that do the same
-            // thing, in two different places, on the same screen.
-            map.uiSettings.isCompassEnabled = false
-            mapLibreMap = map
-        }
-        onDispose { mapView.removeOnDidFinishRenderingFrameListener(frameLogger) }
-    }
+    // Every MapLibre listener, registered once in the map-ready callback: MapListeners.kt.
+    MapListeners(state = sightingsMapState, resources = resources, fanSpace = fanSpace)
 
     // Style swap (Stage 2e-ii, colour build C1): MapStyleReload.kt.
     MapStyleReload(
@@ -1058,7 +778,7 @@ fun SightingsMap(
                     mapSizePx = it
                     navigationMapHeightPx = it.height
                 }
-                .onViewportResized { mapView.post { mapLibreMap?.let(::reanchorFocusedBubble) } },
+                .onViewportResized { mapView.post { mapLibreMap?.let(sightingsMapState::reanchorFocusedBubble) } },
         )
         // RECORD -761: the cover, over the map and under everything else; no pointer input, so touches reach the map.
         if (coverPicture != null && coverPhase != CoverPhase.GONE) {
@@ -1099,8 +819,8 @@ fun SightingsMap(
 /** RECORD -752: logcat tag for a map's first frames and its camera restore on a return to Maps (logging only). */
 internal const val MAPS_COMEBACK_LOG_TAG = "ForagerMapsComeback"
 
-/** RECORD -752: how many of a new MapView's first rendered frames are logged. */
-private const val MAPS_COMEBACK_FRAMES_LOGGED = 8
+/** RECORD -752: how many of a new MapView's first rendered frames are logged. `internal` since UI split Phase 2.2, PR 9: read by MapListeners.kt. */
+internal const val MAPS_COMEBACK_FRAMES_LOGGED = 8
 
 internal const val SIGHTINGS_MAP_TAG = "SightingsMap"
 private const val FAN_OUT_RESTORE_TAG = "MarkerFanOut"

@@ -17,6 +17,7 @@ import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutState
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
@@ -174,6 +175,49 @@ internal class SightingsMapState(
     var creditWidthPx: Int
         get() = creditWidthPxState.intValue
         set(value) { creditWidthPxState.intValue = value }
+
+    // Moved here from a local function in SightingsMap by UI split Phase 2.2, PR 9 (dispatch 2026-10-19-29), so the
+    // listeners (MapListeners.kt) and the layout's resize hook reach the same function. Its reads are this holder's
+    // getters on the latest-value States, which is what "the current* states" below now means.
+    // Re-projects the glyph a shown bubble belongs to and reports it, so the bubble follows the glyph. Called at
+    // every camera idle, and (Part 2 follow-ups F1 item 1) when the map's own size changes: a device rotation
+    // resizes the view without any camera idle, and the bubble used to stay at its portrait place until the
+    // next pan. Reads the latest lists and callbacks through the current* states, as the idle listener always did.
+    fun reanchorFocusedBubble(map: MapLibreMap) {
+        // Keeps a shown observation bubble glued to its own marker's real screen position
+        // across a pan/zoom/rotate — a hardware report asked for exactly this ("have it stay
+        // there when we move the map, so we know which one it belongs to"), and re-projecting
+        // whichever sighting currentFocusedObservationId currently names on every idle (the
+        // same projection call the click listener above uses once, at tap time) is what
+        // answers it without this composable needing to reimplement MapLibre's own
+        // screen<->geo math. Resolved fresh against currentSightings/currentFocusedObservationId
+        // rather than a sighting captured at tap time, so a dismissal that's since cleared
+        // the caller's own focused id (see MapOverlayContent.focusedObservationId's doc
+        // comment) is reflected here too instead of silently re-reviving a closed bubble. The
+        // bearing carried alongside — also re-read fresh here, not just at tap time — is what
+        // lets the caller keep the bubble's own placement direction correct (screen position
+        // and orientation both live, not just position) after a rotate gesture; see
+        // AnchoredAtScreenPoint's own doc comment in AvailabilityScreen.kt for what it does
+        // with this value.
+        focusedObservationId
+            ?.let { id -> sightings.firstOrNull { it.observationId == id } }
+            ?.let { sighting ->
+                val screenPoint = map.projection.toScreenLocation(MapLibreLatLng(sighting.lat, sighting.lng))
+                onSightingTap(sighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
+            }
+        // M1 (F2): the same for a point feature's bubble. Its glyph's own position is re-found
+        // in the lists this map draws (focusedFeaturePosition) and reported as a feature tap
+        // at that point, so the caller's bubble follows the glyph. A record no longer drawn
+        // is not re-fired, and a dismissed bubble has no focusedFeature, so nothing revives it.
+        focusedFeature?.let { focus ->
+            focusedFeaturePosition(focus, plannedTrips, waypoints, findMarkers, photoMarkers)?.let { at ->
+                val glyph = map.projection.toScreenLocation(MapLibreLatLng(at.lat, at.lng))
+                onFeatureTap(
+                    MapFeatureTap(focus.layerId, focus.featureId, Offset(glyph.x, glyph.y), map.cameraPosition.bearing.toFloat(), at),
+                )
+            }
+        }
+    }
 }
 
 /**
