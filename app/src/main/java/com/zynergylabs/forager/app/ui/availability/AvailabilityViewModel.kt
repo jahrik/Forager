@@ -222,10 +222,26 @@ class AvailabilityViewModel(
      */
     private var isForegrounded: Boolean = false
 
+    // The collaborators below must stay above `init`: Kotlin runs property initializers and `init` in source
+    // order, and `init` calls them (UI split Phase 2.4).
+
+    /**
+     * The planned trips, moved to their own class by UI split Phase 2.4 PR 1. It writes this screen's state
+     * through the setter here and launches in this ViewModel's own scope.
+     */
+    private val plannedTrips = AvailabilityPlannedTrips(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        getPlannedTrips = getPlannedTrips,
+        savePlannedTrip = savePlannedTrip,
+        deletePlannedTrip = deletePlannedTrip,
+        errorLog = errorLog,
+    )
+
     init {
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
         // up front rather than waiting on a region the way sightings and trip windows do.
-        loadPlannedTrips()
+        plannedTrips.loadPlannedTrips()
         // Same reasoning, and the reason it matters more here: the picker is how somebody with no
         // connection gets back to a result at all, so it has to be populated before the first
         // search rather than as a side effect of one.
@@ -1104,48 +1120,10 @@ class AvailabilityViewModel(
         refresh(region, summary.month, summary.filter)
     }
 
-    private fun loadPlannedTrips(): Job {
-        return viewModelScope.launch {
-            getPlannedTrips().fold(
-                onSuccess = { trips -> _uiState.update { it.copy(plannedTrips = trips, plannedTripsErrorMessage = null) } },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't load planned trips.", error)
-                    _uiState.update {
-                        it.copy(plannedTripsErrorMessage = "Couldn't load planned trips.")
-                    }
-                },
-            )
-        }
-    }
-
     /** Called from the trip-planning flow once a date and name are confirmed for a pin placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]. */
-    fun onPlaceTripPin(location: LatLng, date: LocalDate, name: String) {
-        viewModelScope.launch {
-            savePlannedTrip(location, date, name).fold(
-                onSuccess = { loadPlannedTrips() },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't save the planned trip.", error)
-                    _uiState.update {
-                        it.copy(plannedTripsErrorMessage = "Couldn't save the planned trip.")
-                    }
-                },
-            )
-        }
-    }
+    fun onPlaceTripPin(location: LatLng, date: LocalDate, name: String) = plannedTrips.onPlaceTripPin(location, date, name)
 
-    fun onDeletePlannedTrip(id: String) {
-        viewModelScope.launch {
-            deletePlannedTrip(id).fold(
-                onSuccess = { loadPlannedTrips() },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't delete the planned trip.", error)
-                    _uiState.update {
-                        it.copy(plannedTripsErrorMessage = "Couldn't delete the planned trip.")
-                    }
-                },
-            )
-        }
-    }
+    fun onDeletePlannedTrip(id: String) = plannedTrips.onDeletePlannedTrip(id)
 
     fun onOfflineMapLatChanged(text: String) {
         _uiState.update { it.copy(offlineMapLatText = text) }
@@ -1237,14 +1215,14 @@ class AvailabilityViewModel(
 
     /**
      * Reads everything this ViewModel holds from the database again, after a restore, and returns when it is done:
-     * the planned trips ([loadPlannedTrips]), the offline regions with their reference counts ([loadOfflineRegions]),
+     * the planned trips ([AvailabilityPlannedTrips.loadPlannedTrips]), the offline regions with their reference counts ([loadOfflineRegions]),
      * and the Maps tab's records ([loadMapRecords]). The journal highlights are derived from those, the entries and the
      * waypoints, in the screen, so they follow. `loadRecentSearches` is not reloaded: the search cache is not restored.
      */
     suspend fun reloadAfterRestore() {
         // A restore can bring a deleted record back: what was committed to deletion is forgotten first.
         _uiState.update { it.copy(committedOfflineRegionDeleteIds = emptySet()) }
-        loadPlannedTrips().join()
+        plannedTrips.loadPlannedTrips().join()
         loadOfflineRegions().join()
         loadMapRecords()
     }
@@ -1261,7 +1239,7 @@ class AvailabilityViewModel(
 
     /**
      * Reads every region currently on disk — once at startup, and again every time
-     * [onOfflineMapsOpened] fires. Same reasoning as [loadPlannedTrips] for the startup call:
+     * [onOfflineMapsOpened] fires. Same reasoning as [AvailabilityPlannedTrips.loadPlannedTrips] for the startup call:
      * downloaded regions have nothing to do with the region search, so this isn't gated behind one.
      *
      * A read failure (e.g. a corrupt metadata blob) is reported via
@@ -1879,7 +1857,7 @@ class AvailabilityViewModel(
         }
     }
 
-    private companion object {
+    internal companion object {
         /** RECORD -750, item 3: what a fresh start shows, which Clear puts the species selection back to. */
         val DEFAULT_STATE = AvailabilityUiState()
         const val SEARCH_DEBOUNCE_MS = 300L
