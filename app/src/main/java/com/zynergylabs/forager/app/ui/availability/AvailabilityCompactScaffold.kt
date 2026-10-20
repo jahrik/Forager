@@ -57,22 +57,13 @@ import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
-import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.ui.layout.layout
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -165,7 +156,6 @@ import com.zynergylabs.forager.app.ui.motion.PressHighlight
 import com.zynergylabs.forager.app.ui.motion.TabCrossfade
 import com.zynergylabs.forager.app.ui.motion.LeavingPages
 import com.zynergylabs.forager.app.ui.motion.LocalLeavingPages
-import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.zIndex
@@ -1116,79 +1106,28 @@ internal fun CompactMainScaffold(
                     // hidden pill measures 0.
                     val journalSearchPillFullHeight = if (railBeside) lastMapsStripHeight.takeIf { it > 0.dp } ?: tabPillStripLineHeight else 0.dp
                     SideEffect { journalSearchPillRoom.fullHeightPx = with(journalSearchPillRoomDensity) { journalSearchPillFullHeight.roundToPx() } }
-                    Box(modifier = Modifier.measuresJournalSearchPill(journalSearchPillRoom)) {
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !(journalSearchHeld && compactTab() == CompactTab.JOURNAL)) {
-                        // Dispatch 2026-10-17-09, RECORD -1244 (the owner: "And have the search bar slide up and down when
-                        // revealing/hiding"): J5's reveal on the Journal (journalHidesSearchHeader) slides the pill down into place
-                        // from above, and back up out of view, while the content below follows it (the expand and shrink), on
-                        // MotionTokens.panelMotionSpec, the spec the Maps tab's own search bar slides on into and out of fullscreen.
-                        // Arriving on a tab shows its pill as it stands, with no slide: only a reveal or a hide on the Journal plays
-                        // one. Every other way the pill comes or goes is as before, at once. Under reduced motion the reveal is at
-                        // once too (docs/motion-spec.md §4).
-                        // Dispatch 2026-10-18-03, item 3 (Forager RECORD -1269, "Fix item 4 too"; Elder's top-up audit, item 4):
-                        // this was a key(compactTab()) around the AnimatedVisibility, which re-created the pill on every tab
-                        // switch, so its field lost focus and its cursor. Now the pill is composed once: a switch of tab is told
-                        // apart from a reveal or hide on the same tab (searchHeaderSlideTab, the tab the last visibility change
-                        // settled on), and the switch's change of visibility takes no transition.
-                        val searchHeaderReduceMotion = LocalReduceMotion.current
-                        val searchHeaderVisibility = remember { MutableTransitionState(!journalHidesSearchHeader) }
-                        searchHeaderVisibility.targetState = !journalHidesSearchHeader
-                        var searchHeaderSlideTab by remember { mutableStateOf(compactTab()) }
-                        val searchHeaderArriving = searchHeaderSlideTab != compactTab()
-                        LaunchedEffect(compactTab(), searchHeaderVisibility.isIdle) {
-                            if (searchHeaderVisibility.isIdle) searchHeaderSlideTab = compactTab()
-                        }
-                        androidx.compose.animation.AnimatedVisibility(
-                            visibleState = searchHeaderVisibility,
-                            enter = if (searchHeaderReduceMotion || searchHeaderArriving) {
-                                EnterTransition.None
-                            } else {
-                                slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
-                                    expandVertically(animationSpec = MotionTokens.panelMotionSpec(), expandFrom = Alignment.Top)
-                            },
-                            exit = if (searchHeaderReduceMotion || searchHeaderArriving) {
-                                ExitTransition.None
-                            } else {
-                                slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -fullHeight } +
-                                    shrinkVertically(animationSpec = MotionTokens.panelMotionSpec(), shrinkTowards = Alignment.Top)
-                            },
-                        ) {
-                        Column {
-                        // SearchEntryBar takes no modifier, so its place goes on this wrapper (tabLandscapePillPlace).
-                        Box(modifier = tabLandscapePillPlace) {
-                        SearchEntryBar(
-                            uiState = uiState,
-                            distanceUnit = distanceUnit,
-                            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                            onTaxonSearchResultSelected = { result ->
-                                // RECORD -725/-726, the owner: "just keep the keyboard open and fill it in, no search yet"; "The
-                                // keyboard and the search bar". Only the suggestion list closes (the ViewModel empties it); the
-                                // dropdown, the field's focus and the keyboard stay. It closed the dropdown here before.
-                                onTaxonSearchResultSelected(result)
-                            },
-                            onClearSearch = onClearSearch,
-                            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                            onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
-                            // Dispatch 2026-10-17-09 (RECORD -1224, -1225; the owner: "The updated UI still needs to be applied to
-                            // the Journal, the Seasonal, and the List tab"): the Maps tab's pill, its corners and its outline all
-                            // round, with no divider, solid here since no map is behind it (overMap false; the owner: "In the places
-                            // that aren't covering a map, they can stay solid"). Its height is the Maps pill's, so it does not change
-                            // size across the tab switch. In landscape it is the Maps pill's size, at the left, clear of the
-                            // navigation bar (tabLandscapePillPlace), at the Maps strip's height (RECORD -729); with no strip
-                            // beside it here it rounds all four corners and is outlined all round.
-                            // Dispatch 2026-10-18-03, item 2: the strip's height as Maps last measured it, else its one line
-                            // worked out here (the strip's evening lines are not modelled; listed in known-bugs).
-                            landscapeHeight = if (railBeside) lastMapsStripHeight.takeIf { it > 0.dp } ?: tabPillStripLineHeight else null,
-                            pillCorners = MapCardCorners.ALL,
-                            pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
-                        )
-                        }
-                        // Under the pill, inside the readable-width cap, as it was before the pill moved.
-                        Box(modifier = readableContentCap) { SearchNotice(uiState) }
-                        }
-                        }
-                    }
-                    }
+                    // UI split Phase 2.5 PR 3 (dispatch 2026-10-19-39): the search pill on List, Seasonal and the Journal, with its
+                    // measured slot, moved to ScaffoldHeaderSearch.kt and called here, at the same place.
+                    ScaffoldHeaderSearch(
+                        dropdown = searchDropdownState,
+                        isMapFullscreen = isMapFullscreen,
+                        compactTab = compactTab,
+                        journalSearchHeld = journalSearchHeld,
+                        journalHidesSearchHeader = journalHidesSearchHeader,
+                        journalSearchPillRoom = journalSearchPillRoom,
+                        tabLandscapePillPlace = tabLandscapePillPlace,
+                        readableContentCap = readableContentCap,
+                        railBeside = railBeside,
+                        lastMapsStripHeight = lastMapsStripHeight,
+                        tabPillStripLineHeight = tabPillStripLineHeight,
+                        uiState = uiState,
+                        distanceUnit = distanceUnit,
+                        appClearFocusInProgress = appClearFocusInProgress,
+                        onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                        onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+                        onClearSearch = onClearSearch,
+                        onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                    )
 
                     // Switches to the Journal tab and starts the entry there — the gallery's own edit
                     // form ([JournalTab]'s `editingEntry` branch) is what shows it next, the same
