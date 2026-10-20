@@ -85,7 +85,9 @@ class AvailabilityScreenArrivalHoldTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = drivingAway),
-                isRecording = true,
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                ),
                 records = AvailabilityScreenRecords(
                     waypoints = listOf(start),
                 ),

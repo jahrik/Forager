@@ -199,8 +199,6 @@ abstract class HudLandscapeT11Fixes {
                         onNightModeMapsChanged = {},
                         onThemeModeChanged = {},
                         mapSlot = map.slot,
-                        isRecording = true,
-                        onToggleRecording = { recordToggles++ },
                         navigation = AvailabilityScreenNavigation(
                             isReturning = returning,
                             // Counted only: the test decides when navigation starts and ends.
@@ -209,8 +207,12 @@ abstract class HudLandscapeT11Fixes {
                             returnRoute = route,
                             onRetryRoute = { retries++ },
                         ),
-                        recordingSundownLine = line,
-                        recordingBackBy = backBy,
+                        recording = AvailabilityScreenRecording(
+                            isRecording = true,
+                            onToggleRecording = { recordToggles++ },
+                            recordingSundownLine = line,
+                            recordingBackBy = backBy,
+                        ),
                         mapControls = AvailabilityScreenMapControls(
                             onLocateMe = { locates++ },
                             onMapIconClusterPlacementChanged = { placementWrites += it },

@@ -186,7 +186,9 @@ class AvailabilityScreenWaypointNavigateTest {
                     waypoints = waypoints,
                     waypointsLoaded = waypointsLoaded,
                 ),
-                isRecording = recording,
+                recording = AvailabilityScreenRecording(
+                    isRecording = recording,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = returning,
                     onToggleReturning = { returning = !returning },

@@ -219,7 +219,9 @@ class AvailabilityScreenBackNavigationTest {
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                 onThemeModeChanged = viewModel::onThemeModeChanged,
-                isRecording = isReturning,
+                recording = AvailabilityScreenRecording(
+                    isRecording = isReturning,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = isReturning,
                     onToggleReturning = onToggleReturning,

@@ -161,7 +161,6 @@ class AvailabilityScreenSundownLineTest {
                         waypoints = listOf(creek),
                         waypointsLoaded = true,
                     ),
-                    isRecording = recording,
                     navigation = AvailabilityScreenNavigation(
                         isReturning = returning,
                         onToggleReturning = { returning = !returning },
@@ -170,7 +169,10 @@ class AvailabilityScreenSundownLineTest {
                         onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
                         onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
                     ),
-                    recordingSundownLine = line,
+                    recording = AvailabilityScreenRecording(
+                        isRecording = recording,
+                        recordingSundownLine = line,
+                    ),
                     compassProvider = FixedCompass(0f),
                     computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                     currentTime = CurrentTimeProvider { now },

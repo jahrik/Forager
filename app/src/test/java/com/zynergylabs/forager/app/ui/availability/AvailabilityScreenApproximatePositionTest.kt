@@ -147,7 +147,9 @@ class AvailabilityScreenApproximatePositionTest {
                     waypoints = listOf(creek),
                     waypointsLoaded = true,
                 ),
-                isRecording = recording,
+                recording = AvailabilityScreenRecording(
+                    isRecording = recording,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = returning,
                     onToggleReturning = { returning = !returning },

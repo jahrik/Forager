@@ -92,7 +92,9 @@ abstract class LandscapeCardMeetsBarTests {
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = true,
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = returning,
                     navigationTarget = start,

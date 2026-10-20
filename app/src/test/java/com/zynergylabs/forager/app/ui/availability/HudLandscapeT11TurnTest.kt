@@ -82,7 +82,9 @@ class HudLandscapeT11TurnTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = true,
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = returning.value,
                     onToggleReturning = { returning.value = !returning.value },

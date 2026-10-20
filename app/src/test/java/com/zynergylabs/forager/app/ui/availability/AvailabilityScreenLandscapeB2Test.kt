@@ -832,7 +832,9 @@ private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning
         // A pinned clock: the HUD's sundown line follows it (RECORD -621).
         currentTime = { now },
         uiState = uiState,
-        isRecording = isReturning,
+        recording = AvailabilityScreenRecording(
+            isRecording = isReturning,
+        ),
         navigation = AvailabilityScreenNavigation(
             isReturning = isReturning,
         ),
@@ -878,7 +880,9 @@ private fun B2ScreenWith(uiState: AvailabilityUiState, mapSlot: MapSlot, isRetur
     AvailabilityScreen(
         currentTime = { now },
         uiState = uiState,
-        isRecording = isReturning,
+        recording = AvailabilityScreenRecording(
+            isRecording = isReturning,
+        ),
         navigation = AvailabilityScreenNavigation(
             isReturning = isReturning,
         ),

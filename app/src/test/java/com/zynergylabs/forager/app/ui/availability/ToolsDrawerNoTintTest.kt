@@ -89,7 +89,9 @@ abstract class ToolsDrawerNoTintTests(private val landscape: Boolean) {
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = false,
+                recording = AvailabilityScreenRecording(
+                    isRecording = false,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = false,
                     navigationTarget = null,

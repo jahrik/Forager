@@ -93,8 +93,10 @@ class SnackbarTrimmedTouchTest {
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
-                isRecording = true,
-                backgroundRunPrompt = prompt,
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                    backgroundRunPrompt = prompt,
+                ),
                 mapSlot = map,
                 compassProvider = FixedCompass,
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),

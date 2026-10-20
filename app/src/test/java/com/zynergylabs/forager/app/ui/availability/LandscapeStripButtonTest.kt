@@ -89,7 +89,9 @@ abstract class LandscapeStripButtonTests {
             key(generation) {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = navigating,
+                recording = AvailabilityScreenRecording(
+                    isRecording = navigating,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = navigating,
                     navigationTarget = start.takeIf { navigating },

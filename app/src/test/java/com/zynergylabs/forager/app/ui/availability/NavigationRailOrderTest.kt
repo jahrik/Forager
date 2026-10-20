@@ -81,7 +81,9 @@ abstract class NavigationRailOrderTests(private val rotation: Int) {
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = false,
+                recording = AvailabilityScreenRecording(
+                    isRecording = false,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = false,
                     navigationTarget = null,

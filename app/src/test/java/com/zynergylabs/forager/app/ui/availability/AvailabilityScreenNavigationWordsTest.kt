@@ -102,7 +102,9 @@ class AvailabilityScreenNavigationWordsTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = navigating,
+                recording = AvailabilityScreenRecording(
+                    isRecording = navigating,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = navigating,
                     navigationTarget = start.takeIf { navigating },
@@ -406,7 +408,9 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = true,
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = true,
                     navigationTarget = start,

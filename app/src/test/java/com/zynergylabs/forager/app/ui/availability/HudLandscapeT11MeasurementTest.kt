@@ -208,7 +208,6 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
                         waypoints = listOf(creek),
                         waypointsLoaded = true,
                     ),
-                    isRecording = recording,
                     navigation = AvailabilityScreenNavigation(
                         isReturning = returning,
                         onToggleReturning = { returning = !returning },
@@ -217,8 +216,11 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
                         onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
                         onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
                     ),
-                    recordingSundownLine = line,
-                    recordingBackBy = backBy,
+                    recording = AvailabilityScreenRecording(
+                        isRecording = recording,
+                        recordingSundownLine = line,
+                        recordingBackBy = backBy,
+                    ),
                     compassProvider = object : CompassProvider {
                         override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(281f, HeadingUncertainty.Estimated(2f), 0L))
                     },

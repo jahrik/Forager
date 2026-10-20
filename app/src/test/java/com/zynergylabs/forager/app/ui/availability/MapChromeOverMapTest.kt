@@ -199,7 +199,9 @@ internal fun MapChromeTestScreen(
             navigation = AvailabilityScreenNavigation(
                 isReturning = state.isReturning,
             ),
-            tripStartWarning = state.tripStartWarning,
+            recording = AvailabilityScreenRecording(
+                tripStartWarning = state.tripStartWarning,
+            ),
             journalEntries = AvailabilityScreenJournalEntries(
                 cartographyUiState = state.cartography,
             ),

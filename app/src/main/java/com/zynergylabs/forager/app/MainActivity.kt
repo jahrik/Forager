@@ -38,6 +38,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFindsLog
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntries
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecording
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
@@ -680,41 +681,43 @@ class MainActivity : ComponentActivity() {
                         getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                         getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
                     ),
-                    isRecording = trackUiState.isRecording,
-                    onToggleRecording = {
-                        if (trackUiState.isRecording) {
-                            trackRecordingViewModel.stopRecording()
-                        } else if (!hasLocationPermission(this@MainActivity)) {
-                            // Confirmed crash's primary fix: never even ask the ViewModel to start
-                            // (never creates the Track row, never sets activeTrack) when the
-                            // foreground service could not possibly start without crashing — see
-                            // the location-permission comment in this class.
-                            trackRecordingViewModel.onStartRecordingPermissionDenied(
-                                getString(R.string.track_recording_needs_location),
-                            )
-                        } else {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    recording = AvailabilityScreenRecording(
+                        isRecording = trackUiState.isRecording,
+                        onToggleRecording = {
+                            if (trackUiState.isRecording) {
+                                trackRecordingViewModel.stopRecording()
+                            } else if (!hasLocationPermission(this@MainActivity)) {
+                                // Confirmed crash's primary fix: never even ask the ViewModel to start
+                                // (never creates the Track row, never sets activeTrack) when the
+                                // foreground service could not possibly start without crashing — see
+                                // the location-permission comment in this class.
+                                trackRecordingViewModel.onStartRecordingPermissionDenied(
+                                    getString(R.string.track_recording_needs_location),
+                                )
+                            } else {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                                // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
+                                // too sparse to evaluate against a reference map app's own recording. Testers already
+                                // run that app concurrently, so the extra GPS draw is a cost already
+                                // committed either way — see startRecording()'s own default-parameter
+                                // doc comment for why this is an explicit override here rather than a
+                                // changed default: a future non-tester-build caller should still get
+                                // BALANCED unless it deliberately asks otherwise.
+                                trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
                             }
-                            // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
-                            // too sparse to evaluate against a reference map app's own recording. Testers already
-                            // run that app concurrently, so the extra GPS draw is a cost already
-                            // committed either way — see startRecording()'s own default-parameter
-                            // doc comment for why this is an explicit override here rather than a
-                            // changed default: a future non-tester-build caller should still get
-                            // BALANCED unless it deliberately asks otherwise.
-                            trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
-                        }
-                    },
-                    startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
-                    tripStartWarning = trackUiState.tripStartWarning,
-                    backgroundRunPrompt = trackUiState.backgroundRunPrompt,
-                    networkFixesNotice = trackUiState.networkFixesNotice,
-                    breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
-                    recordingSundownLine = trackUiState.sundownLine,
-                    recordingBackBy = trackUiState.backBy,
-                    onBackByChoice = trackRecordingViewModel::setBackBy,
-                    onClearBackBy = trackRecordingViewModel::clearBackBy,
+                        },
+                        startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
+                        tripStartWarning = trackUiState.tripStartWarning,
+                        backgroundRunPrompt = trackUiState.backgroundRunPrompt,
+                        networkFixesNotice = trackUiState.networkFixesNotice,
+                        breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
+                        recordingSundownLine = trackUiState.sundownLine,
+                        recordingBackBy = trackUiState.backBy,
+                        onBackByChoice = trackRecordingViewModel::setBackBy,
+                        onClearBackBy = trackRecordingViewModel::clearBackBy,
+                    ),
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigation = AvailabilityScreenNavigation(
