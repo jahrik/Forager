@@ -412,6 +412,8 @@ fun SightingsMap(
                     set(value) {
                         mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled = value
                     }
+
+                override fun paddingShown(): Boolean = mapLibreMap?.cameraPosition?.padding?.any { it != 0.0 } == true
             },
             springBack = { currentNudgeSpringBack },
             navigating = { currentNavigationView != null },
@@ -577,8 +579,8 @@ fun SightingsMap(
         )
     }
 
-    // Lifecycle and teardown: MapLifecycle.kt. Called here, before the listeners and after the nudge's DisposableEffect,
-    // so the three DisposableEffects keep their creation order and so their dispose order (Compose forgets in reverse).
+    // Lifecycle and teardown: MapLifecycle.kt. Called here, before the listeners and after the nudges' DisposableEffects,
+    // so the four DisposableEffects keep their creation order and so their dispose order (Compose forgets in reverse).
     MapLifecycle(state = sightingsMapState, lifecycleOwner = lifecycleOwner)
 
     // Every MapLibre listener, registered once in the map-ready callback: MapListeners.kt.

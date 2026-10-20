@@ -75,6 +75,8 @@ internal fun MapLocationDot(
         // The user pressed locate: the move that follows is theirs, so it is marked before the mode changes and closes an open fan as before.
         state.cameraMoveClassifier.markAppMove()
         if (map.locationComponent.isLocationComponentActivated) {
+            // Dispatch 2026-10-19-37: a give left on screen by a spring cut short is cleared before following resumes (plain map only).
+            state.plainNudge.beforeLocate()
             map.locationComponent.cameraMode = CameraMode.TRACKING
         } else {
             state.navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = state.positionLook, nudgeSpringBack = state.nudgeSpringBack) }

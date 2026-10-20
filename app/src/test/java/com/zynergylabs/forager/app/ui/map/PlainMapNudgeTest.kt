@@ -37,16 +37,27 @@ class PlainMapNudgeTest {
     private val shown = mutableListOf<DoubleArray>()
     private var clears = 0
     private val flingWrites = mutableListOf<Boolean>()
+
+    /** The padding the camera holds: what was last shown, until cleared. */
+    private var cameraPadding = doubleArrayOf(0.0, 0.0, 0.0, 0.0)
+
+    /** Following ends once this many paddings have been shown: a leave at a set frame, however the frames are timed. */
+    private var followingEndsAfter = Int.MAX_VALUE
     private val map = object : PlainNudgeMap {
         override fun cameraMode() = mode
 
         override fun showPadding(padding: DoubleArray) {
             shown += padding
+            cameraPadding = padding
+            if (shown.size >= followingEndsAfter) mode = CameraMode.NONE
         }
 
         override fun clearPaddingKeepingPicture() {
             clears++
+            cameraPadding = doubleArrayOf(0.0, 0.0, 0.0, 0.0)
         }
+
+        override fun paddingShown() = cameraPadding.any { it != 0.0 }
 
         override var flingEnabled: Boolean = true
             set(value) {
@@ -189,5 +200,49 @@ class PlainMapNudgeTest {
         leftover.noteShown(doubleArrayOf(40.0, 0.0, 0.0, 0.0))
         assertFalse(leftover.onRelease(MotionEvent.ACTION_UP, plainMap = false, stillFollowing = false))
         assertFalse("forgotten", leftover.onRelease(MotionEvent.ACTION_UP, plainMap = true, stillFollowing = false))
+    }
+
+    // A spring cut short (the owner's ruling "Fix it in #337 first"): following ends mid-spring with no finger down.
+
+    @Test
+    fun `a give left by a spring cut short is cleared when locate is tapped, before following resumes`() {
+        touch(MotionEvent.ACTION_DOWN, 0f, 0f)
+        touch(MotionEvent.ACTION_MOVE, 40f, 0f)
+        // Under Robolectric the whole spring runs within the first idle, so the leave is set by frame: following ends at
+        // the spring's second frame (a search frame or the reset-orientation tap, with no finger down).
+        followingEndsAfter = shown.size + 2
+        touch(MotionEvent.ACTION_UP, 40f, 0f)
+        springFor(NAVIGATION_NUDGE_SPRING_MILLIS + 100)
+        assertEquals("the spring stopped where following ended", followingEndsAfter, shown.size)
+        assertTrue("part of the give is still on screen", map.paddingShown())
+        assertEquals("no release came after the leave, so nothing cleared it yet", 0, clears)
+        nudge.beforeLocate()
+        assertEquals("cleared before locate sets following", 1, clears)
+        assertFalse(map.paddingShown())
+        touch(MotionEvent.ACTION_DOWN, 0f, 0f)
+        touch(MotionEvent.ACTION_UP, 0f, 0f)
+        assertEquals("and the leftover's record is gone too", 1, clears)
+    }
+
+    @Test
+    fun `locate with no padding on screen clears nothing`() {
+        nudge.beforeLocate()
+        assertEquals(0, clears)
+    }
+
+    @Test
+    fun `locate while navigating leaves the camera's padding to navigation`() {
+        cameraPadding = doubleArrayOf(0.0, 282.0, 0.0, 0.0) // navigation's own top padding
+        navigating = true
+        nudge.beforeLocate()
+        assertEquals(0, clears)
+    }
+
+    @Test
+    fun `locate on a map without the spring-back clears nothing`() {
+        cameraPadding = doubleArrayOf(40.0, 0.0, 0.0, 0.0)
+        springBack = false
+        nudge.beforeLocate()
+        assertEquals(0, clears)
     }
 }

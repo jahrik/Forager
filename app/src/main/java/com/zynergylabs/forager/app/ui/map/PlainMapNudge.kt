@@ -92,6 +92,11 @@ class PlainNudgeLeftover {
         lastShown = null
         return padding.any { it != 0.0 }
     }
+
+    /** The padding has been cleared another way ([PlainMapNudge.beforeLocate]): nothing is left to clear. */
+    fun forget() {
+        lastShown = null
+    }
 }
 
 /** The map's side of the plain nudge, so [PlainMapNudge] can be tested without a MapView. */
@@ -107,6 +112,9 @@ interface PlainNudgeMap {
 
     /** MapLibre's fling. */
     var flingEnabled: Boolean
+
+    /** Whether the camera holds any padding now (the plain map sets none but the nudge's). */
+    fun paddingShown(): Boolean
 }
 
 /**
@@ -161,6 +169,24 @@ internal class PlainMapNudge(
             }
         }
         if (leftover.onRelease(event.actionMasked, plainMap, stillFollowing = following)) map.clearPaddingKeepingPicture()
+    }
+
+    /**
+     * Locate was tapped, just before it sets following again (dispatch 2026-10-19-37, the owner's ruling "Fix it in #337
+     * first"). Following can end during the spring with no finger down (a search frame, the reset-orientation tap), and
+     * the driver then stops the spring with part of the give still on screen as padding, which no release clears. Tracking
+     * would centre the dot in the padded area, up to half the threshold off centre, so on the plain map any padding the
+     * camera holds is cleared first, keeping the picture, and tracking then moves from there to the dot. The camera's own
+     * padding is read, not the leftover's record, so every way the spring can be cut short is covered. Never while
+     * navigating: navigation applies its own padding.
+     */
+    fun beforeLocate() {
+        if (!springBack() || navigating()) return
+        if (map.paddingShown()) {
+            Log.i(NAVIGATION_VIEW_LOG_TAG, "nudge: locate with a give left on screen; clearing it first")
+            map.clearPaddingKeepingPicture()
+        }
+        leftover.forget()
     }
 
     /** The map is going away. */
