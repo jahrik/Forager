@@ -107,6 +107,14 @@ import kotlinx.coroutines.sync.withLock
  * disk-I/O-and-write critical section, so those critical sections run one at a time, in the order
  * the user's actions arrived (Kotlin's `Mutex` grants a contended lock to waiters in FIFO order).
  *
+ * **Where the critical sections live (UI split Phase 2.8, dispatch 2026-10-19-34).** Still this one
+ * `Mutex`, owned here and passed by reference, never copied, to the collaborators that now hold some of
+ * the critical sections: [MushroomLogPendingDeletes] (`requestDeleteEntry`, `commitFindDelete`),
+ * [MushroomLogCaptureLocation] (`promoteCaptureFixToFind`) and [MushroomLogEntryPhotos] (`onAddPhoto`,
+ * `onRemovePhoto`, `onPullPhoto`). The rest are in this class. [MushroomLogGallery] is not given it.
+ * The handler names below are this class's public functions, most of which now delegate to those
+ * collaborators.
+ *
  * **What's deliberately outside the lock:** [onEntryEdited]'s own *immediate* local reflection of a
  * keystroke (`_uiState.update` before its `launch`) — locking that too would add input lag to the
  * hottest path in this class for no correctness gain, since nothing else ever re-touches
@@ -118,9 +126,17 @@ import kotlinx.coroutines.sync.withLock
  * function call, not a nested acquisition, so it cannot deadlock.
  *
  * **No handler acquires [editingEntryMutex] while already holding it.** Checked directly, not
- * assumed: the one place a handler calls another editing-entry mutator
- * ([onDeleteGalleryPhoto] → [loadEntries]) is exactly the case above, where the caller never holds
- * the lock itself first. [onOpenEntryForEditing] below is deliberately its own critical section
+ * assumed: the places a handler calls another editing-entry mutator are all the case above, where the
+ * caller never holds the lock itself first. [onDeleteGalleryPhoto] → [loadEntries] was the first.
+ * Corrected 2026-10-20 (Sorrel's review of #332): it was never the only one. The album photo's
+ * committed pending delete ([MushroomLogPendingDeletes.commitGalleryPhotoDelete], in this class until
+ * Phase 2.8 moved it) and the camera-capture fix patch (`requestAndPatchCaptureFix`, in
+ * [MushroomLogCaptureLocation]) call [loadEntries] the same way, and [reloadAfterRestore] joins it
+ * before taking its own lock. One call is made while holding the lock and leads to an acquisition:
+ * [onAddPhoto] launches the capture fix follow-up, whose separate coroutine reaches
+ * `promoteCaptureFixToFind`'s lock later. Nobody awaits that coroutine, so it queues behind the
+ * holder rather than nesting (the planner's ruling in 2.8's verify-first; reasoning, not a test).
+ * [onOpenEntryForEditing] below is deliberately its own critical section
  * with its own inline logic, not `withLock { onOpenEntry(id); onStartEditingEntry() }` calling the
  * two existing public methods — that shape would have this function's own lock acquisition wait on
  * itself, a guaranteed deadlock on first use, since Kotlin's `Mutex` is not reentrant.

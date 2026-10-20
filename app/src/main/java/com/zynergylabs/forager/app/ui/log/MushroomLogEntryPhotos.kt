@@ -56,7 +56,7 @@ internal class MushroomLogEntryPhotos(
                 // operations issued back to back must apply in the order issued: if this captured
                 // editingEntry at call time instead, a second operation queued behind this one would
                 // compute its own result from the *same* pre-this-operation snapshot, and its later
-                // apply would silently discard this one's photo when it lands. See this class's own
+                // apply would silently discard this one's photo when it lands. See MushroomLogViewModel's own
                 // "Serialized editing-entry mutations" doc comment — the same principle
                 // onStartEditingEntry's guard applies, extended to every photo mutator.
                 val entry = uiState().editingEntry ?: return@withLock gallery.rescueCaptureWithNoEditingEntry(source)
@@ -68,7 +68,7 @@ internal class MushroomLogEntryPhotos(
                         // the ViewModel is recreated. Detach has no equivalent need: it never removes a
                         // gallery row, only a reference nothing in this screen currently displays.
                         reloadGalleryPhotos()
-                        // Photo-geodata dispatch: see this class's own "Camera-capture location" doc
+                        // Photo-geodata dispatch: see MushroomLogViewModel's own "Camera-capture location" doc
                         // comment. The newly persisted photo is always the last element of updated's
                         // photos list — AddPhotoToLogEntryUseCase's own entry.copy(photos = entry.photos + photo).
                         // Find-location-at-creation dispatch, Fix 2: this branch, and only this
