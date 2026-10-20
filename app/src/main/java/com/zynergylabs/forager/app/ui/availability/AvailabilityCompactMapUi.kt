@@ -441,7 +441,8 @@ internal fun CompactMapTab(
             val landscapeStripWidthState = remember { mutableIntStateOf(0) }
             // UI split Phase 2.3: the three sizes, read and written through one view over those States (see CompactMapLayoutState).
             // Remembered unkeyed here, in this branch and straight after them, so it lives exactly as long as they do.
-            // The body still reads compassStripHeightPx itself, through the holder: for the clearance and for the search-bar slot.
+            // The body still makes both reads of compassStripHeightPx, through the holder: inside stripBottomClearance, for the
+            // clearance below, and directly through its getter for the search-bar slot's height.
             val layout = remember { CompactMapLayoutState(compassStripHeightState, landscapeStripHeightState, landscapeStripWidthState) }
             val compassStripClearance = remember(compassStripLabelStyle, compassStripDensity) {
                 with(compassStripDensity) {
