@@ -969,7 +969,7 @@ class AvailabilityViewModel(
         refresh(region, summary.month, summary.filter)
     }
 
-    /** Called from the trip-planning flow once a date and name are confirmed for a pin placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]. */
+    /** The trip-planning flow's confirmed pin: see [AvailabilityPlannedTrips.onPlaceTripPin]. */
     fun onPlaceTripPin(location: LatLng, date: LocalDate, name: String) = plannedTrips.onPlaceTripPin(location, date, name)
 
     fun onDeletePlannedTrip(id: String) = plannedTrips.onDeletePlannedTrip(id)
