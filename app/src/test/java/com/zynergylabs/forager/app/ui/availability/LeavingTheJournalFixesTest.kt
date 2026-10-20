@@ -323,8 +323,10 @@ class LeavingTheJournalFixesTest {
                 onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
                 onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
-                onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
+                ),
                 journalEntries = AvailabilityScreenJournalEntries(
                     // What MainActivity passes for the day entries.
                     cartographyUiState = cartographyUiState.hidingPendingDelete(),

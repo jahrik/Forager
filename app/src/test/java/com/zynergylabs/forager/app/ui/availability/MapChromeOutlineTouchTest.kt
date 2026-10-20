@@ -109,8 +109,10 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
             )
         }
         composeRule.mainClock.advanceTimeBy(3_000)

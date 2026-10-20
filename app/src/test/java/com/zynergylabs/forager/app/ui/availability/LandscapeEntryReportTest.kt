@@ -147,8 +147,10 @@ class LandscapeEntryReportTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = recordingSlot,
                 journalEntries = AvailabilityScreenJournalEntries(
                     cartographyUiState = CartographyUiState(entries = listOf(entry), editingEntry = editing),

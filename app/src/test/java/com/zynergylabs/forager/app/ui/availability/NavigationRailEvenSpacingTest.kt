@@ -120,8 +120,10 @@ abstract class NavigationRailEvenSpacingTests(private val widthDp: Int) {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
             )
         }
         composeRule.mainClock.advanceTimeBy(3_000)

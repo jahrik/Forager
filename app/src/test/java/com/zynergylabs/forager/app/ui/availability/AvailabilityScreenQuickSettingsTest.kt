@@ -157,13 +157,15 @@ class AvailabilityScreenQuickSettingsTest {
                     onOfflineMapsOpened = {},
                     onDownloadOfflineMaps = {},
                     onDeleteOfflineRegion = {},
-                    onNightModeMapsChanged = {},
-                    onThemeModeChanged = {},
-                    // The real ViewModel's own Settings callbacks, as MainActivity passes them.
-                    onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
-                    onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
-                    onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
-                    onBatterySaverChanged = viewModel::onBatterySaverChanged,
+                    settings = AvailabilityScreenSettings(
+                        onNightModeMapsChanged = {},
+                        onThemeModeChanged = {},
+                        // The real ViewModel's own Settings callbacks, as MainActivity passes them.
+                        onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
+                        onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
+                        onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
+                        onBatterySaverChanged = viewModel::onBatterySaverChanged,
+                    ),
                     mapSlot = map,
                     navigation = AvailabilityScreenNavigation(
                         isReturning = returning,

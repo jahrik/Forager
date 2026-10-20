@@ -105,8 +105,10 @@ abstract class LandscapeStripCoordinatesToggleTests(private val name: String) {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
             )
         }
         composeRule.mainClock.advanceTimeBy(3_000)

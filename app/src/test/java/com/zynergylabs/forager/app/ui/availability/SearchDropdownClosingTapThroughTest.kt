@@ -169,8 +169,10 @@ class SearchDropdownClosingTapThroughTest {
             onOfflineMapsOpened = {},
             onDownloadOfflineMaps = {},
             onDeleteOfflineRegion = {},
-            onNightModeMapsChanged = {},
-            onThemeModeChanged = {},
+            settings = AvailabilityScreenSettings(
+                onNightModeMapsChanged = {},
+                onThemeModeChanged = {},
+            ),
             mapSlot = mapSlot,
         )
     }

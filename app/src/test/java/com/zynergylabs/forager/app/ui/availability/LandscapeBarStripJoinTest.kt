@@ -123,8 +123,10 @@ abstract class LandscapeBarStripJoinTests {
                     onOfflineMapsOpened = {},
                     onDownloadOfflineMaps = {},
                     onDeleteOfflineRegion = {},
-                    onNightModeMapsChanged = {},
-                    onThemeModeChanged = {},
+                    settings = AvailabilityScreenSettings(
+                        onNightModeMapsChanged = {},
+                        onThemeModeChanged = {},
+                    ),
                 )
             }
         }

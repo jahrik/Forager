@@ -222,8 +222,10 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
                 onOfflineMapsOpened = vm::onOfflineMapsOpened,
                 onDownloadOfflineMaps = vm::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = vm::onDeleteOfflineRegion,
-                onNightModeMapsChanged = vm::onNightModeMapsChanged,
-                onThemeModeChanged = vm::onThemeModeChanged,
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = vm::onNightModeMapsChanged,
+                    onThemeModeChanged = vm::onThemeModeChanged,
+                ),
                 mapSlot = mapSlot,
             )
         }

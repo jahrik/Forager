@@ -105,8 +105,10 @@ abstract class OfflineDownloadMapsOnlyTests(private val rotation: Int?) {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = { downloadsFrom += uiState.value.offlineMapLatText to uiState.value.offlineMapLngText },
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = map.slot,
             )
         }

@@ -154,8 +154,10 @@ class AvailabilityScreenSundownLineTest {
                     onOfflineMapsOpened = {},
                     onDownloadOfflineMaps = {},
                     onDeleteOfflineRegion = {},
-                    onNightModeMapsChanged = {},
-                    onThemeModeChanged = {},
+                    settings = AvailabilityScreenSettings(
+                        onNightModeMapsChanged = {},
+                        onThemeModeChanged = {},
+                    ),
                     mapSlot = map,
                     records = AvailabilityScreenRecords(
                         waypoints = listOf(creek),

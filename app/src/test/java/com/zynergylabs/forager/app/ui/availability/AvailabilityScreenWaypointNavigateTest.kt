@@ -179,8 +179,10 @@ class AvailabilityScreenWaypointNavigateTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = map.slot,
                 records = AvailabilityScreenRecords(
                     waypoints = waypoints,

@@ -201,8 +201,10 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
                     onOfflineMapsOpened = {},
                     onDownloadOfflineMaps = {},
                     onDeleteOfflineRegion = {},
-                    onNightModeMapsChanged = {},
-                    onThemeModeChanged = {},
+                    settings = AvailabilityScreenSettings(
+                        onNightModeMapsChanged = {},
+                        onThemeModeChanged = {},
+                    ),
                     mapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) },
                     records = AvailabilityScreenRecords(
                         waypoints = listOf(creek),

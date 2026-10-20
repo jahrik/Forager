@@ -258,8 +258,10 @@ internal abstract class EntrySaveFailureHarness {
                 onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
                 onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
                 onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
-                onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
+                ),
                 mapSlot = map.slot,
                 mapControls = AvailabilityScreenMapControls(
                     onMapFullscreenChanged = availabilityViewModel::onMapFullscreenChanged,

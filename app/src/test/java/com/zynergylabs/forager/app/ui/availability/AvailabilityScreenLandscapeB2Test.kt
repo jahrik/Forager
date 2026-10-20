@@ -860,8 +860,10 @@ private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning
         onOfflineMapsOpened = {},
         onDownloadOfflineMaps = {},
         onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = mapSlot,
     )
 }
@@ -909,8 +911,10 @@ private fun B2ScreenWith(uiState: AvailabilityUiState, mapSlot: MapSlot, isRetur
         onOfflineMapsOpened = {},
         onDownloadOfflineMaps = {},
         onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = mapSlot,
     )
 }

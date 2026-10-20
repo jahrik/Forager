@@ -112,8 +112,10 @@ class BackgroundRunPromptTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 recording = AvailabilityScreenRecording(
                     isRecording = true,
                     tripStartWarning = warning,

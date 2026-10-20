@@ -256,8 +256,10 @@ private fun EntriesStateScreenUnderTest(
         onOfflineMapsOpened = {},
         onDownloadOfflineMaps = {},
         onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = ENTRIES_STATE_STUB_MAP,
     )
 }

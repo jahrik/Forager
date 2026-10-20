@@ -121,8 +121,10 @@ abstract class BackupSettingsScreenTests {
                     onOfflineMapsOpened = {},
                     onDownloadOfflineMaps = {},
                     onDeleteOfflineRegion = {},
-                    onNightModeMapsChanged = {},
-                    onThemeModeChanged = {},
+                    settings = AvailabilityScreenSettings(
+                        onNightModeMapsChanged = {},
+                        onThemeModeChanged = {},
+                    ),
                     mapSlot = { _, _, _, _, _, _, _, _, modifier -> androidx.compose.foundation.layout.Box(modifier) },
                     backupAndImport = AvailabilityScreenBackupAndImport(backup = vm.controls(state)),
                 )

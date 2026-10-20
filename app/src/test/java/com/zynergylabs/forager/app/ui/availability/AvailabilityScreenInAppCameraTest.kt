@@ -186,12 +186,14 @@ class AvailabilityScreenInAppCameraTest {
                     onOfflineMapsOpened = {},
                     onDownloadOfflineMaps = {},
                     onDeleteOfflineRegion = {},
-                    onNightModeMapsChanged = {},
-                    onThemeModeChanged = {},
-                    onAutoSaveLocationToPhotosChanged = { requested ->
-                        autoSaveLocationRequests += requested
-                        autoSaveLocation = requested
-                    },
+                    settings = AvailabilityScreenSettings(
+                        onNightModeMapsChanged = {},
+                        onThemeModeChanged = {},
+                        onAutoSaveLocationToPhotosChanged = { requested ->
+                            autoSaveLocationRequests += requested
+                            autoSaveLocation = requested
+                        },
+                    ),
                     mapSlot = boxMapSlot,
                     cameraInputs = AvailabilityScreenCamera(
                         inAppCameraTarget = target,

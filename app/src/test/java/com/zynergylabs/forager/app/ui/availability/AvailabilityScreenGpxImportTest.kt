@@ -134,8 +134,10 @@ private fun GpxImportScreenUnderTest(tracks: List<Track>, notice: GpxImportNotic
         onOfflineMapsOpened = {},
         onDownloadOfflineMaps = {},
         onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = GPX_IMPORT_STUB_MAP,
         records = AvailabilityScreenRecords(
             tracks = tracks,

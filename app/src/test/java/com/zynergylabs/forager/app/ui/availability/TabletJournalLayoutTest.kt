@@ -141,8 +141,10 @@ class TabletJournalLayoutTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = TABLET_STUB_MAP,
                 journalEntries = AvailabilityScreenJournalEntries(
                     cartographyUiState = cartography,

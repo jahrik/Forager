@@ -352,8 +352,10 @@ private fun B3ScreenUnderTest(uiState: AvailabilityUiState, mapSlot: MapSlot) {
         onOfflineMapsOpened = {},
         onDownloadOfflineMaps = {},
         onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = mapSlot,
     )
 }

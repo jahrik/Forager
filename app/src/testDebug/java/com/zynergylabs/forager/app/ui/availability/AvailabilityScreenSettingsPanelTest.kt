@@ -164,8 +164,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = CapturingMapSlot,
                 records = AvailabilityScreenRecords(
                     tracks = tracks,
@@ -208,15 +210,17 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
-                onAutoSaveLocationToPhotosChanged = { enabled ->
-                    current = current.copy(autoSaveLocationToPhotos = enabled)
-                    capturedAutoSaveLocation = enabled
-                },
-                onThemeModeChanged = { mode ->
-                    current = current.copy(themeMode = mode)
-                    capturedThemeMode = mode
-                },
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = { night -> current = current.copy(nightModeMaps = night) },
+                    onAutoSaveLocationToPhotosChanged = { enabled ->
+                        current = current.copy(autoSaveLocationToPhotos = enabled)
+                        capturedAutoSaveLocation = enabled
+                    },
+                    onThemeModeChanged = { mode ->
+                        current = current.copy(themeMode = mode)
+                        capturedThemeMode = mode
+                    },
+                ),
                 mapSlot = CapturingMapSlot,
             )
         }
@@ -777,8 +781,10 @@ class AvailabilityScreenSettingsPanelTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = CapturingMapSlot,
             )
         }

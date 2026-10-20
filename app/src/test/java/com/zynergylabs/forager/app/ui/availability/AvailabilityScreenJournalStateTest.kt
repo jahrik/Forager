@@ -139,8 +139,10 @@ private fun JournalStateScreenUnderTest() {
         onOfflineMapsOpened = {},
         onDownloadOfflineMaps = {},
         onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = JOURNAL_STATE_STUB_MAP,
     )
 }

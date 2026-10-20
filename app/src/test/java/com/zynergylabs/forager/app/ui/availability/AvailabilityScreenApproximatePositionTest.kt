@@ -140,8 +140,10 @@ class AvailabilityScreenApproximatePositionTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = map.slot,
                 records = AvailabilityScreenRecords(
                     waypoints = listOf(creek),

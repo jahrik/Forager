@@ -189,8 +189,10 @@ internal fun MapChromeTestScreen(
             onOfflineMapsOpened = {},
             onDownloadOfflineMaps = {},
             onDeleteOfflineRegion = {},
-            onNightModeMapsChanged = {},
-            onThemeModeChanged = {},
+            settings = AvailabilityScreenSettings(
+                onNightModeMapsChanged = {},
+                onThemeModeChanged = {},
+            ),
             mapSlot = mapSlotOverride ?: map.slot,
             records = AvailabilityScreenRecords(
                 waypoints = listOf(BUBBLE_WAYPOINT),

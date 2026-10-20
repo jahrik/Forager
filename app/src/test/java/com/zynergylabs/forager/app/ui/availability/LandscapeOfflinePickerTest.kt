@@ -107,8 +107,10 @@ class LandscapeOfflinePickerTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = { downloads++ },
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = map.slot,
             )
         }

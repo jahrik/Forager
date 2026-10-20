@@ -80,8 +80,10 @@ private fun ComposeContentTestRule.setUnsearchedScreen(onReopenTaxonSuggestions:
             onOfflineMapsOpened = {},
             onDownloadOfflineMaps = {},
             onDeleteOfflineRegion = {},
-            onNightModeMapsChanged = {},
-            onThemeModeChanged = {},
+            settings = AvailabilityScreenSettings(
+                onNightModeMapsChanged = {},
+                onThemeModeChanged = {},
+            ),
             mapSlot = SummaryStubMapSlot,
         )
     }

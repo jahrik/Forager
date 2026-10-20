@@ -226,11 +226,9 @@ import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
-import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
 import com.zynergylabs.forager.app.domain.model.DailyWeather
-import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
@@ -406,31 +404,12 @@ fun AvailabilityScreen(
     onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
-    /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
-    onNightModeMapsChanged: (Boolean) -> Unit,
-    /** "Automatically Save Location to Photos" — see [AvailabilityUiState.autoSaveLocationToPhotos]; set from the camera's Location chip (Settings until dispatch 2026-09-28-707, then also the camera's gear panel until dispatch 2026-10-13-03). Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
-    /** Settings' "Sundown alerts" (dispatch 2026-09-28-592) — see [AvailabilityUiState.sundownAlertsEnabled]. */
-    onSundownAlertsEnabledChanged: (Boolean) -> Unit = {},
-    /** Settings' "Dark under trees" (dispatch 2026-09-28-592) — see [AvailabilityUiState.darknessMarginMinutes]. */
-    onDarknessMarginChanged: (Int) -> Unit = {},
-    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626) — see [AvailabilityUiState.offTrackReminderEnabled]. */
-    onOffTrackReminderChanged: (Boolean) -> Unit = {},
-    /** The quick menu's "Battery saver" (dispatch 2026-09-28-767) — see [AvailabilityUiState.batterySaverEnabled]. */
-    onBatterySaverChanged: (Boolean) -> Unit = {},
+    /** Settings' callbacks and the settings-reset notice (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenSettings]. Required: 2 of its 10 fields were required parameters here and stay required. */
+    settings: AvailabilityScreenSettings,
     /** Settings' Backup section, the backup and restore requests, and the GPX import's notice and picker (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenBackupAndImport]. Defaulted, as its six fields were when they were parameters here. */
     backupAndImport: AvailabilityScreenBackupAndImport = AvailabilityScreenBackupAndImport(),
-    /**
-     * RECORD -660/-661: a settings file was found corrupt and reset, and the one-time message is owed.
-     * Shown as a snackbar that stays until dismissed, with a "Settings" action that opens Settings;
-     * [onSettingsResetNoticeShown] is called as it is shown, so it is shown once. Defaulted to nothing owed.
-     */
-    settingsResetNoticePending: Boolean = false,
-    onSettingsResetNoticeShown: () -> Unit = {},
     /** "Download again" on a restored offline region. */
     onDownloadAgain: (Long) -> Unit = {},
-    /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
-    onThemeModeChanged: (AppThemeMode) -> Unit,
     /** The Maps tab's controls: fullscreen, locate, the Layers sheet, basemap and icon cluster (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenMapControls]. Defaulted, as its nine fields were when they were parameters here. */
     mapControls: AvailabilityScreenMapControls = AvailabilityScreenMapControls(),
     /** The finds log's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenFindsLog]. Defaulted, as its 19 fields were when they were parameters here. */
@@ -466,8 +445,6 @@ fun AvailabilityScreen(
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
     mapSlot: MapSlot = SightingsMapSlot,
-    /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
-    onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
 ) {
     // Phase 2.1 (dispatch 2026-10-19-28): the camera bundle, unpacked under the parameter names it replaced.
     val inAppCameraTarget = cameraInputs.inAppCameraTarget
@@ -580,6 +557,17 @@ fun AvailabilityScreen(
     val recordingBackBy = recording.recordingBackBy
     val onBackByChoice = recording.onBackByChoice
     val onClearBackBy = recording.onClearBackBy
+    // Phase 2.1 (dispatch 2026-10-19-28): the settings bundle, unpacked under the parameter names it replaced.
+    val onNightModeMapsChanged = settings.onNightModeMapsChanged
+    val onAutoSaveLocationToPhotosChanged = settings.onAutoSaveLocationToPhotosChanged
+    val onSundownAlertsEnabledChanged = settings.onSundownAlertsEnabledChanged
+    val onDarknessMarginChanged = settings.onDarknessMarginChanged
+    val onOffTrackReminderChanged = settings.onOffTrackReminderChanged
+    val onBatterySaverChanged = settings.onBatterySaverChanged
+    val settingsResetNoticePending = settings.settingsResetNoticePending
+    val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
+    val onThemeModeChanged = settings.onThemeModeChanged
+    val onDistanceUnitSelected = settings.onDistanceUnitSelected
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

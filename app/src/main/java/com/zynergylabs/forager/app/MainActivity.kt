@@ -40,6 +40,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecording
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
@@ -557,13 +558,6 @@ class MainActivity : ComponentActivity() {
                     // Journal redesign J4: a region row's swipe asks for a pending delete; the
                     // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
                     onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
-                    onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
-                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                    onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
-                    onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
-                    onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
-                    onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
-                    onBatterySaverChanged = viewModel::onBatterySaverChanged,
                     backupAndImport = AvailabilityScreenBackupAndImport(
                         backup = backupViewModel.controls(backupUiState),
                         returnToMapRequest = backupUiState.returnToMapRequest,
@@ -572,10 +566,19 @@ class MainActivity : ComponentActivity() {
                         onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
                         onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
                     ),
-                    settingsResetNoticePending = settingsResetPending,
-                    onSettingsResetNoticeShown = container.settingsResetNotice::shown,
                     onDownloadAgain = viewModel::onDownloadAgain,
-                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                    settings = AvailabilityScreenSettings(
+                        onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
+                        onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                        onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
+                        onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
+                        onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
+                        onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
+                        onBatterySaverChanged = viewModel::onBatterySaverChanged,
+                        settingsResetNoticePending = settingsResetPending,
+                        onSettingsResetNoticeShown = container.settingsResetNotice::shown,
+                        onThemeModeChanged = viewModel::onThemeModeChanged,
+                    ),
                     mapControls = AvailabilityScreenMapControls(
                         onLocateMe = {
                             pendingLocationAction = PendingLocationAction.LOCATE_ME

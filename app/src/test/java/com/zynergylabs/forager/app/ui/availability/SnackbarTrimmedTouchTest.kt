@@ -91,8 +91,10 @@ class SnackbarTrimmedTouchTest {
                 onOfflineMapsOpened = {},
                 onDownloadOfflineMaps = {},
                 onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 recording = AvailabilityScreenRecording(
                     isRecording = true,
                     backgroundRunPrompt = prompt,
