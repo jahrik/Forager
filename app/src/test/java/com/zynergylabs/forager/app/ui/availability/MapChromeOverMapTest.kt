@@ -165,23 +165,25 @@ internal fun MapChromeTestScreen(
         roles.Capture()
         AvailabilityScreen(
             uiState = state.ui,
-            onUseCurrentLocation = {},
-            onManualLatChanged = {},
-            onManualLngChanged = {},
-            onSearchManualCoordinates = {},
-            onRadiusChanged = {},
-            onMonthSelected = {},
-            onMapTabSelected = {},
-            onSeasonalTabSelected = {},
-            onTaxonSearchQueryChanged = { query ->
-                state.ui = state.ui.copy(taxonSearchQuery = query, taxonSearchHasNoResults = query.trim().length >= 3)
-            },
-            onTaxonSearchResultSelected = {},
-            onDismissTaxonSuggestions = { state.ui = state.ui.copy(taxonSearchHasNoResults = false) },
-            onReopenTaxonSuggestions = {},
-            onPlaceTripPin = { _, _, _ -> },
-            onDeletePlannedTrip = {},
-            onRecentSearchSelected = {},
+            searchInputs = AvailabilityScreenSearchInputs(
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onTaxonSearchQueryChanged = { query ->
+                    state.ui = state.ui.copy(taxonSearchQuery = query, taxonSearchHasNoResults = query.trim().length >= 3)
+                },
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = { state.ui = state.ui.copy(taxonSearchHasNoResults = false) },
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+            ),
             settings = AvailabilityScreenSettings(
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},

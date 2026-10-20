@@ -215,7 +215,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.BuildConfig
-import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
@@ -234,14 +233,12 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
-import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.NoTripWindowReason
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
-import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
@@ -312,7 +309,6 @@ import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
-import java.time.LocalDate
 import java.time.Month
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -359,32 +355,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun AvailabilityScreen(
     uiState: AvailabilityUiState,
-    onUseCurrentLocation: () -> Unit,
-    onManualLatChanged: (String) -> Unit,
-    onManualLngChanged: (String) -> Unit,
-    onSearchManualCoordinates: () -> Unit,
-    onRadiusChanged: (Int) -> Unit,
-    onMonthSelected: (Int) -> Unit,
-    onMapTabSelected: () -> Unit,
-    onSeasonalTabSelected: () -> Unit,
-    onTaxonSearchQueryChanged: (String) -> Unit,
-    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
-    onDismissTaxonSuggestions: () -> Unit,
-    onReopenTaxonSuggestions: () -> Unit,
-    /** Called when a date and name are confirmed for a trip pin placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]. */
-    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
-    onDeletePlannedTrip: (String) -> Unit,
-    /**
-     * Called when one of the recent searches is tapped; see [RecentSearchesSection]. Reached from
-     * [SearchDropdown].
-     */
-    onRecentSearchSelected: (CachedSearchSummary) -> Unit,
-    /**
-     * RECORD -723: the search bar's Clear, shown only while a search is showing (a region is set). MainActivity
-     * wires it to [AvailabilityViewModel.clearSearch]. Defaulted to a no-op only so the many screen tests that
-     * never show Clear need not pass it.
-     */
-    onClearSearch: () -> Unit = {},
+    /** Search and trip callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenSearchInputs]. Required: 15 of its 16 fields were required parameters here and stay required. */
+    searchInputs: AvailabilityScreenSearchInputs,
     /**
      * Where "now" comes from for the relative times this screen renders — the offline banner's
      * "saved 3 hours ago" and the recent-searches picker's "cached 2 days ago".
@@ -569,6 +541,23 @@ fun AvailabilityScreen(
     val onDownloadOfflineMaps = offlineMaps.onDownloadOfflineMaps
     val onDeleteOfflineRegion = offlineMaps.onDeleteOfflineRegion
     val onDownloadAgain = offlineMaps.onDownloadAgain
+    // Phase 2.1 (dispatch 2026-10-19-28): the searchInputs bundle, unpacked under the parameter names it replaced.
+    val onUseCurrentLocation = searchInputs.onUseCurrentLocation
+    val onManualLatChanged = searchInputs.onManualLatChanged
+    val onManualLngChanged = searchInputs.onManualLngChanged
+    val onSearchManualCoordinates = searchInputs.onSearchManualCoordinates
+    val onRadiusChanged = searchInputs.onRadiusChanged
+    val onMonthSelected = searchInputs.onMonthSelected
+    val onMapTabSelected = searchInputs.onMapTabSelected
+    val onSeasonalTabSelected = searchInputs.onSeasonalTabSelected
+    val onTaxonSearchQueryChanged = searchInputs.onTaxonSearchQueryChanged
+    val onTaxonSearchResultSelected = searchInputs.onTaxonSearchResultSelected
+    val onDismissTaxonSuggestions = searchInputs.onDismissTaxonSuggestions
+    val onReopenTaxonSuggestions = searchInputs.onReopenTaxonSuggestions
+    val onPlaceTripPin = searchInputs.onPlaceTripPin
+    val onDeletePlannedTrip = searchInputs.onDeletePlannedTrip
+    val onRecentSearchSelected = searchInputs.onRecentSearchSelected
+    val onClearSearch = searchInputs.onClearSearch
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

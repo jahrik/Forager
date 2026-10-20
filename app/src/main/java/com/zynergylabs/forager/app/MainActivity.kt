@@ -41,6 +41,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineMaps
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecording
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSearchInputs
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
@@ -525,30 +526,32 @@ class MainActivity : ComponentActivity() {
 
                 AvailabilityScreen(
                     uiState = uiState,
-                    onUseCurrentLocation = {
-                        pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
-                        requestLocationPermission.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            ),
-                        )
-                    },
-                    onManualLatChanged = viewModel::onManualLatChanged,
-                    onManualLngChanged = viewModel::onManualLngChanged,
-                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                    onRadiusChanged = viewModel::onRadiusChanged,
-                    onMonthSelected = viewModel::onMonthSelected,
-                    onMapTabSelected = viewModel::onMapTabSelected,
-                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                    onPlaceTripPin = viewModel::onPlaceTripPin,
-                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                    onClearSearch = viewModel::clearSearch,
+                    searchInputs = AvailabilityScreenSearchInputs(
+                        onUseCurrentLocation = {
+                            pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
+                            requestLocationPermission.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                ),
+                            )
+                        },
+                        onManualLatChanged = viewModel::onManualLatChanged,
+                        onManualLngChanged = viewModel::onManualLngChanged,
+                        onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                        onRadiusChanged = viewModel::onRadiusChanged,
+                        onMonthSelected = viewModel::onMonthSelected,
+                        onMapTabSelected = viewModel::onMapTabSelected,
+                        onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                        onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                        onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                        onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                        onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                        onPlaceTripPin = viewModel::onPlaceTripPin,
+                        onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                        onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                        onClearSearch = viewModel::clearSearch,
+                    ),
                     currentTime = container.currentTimeProvider,
                     backupAndImport = AvailabilityScreenBackupAndImport(
                         backup = backupViewModel.controls(backupUiState),
