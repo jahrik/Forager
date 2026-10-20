@@ -83,10 +83,12 @@ class HudLandscapeT11TurnTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
-                isReturning = returning.value,
-                onToggleReturning = { returning.value = !returning.value },
-                navigationTarget = origin,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.52, -122.679), 390.0),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning.value,
+                    onToggleReturning = { returning.value = !returning.value },
+                    navigationTarget = origin,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.52, -122.679), 390.0),
+                ),
                 compassProvider = object : CompassProvider {
                     override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(281f, HeadingUncertainty.Estimated(2f), 0L))
                 },

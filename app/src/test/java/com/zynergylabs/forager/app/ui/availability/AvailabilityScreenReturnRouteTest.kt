@@ -109,10 +109,12 @@ class AvailabilityScreenReturnRouteTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
-                isReturning = true,
-                navigationTarget = start,
-                returnRoute = route,
-                onRetryRoute = { retries++ },
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = true,
+                    navigationTarget = start,
+                    returnRoute = route,
+                    onRetryRoute = { retries++ },
+                ),
                 compassProvider = FixedCompass(45f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },

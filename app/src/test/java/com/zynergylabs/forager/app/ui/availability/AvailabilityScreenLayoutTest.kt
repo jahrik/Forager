@@ -281,8 +281,10 @@ abstract class AvailabilityScreenLayoutTest {
                 uiState = uiState,
                 onUseCurrentLocation = onUseCurrentLocation,
                 isRecording = isReturning.value,
-                isReturning = isReturning.value,
-                navigationTarget = navigationTarget,
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = isReturning.value,
+                    navigationTarget = navigationTarget,
+                ),
                 onManualLatChanged = {},
                 onManualLngChanged = {},
                 onSearchManualCoordinates = onSearchManualCoordinates,

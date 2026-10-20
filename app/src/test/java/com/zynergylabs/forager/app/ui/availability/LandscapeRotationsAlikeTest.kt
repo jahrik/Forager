@@ -102,9 +102,11 @@ class LandscapeRotationsAlikeTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix, mapIconClusterPlacement = placementNow),
                 isRecording = true,
-                isReturning = returning,
-                navigationTarget = start,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    navigationTarget = start,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
+                ),
                 compassProvider = object : CompassProvider {
                     override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(45f, HeadingUncertainty.Estimated(2f), 0L))
                 },

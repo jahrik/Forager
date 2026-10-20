@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowSearchEdgeFor
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowRailEdgeFor
 import com.zynergylabs.forager.app.domain.EntryGroup
-import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
 import com.zynergylabs.forager.app.domain.waypointNavigationTarget
 import com.zynergylabs.forager.app.ui.log.JournalTopTab
@@ -242,13 +241,11 @@ import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.NoTripWindowReason
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Region
-import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
-import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
 import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
@@ -485,26 +482,10 @@ fun AvailabilityScreen(
      * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
      */
     breadcrumbPoints: List<LatLng> = emptyList(),
-    /** saved waypoints, tracks and pending-delete notices (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenRecords]. Defaulted, as its 12 fields were when they were parameters here. */
+    /** Saved waypoints, tracks and pending-delete notices (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenRecords]. Defaulted, as its 12 fields were when they were parameters here. */
     records: AvailabilityScreenRecords = AvailabilityScreenRecords(),
-    /**
-     * Bearing/distance/elevation difference back to the active track's start point, from the
-     * device's current position — `null` whenever nothing is being recorded, no fix has come in
-     * yet, or no breadcrumb has landed to compute a start from. See [ReturnToStartInfo]'s own doc
-     * comment for why there's no ETA, and [CompassElevationStripContent] for where this renders.
-     */
-    returnToStart: ReturnToStartInfo? = null,
-    /** Whether the walker has said they're heading back — see [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.startReturn]'s own doc comment. */
-    isReturning: Boolean = false,
-    /**
-     * RECORD -844, -845: the return has just ended on arrival and the navigation display holds "Arrived",
-     * with the start ringed, until the ViewModel's hold ends; see
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.isArrivalHeld]. Counts as navigating, so
-     * the display stays up for the hold and then closes to the plain map.
-     */
-    isArrivalHeld: Boolean = false,
-    /** Set once [isReturning] and the walker has gone off the path they walked out, until back on it — see `OffTrackJudge` (dispatch 2026-09-28-425). */
-    isOffTrack: Boolean = false,
+    /** Return and waypoint navigation inputs (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenNavigation]. Defaulted, as its 11 fields were when they were parameters here. */
+    navigation: AvailabilityScreenNavigation = AvailabilityScreenNavigation(),
     /**
      * The recording's sundown line (dispatch 2026-09-28-592, plan task T3), from
      * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.sundownLine]: the strip shows it while
@@ -521,7 +502,6 @@ fun AvailabilityScreen(
     onBackByChoice: (com.zynergylabs.forager.app.domain.BackByChoice) -> Unit = {},
     /** The quick menu's "Clear": [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.clearBackBy]. */
     onClearBackBy: () -> Unit = {},
-    onToggleReturning: () -> Unit = {},
     /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
      * so no production caller passes it — same [mapSlot]/[cameraCaptureFiles] pattern below.
@@ -535,35 +515,6 @@ fun AvailabilityScreen(
      * to pin the sign.
      */
     computeTrueHeading: ComputeTrueHeadingUseCase = remember { ComputeTrueHeadingUseCase(AndroidDeclinationProvider()) },
-    /**
-     * Navigation HUD stage one's target — the active track's origin waypoint
-     * ([com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.originWaypoint]), `null` when there is
-     * none. Threaded separately from [waypoints] because it decides which of them the *map* draws
-     * ([mapVisibleWaypoints]) as well as what the HUD points at.
-     */
-    navigationTarget: Waypoint? = null,
-    /**
-     * The route home while returning (dispatch 2026-09-28-423, plan task T6), read from
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.routeHome] by [returnRouteOf].
-     * The HUD's needle, large figure and "Try again" come from it; see [NavigationHud]. Not
-     * nullable: this screen's HUD is the return HUD, and a return is always in route mode (the
-     * planner's ruling), so no caller can put it in the straight-line mode by leaving this out.
-     * [ReturnRoute.Pending] until there is a result, as `MainActivity` passes it.
-     */
-    returnRoute: ReturnRoute = ReturnRoute.Pending,
-    /** The way back drawn on the map while returning (dispatch 2026-09-28-497); `null` draws none. */
-    routeLine: RouteLine? = null,
-    /** The HUD's "Try again": `TrackRecordingViewModel.retryRoute`. */
-    onRetryRoute: () -> Unit = {},
-    /**
-     * Dispatch 2026-09-28-502 (plan tasks T8 and T9): "Navigate" on a waypoint, given its id
-     * (`AvailabilityViewModel.onNavigateToWaypoint`). Offered in the Maps tab's bubbles, the waypoint's
-     * details sheet and the Records rows; `null` (the default) offers it nowhere, as [onDeleteTrack]
-     * does for its delete.
-     */
-    onNavigateToWaypoint: ((String) -> Unit)? = null,
-    /** Dispatch 2026-09-28-502: ends the waypoint navigation (`AvailabilityViewModel.onStopWaypointNavigation`). */
-    onStopWaypointNavigation: () -> Unit = {},
     /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
@@ -659,6 +610,18 @@ fun AvailabilityScreen(
     val onTracksOpened = records.onTracksOpened
     val getFullRecord = records.getFullRecord
     val pendingDeleteNotices = records.pendingDeleteNotices
+    // Phase 2.1 (dispatch 2026-10-19-28): the navigation bundle, unpacked under the parameter names it replaced.
+    val returnToStart = navigation.returnToStart
+    val isReturning = navigation.isReturning
+    val isArrivalHeld = navigation.isArrivalHeld
+    val isOffTrack = navigation.isOffTrack
+    val onToggleReturning = navigation.onToggleReturning
+    val navigationTarget = navigation.navigationTarget
+    val returnRoute = navigation.returnRoute
+    val routeLine = navigation.routeLine
+    val onRetryRoute = navigation.onRetryRoute
+    val onNavigateToWaypoint = navigation.onNavigateToWaypoint
+    val onStopWaypointNavigation = navigation.onStopWaypointNavigation
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

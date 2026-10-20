@@ -112,10 +112,12 @@ class AvailabilityScreenNavigationViewTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
-                isReturning = returning,
                 tripStartWarning = tripStartWarning,
-                onToggleReturning = { returning = !returning },
-                navigationTarget = start,
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    onToggleReturning = { returning = !returning },
+                    navigationTarget = start,
+                ),
                 compassProvider = object : CompassProvider { override val heading: Flow<CompassReading?> = compass },
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { now },

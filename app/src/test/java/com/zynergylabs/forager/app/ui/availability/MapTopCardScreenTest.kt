@@ -116,11 +116,13 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
                 AvailabilityScreen(
                     uiState = AvailabilityUiState(liveFix = fix),
                     isRecording = true,
-                    isReturning = returning,
-                    onToggleReturning = { exits++ },
-                    navigationTarget = start,
-                    returnRoute = route,
-                    onRetryRoute = { retries++ },
+                    navigation = AvailabilityScreenNavigation(
+                        isReturning = returning,
+                        onToggleReturning = { exits++ },
+                        navigationTarget = start,
+                        returnRoute = route,
+                        onRetryRoute = { retries++ },
+                    ),
                     compassProvider = FixedCompass(45f),
                     computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                     currentTime = CurrentTimeProvider { t + 1_000L },

@@ -100,8 +100,10 @@ class LandscapeLargeFontTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = navigating,
-                isReturning = navigating,
-                navigationTarget = target,
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = navigating,
+                    navigationTarget = target,
+                ),
                 compassProvider = object : CompassProvider {
                     override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(306f, HeadingUncertainty.Estimated(2f), 0L))
                 },

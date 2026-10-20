@@ -82,9 +82,11 @@ abstract class IconBarFixedLeftTests(private val rotation: Int, private val land
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix, mapIconClusterPlacement = savedRight),
                 isRecording = true,
-                isReturning = returning,
-                navigationTarget = start,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    navigationTarget = start,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
+                ),
                 mapControls = AvailabilityScreenMapControls(
                     onMapIconClusterPlacementChanged = { writes += it },
                 ),

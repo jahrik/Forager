@@ -118,7 +118,9 @@ internal fun LayoutFixesScreen(
         uiState = uiState,
         isRecording = isRecording,
         onToggleRecording = onToggleRecording,
-        onToggleReturning = onToggleReturning,
+        navigation = AvailabilityScreenNavigation(
+            onToggleReturning = onToggleReturning,
+        ),
         onUseCurrentLocation = {},
         onManualLatChanged = {},
         onManualLngChanged = {},

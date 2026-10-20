@@ -83,9 +83,11 @@ class NoFacingLabelTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = navigating,
-                isReturning = navigating,
-                navigationTarget = start.takeIf { navigating },
-                returnRoute = ReturnRoute.Pending,
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = navigating,
+                    navigationTarget = start.takeIf { navigating },
+                    returnRoute = ReturnRoute.Pending,
+                ),
                 compassProvider = object : CompassProvider {
                     override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(315f, HeadingUncertainty.Estimated(2f), 0L))
                 },

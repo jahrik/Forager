@@ -42,8 +42,8 @@ data class AvailabilityScreenRecords(
     val waypointsLoaded: Boolean = true,
     /**
      * Every recorded track, for the Settings "Recorded Tracks" export panel — see
-     * [com.zynergylabs.forager.app.ui.track.TrackExportPanel]'s own doc comment. Empty by default, same
-     * the screen's `breadcrumbPoints` and [waypoints] shape: the real list is [trackUiState.tracks][com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.tracks],
+     * [com.zynergylabs.forager.app.ui.track.TrackExportPanel]'s own doc comment. Empty by default, the same
+     * shape as the screen's `breadcrumbPoints` and [waypoints]: the real list is [trackUiState.tracks][com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.tracks],
      * threaded in by `MainActivity`.
      */
     val tracks: List<Track> = emptyList(),

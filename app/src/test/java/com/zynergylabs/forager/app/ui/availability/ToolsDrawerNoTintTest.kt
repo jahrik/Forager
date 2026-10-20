@@ -90,9 +90,11 @@ abstract class ToolsDrawerNoTintTests(private val landscape: Boolean) {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = false,
-                isReturning = false,
-                navigationTarget = null,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.5135, -122.67), 245.0),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = false,
+                    navigationTarget = null,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.5135, -122.67), 245.0),
+                ),
                 compassProvider = FixedCompass(134f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },

@@ -97,9 +97,11 @@ class RoundedMapCardScreenshotTest {
                 AvailabilityScreen(
                     uiState = AvailabilityUiState(liveFix = fix),
                     isRecording = true,
-                    isReturning = returning,
-                    navigationTarget = start,
-                    returnRoute = route,
+                    navigation = AvailabilityScreenNavigation(
+                        isReturning = returning,
+                        navigationTarget = start,
+                        returnRoute = route,
+                    ),
                     compassProvider = FixedCompass(134f),
                     computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                     currentTime = CurrentTimeProvider { t + 1_000L },

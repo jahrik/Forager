@@ -93,9 +93,11 @@ abstract class LandscapeCardMeetsBarTests {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
-                isReturning = returning,
-                navigationTarget = start,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    navigationTarget = start,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
+                ),
                 compassProvider = FixedCompass(315f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },

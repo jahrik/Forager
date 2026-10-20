@@ -76,9 +76,11 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = navigating,
-                isReturning = navigating,
-                navigationTarget = if (navigating) start else null,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.5135, -122.67), 245.0),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = navigating,
+                    navigationTarget = if (navigating) start else null,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.5135, -122.67), 245.0),
+                ),
                 compassProvider = FixedCompass(134f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },

@@ -90,9 +90,11 @@ abstract class LandscapeStripButtonTests {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = navigating,
-                isReturning = navigating,
-                navigationTarget = start.takeIf { navigating },
-                returnRoute = this.route ?: ReturnRoute.Pending,
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = navigating,
+                    navigationTarget = start.takeIf { navigating },
+                    returnRoute = this.route ?: ReturnRoute.Pending,
+                ),
                 compassProvider = FixedCompass(facing),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },
