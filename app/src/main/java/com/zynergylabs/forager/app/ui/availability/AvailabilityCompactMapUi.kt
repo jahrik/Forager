@@ -16,24 +16,10 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
-import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
-import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
-import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
-import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.expandVertically
-import com.zynergylabs.forager.app.ui.map.MapPillColorLight
-import com.zynergylabs.forager.app.ui.map.MapPillColorDark
 import android.util.Log
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
-import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
-import com.zynergylabs.forager.app.ui.map.NavigationFacing
 import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.MapBubbleKind
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
@@ -48,7 +34,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,15 +47,11 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -82,22 +63,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
-import com.zynergylabs.forager.app.ui.map.JournalEntriesMapChip
-import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
@@ -109,10 +82,7 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
-import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
-import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MAPS_TAB_OVERLAYS
@@ -133,17 +103,9 @@ import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.ui.draw.clipToBounds
-import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
-import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
-import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
 import com.zynergylabs.forager.app.ui.motion.MapPopUp
 import com.zynergylabs.forager.app.ui.motion.PopUpPivot
-import com.zynergylabs.forager.app.ui.motion.isOnScreen
 import com.zynergylabs.forager.app.ui.motion.rememberLastShown
-import com.zynergylabs.forager.app.ui.motion.rememberPopUpState
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerPopUp
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -784,520 +746,6 @@ internal fun CompactMapTab(
         )
     }
 }
-
-/**
- * RECORD -955, C: the highest the landscape card's top may reach, in the root: the walker's dot's bottom, and, where the L is in the
- * card's columns, the bottom of Reset north (the L's second row). `null` before the map is measured.
- */
-private fun cardTopLimitInRootPx(cluster: MapIconClusterState, density: androidx.compose.ui.unit.Density): Float? {
-    val mapHeight = cluster.mapContentBoxHeightPx
-    if (mapHeight <= 0f) return null
-    val dotY = cluster.mapContentBoxTopInRootPx + (mapHeight + mapHeight * com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2f
-    val dotBottom = dotY + with(density) { WALKER_DOT_CLEARANCE.toPx() }
-    val l = cluster.clusterBoundsInRoot
-    val card = cluster.navigationCardBoundsInRoot
-    val resetBottom = if (l != null && card != null && l.left < card.right && card.left < l.right) {
-        l.top + with(density) { (com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET * 2 + com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING).toPx() }
-    } else {
-        null
-    }
-    return maxOf(dotBottom, resetBottom ?: dotBottom)
-}
-
-/** RECORD -955: the walker's dot's radius, the clearance the card keeps below its centre (the tests' WALKER_DOT_RADIUS). */
-internal val WALKER_DOT_CLEARANCE = 12.dp
-
-/**
- * RECORD -953: the landscape navigation card's motion, `navigationChromeTransitions` (removed 2026-10-19, RECORD -1392) flipped: it slides up from the screen's bottom
- * edge by its own height, with a fade, on the same timing, and back down; under reduced motion it only fades.
- */
-@Composable
-private fun navigationChromeFromBottomTransitions(): Pair<EnterTransition, ExitTransition> {
-    val reduceMotion = LocalReduceMotion.current
-    val slide = MotionTokens.navigationViewChromeSpec<IntOffset>()
-    val timedFade = MotionTokens.navigationViewChromeSpec<Float>()
-    val reducedFade = MotionTokens.mapPopUpFadeSpec<Float>()
-    val enter = if (reduceMotion) fadeIn(animationSpec = reducedFade) else slideInVertically(animationSpec = slide) { fullHeight -> fullHeight } + fadeIn(animationSpec = timedFade)
-    val exit = if (reduceMotion) fadeOut(animationSpec = reducedFade) else slideOutVertically(animationSpec = slide) { fullHeight -> fullHeight } + fadeOut(animationSpec = timedFade)
-    return enter to exit
-}
-
-/**
- * The compass strip, its measured size and the landscape join, moved out of [CompactMapTab] unchanged (RECORD -741). The three
- * measured sizes are the tab's state, handed in.
- *
- * Dispatch 2026-10-12-08 (RECORD -948, -950, -951): the strip stays while navigating, in both orientations, exactly where it is
- * and at the size it is (the owner: "The compass strip stays exactly where it is in both modes"). Its line drops the north arrow
- * and the heading ([CompassElevationStrip]'s `navigating`), and its own sundown and Back by lines go to the navigation info. In
- * portrait the navigation info ([portraitNavigationInfo]) is drawn inside the strip's card under a thin line, one card that
- * extends down ("have the card just extend down rather than a dual tuck"); in landscape it is a card of its own hanging under the
- * strip ([CompactMapNavigationDisplay]).
- */
-@Composable
-private fun BoxScope.CompactMapTopStrip(
-    uiState: AvailabilityUiState,
-    navigation: CompactMapNavigation,
-    landscape: CompactMapLandscape,
-    /** Dispatch 2026-10-13-02 (RECORD -967): whether the pill and the rail have slid away, leaving the strip's sides by them facing the map. */
-    isFullscreen: Boolean,
-    controlsPadding: PaddingValues,
-    topInset: Dp,
-    showDecimalDegrees: Boolean,
-    onToggleCoordinateFormat: () -> Unit,
-    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
-    quickSettings: MapQuickSettings?,
-    trueHeading: State<TrueHeadingReading>,
-    positionNote: State<PositionNote?>,
-    sundownClock: SundownClock,
-    compassStripHeight: MutableIntState,
-    landscapeStripHeight: MutableIntState,
-    landscapeStripWidth: MutableIntState,
-    /** Portrait only: the navigation info inside the strip's card, under its line (see this function's doc). */
-    portraitNavigationInfo: @Composable () -> Unit,
-) {
-    val isNavigating = navigation.isNavigating
-    val railPortEdge = landscape.railPortEdge
-    val punchHoleEdge = landscape.punchHoleEdge
-    val onLandscapeStripHeightMeasured = landscape.onLandscapeStripHeightMeasured
-    val onLandscapeStripWidthMeasured = landscape.onLandscapeStripWidthMeasured
-    val compassStripDensity = LocalDensity.current
-    var compassStripHeightPx by compassStripHeight
-    var landscapeStripHeightPx by landscapeStripHeight
-    var landscapeStripWidthPx by landscapeStripWidth
-    // Dispatch 2026-10-12-06 (RECORD -932, -934): in portrait the strip is the rounded card tucked under the pill; none in
-    // landscape, where the two sit side by side, or once the pill has slid away in fullscreen (mapCardTuck).
-    val stripTuck = if (railPortEdge == null) mapCardTuck(topInset) else 0.dp
-    val isDarkTheme = LocalForagerDarkTheme.current
-    // Dispatch 2026-10-13-02 (RECORD -966, -967, -976): the strip's outline. Portrait: its bottom and its two sides, its top open
-    // under the pill (portraitStripOutlineSides; the sides since -976). Landscape (its top and far end since -988): its bottom; its side
-    // by the pill once the pill has slid away (the pill draws that join while shown); its rail side once the rail has, unless
-    // that side is then on the screen's edge.
-    val stripLayoutDirection = LocalLayoutDirection.current
-    val stripOutlineSides = if (railPortEdge == null) {
-        portraitStripOutlineSides()
-    } else {
-        landscapeColumnOutlineSides(
-            railPortEdge = railPortEdge,
-            railShown = !isFullscreen,
-            railSideInset = if (railPortEdge == ScreenEdge.Left) {
-                controlsPadding.calculateLeftPadding(stripLayoutDirection)
-            } else {
-                controlsPadding.calculateRightPadding(stripLayoutDirection)
-            },
-            innerSideDrawn = isFullscreen,
-            // RECORD -988 (the owner: "The pill in landscape isn't fully outlined"): the strip too, all the way round: its top,
-            // and its far end once the rail has slid away. Its side by the pill stays open while the pill is shown (the pill draws
-            // that join) and its side by the rail while the rail is (the rail draws it). Until -988 its top was never drawn.
-            top = true,
-            bottom = true,
-            railSideOnScreenEdgeDrawn = true,
-        )
-    }
-    CompassElevationStrip(
-        heading = trueHeading,
-        elevationMeters = uiState.liveAltitudeMeters,
-        unitSystem = uiState.unitSystem,
-        location = uiState.liveLocation,
-        showDecimalDegrees = showDecimalDegrees,
-        onToggleCoordinateFormat = onToggleCoordinateFormat,
-        // Full width, "just below" SearchEntryBar rather than a narrow floating pill with margins on both sides, per the project
-        // owner's own redesign call; topInset is how that clearance reaches here (0.dp reproduces the flush-against-the-map-top
-        // behaviour). In landscape, Landscape B2 (S4): the top corner on the rail side, below the status bar only.
-        modifier = if (railPortEdge != null) {
-            Modifier
-                .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
-                .padding(controlsPadding)
-                // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"; -729 had it at the window's centre): as wide
-                // as its readouts need whole, the bar keeping its floor (landscapeStripFit). RECORD -951 (the owner: "Keep it exactly
-                // like this size. Exactly as we have it today") restores it over RECORD -940's short-side width. The need measures
-                // the heading at its widest form whether or not it is drawn, so starting navigation, which takes the heading off the
-                // line, resizes nothing.
-                .landscapeStripFit(
-                    railPortEdge,
-                    punchHoleEdge,
-                    rememberLandscapeStripNeed(uiState.liveAltitudeMeters, uiState.unitSystem, uiState.liveLocation, quickSettings != null),
-                    rememberLandscapeBarFloorPx(uiState, uiState.distanceUnit),
-                )
-                // RECORD -729: its measured height and width go up to the scaffold, which gives the bar that height and the rest
-                // of the room; since RECORD -951 navigating too, and the navigation card hangs under it at this width.
-                .onSizeChanged { landscapeStripHeightPx = it.height; landscapeStripWidthPx = it.width }
-        } else {
-            Modifier
-                .align(Alignment.TopCenter)
-                .padding(controlsPadding)
-                .fillMaxWidth()
-                // Dispatch 2026-10-12-06: tucked under the pill, the card's fill reaching [stripTuck] above its own top, while its
-                // own bounds start at the bar's bottom.
-                .padding(top = topInset)
-                // The strip's own height (item 2), for what sits below it, as before only while not navigating: navigating, the
-                // card grows down by the navigation info, and what sat below the strip keeps the clearance it had while the
-                // navigation display replaced the strip (dispatch 2026-10-12-08 changes none of it).
-                .onSizeChanged { if (!isNavigating) compassStripHeightPx = it.height }
-        }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
-        contentWidth = false,
-        // RECORD -735: the crossed-out compass for no compass or an unreliable one in a short landscape window; portrait keeps the
-        // full words. Restored with main's landscape width (RECORD -951).
-        shortHeadingStatus = railPortEdge != null,
-        positionNote = positionNote,
-        // Amendment 2 (RECORD -595): hidden until its window opens; see isShown. Dispatch 2026-10-12-08: not while navigating,
-        // when the navigation info shows the evening lines once (RECORD -950: "Nothing repeats").
-        sundownLine = if (isNavigating) null else recordingSundownLine?.let { sundownLineText(it, sundownClock) },
-        backByLine = if (isNavigating) null else backByLineText(quickSettings?.backBy, sundownClock),
-        // Amendment 3 (RECORD -648): "a 3 dot menu at the far right", placed by the strip, not the screen (RECORD -649): the
-        // strip's own right end in every orientation. Dispatch 2026-10-12-08: navigating too, and only here (RECORD -947, -950).
-        quickSettings = quickSettings,
-        cardCorners = landscapeStripCorners(railPortEdge, punchHoleEdge),
-        tuck = stripTuck,
-        navigating = isNavigating,
-        // RECORD -946, -951: in landscape the strip and the pill are the top bar, both in the pill's lighter shade.
-        fill = if (railPortEdge != null) (if (isDarkTheme) MapPillColorDark else MapPillColorLight) else null,
-        navigationInfo = if (railPortEdge == null) portraitNavigationInfo else null,
-        outlineSides = stripOutlineSides,
-        // Dispatch 2026-10-13-02, RECORD -983 (landscape) and -984 (the owner: "Have portrait more centered also. This will
-        // matter most to people with OCD"): both orientations.
-        readoutCentredOnMenu = true,
-        // Dispatch 2026-10-13-02, RECORD -987: landscape, where the strip is sized for the wider coordinate form.
-        coordinatesSizedForBothForms = railPortEdge != null,
-    )
-    DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
-    // The portrait strip's measured height goes the moment navigation starts, as it did when the strip left then (see above).
-    LaunchedEffect(isNavigating) { if (isNavigating) compassStripHeightPx = 0 }
-    // RECORD -754 (the owner's S26 on 1.0.3103: after a turn from portrait the bar kept a portrait-sized box, taller than the
-    // strip and reaching the window's centre): out of landscape the landscape strip's measures go too. They are reported up only
-    // when they change (below), and the scaffold zeroes its own copy whenever the bar stops meeting the strip, so a measure left
-    // here from an earlier landscape turn was the same number on the next turn, was never reported again, and the bar stayed at
-    // its own height and the half width it takes before the strip is measured. Found by a test turning into landscape twice
-    // (LandscapeSearchFixesTest, "second turn"), not by reasoning.
-    LaunchedEffect(railPortEdge) { if (railPortEdge == null) { landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
-    // RECORD -729: the landscape strip's measured height, up to the scaffold, which gives the search bar that height; 0 while it
-    // is not measured (portrait, before its first layout), where the bar keeps its own.
-    LaunchedEffect(landscapeStripHeightPx) { onLandscapeStripHeightMeasured(with(compassStripDensity) { landscapeStripHeightPx.toDp() }) }
-    LaunchedEffect(landscapeStripWidthPx) { onLandscapeStripWidthMeasured(with(compassStripDensity) { landscapeStripWidthPx.toDp() }) }
-    // RECORD -729, item 4 drew a 1 dp vertical line where the bar and the strip meet in landscape. Dispatch 2026-10-12-06
-    // (RECORD -934, the owner's answer confirming "in landscape, the pill and card touch edge to edge (no join line)"): the
-    // line is gone; the two meet square on their joined side and round on their outer sides (landscapeStripCorners, the bar's
-    // pillCorners in the scaffold). LANDSCAPE_BAR_STRIP_LINE_TAG is kept so a test can say no such line is drawn. Dispatch
-    // 2026-10-13-02 (RECORD -967, the owner: "1 C one line between the two like there is now") replaces -934's "no join line":
-    // the pill's map chrome outline runs down the join, one 1 dp line drawn by the pill (MapChromeOutlineSides); no node of its
-    // own, so that tag is still never composed.
-}
-
-/** Landscape: rounded on its outer side and square where it meets the pill, edge to edge, no join line (RECORD -934); portrait, its lower two. */
-private fun landscapeStripCorners(railPortEdge: ScreenEdge?, punchHoleEdge: ScreenEdge?): MapCardCorners = when {
-    railPortEdge == null -> MapCardCorners.BOTTOM
-    punchHoleEdge != null && railPortEdge != punchHoleEdge -> MapCardCorners.outerSide(railPortEdge)
-    else -> MapCardCorners.ALL
-}
-
-/** The taxon and journal-entries chips, moved out of [CompactMapTab] unchanged (RECORD -741). */
-@Composable
-private fun BoxScope.CompactMapChips(
-    mapTaxonFilterLabel: String?,
-    onClearTaxonFilter: () -> Unit,
-    mapLayers: MapLayersControls,
-    landscape: CompactMapLandscape,
-    cluster: MapIconClusterState,
-    controlsPadding: PaddingValues,
-    topInset: Dp,
-    compassStripBottomClearance: Dp,
-) {
-    val punchHoleEdge = landscape.punchHoleEdge
-    val landscapeSearchWidth = landscape.landscapeSearchWidth
-    val isMapIconBarOnLeftSide by cluster::isOnLeftSide
-    val mapIconClusterWidthPx by cluster::clusterWidthPx
-    // Below the compass strip (topInset + compassStripClearance as top padding), same
-    // reasoning as AnchoredAtScreenPoint's own minY: the strip is drawn across the map's
-    // full width, so a chip placed underneath it would be hidden behind it, and where it
-    // sat under the strip's coordinates or its quick-settings button (dispatch -645), its
-    // "Show all species" tap would go to them. Corrected in dispatch 2026-09-28-645: this
-    // said "the strip's Surface intercepts touches across its full width", which stopped
-    // being true when the strip became a plain Box that takes no touches of its own
-    // (CompassElevationStripContent); its real long-press tests reach the map through it. topInset itself (see this composable's own doc comment) clears whatever
-    // chrome floats above the strip too — SearchEntryBar, on the Map tab.
-    //
-    // J8-3 (owner: "Top, by the species chip (Recommended)"): the journal-entries chip sits in
-    // the row with the taxon chip, after it, at the same place in each window. A FlowRow sized
-    // to its chips (it draws nothing and takes no touches itself, so the map keeps every touch
-    // around them: CLAUDE.md, the Surface pitfall), so two chips wider than the room wrap to a
-    // second line instead of running off the screen. It holds whichever chips there are.
-    val shownJournalEntries = mapLayers.journalHighlights.shownEntries
-    // Motion Part 2, item 4 (scout M1; the owner, RECORD -651: "Fade and grow", from where each belongs): each chip
-    // fades and grows down from its top centre, under the strip it hangs from, and shrinks back up to it; item 5: a
-    // leaving chip takes no touch. The row stays composed until its last chip has gone, and gives up its keep-out
-    // the moment no chip is meant to show.
-    val taxonChipShown = rememberLastShown(mapTaxonFilterLabel)
-    val taxonChip = rememberPopUpState(mapTaxonFilterLabel != null)
-    val journalChipShown = rememberLastShown(shownJournalEntries.takeIf { it.isNotEmpty() })
-    val journalChip = rememberPopUpState(shownJournalEntries.isNotEmpty())
-    val chipsMeantToShow = mapTaxonFilterLabel != null || shownJournalEntries.isNotEmpty()
-    if (taxonChip.isOnScreen || journalChip.isOnScreen) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            // Part 1 layout fixes (the owner's "Option B for the chips", planner message 2026-09-29-07): in
-            // short landscape the wrapped second line follows the first with no gap, so the drawn chips of a
-            // two-line row end above the window's central third. J8's chip keeps its 48 dp layout box (its
-            // drawn pill is centred in it, 8 dp of margin above and below), so the margin, not the chip,
-            // takes the space. Portrait keeps its 4 dp.
-            verticalArrangement = Arrangement.spacedBy(if (punchHoleEdge != null && landscapeSearchWidth != null) 0.dp else Spacing.xs),
-            modifier = if (punchHoleEdge != null && landscapeSearchWidth != null) {
-                // Landscape B2 (S3): directly under the search bar (the strip is in
-                // the rail corner now, not under the bar), in a column the bar's own
-                // width on the punch-hole side, aligned to the bar's start.
-                //
-                // Part 1 layout fixes, item 7 (the owner's "1 A", planner message 2026-09-29-04): the
-                // row aligns to the bar's end away from the cluster's current side, and its width is
-                // capped at the bar's width less the cluster's edge inset, measured width and the gap
-                // beside it, so two chips that do not fit wrap onto two lines instead of reaching
-                // under the cluster. Both follow the cluster when it is dragged or snapped across.
-                // Planner message 2026-09-29-05: the cap only where the cluster sits under the bar's
-                // reach (it is on the bar's side); elsewhere the chips have room and stay on one line.
-                val clusterUnderBar = isMapIconBarOnLeftSide == (punchHoleEdge == ScreenEdge.Left)
-                val clusterColumnDp = MAP_ICON_BAR_EDGE_INSET + with(LocalDensity.current) { mapIconClusterWidthPx.toDp() } + Spacing.sm
-                Modifier
-                    .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
-                    .padding(controlsPadding)
-                    .padding(top = topInset + Spacing.sm)
-                    .width(landscapeSearchWidth)
-                    .wrapContentWidth(if (isMapIconBarOnLeftSide) AbsoluteAlignment.Right else AbsoluteAlignment.Left)
-                    .widthIn(max = if (clusterUnderBar) (landscapeSearchWidth - clusterColumnDp).coerceAtLeast(0.dp) else landscapeSearchWidth)
-            } else {
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(controlsPadding)
-                    .padding(top = topInset + compassStripBottomClearance + Spacing.sm)
-            }.then(if (chipsMeantToShow) Modifier.mapKeepOut(MapKeepOutIds.CHIPS) else Modifier),
-        ) {
-            MapPopUp(state = taxonChip, pivot = PopUpPivot.TopCentre) {
-                taxonChipShown?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
-            }
-            MapPopUp(state = journalChip, pivot = PopUpPivot.TopCentre) {
-                journalChipShown?.let { entries ->
-                    JournalEntriesMapChip(
-                        entries = entries,
-                        onHide = mapLayers.onHideJournalEntry,
-                        onHideAll = mapLayers.onHideAllJournalEntries,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * The navigation info's inputs, worked out once for both places it is drawn (dispatch 2026-10-12-08): inside the compass strip's
- * card in portrait, and in its own card under the strip in landscape. The sundown line is the recording's, or with no recording
- * sunset and dark only, computed here; either hidden until its window opens (Amendment 2, RECORD -595).
- */
-@Composable
-private fun compactMapEveningLines(
-    uiState: AvailabilityUiState,
-    currentTime: CurrentTimeProvider,
-    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
-    quickSettings: MapQuickSettings?,
-    sundownClock: SundownClock,
-): Pair<String?, String?> {
-    val sundown = (recordingSundownLine ?: rememberScreenSundownLine(uiState.headingFix?.let { com.zynergylabs.forager.app.domain.model.LatLng(it.lat, it.lng) }, currentTime))
-        .let { sundownLineText(it, sundownClock) }
-    return sundown to backByLineText(quickSettings?.backBy, sundownClock)
-}
-
-/**
- * Portrait (dispatch 2026-10-12-08, RECORD -948, -950): the navigation info inside the compass strip's card, under a thin line,
- * shown while navigating. The card extends down for it: the info grows down from under the line and fades in, laid out rather than
- * drawn so the card's own fill grows with it, on the navigation view's timing, exactly as long as the map's tilt (Motion Part 2,
- * RECORD -651, -672); under reduced motion it only fades. Takes no touch outside its own controls (the X and Try again).
- */
-@Composable
-private fun CompactMapPortraitNavigationInfo(
-    uiState: AvailabilityUiState,
-    navigation: CompactMapNavigation,
-    cluster: MapIconClusterState,
-    trueHeading: State<TrueHeadingReading>,
-    navigationFacing: NavigationFacing,
-    currentTime: CurrentTimeProvider,
-    showDecimalDegrees: Boolean,
-    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
-    quickSettings: MapQuickSettings?,
-    sundownClock: SundownClock,
-) {
-    val isNavigating = navigation.isNavigating
-    val reduceMotion = LocalReduceMotion.current
-    val grow = MotionTokens.navigationViewChromeSpec<IntSize>()
-    val fade = MotionTokens.navigationViewChromeSpec<Float>()
-    val reducedFade = MotionTokens.mapPopUpFadeSpec<Float>()
-    val isDarkTheme = LocalForagerDarkTheme.current
-    val fill = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
-    val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
-    LaunchedEffect(isNavigating) { if (!isNavigating) cluster.navigationDisplayBottomInRootPx = null }
-    NoTouchTargetExpansion(active = !isNavigating) {
-    androidx.compose.animation.AnimatedVisibility(
-        visible = isNavigating,
-        enter = if (reduceMotion) fadeIn(animationSpec = reducedFade) else expandVertically(animationSpec = grow, expandFrom = Alignment.Top) + fadeIn(animationSpec = fade),
-        exit = if (reduceMotion) fadeOut(animationSpec = reducedFade) else shrinkVertically(animationSpec = grow, shrinkTowards = Alignment.Top) + fadeOut(animationSpec = fade),
-        modifier = Modifier.leavingTakesNoTouches(leaving = !isNavigating),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                // The part of the strip's card the navigation info takes, tagged as the display was, with the card's fill.
-                .testTag(NAVIGATION_HUD_TAG)
-                .mapChromeContainerColor(fill)
-                .onGloballyPositioned { coordinates -> if (isNavigating) cluster.navigationDisplayBottomInRootPx = coordinates.boundsInRoot().bottom },
-        ) {
-            // The owner (RECORD -948): "a line to separate the heading and nav info". The vertical dividers' colour and weight,
-            // inset by the card's side padding. Draws only.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.xs)
-                    .height(1.dp)
-                    .background(mapIconStackBorderColor())
-                    .testTag(NAVIGATION_INFO_LINE_TAG),
-            )
-            NavigationInfo(
-                heading = trueHeading,
-                liveFix = uiState.liveFix,
-                target = navigation.navigationTarget,
-                distanceUnit = uiState.distanceUnit,
-                currentTime = currentTime,
-                showDecimalDegrees = showDecimalDegrees,
-                onExit = navigation.onToggleReturning,
-                // Dispatch -502: no route to a chosen waypoint, so the straight-line display (decision D2).
-                route = if (navigation.isNavigatingToWaypoint) null else navigation.returnRoute,
-                onRetryRoute = navigation.onRetryRoute,
-                facing = navigationFacing,
-                approximateFix = uiState.approximateFix,
-                lastKnownFix = uiState.lastKnownFix,
-                sundownLine = sundownLine,
-                backByLine = backByLine,
-                // RECORD -845: "Arrived", held, after a return ended on arrival.
-                arrivalHeld = navigation.isArrivalHeld,
-            )
-        }
-    }
-    }
-}
-
-/**
- * Landscape (dispatch 2026-10-12-08, RECORD -946, -950, -951, -953): the navigation card, at the strip's exact width and in its
- * column, a shade darker than the strip, its content and order unchanged.
- *
- * RECORD -953, the owner: "An alternative is to have the card peak from the botton of the screen instead from the top. It can stay
- * beneath the heading, just peaking from the opposite direction"; "Landscape only. Portrait is dialed in"; "It stays exactly how it
- * is now. Just flipped upside down. No rearranging." So the card is anchored to the screen's bottom edge, not hung under the strip:
- * its top two corners rounded, its bottom square on the edge, no tuck, the 0.8 fill and its shadow. It slides up from the bottom
- * when navigation starts and back down when it ends, on the navigation view's timing (Motion Part 2), or only fades under reduced
- * motion. The strip stays exactly where it is. Was (-946 to -951): hung under the strip, tucked, sliding down from under it.
- *
- * Nothing else moves. The landscape L's slide below the display (T11 fixes, P4) is not fed the card's edge any more: below a card
- * on the bottom edge there is nowhere to slide, and sliding it would rearrange it. RECORD -770's limit on the evening lines was
- * worked out from the L below the display, and is not passed either. Whatever the card now covers at the bottom is reported with
- * its numbers, not moved (RECORD -953: "No rearranging").
- *
- * Its width is the strip's measured one (read, never fed back). Composed after the cluster (so its X wins any overlap with the
- * cluster) and before the bottom chrome and rail (so they keep winning their own bands), as the display always was; never touches
- * mapSlot.
- */
-@Composable
-private fun BoxScope.CompactMapNavigationDisplay(
-    uiState: AvailabilityUiState,
-    navigation: CompactMapNavigation,
-    landscape: CompactMapLandscape,
-    /** Dispatch 2026-10-13-02 (RECORD -967): whether the rail has slid away, leaving the card's side by it facing the map. */
-    isFullscreen: Boolean,
-    /** T11 fixes (RECORD -766, P4): told the display's bottom edge while navigating, so the landscape L can slide below it. */
-    cluster: MapIconClusterState,
-    controlsPadding: PaddingValues,
-    trueHeading: State<TrueHeadingReading>,
-    navigationFacing: NavigationFacing,
-    currentTime: CurrentTimeProvider,
-    showDecimalDegrees: Boolean,
-    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
-    quickSettings: MapQuickSettings?,
-    sundownClock: SundownClock,
-    landscapeStripHeight: MutableIntState,
-    landscapeStripWidth: MutableIntState,
-) {
-    val railPortEdge = landscape.railPortEdge ?: return
-    val isNavigating = navigation.isNavigating
-    val density = LocalDensity.current
-    val stripHeightPx by landscapeStripHeight
-    val stripWidthPx by landscapeStripWidth
-    val (bottomEnter, bottomExit) = navigationChromeFromBottomTransitions()
-    // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline: its top and rounded top corners and its side facing the
-    // map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the screen's.
-    val cardLayoutDirection = LocalLayoutDirection.current
-    val cardOutlineSides = landscapeColumnOutlineSides(
-        railPortEdge = railPortEdge,
-        railShown = !isFullscreen,
-        railSideInset = if (railPortEdge == ScreenEdge.Left) {
-            controlsPadding.calculateLeftPadding(cardLayoutDirection)
-        } else {
-            controlsPadding.calculateRightPadding(cardLayoutDirection)
-        },
-        innerSideDrawn = true,
-        top = true,
-        bottom = false,
-    )
-    val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
-    // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
-    LaunchedEffect(Unit) { cluster.navigationDisplayBottomInRootPx = null }
-    // Before the strip is first measured there is no width to take; nothing is drawn for that frame.
-    if (stripWidthPx <= 0 || stripHeightPx <= 0) return
-    // Motion Part 2, item 3: leaving, it takes no touch and gives up its keep-out at once. RECORD -691: no minimum touch target
-    // while it leaves (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
-    NoTouchTargetExpansion(active = !isNavigating) {
-    androidx.compose.animation.AnimatedVisibility(
-        visible = isNavigating,
-        enter = bottomEnter,
-        exit = bottomExit,
-        modifier = Modifier
-            .align(if (railPortEdge == ScreenEdge.Left) Alignment.BottomStart else Alignment.BottomEnd)
-            .padding(controlsPadding)
-            .width(with(density) { stripWidthPx.toDp() })
-            .clipToBounds()
-            .leavingTakesNoTouches(leaving = !isNavigating),
-    ) {
-        NavigationHud(
-            heading = trueHeading,
-            liveFix = uiState.liveFix,
-            // Dispatch 2026-09-28-510: shown in place of GPS by hudReadout's rule; never measured from for "Arrived".
-            approximateFix = uiState.approximateFix,
-            lastKnownFix = uiState.lastKnownFix,
-            target = navigation.navigationTarget,
-            distanceUnit = uiState.distanceUnit,
-            // Dispatch -502: no route to a chosen waypoint, so the straight-line HUD (decision D2).
-            route = if (navigation.isNavigatingToWaypoint) null else navigation.returnRoute,
-            onRetryRoute = navigation.onRetryRoute,
-            facing = navigationFacing,
-            currentTime = currentTime,
-            showDecimalDegrees = showDecimalDegrees,
-            onExit = navigation.onToggleReturning,
-            // RECORD -845: "Arrived", held, after a return ended on arrival.
-            arrivalHeld = navigation.isArrivalHeld,
-            sundownLine = sundownLine,
-            backByLine = backByLine,
-            // RECORD -955, C ("C yes", extending -770): the evening lines leave the card where they would take its top over Reset
-            // north or the walker's dot. The dot sits where the navigation view puts it (the map's height times
-            // NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding), WALKER_DOT_CLEARANCE its radius. Reset north is the L's second
-            // row, counted only where the L and the card share columns.
-            eveningLineTopLimitInRootPx = cardTopLimitInRootPx(cluster, density),
-            // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
-            cardCorners = MapCardCorners.TOP,
-            outlineSides = cardOutlineSides,
-            modifier = Modifier
-                .fillMaxWidth()
-                // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
-                .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
-                // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
-                .onGloballyPositioned { coordinates -> cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot() },
-        )
-    }
-    }
-}
-
-/** Dispatch 2026-10-12-08: the thin line in the portrait strip's card between its line and the navigation info (RECORD -948). */
-internal const val NAVIGATION_INFO_LINE_TAG = "navigation-info-line"
 
 /** "Return to Route", the legend, the bottom bar and the rail, moved out of [CompactMapTab] unchanged (RECORD -741). */
 @Composable
