@@ -31,6 +31,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCamera
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
@@ -586,13 +587,15 @@ class MainActivity : ComponentActivity() {
                     // out of the lists the screen gets.
                     logUiState = logUiState.hidingPendingDelete(),
                     cameraCaptureFiles = container.cameraCaptureFiles,
-                    inAppCameraTarget = inAppCameraTarget,
-                    onOpenCamera = inAppCameraViewModel::open,
-                    onCloseCamera = inAppCameraViewModel::close,
-                    cameraGridMode = cameraGridMode,
-                    onCameraGridModeChanged = cameraGridModeViewModel::onGridModeChanged,
-                    cameraFormat = cameraFormat,
-                    onCameraFormatChanged = cameraFormatViewModel::onCameraFormatChanged,
+                    cameraInputs = AvailabilityScreenCamera(
+                        inAppCameraTarget = inAppCameraTarget,
+                        onOpenCamera = inAppCameraViewModel::open,
+                        onCloseCamera = inAppCameraViewModel::close,
+                        cameraGridMode = cameraGridMode,
+                        onCameraGridModeChanged = cameraGridModeViewModel::onGridModeChanged,
+                        cameraFormat = cameraFormat,
+                        onCameraFormatChanged = cameraFormatViewModel::onCameraFormatChanged,
+                    ),
                     onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
                     onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
                     onCloseLogEntry = mushroomLogViewModel::onCloseEntry,

@@ -173,8 +173,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
-import com.zynergylabs.forager.app.domain.CameraFormat
-import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableIntStateOf
@@ -278,10 +276,7 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.backup.BackupControls
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
-import com.zynergylabs.forager.app.ui.log.CameraXInAppCamera
 import com.zynergylabs.forager.app.ui.log.InAppCameraHost
-import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
-import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
 import com.zynergylabs.forager.app.ui.log.FindOverView
 import com.zynergylabs.forager.app.ui.log.JournalEntryMode
@@ -491,23 +486,8 @@ fun AvailabilityScreen(
      */
     logUiState: MushroomLogUiState = MushroomLogUiState(),
     cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
-    /**
-     * Which surface the in-app camera is open for, or null when closed. Retained by
-     * `InAppCameraViewModel` across Activity recreation, and composed by this screen **above the
-     * window-width branch** so a rotation's width-class flip does not dispose it — see
-     * [InAppCameraHost] for the bug and the decision.
-     */
-    inAppCameraTarget: InAppCameraTarget? = null,
-    onOpenCamera: (InAppCameraTarget) -> Unit = {},
-    onCloseCamera: () -> Unit = {},
-    /** The camera dialog itself; defaults to CameraX. A slot for the same reason [mapSlot] is one: CameraX cannot run under Robolectric. */
-    inAppCamera: InAppCameraSlot = CameraXInAppCamera,
-    /** The camera's persisted grid mode and the way to change it, from `CameraGridModeViewModel`. Defaulted like the camera's other inputs. */
-    cameraGridMode: GridMode = GridMode.Off,
-    onCameraGridModeChanged: (GridMode) -> Unit = {},
-    /** The camera's remembered format and the way to change it, from `CameraFormatViewModel` (dispatch 2026-10-15-01). Defaulted like the camera's other inputs. */
-    cameraFormat: CameraFormat = CameraFormat.Jpg,
-    onCameraFormatChanged: (CameraFormat) -> Unit = {},
+    /** The in-app camera's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenCamera]. Defaulted, as its eight fields were when they were parameters here. */
+    cameraInputs: AvailabilityScreenCamera = AvailabilityScreenCamera(),
     /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
     onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
     onOpenLogEntry: (String) -> Unit = {},
@@ -814,6 +794,16 @@ fun AvailabilityScreen(
      */
     onMapIconClusterPlacementChanged: (MapIconClusterPlacement) -> Unit = {},
 ) {
+    // Phase 2.1 (dispatch 2026-10-19-28): the camera bundle, unpacked under the parameter names it replaced.
+    val inAppCameraTarget = cameraInputs.inAppCameraTarget
+    val onOpenCamera = cameraInputs.onOpenCamera
+    val onCloseCamera = cameraInputs.onCloseCamera
+    val inAppCamera = cameraInputs.inAppCamera
+    val cameraGridMode = cameraInputs.cameraGridMode
+    val onCameraGridModeChanged = cameraInputs.onCameraGridModeChanged
+    val cameraFormat = cameraInputs.cameraFormat
+    val onCameraFormatChanged = cameraInputs.onCameraFormatChanged
+
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //
     // Saveable, like compactTab below (journal redesign J2, second coder; planner's call in
