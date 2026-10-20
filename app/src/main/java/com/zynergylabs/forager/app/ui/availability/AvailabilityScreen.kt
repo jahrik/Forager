@@ -215,7 +215,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.BuildConfig
-import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
@@ -226,24 +225,20 @@ import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
-import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
 import com.zynergylabs.forager.app.domain.model.DailyWeather
-import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
-import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.NoTripWindowReason
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
-import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
@@ -314,7 +309,6 @@ import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
-import java.time.LocalDate
 import java.time.Month
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -361,32 +355,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun AvailabilityScreen(
     uiState: AvailabilityUiState,
-    onUseCurrentLocation: () -> Unit,
-    onManualLatChanged: (String) -> Unit,
-    onManualLngChanged: (String) -> Unit,
-    onSearchManualCoordinates: () -> Unit,
-    onRadiusChanged: (Int) -> Unit,
-    onMonthSelected: (Int) -> Unit,
-    onMapTabSelected: () -> Unit,
-    onSeasonalTabSelected: () -> Unit,
-    onTaxonSearchQueryChanged: (String) -> Unit,
-    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
-    onDismissTaxonSuggestions: () -> Unit,
-    onReopenTaxonSuggestions: () -> Unit,
-    /** Called when a date and name are confirmed for a trip pin placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]. */
-    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
-    onDeletePlannedTrip: (String) -> Unit,
-    /**
-     * Called when one of the recent searches is tapped; see [RecentSearchesSection]. Reached from
-     * [SearchDropdown].
-     */
-    onRecentSearchSelected: (CachedSearchSummary) -> Unit,
-    /**
-     * RECORD -723: the search bar's Clear, shown only while a search is showing (a region is set). MainActivity
-     * wires it to [AvailabilityViewModel.clearSearch]. Defaulted to a no-op only so the many screen tests that
-     * never show Clear need not pass it.
-     */
-    onClearSearch: () -> Unit = {},
+    /** Search and trip callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenSearchInputs]. Required: 15 of its 16 fields were required parameters here and stay required. */
+    searchInputs: AvailabilityScreenSearchInputs,
     /**
      * Where "now" comes from for the relative times this screen renders — the offline banner's
      * "saved 3 hours ago" and the recent-searches picker's "cached 2 days ago".
@@ -398,39 +368,12 @@ fun AvailabilityScreen(
      * so this stays optional for callers that render neither.
      */
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
-    /** Set by panning the picker map to the centre pin and confirming, in the Offline Maps submenu — see `OfflineMapsPanel`. */
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onOfflineMapNameChanged: (String) -> Unit,
-    onOfflineMapsOpened: () -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineRegion: (Long) -> Unit,
-    /** Settings' "Night Maps" checkbox — see [AvailabilityUiState.nightModeMaps]'s own doc comment. */
-    onNightModeMapsChanged: (Boolean) -> Unit,
-    /** "Automatically Save Location to Photos" — see [AvailabilityUiState.autoSaveLocationToPhotos]; set from the camera's Location chip (Settings until dispatch 2026-09-28-707, then also the camera's gear panel until dispatch 2026-10-13-03). Defaulted, like [onDistanceUnitSelected], so a screen test that does not exercise this setting needs no argument for it. */
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
-    /** Settings' "Sundown alerts" (dispatch 2026-09-28-592) — see [AvailabilityUiState.sundownAlertsEnabled]. */
-    onSundownAlertsEnabledChanged: (Boolean) -> Unit = {},
-    /** Settings' "Dark under trees" (dispatch 2026-09-28-592) — see [AvailabilityUiState.darknessMarginMinutes]. */
-    onDarknessMarginChanged: (Int) -> Unit = {},
-    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626) — see [AvailabilityUiState.offTrackReminderEnabled]. */
-    onOffTrackReminderChanged: (Boolean) -> Unit = {},
-    /** The quick menu's "Battery saver" (dispatch 2026-09-28-767) — see [AvailabilityUiState.batterySaverEnabled]. */
-    onBatterySaverChanged: (Boolean) -> Unit = {},
+    /** Offline maps' callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenOfflineMaps]. Required: 7 of its 8 fields were required parameters here and stay required. */
+    offlineMaps: AvailabilityScreenOfflineMaps,
+    /** Settings' callbacks and the settings-reset notice (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenSettings]. Required: 2 of its 10 fields were required parameters here and stay required. */
+    settings: AvailabilityScreenSettings,
     /** Settings' Backup section, the backup and restore requests, and the GPX import's notice and picker (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenBackupAndImport]. Defaulted, as its six fields were when they were parameters here. */
     backupAndImport: AvailabilityScreenBackupAndImport = AvailabilityScreenBackupAndImport(),
-    /**
-     * RECORD -660/-661: a settings file was found corrupt and reset, and the one-time message is owed.
-     * Shown as a snackbar that stays until dismissed, with a "Settings" action that opens Settings;
-     * [onSettingsResetNoticeShown] is called as it is shown, so it is shown once. Defaulted to nothing owed.
-     */
-    settingsResetNoticePending: Boolean = false,
-    onSettingsResetNoticeShown: () -> Unit = {},
-    /** "Download again" on a restored offline region. */
-    onDownloadAgain: (Long) -> Unit = {},
-    /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
-    onThemeModeChanged: (AppThemeMode) -> Unit,
     /** The Maps tab's controls: fullscreen, locate, the Layers sheet, basemap and icon cluster (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenMapControls]. Defaulted, as its nine fields were when they were parameters here. */
     mapControls: AvailabilityScreenMapControls = AvailabilityScreenMapControls(),
     /** The finds log's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenFindsLog]. Defaulted, as its 19 fields were when they were parameters here. */
@@ -466,8 +409,6 @@ fun AvailabilityScreen(
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
     mapSlot: MapSlot = SightingsMapSlot,
-    /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
-    onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
 ) {
     // Phase 2.1 (dispatch 2026-10-19-28): the camera bundle, unpacked under the parameter names it replaced.
     val inAppCameraTarget = cameraInputs.inAppCameraTarget
@@ -580,6 +521,43 @@ fun AvailabilityScreen(
     val recordingBackBy = recording.recordingBackBy
     val onBackByChoice = recording.onBackByChoice
     val onClearBackBy = recording.onClearBackBy
+    // Phase 2.1 (dispatch 2026-10-19-28): the settings bundle, unpacked under the parameter names it replaced.
+    val onNightModeMapsChanged = settings.onNightModeMapsChanged
+    val onAutoSaveLocationToPhotosChanged = settings.onAutoSaveLocationToPhotosChanged
+    val onSundownAlertsEnabledChanged = settings.onSundownAlertsEnabledChanged
+    val onDarknessMarginChanged = settings.onDarknessMarginChanged
+    val onOffTrackReminderChanged = settings.onOffTrackReminderChanged
+    val onBatterySaverChanged = settings.onBatterySaverChanged
+    val settingsResetNoticePending = settings.settingsResetNoticePending
+    val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
+    val onThemeModeChanged = settings.onThemeModeChanged
+    val onDistanceUnitSelected = settings.onDistanceUnitSelected
+    // Phase 2.1 (dispatch 2026-10-19-28): the offlineMaps bundle, unpacked under the parameter names it replaced.
+    val onOfflineMapLatChanged = offlineMaps.onOfflineMapLatChanged
+    val onOfflineMapLngChanged = offlineMaps.onOfflineMapLngChanged
+    val onOfflineMapRadiusChanged = offlineMaps.onOfflineMapRadiusChanged
+    val onOfflineMapNameChanged = offlineMaps.onOfflineMapNameChanged
+    val onOfflineMapsOpened = offlineMaps.onOfflineMapsOpened
+    val onDownloadOfflineMaps = offlineMaps.onDownloadOfflineMaps
+    val onDeleteOfflineRegion = offlineMaps.onDeleteOfflineRegion
+    val onDownloadAgain = offlineMaps.onDownloadAgain
+    // Phase 2.1 (dispatch 2026-10-19-28): the searchInputs bundle, unpacked under the parameter names it replaced.
+    val onUseCurrentLocation = searchInputs.onUseCurrentLocation
+    val onManualLatChanged = searchInputs.onManualLatChanged
+    val onManualLngChanged = searchInputs.onManualLngChanged
+    val onSearchManualCoordinates = searchInputs.onSearchManualCoordinates
+    val onRadiusChanged = searchInputs.onRadiusChanged
+    val onMonthSelected = searchInputs.onMonthSelected
+    val onMapTabSelected = searchInputs.onMapTabSelected
+    val onSeasonalTabSelected = searchInputs.onSeasonalTabSelected
+    val onTaxonSearchQueryChanged = searchInputs.onTaxonSearchQueryChanged
+    val onTaxonSearchResultSelected = searchInputs.onTaxonSearchResultSelected
+    val onDismissTaxonSuggestions = searchInputs.onDismissTaxonSuggestions
+    val onReopenTaxonSuggestions = searchInputs.onReopenTaxonSuggestions
+    val onPlaceTripPin = searchInputs.onPlaceTripPin
+    val onDeletePlannedTrip = searchInputs.onDeletePlannedTrip
+    val onRecentSearchSelected = searchInputs.onRecentSearchSelected
+    val onClearSearch = searchInputs.onClearSearch
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

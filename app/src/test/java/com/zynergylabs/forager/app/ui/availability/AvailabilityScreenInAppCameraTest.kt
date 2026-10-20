@@ -164,34 +164,40 @@ class AvailabilityScreenInAppCameraTest {
             ProvideConfigurationAndWindow(configuration) {
                 AvailabilityScreen(
                     uiState = SEARCHED_STATE.copy(autoSaveLocationToPhotos = autoSaveLocation),
-                    onUseCurrentLocation = {},
-                    onManualLatChanged = {},
-                    onManualLngChanged = {},
-                    onSearchManualCoordinates = {},
-                    onRadiusChanged = {},
-                    onMonthSelected = {},
-                    onMapTabSelected = {},
-                    onSeasonalTabSelected = {},
-                    onTaxonSearchQueryChanged = {},
-                    onTaxonSearchResultSelected = {},
-                    onDismissTaxonSuggestions = {},
-                    onReopenTaxonSuggestions = {},
-                    onPlaceTripPin = { _, _, _ -> },
-                    onDeletePlannedTrip = {},
-                    onRecentSearchSelected = {},
-                    onOfflineMapLatChanged = {},
-                    onOfflineMapLngChanged = {},
-                    onOfflineMapRadiusChanged = {},
-                    onOfflineMapNameChanged = {},
-                    onOfflineMapsOpened = {},
-                    onDownloadOfflineMaps = {},
-                    onDeleteOfflineRegion = {},
-                    onNightModeMapsChanged = {},
-                    onThemeModeChanged = {},
-                    onAutoSaveLocationToPhotosChanged = { requested ->
-                        autoSaveLocationRequests += requested
-                        autoSaveLocation = requested
-                    },
+                    searchInputs = AvailabilityScreenSearchInputs(
+                        onUseCurrentLocation = {},
+                        onManualLatChanged = {},
+                        onManualLngChanged = {},
+                        onSearchManualCoordinates = {},
+                        onRadiusChanged = {},
+                        onMonthSelected = {},
+                        onMapTabSelected = {},
+                        onSeasonalTabSelected = {},
+                        onTaxonSearchQueryChanged = {},
+                        onTaxonSearchResultSelected = {},
+                        onDismissTaxonSuggestions = {},
+                        onReopenTaxonSuggestions = {},
+                        onPlaceTripPin = { _, _, _ -> },
+                        onDeletePlannedTrip = {},
+                        onRecentSearchSelected = {},
+                    ),
+                    offlineMaps = AvailabilityScreenOfflineMaps(
+                        onOfflineMapLatChanged = {},
+                        onOfflineMapLngChanged = {},
+                        onOfflineMapRadiusChanged = {},
+                        onOfflineMapNameChanged = {},
+                        onOfflineMapsOpened = {},
+                        onDownloadOfflineMaps = {},
+                        onDeleteOfflineRegion = {},
+                    ),
+                    settings = AvailabilityScreenSettings(
+                        onNightModeMapsChanged = {},
+                        onThemeModeChanged = {},
+                        onAutoSaveLocationToPhotosChanged = { requested ->
+                            autoSaveLocationRequests += requested
+                            autoSaveLocation = requested
+                        },
+                    ),
                     mapSlot = boxMapSlot,
                     cameraInputs = AvailabilityScreenCamera(
                         inAppCameraTarget = target,
