@@ -5,10 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
-import com.zynergylabs.forager.app.domain.NETWORK_FIXES_RECORDING_NOTICE
 import com.zynergylabs.forager.app.domain.alertAudibilityWarning
 import com.zynergylabs.forager.app.domain.BACKGROUND_RUN_PROMPT
-import com.zynergylabs.forager.app.domain.isMostlyNetworkFixes
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.BackByChoice
 import com.zynergylabs.forager.app.domain.BackByControl
@@ -231,7 +229,21 @@ class TrackRecordingViewModel(
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
     val uiState: StateFlow<TrackRecordingUiState> = _uiState.asStateFlow()
 
-    private var pollingJob: Job? = null
+    /**
+     * The breadcrumb poll, with the track it last read and the network-fixes flag, moved to its own class by
+     * UI split Phase 2.7 PR 4. It launches in this ViewModel's own scope; [startRecording],
+     * [takeUpRunningRecording], [startReturn], [clearRecordingState] and [onCleared] start and stop it,
+     * synchronously, as they did.
+     */
+    private val poller = TrackRecordingPoller(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        trackRepository = trackRepository,
+        settleTakenUpOrigin = { active, track -> settleTakenUpOrigin(active, track) },
+        handStartPointToWatch = { handStartPointToWatch() },
+        nextNoticeId = { ++recordingNoticeIds },
+    )
 
     /**
      * The route tick, running only while returning, moved to its own class by UI split Phase 2.7 PR 3. It
@@ -242,16 +254,13 @@ class TrackRecordingViewModel(
         uiState = { _uiState.value },
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
-        lastPolledTrack = { lastPolledTrack },
+        lastPolledTrack = { poller.lastPolledTrack },
         lastGatedGpsFix = { lastGatedGpsFix },
         findRouteHome = findRouteHome,
     )
 
     /** The arrival hold's timer (RECORD -845), running only while [TrackRecordingUiState.isArrivalHeld]. See [holdArrival]. */
     private var arrivalHoldJob: Job? = null
-
-    /** The track the 15 s poll last read for the active recording: what the route tick routes along. */
-    private var lastPolledTrack: Track? = null
 
     /**
      * The waypoint and track lists, moved to their own class by UI split Phase 2.7 PR 2. It reads and
@@ -303,7 +312,6 @@ class TrackRecordingViewModel(
 
     private var originCreationInFlight = false
     private var recordingNoticeIds = 0
-    private var networkFixesNoticeShown = false
 
     /**
      * How the start marker is settled for a recording this ViewModel took up, or `null` for a
@@ -480,10 +488,9 @@ class TrackRecordingViewModel(
             startTrack(null)
                 .onSuccess { track ->
                     lastGatedGpsFix = null
-                    lastPolledTrack = null
+                    poller.resetForNewRecording()
                     originCreationInFlight = false
                     takenUpOrigin = null
-                    networkFixesNoticeShown = false
                     // Alert-delivery dispatch, Item 3: "the start of a trip" is here — the user
                     // just chose to rely on the app, and the screen is on because they tapped.
                     // Read once; a phone silenced later in the trip is not re-checked (Item 3.5).
@@ -502,7 +509,7 @@ class TrackRecordingViewModel(
                         )
                     }
                     copyFromWatch()
-                    beginPolling(track.id)
+                    poller.begin(track.id)
                     beginLocationTracking()
                     // Dispatch 2026-09-28-626: "the first time a recording starts with the reminder
                     // on", read once here, as the silenced-phone warning is. Its own launch, so a
@@ -554,10 +561,9 @@ class TrackRecordingViewModel(
      */
     private fun clearRecordingState() {
         endArrivalHold()
-        pollingJob?.cancel()
-        pollingJob = null
+        poller.cancel()
         routeTicks.cancel()
-        lastPolledTrack = null
+        poller.resetPolledTrack()
         locationJob?.cancel()
         locationJob = null
         // This screen's return is over with its recording. The service ends the watch itself when
@@ -627,7 +633,7 @@ class TrackRecordingViewModel(
 
             val active = ActiveTrack(trackId, track.startedAtEpochMillis, mode)
             lastGatedGpsFix = null
-            lastPolledTrack = null
+            poller.resetPolledTrack()
             originCreationInFlight = false
             takenUpOrigin = TakenUpOrigin.NOT_LOOKED_UP
             _uiState.update {
@@ -642,7 +648,7 @@ class TrackRecordingViewModel(
             }
             copyFromWatch()
             settleTakenUpOrigin(active, track)
-            beginPolling(trackId)
+            poller.begin(trackId)
             beginLocationTracking()
         } finally {
             takeUpInFlight = false
@@ -872,7 +878,7 @@ class TrackRecordingViewModel(
         // Restarting also re-reads the breadcrumbs, which is harmless, and the network-fixes notice
         // is guarded by its own once-per-recording flag. Launched before copyFromWatch starts the
         // route tick, so on the same dispatcher the poll's read runs first and the first route uses it.
-        beginPolling(active.trackId)
+        poller.begin(active.trackId)
         copyFromWatch()
     }
 
@@ -927,29 +933,6 @@ class TrackRecordingViewModel(
      */
     fun retryRoute() {
         routeTicks.updateRouteHome()
-    }
-
-    private fun beginPolling(trackId: String) {
-        pollingJob?.cancel()
-        pollingJob = viewModelScope.launch {
-            while (true) {
-                trackRepository.getById(trackId).onSuccess { track ->
-                    _uiState.update { it.copy(breadcrumbPoints = track?.points.orEmpty()) }
-                    val active = uiState.value.activeTrack
-                    if (track != null && active != null && active.trackId == trackId) settleTakenUpOrigin(active, track)
-                    if (track != null && uiState.value.activeTrack?.trackId == trackId) lastPolledTrack = track
-                    handStartPointToWatch()
-                    // Timestamp-filter dispatch, Item 3: once per recording, the moment the read
-                    // seam is seen to be excluding most of this track — see isMostlyNetworkFixes for
-                    // why the threshold also waits for ten stored points before it can fire.
-                    if (track != null && !networkFixesNoticeShown && track.isMostlyNetworkFixes()) {
-                        networkFixesNoticeShown = true
-                        _uiState.update { it.copy(networkFixesNotice = RecordingNotice(++recordingNoticeIds, NETWORK_FIXES_RECORDING_NOTICE)) }
-                    }
-                }
-                delay(POLL_INTERVAL_MILLIS)
-            }
-        }
     }
 
     /**
@@ -1100,7 +1083,7 @@ class TrackRecordingViewModel(
     )
 
     override fun onCleared() {
-        pollingJob?.cancel()
+        poller.cancelOnCleared()
         locationJob?.cancel()
         // Journal redesign J4: a waypoint or track still pending is committed there, since no snackbar is
         // left to end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
