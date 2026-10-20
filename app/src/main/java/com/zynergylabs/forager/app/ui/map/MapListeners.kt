@@ -36,7 +36,7 @@ internal fun MapListeners(
 ) {
     // Registered once per composition of this MapView, not per recomposition: getMapAsync's
     // callback fires exactly once for the life of the MapView, so there's no re-registration to
-    // guard against the way applyBasemap's guard above is needed for setStyle.
+    // guard against the way the style reload's guard (MapStyleReload.kt) is needed for setStyle.
     DisposableEffect(state.mapView) {
         // A style that cannot be loaded — the offline style with no region covering the camera
         // and no network, or a worker URL that moved — fails here rather than in setStyle's own
@@ -47,7 +47,7 @@ internal fun MapListeners(
             Log.w(SIGHTINGS_MAP_TAG, "MapLibre failed to load the map style: $message")
         }
         // RECORD -752 (dispatch 2026-09-28-755, item 4): logging only, to find the S22's blank and magnified frame on a return
-        // to Maps. The first few frames this MapView renders, with its size and camera then; the restore's own logs are below.
+        // to Maps. The first few frames this MapView renders, with its size and camera then; the restore's own logs are in MapStyleReload.kt.
         // A MapView cannot run under Robolectric, so this is read from the phone's logcat (MAPS_COMEBACK_LOG_TAG).
         val firstFramesLogged = intArrayOf(0)
         val frameLogger = MapView.OnDidFinishRenderingFrameListener { fully, _, _ ->
@@ -197,19 +197,19 @@ internal fun MapListeners(
                 // change folds it again is device-only: a real MapView cannot be built under Robolectric.
                 state.fanReopen.onCameraIdle(state.loadedStyle != null)
                 // Keeps a shown bubble glued to its glyph across a pan, zoom or rotate gesture: see
-                // reanchorFocusedBubble, which a rotation of the device also calls (onViewportResized below).
+                // reanchorFocusedBubble, which a rotation of the device also calls (onViewportResized, in SightingsMapLayout.kt).
                 state.reanchorFocusedBubble(map)
             }
             // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
             // corner this composable's own always-visible Basemap.attribution caption occupies (see
-            // below), so the two painted over each other: MapLibre's control and this app's own
+            // SightingsMapLayout.kt), so the two painted over each other: MapLibre's control and this app's own
             // basemap-specific credit, both real and both required, neither readable. Moved to
             // bottom-end so each has its own corner rather than trying to stack them, which would
             // need a margin computed from this caption's own (basemap-dependent) text height to stay
             // correct — confirmed via javap against the pinned org.maplibre.gl:android-sdk artifact
             // that UiSettings exposes setAttributionGravity/setAttributionMargins for exactly this.
             map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
-            // Part 1 layout fixes, item 5: MapLibre's own margins, which the insets below are added to.
+            // Part 1 layout fixes, item 5: MapLibre's own margins, which MapAttributionInsets.kt adds the insets to.
             state.attributionDefaultMargins = map.uiSettings.let {
                 intArrayOf(it.attributionMarginLeft, it.attributionMarginTop, it.attributionMarginRight, it.attributionMarginBottom)
             }

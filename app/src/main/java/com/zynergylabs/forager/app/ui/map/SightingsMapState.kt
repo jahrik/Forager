@@ -188,7 +188,7 @@ internal class SightingsMapState(
         // across a pan/zoom/rotate — a hardware report asked for exactly this ("have it stay
         // there when we move the map, so we know which one it belongs to"), and re-projecting
         // whichever sighting currentFocusedObservationId currently names on every idle (the
-        // same projection call the click listener above uses once, at tap time) is what
+        // same projection call the click listener in MapListeners.kt uses once, at tap time) is what
         // answers it without this composable needing to reimplement MapLibre's own
         // screen<->geo math. Resolved fresh against currentSightings/currentFocusedObservationId
         // rather than a sighting captured at tap time, so a dismissal that's since cleared

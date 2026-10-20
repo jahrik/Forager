@@ -4,10 +4,6 @@ import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.MotionEvent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
@@ -23,19 +19,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -55,14 +47,12 @@ import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutState
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.TAP_BOX_DP
-import com.zynergylabs.forager.app.ui.map.layers.activeLayerCredits
 import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
 import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
 import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
 import org.maplibre.android.camera.CameraUpdateFactory
-import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
@@ -114,7 +104,7 @@ import org.maplibre.android.maps.Style
  *   emulation of one. `SightingsMapOverlayDataTest` asserts the built `LineLayer` actually carries a
  *   non-empty `line-dasharray` after every one of `basemap`'s possible values, the direct MapLibre
  *   analogue of what `SightingsMapBasemapSwapTest` asserted for osmdroid's `PathEffect`.
- * - *Content does not paint outside this composable's slot.* The `Modifier.clipToBounds()` below is
+ * - *Content does not paint outside this composable's slot.* The `Modifier.clipToBounds()` in [SightingsMapLayout] is
  *   kept, but the specific mechanism the old doc comment described — osmdroid's `TilesOverlay` and
  *   `PolyOverlayWithIW` drawing raw Canvas bitmaps/paths past the view's rectangle because
  *   `AndroidViewsHandler` doesn't clip a hosted `View` — does not apply to MapLibre's renderer.
@@ -144,7 +134,7 @@ import org.maplibre.android.maps.Style
  * **Partially rebuilt:** the tap-to-see-title/snippet popup osmdroid's `Marker.title`/`.snippet`
  * gave for free had no style-layer equivalent — until [onSightingTap], added for a real observation
  * marker's info card, which does query the tapped point back (`MapLibreMap.queryRenderedFeatures`
- * against [SIGHTING_LAYER_ID] in the click listener below) and calls out with the matching
+ * against [SIGHTING_LAYER_ID] in the click listener, MapListeners.kt) and calls out with the matching
  * [Sighting]. Since map layers L0a every other tappable layer is queried too and the winner is
  * chosen by `resolveTap` (markers, then lines, then colour fields; the topmost layer within a
  * group); a winner that is not a sighting goes to [onFeatureTap] with its layer id, the
@@ -265,7 +255,7 @@ fun SightingsMap(
     }
 
     // Latest callbacks, read from inside listeners registered exactly once in the DisposableEffect
-    // below — without this indirection, a listener registered once would keep calling whichever
+    // in MapListeners.kt — without this indirection, a listener registered once would keep calling whichever
     // onTap/onLongPress lambda instance was current at registration time, not the caller's latest.
     val currentOnTapState = rememberUpdatedState(onTap)
     val currentOnSightingTapState = rememberUpdatedState(onSightingTap)
@@ -297,7 +287,7 @@ fun SightingsMap(
     val currentPositionLookState = rememberUpdatedState(positionLook)
     // The look last handed to MapLibre, so an unchanged look is not re-applied on every style load.
     val appliedPositionLook = remember { arrayOf(PositionLook.PRECISE) }
-    // The navigation view's own camera mode changes, marked so the tracking listener below does not
+    // The navigation view's own camera mode changes, marked so the tracking listener (MapStyleReload.kt, MapLocationDot.kt) does not
     // read them as the user moving away from the view; and the mode the view last asked for.
     val navigationModeChange = remember { NavigationModeChange() }
     // The map's height, for the padding that puts the walker below the centre; recomputed on resize (fullscreen, rotation).
@@ -322,26 +312,26 @@ fun SightingsMap(
     val chromeColour = navigationBarContainerColor().toArgb()
     val currentChromeColourState = rememberUpdatedState(chromeColour)
     // The chrome colour the fan's circle image holds in the loaded style: set when the style loads (addFanOutLayers registers it), so the colour effect
-    // below registers it again only for a real change of colour.
+    // in MapFan.kt registers it again only for a real change of colour.
     val fanCircleColour = remember { arrayOfNulls<Int>(1) }
     // Which camera moves are the location follower's and which are the user's or the app's own (dispatch 2026-09-28-380): MapLibre reports every
     // programmatic move with one reason, so each camera move this file makes marks itself here first, and the camera-idle listener clears the mark.
     val cameraMoveClassifier = remember { CameraMoveClassifier { task -> Handler(Looper.getMainLooper()).post(task) } }
     val currentForecastState = rememberUpdatedState(forecast)
-    // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
+    // Counts camera idles (map layers L0b, B5): the colour fields' cell feed (MapForecastCells.kt) is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
     val cameraIdleCountState = remember { mutableIntStateOf(0) }
-    // Read inside the click listener below (registered once, see that DisposableEffect's own
+    // Read inside the click listener in MapListeners.kt (registered once, see that DisposableEffect's own
     // comment) so a tapped dot resolves against whichever sightings list is current, not whichever
     // one was in scope the moment the listener was registered.
     val currentSightingsState = rememberUpdatedState(sightings)
     // See MapOverlayContent.focusedObservationId's own doc comment for the dismiss-then-reappear
     // bug this closes: read fresh on every camera-idle event rather than latched into a local var
     // at tap time, so a caller-side dismissal (which only ever changes this parameter, never reaches
-    // the click listener below) is visible here too.
+    // the click listener in MapListeners.kt) is visible here too.
     val currentFocusedObservationIdState = rememberUpdatedState(focusedObservationId)
     // M1 (F2): the point feature a caller's bubble is showing, and the lists it is looked up in, read
-    // fresh on every camera idle for the reason currentFocusedObservationId is.
+    // fresh on every camera idle (MapListeners.kt) for the reason the focused observation id is, through its holder getter.
     val currentFocusedFeatureState = rememberUpdatedState(focusedFeature)
     val currentFocusedFeature by currentFocusedFeatureState
     // Part 1 layout fixes, item 4: read by the camera-idle listener (registered once) and by the first
@@ -358,12 +348,12 @@ fun SightingsMap(
     val mapLibreMapState = remember { mutableStateOf<MapLibreMap?>(null) }
     var mapLibreMap by mapLibreMapState
     // Dispatch 2026-09-28-463: a nudge under the drag threshold gives, then springs back, while
-    // navigating and following (see NudgeElastic.kt). Fed by the map view's touch listener below.
+    // navigating and following (see NudgeElastic.kt). Fed by the map view's touch listener (SightingsMapLayout.kt).
     val nudgeThresholdPx = NAVIGATION_NUDGE_THRESHOLD_DP * LocalDensity.current.density
     // Dispatch -477, Part A: where the current touch came down, for the release's log line.
     val touchDownAt = remember { FloatArray(2) }
     // Dispatch -477, Part B: a quick flick under the drag threshold springs back instead of ending
-    // following through MapLibre's fling (see NudgeFlingGuard). Fed by the map view's touch listener below.
+    // following through MapLibre's fling (see NudgeFlingGuard). Fed by the map view's touch listener (SightingsMapLayout.kt).
     val nudgeFlingGuard = remember {
         NudgeFlingGuard(
             object : FlingSwitch {
@@ -375,7 +365,7 @@ fun SightingsMap(
             },
         )
     }
-    // Built once: the factory below hands this instance to the map view's listener, which is attached once.
+    // Built once: the AndroidView factory in SightingsMapLayout.kt hands this instance to the map view's listener, which is attached once.
     val nudgeElastic = remember {
         NudgeElasticDriver(
             camera = object : NudgeCamera {
@@ -438,7 +428,7 @@ fun SightingsMap(
         }
     }
     // The marker fan-out (dispatch 2026-09-28-197): its state, and the tap handler that opens and folds it,
-    // which exists once the map is ready (getMapAsync below).
+    // which exists once the map is ready (getMapAsync, in MapListeners.kt).
     val fanOut = remember { MarkerFanOutState() }
     val tapHandlerRef = remember { TapHandlerRef() }
     // Item 8 (dispatch -267): reopens the fan a user left; see FanReopenCoordinator.
@@ -487,18 +477,17 @@ fun SightingsMap(
     val localAppliedSearchFrameId = remember { intArrayOf(0) }
 
     // Part 1 layout fixes, item 5: MapLibre's own attribution margins, read once the map is ready, which
-    // the caption's insets are added to below.
+    // the caption's insets are added to in MapAttributionInsets.kt.
     val attributionDefaultMarginsState = remember { mutableStateOf<IntArray?>(null) }
 
-    // Item 1 (dispatch 2026-09-29-57, amendment -262): the map's own size, written by the layout below and read by the
-    // attribution placement. Declared here, with the holder's other states, since UI split Phase 2.2 (dispatch 2026-10-19-29);
+    // Item 1 (dispatch 2026-09-29-57, amendment -262): the map's own size, written by the layout (SightingsMapLayout.kt) and
+    // read by the attribution placement (MapAttributionInsets.kt). Declared here, with the holder's other states, since UI split Phase 2.2 (dispatch 2026-10-19-29);
     // it was declared in the attribution block until then. A plain remember with a constant start, not an observer.
     val mapSizePxState = remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
-    var mapSizePx by mapSizePxState
-    // RECORD -954: the credit strip's laid-out width, written by the layout below and read by the attribution placement.
+    // RECORD -954: the credit strip's laid-out width, written by the layout (SightingsMapLayout.kt) and read by the attribution
+    // placement (MapAttributionInsets.kt).
     // Moved up here for the same reason as mapSizePx.
     val creditWidthPxState = remember { mutableIntStateOf(0) }
-    var creditWidthPx by creditWidthPxState
 
     // UI split Phase 2.2 (dispatch 2026-10-19-29): the map's state holder, over the very State objects remembered above, so
     // the effect groups can move to their own files and take it. Nothing is copied into it: each read is a getter and each
@@ -648,7 +637,7 @@ fun SightingsMap(
     )
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
-    // disabled above (see the DisposableEffect(mapView) block's own comment), so this is the only
+    // disabled in MapListeners.kt (see that DisposableEffect(mapView) block's own comment), so this is the only
     // way to straighten the map back to north once a rotate gesture has turned it. easeCamera, not
     // an instant jump, matching this map's other camera moves; bearing only, not target or zoom.
     // Ruling D (continuation 2026-09-28-432): while navigating and following, a tap here is a move
@@ -708,112 +697,17 @@ fun SightingsMap(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        AndroidView(
-            factory = {
-                // Gesture ownership: a drag that starts on the map pans the map, even when an
-                // ancestor is scrolling. Without this, the offline-region picker
-                // (OfflineMapsPanel's Column has verticalScroll) could take the drag and scroll
-                // the panel instead, which made the pin hard to place — the owner's report.
-                //
-                // Why this is needed even though MapLibre already asks: MapView's own
-                // initialisation calls requestDisallowInterceptTouchEvent(true) exactly once
-                // (read from the 13.5.0 artifact's bytecode, in the same block as
-                // setClickable/setLongClickable/setFocusable). That call cannot do the job here
-                // for two independent reasons — the MapView is constructed inside `remember`
-                // above, before AndroidView attaches it, so it has no parent to propagate the
-                // request to; and ViewGroup.dispatchTouchEvent clears FLAG_DISALLOW_INTERCEPT on
-                // every ACTION_DOWN, so a one-shot request at construction is gone by the first
-                // touch regardless. Re-asserting it per gesture is what actually holds.
-                //
-                // Compose honours it: AndroidViewHolder overrides
-                // requestDisallowInterceptTouchEvent and forwards it to PointerInteropFilter
-                // (both read from the compose-ui 1.12.0 artifact), which then dispatches to the
-                // view on the Initial pass and consumes — so the scrolling ancestor never sees
-                // the change. Compose clears the flag again when the gesture ends, so this does
-                // not latch.
-                //
-                // Returns false: MapLibre's own onTouchEvent still runs exactly as before, so
-                // pan, pinch-zoom, double-tap-zoom and rotate are untouched. Safe to attach —
-                // MapView never sets an OnTouchListener on itself (also checked in the artifact),
-                // so nothing is being clobbered.
-                mapView.setOnTouchListener { view, event ->
-                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                        view.parent?.requestDisallowInterceptTouchEvent(true)
-                    }
-                    // Dispatch -463: the elastic nudge reads the finger here, before MapLibre does, and
-                    // never consumes it.
-                    nudgeElastic.onTouch(event)
-                    // Dispatch -477: read before MapLibre handles this event, so a release while following
-                    // reaches MapLibre with its fling switched off.
-                    nudgeFlingGuard.onTouch(
-                        event,
-                        stillFollowing = currentNavigationView != null &&
-                            mapLibreMap?.locationComponent?.let { it.isLocationComponentActivated && it.cameraMode != CameraMode.NONE } == true,
-                    )
-                    // Dispatch -477, Part A: each release while navigating, whether the map still follows and
-                    // how far the finger travelled. Logging only.
-                    when (event.actionMasked) {
-                        MotionEvent.ACTION_DOWN -> { touchDownAt[0] = event.x; touchDownAt[1] = event.y }
-                        MotionEvent.ACTION_UP -> if (currentNavigationView != null) {
-                            val travelDp = kotlin.math.hypot(event.x - touchDownAt[0], event.y - touchDownAt[1]) / view.resources.displayMetrics.density
-                            val mode = mapLibreMap?.locationComponent?.takeIf { it.isLocationComponentActivated }?.cameraMode
-                            Log.i(NAVIGATION_VIEW_LOG_TAG, "touch released: mode=$mode, travel=${"%.0f".format(travelDp)} dp")
-                        }
-                    }
-                    false
-                }
-                mapView
-            },
-            // Load-bearing intent carried over from osmdroid, re-reasoned rather than re-verified
-            // for MapLibre — see this composable's own doc comment, "Content does not paint outside
-            // this composable's slot".
-            modifier = Modifier
-                .fillMaxSize()
-                .clipToBounds()
-                // After the view's own layout has taken the new size (the post), so the projection is the new
-                // one; a no-op while no map is ready or nothing is focused.
-                .trackMapFanSpace(fanSpace)
-                .onSizeChanged {
-                    mapSizePx = it
-                    navigationMapHeightPx = it.height
-                }
-                .onViewportResized { mapView.post { mapLibreMap?.let(sightingsMapState::reanchorFocusedBubble) } },
-        )
-        // RECORD -761: the cover, over the map and under everything else; no pointer input, so touches reach the map.
-        if (coverPicture != null && coverPhase != CoverPhase.GONE) {
-            MapReturnCoverLayer(
-                picture = coverPicture,
-                handedOver = coverPhase == CoverPhase.HANDED_OVER,
-                onGone = {
-                    coverPhase = CoverPhase.GONE
-                    Log.i(MAPS_COMEBACK_LOG_TAG, "cover: gone, picture released")
-                },
-                modifier = Modifier.onSizeChanged {
-                    if (coverPhase == CoverPhase.COVERING && (it.width != coverPicture.width || it.height != coverPicture.height)) {
-                        Log.w(MAPS_COMEBACK_LOG_TAG, "cover: window ${it.width}x${it.height} is not the picture's ${coverPicture.width}x${coverPicture.height}; dropped")
-                        coverPhase = CoverPhase.GONE
-                    }
-                },
-            )
-        }
-        // The always-visible attribution line CopyrightOverlay used to draw directly onto the
-        // osmdroid MapView. MapLibre has its own tap-to-reveal attribution control
-        // (UiSettings.isAttributionEnabled, on by default) built from each style source's own
-        // "attribution" field (see styleJsonFor), but that is deliberately not relied on alone here
-        // — see Basemap's doc comment on [Basemap.attribution] for why an always-drawn guarantee
-        // matters for this app's USGS/ODbL credit and shouldn't quietly become tap-only.
-        // A list of credits since map layers L0a (A5): the basemap's, then each visible layer's own
-        // (none of today's layers has one, so the text is exactly what it always was).
-        MapCreditCaption(
-            text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState), nightMode)),
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(bottom = bottomInset)
-                // RECORD -954: its laid-out width, for the "i" beside it in landscape.
-                .onSizeChanged { creditWidthPx = it.width },
-        )
-    }
+    // The layout: the MapView, the cover over it, the credit caption. SightingsMapLayout.kt.
+    SightingsMapLayout(
+        state = sightingsMapState,
+        modifier = modifier,
+        basemap = basemap,
+        useOfflineTiles = useOfflineTiles,
+        drawnLayersState = drawnLayersState,
+        nightMode = nightMode,
+        bottomInset = bottomInset,
+        fanSpace = fanSpace,
+    )
 }
 
 /** RECORD -752: logcat tag for a map's first frames and its camera restore on a return to Maps (logging only). */
