@@ -30,7 +30,7 @@ internal class CompactMapLayoutState(
 ) {
     /**
      * The portrait strip's measured height, written by [CompactMapTopStrip] while not navigating (0 while navigating and before
-     * its first layout; not measured in a landscape window). Not the one-line clearance, which is one text line's height.
+     * its first layout; 0 in a landscape window). Not the one-line clearance, which is one text line's height.
      */
     var compassStripHeightPx: Int
         get() = compassStripHeightState.intValue

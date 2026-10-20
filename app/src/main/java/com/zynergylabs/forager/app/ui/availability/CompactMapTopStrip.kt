@@ -170,7 +170,11 @@ internal fun BoxScope.CompactMapTopStrip(
     // here from an earlier landscape turn was the same number on the next turn, was never reported again, and the bar stayed at
     // its own height and the half width it takes before the strip is measured. Found by a test turning into landscape twice
     // (LandscapeSearchFixesTest, "second turn"), not by reasoning.
-    LaunchedEffect(railPortEdge) { if (railPortEdge == null) { layout.landscapeStripHeightPx = 0; layout.landscapeStripWidthPx = 0 } }
+    // RECORD -1466 (Sorrel's observation, confirmed from the code; the owner: "Fix now, show me (Recommended)"): and into landscape
+    // the portrait strip's measured height goes, as it does when navigation starts. The turn keeps the Activity and this tab, the
+    // landscape strip writes only its own two measures, so the portrait height stayed in use for the bubble's top limit, which
+    // then sat lower than on a start in landscape (LandscapeStripHeightTest). One frame at the turn still has it, as above.
+    LaunchedEffect(railPortEdge) { if (railPortEdge == null) { layout.landscapeStripHeightPx = 0; layout.landscapeStripWidthPx = 0 } else layout.compassStripHeightPx = 0 }
     // RECORD -729: the landscape strip's measured height, up to the scaffold, which gives the search bar that height; 0 while it
     // is not measured (portrait, before its first layout), where the bar keeps its own.
     LaunchedEffect(layout.landscapeStripHeightPx) { onLandscapeStripHeightMeasured(with(compassStripDensity) { layout.landscapeStripHeightPx.toDp() }) }
