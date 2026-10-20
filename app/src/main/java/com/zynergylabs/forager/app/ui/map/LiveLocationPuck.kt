@@ -168,10 +168,13 @@ internal fun activateLiveLocationIfPermitted(
     // Without one, MapLibre's own engine stays, as before.
     locationEngine: AppLocationEngine? = null,
     look: PositionLook = PositionLook.PRECISE,
+    // Dispatch 2026-10-19-37: the map springs back from a small nudge (MapRenderMode.nudgeSpringBack), so it takes
+    // the plain nudge's options (PlainMapNudge.kt). `false`: the ordinary options, exactly as before.
+    nudgeSpringBack: Boolean = false,
 ) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
-    val options = liveLocationComponentOptions(context, look = look)
+    val options = ordinaryLocationOptions(context, look, nudgeSpringBack)
     puckReplacementOptions(locationComponent.isLocationComponentActivated, options)?.let { locationComponent.applyStyle(it) }
     locationComponent.activateLocationComponent(
         LocationComponentActivationOptions.builder(context, style)

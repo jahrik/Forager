@@ -144,7 +144,7 @@ internal fun MapStyleReload(
             if (trackLiveLocation) {
                 state.cameraMoveClassifier.markAppMove() // activating (or re-activating, after a style swap) sets the camera mode and may ease the zoom
                 state.navigationModeChange.byTheApp {
-                    activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = state.positionLook)
+                    activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = state.positionLook, nudgeSpringBack = state.nudgeSpringBack)
                     state.appliedPositionLook[0] = state.positionLook
                     Log.i(POSITION_DOT_LOG_TAG, "activated on a style load with look ${state.positionLook}")
                 }

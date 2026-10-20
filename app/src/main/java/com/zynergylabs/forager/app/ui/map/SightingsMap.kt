@@ -237,6 +237,8 @@ fun SightingsMap(
     navigationView: NavigationViewRequest? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.trueHeading]'s own doc comment. */
     trueHeading: State<TrueHeadingReading>? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.nudgeSpringBack]'s own doc comment. */
+    nudgeSpringBack: Boolean = false,
 ) {
     val context = LocalContext.current
     // Resources through LocalResources, which Compose re-reads on a configuration change, rather than
@@ -387,6 +389,38 @@ fun SightingsMap(
         )
     }
     DisposableEffect(nudgeElastic) { onDispose { nudgeElastic.cancel() } }
+    // Dispatch 2026-10-19-37: the plain map's own nudge, beside navigation's (PlainMapNudge.kt), on the maps that ask for it.
+    // Fed by the map view's touch listener after navigation's (SightingsMapLayout.kt).
+    val currentNudgeSpringBackState = rememberUpdatedState(nudgeSpringBack)
+    val currentNudgeSpringBack by currentNudgeSpringBackState
+    val plainNudge = remember {
+        PlainMapNudge(
+            map = object : PlainNudgeMap {
+                override fun cameraMode(): Int? =
+                    mapLibreMap?.locationComponent?.takeIf { it.isLocationComponentActivated }?.cameraMode
+
+                override fun showPadding(padding: DoubleArray) {
+                    mapLibreMap?.locationComponent?.paddingWhileTracking(padding, 0L)
+                }
+
+                override fun clearPaddingKeepingPicture() {
+                    mapLibreMap?.let { clearNudgePaddingKeepingPicture(it, mapView, cameraMoveClassifier) }
+                }
+
+                override var flingEnabled: Boolean
+                    get() = mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled ?: true
+                    set(value) {
+                        mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled = value
+                    }
+
+                override fun paddingShown(): Boolean = mapLibreMap?.cameraPosition?.padding?.any { it != 0.0 } == true
+            },
+            springBack = { currentNudgeSpringBack },
+            navigating = { currentNavigationView != null },
+            thresholdPx = nudgeThresholdPx,
+        )
+    }
+    DisposableEffect(plainNudge) { onDispose { plainNudge.cancel() } }
     // The Style instance from the most recently completed setStyle callback. Distinct from
     // "which style is currently applied" (appliedStyle, below; MapStyleReload.kt sets both) because this is what the data
     // effect (MapDataRefresh.kt) keys on: a new Style object means new (empty) sources that need their content pushed.
@@ -535,6 +569,8 @@ fun SightingsMap(
             touchDownAt = touchDownAt,
             nudgeFlingGuard = nudgeFlingGuard,
             nudgeElastic = nudgeElastic,
+            nudgeSpringBackState = currentNudgeSpringBackState,
+            plainNudge = plainNudge,
             coverPicture = coverPicture,
             fanOut = fanOut,
             tapHandlerRef = tapHandlerRef,
@@ -543,8 +579,8 @@ fun SightingsMap(
         )
     }
 
-    // Lifecycle and teardown: MapLifecycle.kt. Called here, before the listeners and after the nudge's DisposableEffect,
-    // so the three DisposableEffects keep their creation order and so their dispose order (Compose forgets in reverse).
+    // Lifecycle and teardown: MapLifecycle.kt. Called here, before the listeners and after the nudges' DisposableEffects,
+    // so the four DisposableEffects keep their creation order and so their dispose order (Compose forgets in reverse).
     MapLifecycle(state = sightingsMapState, lifecycleOwner = lifecycleOwner)
 
     // Every MapLibre listener, registered once in the map-ready callback: MapListeners.kt.
