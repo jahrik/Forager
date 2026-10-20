@@ -103,9 +103,11 @@ class AvailabilityScreenNavigationWordsTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = navigating,
-                isReturning = navigating,
-                navigationTarget = start.takeIf { navigating },
-                returnRoute = this.route ?: ReturnRoute.Pending,
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = navigating,
+                    navigationTarget = start.takeIf { navigating },
+                    returnRoute = this.route ?: ReturnRoute.Pending,
+                ),
                 compassProvider = FixedCompass(facing),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },
@@ -405,9 +407,11 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
-                isReturning = true,
-                navigationTarget = start,
-                returnRoute = ReturnRoute.Ahead(east, 390.0),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = true,
+                    navigationTarget = start,
+                    returnRoute = ReturnRoute.Ahead(east, 390.0),
+                ),
                 compassProvider = object : CompassProvider {
                     override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(281f, HeadingUncertainty.Estimated(2f), 0L))
                 },

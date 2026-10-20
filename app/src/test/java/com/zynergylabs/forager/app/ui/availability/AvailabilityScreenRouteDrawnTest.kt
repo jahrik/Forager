@@ -102,13 +102,15 @@ class AvailabilityScreenRouteDrawnTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
-                isReturning = returning,
                 records = AvailabilityScreenRecords(
                     waypoints = listOf(start),
                 ),
-                navigationTarget = start,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 1_000.0),
-                routeLine = line,
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    navigationTarget = start,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 1_000.0),
+                    routeLine = line,
+                ),
                 compassProvider = FixedCompass(0f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },

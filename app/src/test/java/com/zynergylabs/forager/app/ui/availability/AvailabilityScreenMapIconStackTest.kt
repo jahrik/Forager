@@ -265,16 +265,18 @@ class AvailabilityScreenMapIconStackTest {
                 tripStartWarning = tripStartWarning,
                 networkFixesNotice = networkFixesNotice,
                 onToggleRecording = onToggleRecording,
-                returnToStart = returnToStart,
-                isReturning = returning?.value ?: isReturning,
-                isOffTrack = isOffTrack,
-                onToggleReturning = onToggleReturning,
                 compassProvider = compassProvider,
                 mapSlot = mapSlot,
                 computeTrueHeading = computeTrueHeading,
-                navigationTarget = navigationTarget,
                 currentTime = currentTime,
-                returnRoute = returnRoute,
+                navigation = AvailabilityScreenNavigation(
+                    returnToStart = returnToStart,
+                    isReturning = returning?.value ?: isReturning,
+                    isOffTrack = isOffTrack,
+                    onToggleReturning = onToggleReturning,
+                    navigationTarget = navigationTarget,
+                    returnRoute = returnRoute,
+                ),
             )
         }
     }

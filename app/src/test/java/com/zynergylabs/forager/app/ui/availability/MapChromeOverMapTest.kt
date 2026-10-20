@@ -196,7 +196,9 @@ internal fun MapChromeTestScreen(
                 waypoints = listOf(BUBBLE_WAYPOINT),
                 tracks = listOf(BUBBLE_TRACK),
             ),
-            isReturning = state.isReturning,
+            navigation = AvailabilityScreenNavigation(
+                isReturning = state.isReturning,
+            ),
             tripStartWarning = state.tripStartWarning,
             journalEntries = AvailabilityScreenJournalEntries(
                 cartographyUiState = state.cartography,

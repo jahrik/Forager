@@ -86,15 +86,17 @@ class AvailabilityScreenArrivalHoldTest {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = drivingAway),
                 isRecording = true,
-                isReturning = false,
-                isArrivalHeld = held,
                 records = AvailabilityScreenRecords(
                     waypoints = listOf(start),
                 ),
-                navigationTarget = start,
-                // What MainActivity passes once the route tick has stopped and cleared its route.
-                returnRoute = ReturnRoute.Pending,
-                routeLine = null,
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = false,
+                    isArrivalHeld = held,
+                    navigationTarget = start,
+                    // What MainActivity passes once the route tick has stopped and cleared its route.
+                    returnRoute = ReturnRoute.Pending,
+                    routeLine = null,
+                ),
                 compassProvider = FixedCompass(0f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },

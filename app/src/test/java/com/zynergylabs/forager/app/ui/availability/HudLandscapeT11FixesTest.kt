@@ -201,12 +201,14 @@ abstract class HudLandscapeT11Fixes {
                         mapSlot = map.slot,
                         isRecording = true,
                         onToggleRecording = { recordToggles++ },
-                        isReturning = returning,
-                        // Counted only: the test decides when navigation starts and ends.
-                        onToggleReturning = { returnToggles++ },
-                        navigationTarget = origin,
-                        returnRoute = route,
-                        onRetryRoute = { retries++ },
+                        navigation = AvailabilityScreenNavigation(
+                            isReturning = returning,
+                            // Counted only: the test decides when navigation starts and ends.
+                            onToggleReturning = { returnToggles++ },
+                            navigationTarget = origin,
+                            returnRoute = route,
+                            onRetryRoute = { retries++ },
+                        ),
                         recordingSundownLine = line,
                         recordingBackBy = backBy,
                         mapControls = AvailabilityScreenMapControls(

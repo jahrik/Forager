@@ -833,7 +833,9 @@ private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning
         currentTime = { now },
         uiState = uiState,
         isRecording = isReturning,
-        isReturning = isReturning,
+        navigation = AvailabilityScreenNavigation(
+            isReturning = isReturning,
+        ),
         onUseCurrentLocation = {},
         onManualLatChanged = {},
         onManualLngChanged = {},
@@ -877,7 +879,9 @@ private fun B2ScreenWith(uiState: AvailabilityUiState, mapSlot: MapSlot, isRetur
         currentTime = { now },
         uiState = uiState,
         isRecording = isReturning,
-        isReturning = isReturning,
+        navigation = AvailabilityScreenNavigation(
+            isReturning = isReturning,
+        ),
         compassProvider = compassProvider,
         onUseCurrentLocation = {},
         onManualLatChanged = {},

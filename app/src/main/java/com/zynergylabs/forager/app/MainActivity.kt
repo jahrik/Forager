@@ -37,6 +37,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenEntryReport
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFindsLog
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntries
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
@@ -710,27 +711,29 @@ class MainActivity : ComponentActivity() {
                     backgroundRunPrompt = trackUiState.backgroundRunPrompt,
                     networkFixesNotice = trackUiState.networkFixesNotice,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
-                    returnToStart = trackUiState.returnToStart,
-                    isReturning = trackUiState.isReturning,
-                    isArrivalHeld = trackUiState.isArrivalHeld,
-                    isOffTrack = trackUiState.isOffTrack,
                     recordingSundownLine = trackUiState.sundownLine,
                     recordingBackBy = trackUiState.backBy,
                     onBackByChoice = trackRecordingViewModel::setBackBy,
                     onClearBackBy = trackRecordingViewModel::clearBackBy,
-                    onToggleReturning = {
-                        // RECORD -845: while "Arrived" is held the control is the display's exit, and closes it.
-                        if (trackUiState.isReturning || trackUiState.isArrivalHeld) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
-                    },
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
-                    navigationTarget = trackUiState.originWaypoint,
-                    returnRoute = returnRouteOf(trackUiState.routeHome),
-                    routeLine = trackUiState.routeLine,
-                    onRetryRoute = trackRecordingViewModel::retryRoute,
-                    // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
-                    onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
-                    onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                    navigation = AvailabilityScreenNavigation(
+                        returnToStart = trackUiState.returnToStart,
+                        isReturning = trackUiState.isReturning,
+                        isArrivalHeld = trackUiState.isArrivalHeld,
+                        isOffTrack = trackUiState.isOffTrack,
+                        onToggleReturning = {
+                            // RECORD -845: while "Arrived" is held the control is the display's exit, and closes it.
+                            if (trackUiState.isReturning || trackUiState.isArrivalHeld) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
+                        },
+                        navigationTarget = trackUiState.originWaypoint,
+                        returnRoute = returnRouteOf(trackUiState.routeHome),
+                        routeLine = trackUiState.routeLine,
+                        onRetryRoute = trackRecordingViewModel::retryRoute,
+                        // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
+                        onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
+                        onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                    ),
                     records = AvailabilityScreenRecords(
                         // Journal redesign J4: the visible list leaves out a waypoint whose delete is
                         // pending (Undo snackbar up), everywhere this screen shows waypoints, the map

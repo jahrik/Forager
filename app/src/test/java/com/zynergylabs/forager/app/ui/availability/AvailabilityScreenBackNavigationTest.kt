@@ -220,13 +220,15 @@ class AvailabilityScreenBackNavigationTest {
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                 onThemeModeChanged = viewModel::onThemeModeChanged,
                 isRecording = isReturning,
-                isReturning = isReturning,
-                onToggleReturning = onToggleReturning,
-                navigationTarget = if (isReturning) {
-                    com.zynergylabs.forager.app.domain.model.Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)
-                } else {
-                    null
-                },
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = isReturning,
+                    onToggleReturning = onToggleReturning,
+                    navigationTarget = if (isReturning) {
+                        com.zynergylabs.forager.app.domain.model.Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)
+                    } else {
+                        null
+                    },
+                ),
                 findsLog = AvailabilityScreenFindsLog(
                     logUiState = logState,
                     onStartLogEntry = { location, date ->

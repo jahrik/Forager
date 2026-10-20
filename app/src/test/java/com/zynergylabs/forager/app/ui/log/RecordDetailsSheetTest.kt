@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.GpxCodec
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -154,7 +155,9 @@ class RecordDetailsSheetTest {
                     tracks = DETAILS_TRACKS,
                 ),
                 currentTime = CurrentTimeProvider { NOW },
-                onNavigateToWaypoint = onNavigateToWaypoint,
+                navigation = AvailabilityScreenNavigation(
+                    onNavigateToWaypoint = onNavigateToWaypoint,
+                ),
             )
         }
         composeRule.waitForIdle()
