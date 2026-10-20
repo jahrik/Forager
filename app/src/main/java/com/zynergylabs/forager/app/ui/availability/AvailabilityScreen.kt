@@ -171,7 +171,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
-import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableIntStateOf
 import com.zynergylabs.forager.app.domain.SETTINGS_RESET_ACTION_LABEL
@@ -266,8 +265,6 @@ import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.domain.GpxImportOutcome
 import com.zynergylabs.forager.app.importgpx.gpxImportMessage
-import com.zynergylabs.forager.app.ui.map.MapRecordSources
-import com.zynergylabs.forager.app.ui.map.OPEN_IN_JOURNAL_LABEL
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
@@ -294,7 +291,6 @@ import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
 import com.zynergylabs.forager.app.ui.map.MapForecastFeed
-import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
@@ -305,7 +301,6 @@ import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
-import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
@@ -827,35 +822,6 @@ fun AvailabilityScreen(
     val journalHighlights = remember(cartographyUiState.entries, mapRecordsDrawn, mapWaypoints) {
         GetJournalEntryHighlightsUseCase()(cartographyUiState.entries, mapRecordsDrawn, mapWaypoints)
     }
-    val mapLayersControls = MapLayersControls(
-        stored = uiState.mapLayers,
-        availableColourFields = availableColourFieldGroups.keys,
-        cellsShown = forecastCellsShown.filterKeys { it in availableColourFieldGroups },
-        forecastZoomedOut = forecastZoomedOut,
-        records = mapRecordsDrawn,
-        journalHighlights = journalHighlights,
-        // J8-3: the chip's list. Hiding writes shownOnMap for each entry, one write each; the Layers
-        // sheet's "Journal entries" switch is a separate, display-only choice and is never touched here.
-        onHideJournalEntry = { id -> onSetCartographyEntryShownOnMap(id, false) },
-        onHideAllJournalEntries = { journalHighlights.shownEntries.forEach { onSetCartographyEntryShownOnMap(it.entryId, false) } },
-        legendExpanded = mapLegendExpanded,
-        onLegendExpandedChange = { mapLegendExpanded = it },
-        onVisibilityChanged = onMapLayerVisibilityChanged,
-        onOpacityChanged = onMapLayerOpacityChanged,
-        onColourFieldMoved = onColourFieldMoved,
-    )
-    val mapRenderMode = MapRenderMode(
-        basemap = basemap,
-        night = isNightMode,
-        // The cold-launch gate: no style until the Night Maps preference and the stored basemap are
-        // both in (colour build C1; dispatch 2026-09-28-708, "Restoring at launch must not flash the
-        // wrong basemap first"). The field is named for the first; see MapRenderMode.nightModeLoaded.
-        nightModeLoaded = uiState.nightModeMapsLoaded && (uiState.mapMode != null || chosenMapMode != null),
-        layers = drawnMapLayers,
-        forecast = forecastFeed,
-        // Dispatch 2026-10-19-37: the Maps tab's map springs back from a small nudge while following.
-        nudgeSpringBack = true,
-    )
     // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
     // comment. mapMode above is persisted the same way since dispatch 2026-09-28-708.
     val distanceUnit = uiState.distanceUnit
@@ -972,7 +938,8 @@ fun AvailabilityScreen(
     // the user moving on.
     var toolsReturnArrived by remember { mutableStateOf(false) }
     // Phase 2.6, PR 1 (dispatch 2026-10-19-40): the holder the moved code reaches the body's state through (see
-    // AvailabilityScreenState), built here, after the last state it wraps; it is not remembered.
+    // AvailabilityScreenState); it is not remembered. Built here, below toolsReturn and toolsReturnArrived, because the
+    // journal-return code (Phase 2.6 PR 3) will reach those through it and a local can't be read above its declaration.
     val screenState = AvailabilityScreenState(
         compactTab = { compactTab },
         setCompactTab = { compactTab = it },
@@ -987,6 +954,14 @@ fun AvailabilityScreen(
         setNavigationFollowBroken = { navigationFollowBroken = it },
         navigationViewRequestId = { navigationViewRequestId },
         setNavigationViewRequestId = { navigationViewRequestId = it },
+        forecastCellsShown = { forecastCellsShown },
+        forecastZoomedOut = { forecastZoomedOut },
+        mapLegendExpanded = { mapLegendExpanded },
+        setMapLegendExpanded = { mapLegendExpanded = it },
+        chosenMapMode = { chosenMapMode },
+        setPendingJournalDestination = { pendingJournalDestination = it },
+        setPendingJournalFindId = { pendingJournalFindId = it },
+        setPendingJournalEntryId = { pendingJournalEntryId = it },
     )
     // Dispatch -502: starting and ending a waypoint navigation, and the return control (AvailabilityScreenWaypointNavigation.kt).
     // Built here, once the holder is; every reader of the three is below this line.
@@ -1001,6 +976,27 @@ fun AvailabilityScreen(
     val startWaypointNavigation = waypointNavigation.start
     val endWaypointNavigation = waypointNavigation.end
     val onNavigationControl = waypointNavigation.onNavigationControl
+    // Phase 2.6, PR 2: the Layers sheet's inputs and how the Maps tab's map is drawn (AvailabilityScreenMapInputs.kt), built
+    // here, once the holder is; the map reads both only in the frame's call below.
+    val mapLayersControls = availabilityMapLayersControls(
+        state = screenState,
+        uiState = uiState,
+        availableColourFieldGroups = availableColourFieldGroups,
+        mapRecordsDrawn = mapRecordsDrawn,
+        journalHighlights = journalHighlights,
+        onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
+        onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
+        onMapLayerOpacityChanged = onMapLayerOpacityChanged,
+        onColourFieldMoved = onColourFieldMoved,
+    )
+    val mapRenderMode = availabilityMapRenderMode(
+        state = screenState,
+        uiState = uiState,
+        basemap = basemap,
+        isNightMode = isNightMode,
+        drawnMapLayers = drawnMapLayers,
+        forecastFeed = forecastFeed,
+    )
     val openOfflineMapsFromTools: () -> Unit = {
         if (toolsReturn == null) {
             toolsReturn = ToolsOfflineMapsReturn(
@@ -1337,58 +1333,22 @@ fun AvailabilityScreen(
         }
     }
     // Declared after leaveLogEntryEditingOfferingDiscard, which its onOpenFind calls (F3).
-    // M1 (B3, B4): what the Maps tab's glyph bubbles look records up in, and the J5c sheet's inputs,
-    // all already in hand here. A find's "Open in Journal" opens the find in its report over whatever
-    // the Journal was showing (PendingJournalDestination.VIEW_FIND), so the saved Records chip and top
-    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). The
-    // Journal tab comes up.
-    // Checked against the Maps search-bar gate (AvailabilityCompactScaffold's isEditingJournalEntry):
-    // the find opens as the Journal tab comes up, where that gate hides the header as it does for any
-    // open find; the Maps tab's own bar is gated on the Journal showing, so it is unaffected.
-    val mapBubbleSources = MapRecordSources(
-        finds = logUiState.entries,
-        galleryPhotos = logUiState.galleryPhotos,
-        photoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+    // Phase 2.6, PR 2: the Maps tab's bubbles' sources, built in AvailabilityScreenMapInputs.kt (its doc comment carries M1's notes).
+    val mapBubbleSources = availabilityMapBubbleSources(
+        state = screenState,
+        uiState = uiState,
+        logUiState = logUiState,
         waypoints = waypoints,
         waypointEntryReferenceCounts = waypointEntryReferenceCounts,
         tracks = tracks,
-        plannedTrips = uiState.plannedTrips,
-        offlineRegions = uiState.visibleOfflineRegions,
-        distanceUnit = uiState.distanceUnit,
-        staleThresholdDays = uiState.offlineStaleThresholdDays,
-        nowEpochMillis = currentTime::nowEpochMillis,
+        currentTime = currentTime,
         getFullRecord = getFullRecord,
-        onOpenFind = { findId ->
-            // Intent 2026-09-28-44, F3 (the owner, continuation 2026-09-28-45: "Leave the kept one
-            // first (Recommended)"): a find kept open on the Journal is left before this one opens
-            // over it, through the one wrapper, so a changed one lands in Drafts at once with "Saved
-            // to Drafts", an unchanged re-edit's copy is deleted, and a viewed one just closes.
-            if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
-            pendingJournalFindId = findId
-            pendingJournalDestination = PendingJournalDestination.VIEW_FIND
-            onOpenLogEntry(findId)
-            compactTab = CompactTab.JOURNAL
-        },
-        openFindLabel = OPEN_IN_JOURNAL_LABEL,
-        // J8-4: a highlighted record's keeping entries, while the Layers sheet's "Journal entries"
-        // switch shows the highlights; with it off no record is highlighted, so no bubble names one.
-        journalEntriesKeeping = if (drawnMapLayers.stateOf(JOURNAL_ENTRIES_SWITCH_LAYER_ID).visible) journalHighlights.keptIn else emptyMap(),
-        // J8-4, the owner's Q1 ruling ("Open in Journal, prompt first (Recommended)"): switches to the
-        // Journal with the
-        // entry in its report on Entries, the one top-tab change opening it requires; the saved Records
-        // chip is untouched. The Journal side (CartographyScreen's openEntryRequest) asks the existing
-        // "Save your changes?" first when another entry is open in its editor with unsaved changes, and
-        // just closes an unchanged one. A find kept open on the Journal is left first through the one
-        // wrapper, as M1's find route does (F3), since it would otherwise show over the entry.
-        onOpenEntry = { entryId ->
-            if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
-            // Not forgotten any more (dispatch 2026-09-28-387, Part B): the bubble the line was tapped in has just remembered the way back.
-            pendingJournalEntryId = entryId
-            pendingJournalDestination = PendingJournalDestination.VIEW_ENTRY
-            compactTab = CompactTab.JOURNAL
-        },
-        // Dispatch -502: the Maps tab's bubbles and the sheet opened from them offer Navigate; an entry map's do not.
-        onNavigateToWaypoint = onNavigateToWaypoint?.let { startWaypointNavigation },
+        drawnMapLayers = drawnMapLayers,
+        journalHighlights = journalHighlights,
+        leaveLogEntryEditingOfferingDiscard = leaveLogEntryEditingOfferingDiscard,
+        onOpenLogEntry = onOpenLogEntry,
+        onNavigateToWaypoint = onNavigateToWaypoint,
+        startWaypointNavigation = startWaypointNavigation,
     )
 
     // J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a failed

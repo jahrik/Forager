@@ -3,7 +3,10 @@ package com.zynergylabs.forager.app.ui.availability
 // UI split Phase 2.6, PR 1 (dispatch 2026-10-19-40): the main screen's holder.
 
 import com.zynergylabs.forager.app.ui.log.JournalScreenState
+import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
+import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
+import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 
 /**
  * What the code moved out of [AvailabilityScreen]'s body reads and writes of the state that body
@@ -30,4 +33,13 @@ internal class AvailabilityScreenState(
     val setNavigationFollowBroken: (Boolean) -> Unit,
     val navigationViewRequestId: () -> Int,
     val setNavigationViewRequestId: (Int) -> Unit,
+    // Phase 2.6, PR 2: what the map input builders read and write (AvailabilityScreenMapInputs.kt).
+    val forecastCellsShown: () -> Map<String, ForecastCellsShown>,
+    val forecastZoomedOut: () -> Boolean,
+    val mapLegendExpanded: () -> Boolean,
+    val setMapLegendExpanded: (Boolean) -> Unit,
+    val chosenMapMode: () -> MapMode?,
+    val setPendingJournalDestination: (PendingJournalDestination?) -> Unit,
+    val setPendingJournalFindId: (String?) -> Unit,
+    val setPendingJournalEntryId: (String?) -> Unit,
 )
