@@ -41,7 +41,7 @@ internal class TrackRecordingPendingDeletes(
      * hidden from [TrackRecordingUiState.visibleWaypoints] at once, still saved — and the Undo
      * snackbar shows. Its real delete ([deleteWaypoint], unchanged) runs from [commitRemoveWaypoint]
      * when the snackbar ends without Undo, from here when a second waypoint is swiped while this one
-     * is still pending (the first is committed then), or from [onCleared].
+     * is still pending (the first is committed then), or from [TrackRecordingViewModel.onCleared].
      *
      * The reference count carried for the snackbar's warning is the one already loaded, read the
      * way the old confirm dialog read it: a waypoint missing from
@@ -79,7 +79,7 @@ internal class TrackRecordingPendingDeletes(
      * The real delete of a waypoint whose pending time is over. It leaves [TrackRecordingUiState.waypoints]
      * at once rather than when the reload lands, so it does not flash back onto the screen between
      * the snackbar closing and the delete finishing. A failed delete puts it back where it was and
-     * reports the failure the way [removeWaypoint] does.
+     * reports the failure the way [TrackRecordingViewModel.removeWaypoint] does.
      */
     private fun commitWaypointDelete(waypoint: Waypoint) {
         val index = uiState().waypoints.indexOfFirst { it.id == waypoint.id }
@@ -107,7 +107,7 @@ internal class TrackRecordingPendingDeletes(
      * [TrackRecordingUiState.visibleTracks] at once and still saved, and the Undo snackbar shows. The real
      * delete ([DeleteTrackUseCase], which detaches the track's waypoints first) runs from
      * [commitRemoveTrack] when the snackbar ends without Undo, from here when a second track is asked for
-     * while this one is pending (the first is committed then), or from [onCleared].
+     * while this one is pending (the first is committed then), or from [TrackRecordingViewModel.onCleared].
      *
      * **Never a track that is recording.** A track whose end time is null, or the one this ViewModel is
      * recording into, is refused and logged, so a caller that offers Delete on it by mistake still cannot
