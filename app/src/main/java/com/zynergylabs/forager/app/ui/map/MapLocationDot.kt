@@ -7,6 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.fixOrNull
 import org.maplibre.android.location.modes.CameraMode
+
 /**
  * The location dot's three effects (the app's position into the dot, the dot's look, and locate), moved whole and in
  * their order from [SightingsMap] by UI split Phase 2.2 (dispatch 2026-10-19-29), called from the place they stood

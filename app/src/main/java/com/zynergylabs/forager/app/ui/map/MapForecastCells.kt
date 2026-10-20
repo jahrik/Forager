@@ -7,6 +7,7 @@ import com.zynergylabs.forager.app.domain.ForecastCellsResult
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import org.maplibre.android.style.sources.GeoJsonSource
+
 /**
  * The map's colour-field cells: one effect, moved whole from [SightingsMap] by UI split Phase 2.2 (dispatch
  * 2026-10-19-29), called from the place it stood there and keyed exactly as it was. [forecast] is the feed as
