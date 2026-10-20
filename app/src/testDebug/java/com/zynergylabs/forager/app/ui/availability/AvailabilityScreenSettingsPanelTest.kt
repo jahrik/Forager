@@ -73,7 +73,7 @@ import org.robolectric.annotation.Config
  * Two pieces of [AvailabilityScreen], measured headlessly:
  *
  * 1. The quick-fire mode icon over the map's own top-right corner, and that tapping it opens
- *    [MapModePicker], and that tapping a mode chip there actually changes which [Basemap] the map
+ *    `MapModePicker` (removed 2026-10-19, RECORD -1392), and that tapping a mode chip there actually changes which [Basemap] the map
  *    slot receives — not just that an icon is somewhere on screen. Settings' old "Choose Maps
  *    Service" section is gone entirely — see [com.zynergylabs.forager.app.ui.map.MapMode]'s own doc comment for
  *    what superseded it — so this file no longer tests it.

@@ -306,7 +306,6 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
-import com.zynergylabs.forager.app.ui.map.MapFloatingIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
 import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
@@ -328,7 +327,6 @@ import com.zynergylabs.forager.app.ui.map.MapForecastFeed
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
-import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
@@ -356,15 +354,6 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlinx.coroutines.delay
-
-internal enum class ResultsTab(val label: String) {
-    LIST("List"),
-    MAP("Maps"),
-    SEASONAL("Seasonal"),
-}
-
-/** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
-private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
 
 /**
  * Map-first layout: the results (map or ranked list) own the content area, and everything set far
@@ -2048,25 +2037,3 @@ fun AvailabilityScreen(
         camera = inAppCamera,
     )
 }
-
-/** The compact Tools drawer's sheet, for tests (map chrome at 80%, dispatch 2026-09-28-56 as amended by -58). */
-internal const val TOOLS_DRAWER_SHEET_TAG = "tools-drawer-sheet"
-
-/**
- * Where the Tools drawer's "Offline maps" row was tapped (RECORD -871): the bottom-nav tab and its results tab, the
- * Journal's top tab and Records chip as they were, and whether the map was fullscreen. Back from Records puts these
- * back under the reopened drawer; see `toolsReturn` in [AvailabilityScreen].
- */
-private data class ToolsOfflineMapsReturn(
-    val compactTab: CompactTab,
-    val selectedTab: ResultsTab,
-    val journalTopTab: JournalTopTab,
-    val recordsFilter: RecordsSubTab,
-    val mapFullscreen: Boolean,
-)
-
-/**
- * Dispatch 2026-09-28-502, Amendment 1: what the walker is told when the waypoint they are navigating to
- * was deleted, meanwhile or while the app was closed. Provisional words, accepted by the planner.
- */
-internal const val WAYPOINT_NAVIGATION_GONE_TEXT = "Stopped navigating: that waypoint was deleted."

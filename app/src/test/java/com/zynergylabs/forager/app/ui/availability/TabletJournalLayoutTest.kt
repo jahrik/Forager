@@ -454,6 +454,9 @@ class TabletJournalLayoutTest {
         setScreen(rotation, expectLarge = true)
         openTab(label)
         val column = readableColumn(TABLET_COLUMN)
+        // Dispatch 2026-10-19-06 (RECORD -1385): List's own content, measured here before the panel opens and asserted last, so a
+        // failure on it shows the bar and panel checks above it passed. Until then only List's bar and panel were measured.
+        val listContent = if (label == "List") bounds(LIST_CONTENT_TAG) else null
         if (label == "Seasonal") {
             // The column checked against the tab's own content. SEASONAL_CONTENT_TAG's node spans the whole column: the tag shares
             // its layout node with the Column's verticalScroll, which comes before padding(horizontal = Spacing.lg), and the node
@@ -483,6 +486,10 @@ class TabletJournalLayoutTest {
         for (tag in listOf(SEARCH_DROPDOWN_SET_ON_MAP_TAG, SEARCH_DROPDOWN_SEARCH_TAG)) {
             val r = bounds(tag)
             assertTrue("$tag ($r) lies inside the column ($column)", r.left.value >= column.left.value - 0.5f && r.right.value <= column.right.value + 0.5f)
+        }
+        if (listContent != null) {
+            println("MEASURED tablet List content rotation=$rotation: $listContent")
+            assertEdgesOf("List's content", listContent, column)
         }
     }
 
