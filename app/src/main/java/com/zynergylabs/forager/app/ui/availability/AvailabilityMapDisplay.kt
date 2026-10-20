@@ -87,7 +87,7 @@ internal class AvailabilityMapDisplay(
     /**
      * An offline region's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
      * region circles. A record's id here is the region's id as a string, as [GetMapRecordsUseCase] makes it.
-     * Called from [AvailabilityViewModel.commitOfflineRegionDelete]'s own success path, so no wiring through `MainActivity` is needed.
+     * Called from [AvailabilityOfflineRegionDeletes.commitOfflineRegionDelete]'s own success path, so no wiring through `MainActivity` is needed.
      */
     fun dropOfflineRegionFromMapRecords(id: Long) {
         updateState { state ->
