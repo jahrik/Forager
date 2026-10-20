@@ -246,8 +246,6 @@ import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
-import com.zynergylabs.forager.app.domain.model.Track
-import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -271,7 +269,6 @@ import com.zynergylabs.forager.app.ui.log.FindOverView
 import com.zynergylabs.forager.app.ui.log.JournalEntryMode
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
-import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
 import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
@@ -488,23 +485,8 @@ fun AvailabilityScreen(
      * doc comment on this same parameter for how it's drawn. Empty whenever [isRecording] is false.
      */
     breadcrumbPoints: List<LatLng> = emptyList(),
-    /**
-     * Saved waypoints — independent of any track recording, per [Waypoint]'s own doc comment.
-     * Rendered as pins on the map ([com.zynergylabs.forager.app.ui.map.MapSlot]) and listed, with delete, in
-     * the Tools drawer's "Waypoints" section ([WaypointsSection]).
-     */
-    waypoints: List<Waypoint> = emptyList(),
-    /** Set when the most recent waypoint load/add/remove failed — shown, with error color, in [WaypointsSection] in place of the list. */
-    waypointsErrorMessage: String? = null,
-    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in [WaypointsSection]'s own confirm dialog. */
-    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
-    /** Called with the placed location and the confirmed name when "Drop a waypoint" is chosen from [ThreeWayActionDialog] — see [WaypointNameDialog]. */
-    onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
-    onDeleteWaypoint: (String) -> Unit = {},
-    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
-    onDeleteTrack: ((String) -> Unit)? = null,
-    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
-    tracksErrorMessage: String? = null,
+    /** saved waypoints, tracks and pending-delete notices (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenRecords]. Defaulted, as its 12 fields were when they were parameters here. */
+    records: AvailabilityScreenRecords = AvailabilityScreenRecords(),
     /**
      * Bearing/distance/elevation difference back to the active track's start point, from the
      * device's current position — `null` whenever nothing is being recorded, no fix has come in
@@ -583,43 +565,12 @@ fun AvailabilityScreen(
     /** Dispatch 2026-09-28-502: ends the waypoint navigation (`AvailabilityViewModel.onStopWaypointNavigation`). */
     onStopWaypointNavigation: () -> Unit = {},
     /**
-     * Dispatch 2026-09-28-502: whether [waypoints] has been read yet (`TrackRecordingUiState.waypointsLoaded`).
-     * Until it has, a waypoint being navigated to that is missing from it is waited for, not taken as
-     * deleted. `true` by default: a caller that hands a list has loaded it.
-     */
-    waypointsLoaded: Boolean = true,
-    /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
     mapSlot: MapSlot = SightingsMapSlot,
     /** The Settings panel's km/mi toggle — see [AvailabilityUiState.distanceUnit]'s own doc comment for why this is persisted rather than session-local state. */
     onDistanceUnitSelected: (DistanceUnit) -> Unit = {},
-    /**
-     * Every recorded track, for the Settings "Recorded Tracks" export panel — see
-     * [com.zynergylabs.forager.app.ui.track.TrackExportPanel]'s own doc comment. Empty by default, same
-     * [breadcrumbPoints]/[waypoints] shape above: the real list is [trackUiState.tracks][com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.tracks],
-     * threaded in by `MainActivity`.
-     */
-    tracks: List<Track> = emptyList(),
-    /** Refreshes [tracks] — called whenever the export panel opens, mirroring [onOfflineMapsOpened]'s own "reload on open" shape. */
-    onTracksOpened: () -> Unit = {},
-    /**
-     * GPX full-record export dispatch: the unfiltered read for a shared track's `<extensions>`
-     * block — see [com.zynergylabs.forager.app.ui.track.TrackExportList]'s own doc comment. Empty by default,
-     * same [tracks]/[waypoints] shape above; the real function is
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.getFullRecord], threaded in by
-     * `MainActivity`.
-     */
-    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
-    /**
-     * The Journal's pending deletes, one per record type at most (journal redesign J4): each is shown
-     * as an Undo snackbar in this screen's one snackbar host, the same slot "Saved to Drafts" and
-     * the trip-start warning use, so it docks where those do and outlives a
-     * Journal tab change. `MainActivity` builds them from the owning ViewModels' pending state; see
-     * [PendingDeleteSnackbarEffects]. Empty by default, so no other caller changes.
-     */
-    pendingDeleteNotices: List<PendingDeleteNotice> = emptyList(),
 ) {
     // Phase 2.1 (dispatch 2026-10-19-28): the camera bundle, unpacked under the parameter names it replaced.
     val inAppCameraTarget = cameraInputs.inAppCameraTarget
@@ -695,6 +646,19 @@ fun AvailabilityScreen(
     val onSetCartographyEntryShownOnMap = journalEntries.onSetCartographyEntryShownOnMap
     val onCartographyShownOnMapErrorDismissed = journalEntries.onCartographyShownOnMapErrorDismissed
     val onCartographySaveErrorDismissed = journalEntries.onCartographySaveErrorDismissed
+    // Phase 2.1 (dispatch 2026-10-19-28): the records bundle, unpacked under the parameter names it replaced.
+    val waypoints = records.waypoints
+    val waypointsErrorMessage = records.waypointsErrorMessage
+    val waypointEntryReferenceCounts = records.waypointEntryReferenceCounts
+    val onDropWaypoint = records.onDropWaypoint
+    val onDeleteWaypoint = records.onDeleteWaypoint
+    val onDeleteTrack = records.onDeleteTrack
+    val tracksErrorMessage = records.tracksErrorMessage
+    val waypointsLoaded = records.waypointsLoaded
+    val tracks = records.tracks
+    val onTracksOpened = records.onTracksOpened
+    val getFullRecord = records.getFullRecord
+    val pendingDeleteNotices = records.pendingDeleteNotices
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

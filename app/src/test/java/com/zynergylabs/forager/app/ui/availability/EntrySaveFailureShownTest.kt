@@ -291,13 +291,15 @@ internal abstract class EntrySaveFailureHarness {
                     onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
                     onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
                 ),
-                // MainActivity's notice for an entry's pending delete: its Undo snackbar, and the
-                // real delete when the snackbar ends.
-                pendingDeleteNotices = listOfNotNull(
-                    cartographyEntryDeleteNotice(
-                        cartographyUiState.pendingDelete,
-                        onUndo = cartographyViewModel::undoDeleteEntry,
-                        onCommit = cartographyViewModel::commitDeleteEntry,
+                records = AvailabilityScreenRecords(
+                    // MainActivity's notice for an entry's pending delete: its Undo snackbar, and the
+                    // real delete when the snackbar ends.
+                    pendingDeleteNotices = listOfNotNull(
+                        cartographyEntryDeleteNotice(
+                            cartographyUiState.pendingDelete,
+                            onUndo = cartographyViewModel::undoDeleteEntry,
+                            onCommit = cartographyViewModel::commitDeleteEntry,
+                        ),
                     ),
                 ),
             )

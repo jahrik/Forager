@@ -167,7 +167,9 @@ class AvailabilityScreenSettingsPanelTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
                 mapSlot = CapturingMapSlot,
-                tracks = tracks,
+                records = AvailabilityScreenRecords(
+                    tracks = tracks,
+                ),
             )
         }
     }

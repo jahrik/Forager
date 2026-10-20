@@ -290,7 +290,9 @@ internal abstract class JournalEntriesOnMapHarness {
                     onMapLayerOpacityChanged = availabilityViewModel::onMapLayerOpacityChanged,
                     onColourFieldMoved = availabilityViewModel::onColourFieldMoved,
                 ),
-                waypoints = screenWaypoints,
+                records = AvailabilityScreenRecords(
+                    waypoints = screenWaypoints,
+                ),
                 journalEntries = AvailabilityScreenJournalEntries(
                     // What MainActivity passes for the day entries.
                     cartographyUiState = cartographyUiState.hidingPendingDelete(),

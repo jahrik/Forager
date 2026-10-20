@@ -137,7 +137,9 @@ private fun GpxImportScreenUnderTest(tracks: List<Track>, notice: GpxImportNotic
         onNightModeMapsChanged = {},
         onThemeModeChanged = {},
         mapSlot = GPX_IMPORT_STUB_MAP,
-        tracks = tracks,
+        records = AvailabilityScreenRecords(
+            tracks = tracks,
+        ),
         backupAndImport = AvailabilityScreenBackupAndImport(
             gpxImportNotice = notice,
             onGpxImportNoticeShown = onShown,

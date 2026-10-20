@@ -316,8 +316,10 @@ internal fun MapLayersTestScreen(
             onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
             forecastCellStore = store,
         ),
-        waypoints = waypoints,
-        tracks = tracks,
+        records = AvailabilityScreenRecords(
+            waypoints = waypoints,
+            tracks = tracks,
+        ),
         findsLog = AvailabilityScreenFindsLog(
             logUiState = logUiState,
             onOpenLogEntry = onOpenLogEntry,
