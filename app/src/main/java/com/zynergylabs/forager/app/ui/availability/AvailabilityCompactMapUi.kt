@@ -59,7 +59,6 @@ import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
@@ -247,7 +246,6 @@ internal fun CompactMapTab(
     // RECORD -739: the grouped inputs this function still reads, unpacked under their old parameter names (RECORD -741: the rest are
     // read in the parts that use them, below).
     val isNavigating = navigation.isNavigating
-    val navigationTarget = navigation.navigationTarget
     val waypointReopen = navigation.waypointReopen
     val onWaypointReopenConsumed = navigation.onWaypointReopenConsumed
     val onLeftNavigationView = navigation.onLeftNavigationView
@@ -362,17 +360,8 @@ internal fun CompactMapTab(
         )
 
         else -> {
-            // The map's own viewport, never null — unlike uiState.region (only set once a real
-            // search has run), so the map always has *something* to show rather than the earlier
-            // revision's "choose a region" placeholder: the real search region once one exists,
-            // otherwise the device's live location once locate-me above resolves one, otherwise a
-            // fixed fallback while that's still pending. The project owner's own framing: the Maps
-            // tab should already be showing a real map, centred on the user, the moment the app
-            // opens — not a message asking them to search first.
-            val located = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location
-            val displayRegion = uiState.region
-                ?: located?.let { Region(lat = it.lat, lng = it.lng, radiusKm = JOURNAL_PICKER_DEFAULT_REGION.radiusKm) }
-                ?: JOURNAL_PICKER_DEFAULT_REGION
+            // The map's own viewport, never null (see compactMapDisplayRegion).
+            val displayRegion = compactMapDisplayRegion(uiState)
 
             // The GPS/locate-me pan target for a search that's already run — remember(uiState.region),
             // not just remember, so a brand new search (a different region) drops any earlier
@@ -392,21 +381,9 @@ internal fun CompactMapTab(
             // whether or not a search has run (owner, 2026-09-28, "Option A"; a real S22 drew none
             // until a search set the region).
             val hasSearched = uiState.region != null
-            // "View on Map" from a List-tab row — see MapTab's own doc comment on the identical
-            // filteredSightings/mapTaxonFilterLabel pair for why this filters uiState.sightings
-            // itself rather than trusting uiState.forecast's own observationCount.
-            val filteredSightings = when {
-                !hasSearched -> emptyList()
-                taxonFilter != null -> uiState.sightings.filter { it.taxonId == taxonFilter }
-                else -> uiState.sightings
-            }
-            val mapTaxonFilterLabel = taxonFilter?.let { id ->
-                val name = uiState.forecast?.entries?.firstOrNull { it.species.taxonId == id }?.species
-                    ?.let { it.commonName ?: it.scientificName }
-                    ?: filteredSightings.firstOrNull()?.let { it.commonName ?: it.scientificName }
-                    ?: "this species"
-                "$name (${filteredSightings.size})"
-            }
+            // "View on Map" from a List-tab row (see compactMapFilteredSightings and compactMapTaxonFilterLabel).
+            val filteredSightings = compactMapFilteredSightings(uiState, hasSearched, taxonFilter)
+            val mapTaxonFilterLabel = compactMapTaxonFilterLabel(uiState, taxonFilter, filteredSightings)
 
             var cameraCenter by remember(displayRegion) { mutableStateOf(LatLng(displayRegion.lat, displayRegion.lng)) }
             // A real clearance for "below the compass strip," derived from the strip's own actual
@@ -435,14 +412,8 @@ internal fun CompactMapTab(
             val positionNote = rememberPositionNote(LocalMapPosition.current, currentTime)
             // Dispatch 2026-09-28-430: which way the map faces while navigating, from the same heading.
             val navigationFacing by rememberNavigationFacing(trueHeading, isNavigating, currentTime)
-            // Dispatch -497: where the start is once the walker has arrived, by the same rule the HUD's
-            // "Arrived" reads (arrivedAtStart); null otherwise.
-            // RECORD -845: held while the display holds "Arrived" after a return ended on arrival, whatever the fix says.
-            val arrivedAt = if (isNavigating && navigationTarget != null && (navigation.isArrivalHeld || arrivedAtStart(uiState.liveFix, navigationTarget, currentTime.nowEpochMillis()))) {
-                com.zynergylabs.forager.app.domain.model.LatLng(navigationTarget.lat, navigationTarget.lng)
-            } else {
-                null
-            }
+            // Dispatch -497, RECORD -845: where the start is once the walker has arrived (see compactMapArrivedAt).
+            val arrivedAt = compactMapArrivedAt(navigation, uiState, currentTime)
             val currentOnLeftNavigationView by rememberUpdatedState(onLeftNavigationView)
             val onLeftView: () -> Unit = remember { { currentOnLeftNavigationView() } }
             val currentOnNavigationZoomApplied by rememberUpdatedState(onNavigationZoomApplied)
