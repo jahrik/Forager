@@ -176,7 +176,9 @@ class AvailabilityScreenTripPlanningFlowTest {
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                 onThemeModeChanged = viewModel::onThemeModeChanged,
-                onStartLogEntry = onStartLogEntry,
+                findsLog = AvailabilityScreenFindsLog(
+                    onStartLogEntry = onStartLogEntry,
+                ),
                 mapSlot = TriggerableMapSlot,
             )
         }

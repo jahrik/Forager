@@ -1029,7 +1029,9 @@ private fun ShortWindowScreenUnderTest(
         onCloseCartographyEntry = onClose,
         waypoints = MANY_WAYPOINTS,
         cameraInputs = AvailabilityScreenCamera(onOpenCamera = onOpenCamera),
-        logUiState = logState,
+        findsLog = AvailabilityScreenFindsLog(
+            logUiState = logState,
+        ),
         tracks = tracks,
         entryReportData = AvailabilityScreenEntryReportData(
             getCartographyEntryMapData = { _, _ ->

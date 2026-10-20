@@ -255,7 +255,9 @@ internal abstract class JournalEntriesOnMapHarness {
             val cartographyUiState by cartographyViewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                logUiState = screenLog,
+                findsLog = AvailabilityScreenFindsLog(
+                    logUiState = screenLog,
+                ),
                 onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
                 onManualLatChanged = availabilityViewModel::onManualLatChanged,
                 onManualLngChanged = availabilityViewModel::onManualLngChanged,

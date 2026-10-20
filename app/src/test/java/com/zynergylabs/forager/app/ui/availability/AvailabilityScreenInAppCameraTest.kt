@@ -201,8 +201,10 @@ class AvailabilityScreenInAppCameraTest {
                         cameraGridMode = cameraGridMode,
                         onCameraGridModeChanged = { gridModeRequests += it },
                     ),
-                    onAddLogPhoto = { logEntryPhotos += it },
-                    onAddGalleryPhoto = { albumPhotos += it },
+                    findsLog = AvailabilityScreenFindsLog(
+                        onAddLogPhoto = { logEntryPhotos += it },
+                        onAddGalleryPhoto = { albumPhotos += it },
+                    ),
                     onAcquirePhotoForCartographyEntry = { cartographyPhotos += it },
                     cartographyUiState = cartographyState,
                     onStartCartographyEntry = { date ->

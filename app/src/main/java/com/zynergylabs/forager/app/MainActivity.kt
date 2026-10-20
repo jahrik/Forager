@@ -34,6 +34,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackupAndImport
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCamera
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenEntryReportData
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFindsLog
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
@@ -590,9 +591,6 @@ class MainActivity : ComponentActivity() {
                         onColourFieldMoved = viewModel::onColourFieldMoved,
                         forecastCellStore = container.forecastCellStore,
                     ),
-                    // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
-                    // out of the lists the screen gets.
-                    logUiState = logUiState.hidingPendingDelete(),
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     cameraInputs = AvailabilityScreenCamera(
                         inAppCameraTarget = inAppCameraTarget,
@@ -603,25 +601,6 @@ class MainActivity : ComponentActivity() {
                         cameraFormat = cameraFormat,
                         onCameraFormatChanged = cameraFormatViewModel::onCameraFormatChanged,
                     ),
-                    onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
-                    onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
-                    onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
-                    onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
-                    onStartEditingLogEntry = mushroomLogViewModel::onStartEditingEntry,
-                    onOpenLogEntryForEditing = mushroomLogViewModel::onOpenEntryForEditing,
-                    onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
-                    onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
-                    onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,
-                    onDiscardLogDraft = mushroomLogViewModel::onDeleteEntry,
-                    onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
-                    onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
-                    onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
-                    // J4: the find report's (and edit form's) Delete asks for a pending delete; the
-                    // "Saved to Drafts" snackbar's Discard (onDiscardLogDraft above) stays immediate.
-                    onDeleteLogEntry = mushroomLogViewModel::requestDeleteEntry,
-                    onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
-                    onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
-                    onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
                     // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
                     cartographyUiState = cartographyUiState.hidingPendingDelete(),
                     onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
@@ -659,7 +638,31 @@ class MainActivity : ComponentActivity() {
                     // all, and the Toast of a failed one (continuation 2026-09-28-65).
                     onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
                     onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
-                    onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
+                    findsLog = AvailabilityScreenFindsLog(
+                        // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
+                        // out of the lists the screen gets.
+                        logUiState = logUiState.hidingPendingDelete(),
+                        onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
+                        onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
+                        onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
+                        onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
+                        onStartEditingLogEntry = mushroomLogViewModel::onStartEditingEntry,
+                        onOpenLogEntryForEditing = mushroomLogViewModel::onOpenEntryForEditing,
+                        onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
+                        onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
+                        onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,
+                        onDiscardLogDraft = mushroomLogViewModel::onDeleteEntry,
+                        onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
+                        onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
+                        onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
+                        // J4: the find report's (and edit form's) Delete asks for a pending delete; the
+                        // "Saved to Drafts" snackbar's Discard (onDiscardLogDraft above) stays immediate.
+                        onDeleteLogEntry = mushroomLogViewModel::requestDeleteEntry,
+                        onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
+                        onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
+                        onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
+                        onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
+                    ),
                     entryReportData = AvailabilityScreenEntryReportData(
                         getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
                         // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
