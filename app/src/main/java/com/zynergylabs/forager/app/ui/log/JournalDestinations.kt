@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.ui.log
 
 // Moved from JournalTab.kt unchanged (UI split Phase 1, PR 10e, dispatch 2026-10-19-22).
 
-
 /**
  * Which screen [JournalTab]'s relocated Finds section shows for [MushroomLogUiState.editingEntry] —
  * "editing" is the accurate name for what that field means (see [MushroomLogViewModel]'s doc comment
