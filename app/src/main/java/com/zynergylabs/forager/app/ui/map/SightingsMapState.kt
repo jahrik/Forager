@@ -89,6 +89,10 @@ internal class SightingsMapState(
     val touchDownAt: FloatArray,
     val nudgeFlingGuard: NudgeFlingGuard,
     val nudgeElastic: NudgeElasticDriver,
+    /** Dispatch 2026-10-19-37: whether this map springs back from a small nudge outside navigation (MapRenderMode.nudgeSpringBack). */
+    private val nudgeSpringBackState: State<Boolean>,
+    /** Dispatch 2026-10-19-37: the plain map's nudge (PlainMapNudge.kt). */
+    val plainNudge: PlainMapNudge,
     /** RECORD -761: the picture a returning map draws over its first frames, or null when it draws itself as before. */
     val coverPicture: ImageBitmap?,
     val fanOut: MarkerFanOutState,
@@ -107,6 +111,7 @@ internal class SightingsMapState(
     val positionLook: PositionLook get() = positionLookState.value
     val onFeatureTap: (MapFeatureTap) -> Unit get() = onFeatureTapState.value
     val onCloseBubble: () -> Unit get() = onCloseBubbleState.value
+    val nudgeSpringBack: Boolean get() = nudgeSpringBackState.value
 
     /** The layers state the map draws with: the one it is given, with the colour fields its feed does not name hidden. */
     val layersState: MapLayersState get() = layersStateState.value

@@ -79,6 +79,8 @@ internal fun SightingsMapLayout(
                         stillFollowing = state.navigationView != null &&
                             state.mapLibreMap?.locationComponent?.let { it.isLocationComponentActivated && it.cameraMode != CameraMode.NONE } == true,
                     )
+                    // Dispatch 2026-10-19-37: the plain map's nudge, after navigation's; it never consumes either.
+                    state.plainNudge.onTouch(event, view.resources.displayMetrics.density)
                     // Dispatch -477, Part A: each release while navigating, whether the map still follows and
                     // how far the finger travelled. Logging only.
                     when (event.actionMasked) {

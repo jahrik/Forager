@@ -899,6 +899,8 @@ fun AvailabilityScreen(
         nightModeLoaded = uiState.nightModeMapsLoaded && (uiState.mapMode != null || chosenMapMode != null),
         layers = drawnMapLayers,
         forecast = forecastFeed,
+        // Dispatch 2026-10-19-37: the Maps tab's map springs back from a small nudge while following.
+        nudgeSpringBack = true,
     )
     // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
     // comment. mapMode above is persisted the same way since dispatch 2026-09-28-708.

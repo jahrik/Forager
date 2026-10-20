@@ -50,7 +50,14 @@ internal fun MapLocationDot(
         if (state.loadedStyle == null || !trackLiveLocation || appLocationEngine == null) return@LaunchedEffect
         val component = map.locationComponent
         if (!component.isLocationComponentActivated || state.appliedPositionLook[0] == positionLook) return@LaunchedEffect
-        component.applyStyle(liveLocationComponentOptions(context, navigating = state.navigationModeChange.gestureProtection, look = positionLook))
+        // Dispatch 2026-10-19-37: outside navigation, a map with the spring-back keeps its nudge options through a look change.
+        component.applyStyle(
+            if (state.navigationModeChange.gestureProtection) {
+                liveLocationComponentOptions(context, navigating = true, look = positionLook)
+            } else {
+                ordinaryLocationOptions(context, positionLook, state.nudgeSpringBack)
+            },
+        )
         state.appliedPositionLook[0] = positionLook
         Log.i(POSITION_DOT_LOG_TAG, "applied look $positionLook")
     }
@@ -70,7 +77,7 @@ internal fun MapLocationDot(
         if (map.locationComponent.isLocationComponentActivated) {
             map.locationComponent.cameraMode = CameraMode.TRACKING
         } else {
-            state.navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = state.positionLook) }
+            state.navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = state.positionLook, nudgeSpringBack = state.nudgeSpringBack) }
             state.appliedPositionLook[0] = state.positionLook
             Log.i(POSITION_DOT_LOG_TAG, "activated by locate with look ${state.positionLook}")
             state.navigationModeChange.listenTo(map) { state.navigationView }

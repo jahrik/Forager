@@ -36,7 +36,8 @@ internal fun MapNavigationView(
         val view = navigationView
         if (view == null) {
             if (state.navigationModeChange.gestureProtection) {
-                component.applyStyle(liveLocationComponentOptions(context, look = state.positionLook))
+                // Dispatch 2026-10-19-37: back to the options the map holds outside navigation (the nudge's, on a map with the spring-back).
+                component.applyStyle(ordinaryLocationOptions(context, state.positionLook, state.nudgeSpringBack))
                 state.navigationModeChange.gestureProtection = false
             }
             if (state.navigationModeChange.active) {

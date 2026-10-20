@@ -273,6 +273,13 @@ data class MapRenderMode(
      * [LocalMapCompass] if one is provided, and otherwise keeps MapLibre's own (magnetic) compass.
      */
     val trueHeading: State<TrueHeadingReading>? = null,
+    /**
+     * Whether this map springs back from a small nudge while it follows the user outside navigation
+     * (dispatch 2026-10-19-37; PlainMapNudge.kt has the step path). `false` by default; only the Maps
+     * tab's map (`AvailabilityScreen`'s `mapRenderMode`) turns it on, by the owner's ruling "Maps tab
+     * only": the centre-pin pickers keep MapLibre's own drag, so a small move still places the pin.
+     */
+    val nudgeSpringBack: Boolean = false,
 )
 
 /**
