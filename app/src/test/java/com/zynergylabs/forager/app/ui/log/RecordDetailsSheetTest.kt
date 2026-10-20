@@ -44,6 +44,7 @@ import com.zynergylabs.forager.app.domain.GpxCodec
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineMaps
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
@@ -139,13 +140,15 @@ class RecordDetailsSheetTest {
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
                 settings = AvailabilityScreenSettings(
                     onNightModeMapsChanged = {},
                     onThemeModeChanged = {},

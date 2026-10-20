@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineMaps
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
@@ -93,13 +94,15 @@ class TrackSheetDataTest {
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
                 settings = AvailabilityScreenSettings(
                     onNightModeMapsChanged = {},
                     onThemeModeChanged = {},

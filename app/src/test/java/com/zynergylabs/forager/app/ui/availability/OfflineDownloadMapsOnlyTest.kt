@@ -97,14 +97,16 @@ abstract class OfflineDownloadMapsOnlyTests(private val rotation: Int?) {
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
-                // As AvailabilityViewModel does: synchronous updates of the two text fields.
-                onOfflineMapLatChanged = { uiState.value = uiState.value.copy(offlineMapLatText = it) },
-                onOfflineMapLngChanged = { uiState.value = uiState.value.copy(offlineMapLngText = it) },
-                onOfflineMapRadiusChanged = { uiState.value = uiState.value.copy(offlineMapRadiusKm = it, offlineMapRadiusTouched = true) },
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = { downloadsFrom += uiState.value.offlineMapLatText to uiState.value.offlineMapLngText },
-                onDeleteOfflineRegion = {},
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    // As AvailabilityViewModel does: synchronous updates of the two text fields.
+                    onOfflineMapLatChanged = { uiState.value = uiState.value.copy(offlineMapLatText = it) },
+                    onOfflineMapLngChanged = { uiState.value = uiState.value.copy(offlineMapLngText = it) },
+                    onOfflineMapRadiusChanged = { uiState.value = uiState.value.copy(offlineMapRadiusKm = it, offlineMapRadiusTouched = true) },
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = { downloadsFrom += uiState.value.offlineMapLatText to uiState.value.offlineMapLngText },
+                    onDeleteOfflineRegion = {},
+                ),
                 settings = AvailabilityScreenSettings(
                     onNightModeMapsChanged = {},
                     onThemeModeChanged = {},

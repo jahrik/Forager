@@ -182,13 +182,6 @@ internal fun MapChromeTestScreen(
             onPlaceTripPin = { _, _, _ -> },
             onDeletePlannedTrip = {},
             onRecentSearchSelected = {},
-            onOfflineMapLatChanged = {},
-            onOfflineMapLngChanged = {},
-            onOfflineMapRadiusChanged = {},
-            onOfflineMapNameChanged = {},
-            onOfflineMapsOpened = {},
-            onDownloadOfflineMaps = {},
-            onDeleteOfflineRegion = {},
             settings = AvailabilityScreenSettings(
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
@@ -215,7 +208,16 @@ internal fun MapChromeTestScreen(
                 returnToMapRequest = state.returnToMapRequest,
                 openBackupRequest = state.openBackupRequest,
             ),
-            onDownloadAgain = { state.downloadedAgain += it },
+            offlineMaps = AvailabilityScreenOfflineMaps(
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+                onDownloadAgain = { state.downloadedAgain += it },
+            ),
         )
         overlay()
     }

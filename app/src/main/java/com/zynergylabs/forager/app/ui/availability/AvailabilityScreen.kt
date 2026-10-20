@@ -396,20 +396,12 @@ fun AvailabilityScreen(
      * so this stays optional for callers that render neither.
      */
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
-    /** Set by panning the picker map to the centre pin and confirming, in the Offline Maps submenu — see `OfflineMapsPanel`. */
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onOfflineMapNameChanged: (String) -> Unit,
-    onOfflineMapsOpened: () -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineRegion: (Long) -> Unit,
+    /** Offline maps' callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenOfflineMaps]. Required: 7 of its 8 fields were required parameters here and stay required. */
+    offlineMaps: AvailabilityScreenOfflineMaps,
     /** Settings' callbacks and the settings-reset notice (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenSettings]. Required: 2 of its 10 fields were required parameters here and stay required. */
     settings: AvailabilityScreenSettings,
     /** Settings' Backup section, the backup and restore requests, and the GPX import's notice and picker (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenBackupAndImport]. Defaulted, as its six fields were when they were parameters here. */
     backupAndImport: AvailabilityScreenBackupAndImport = AvailabilityScreenBackupAndImport(),
-    /** "Download again" on a restored offline region. */
-    onDownloadAgain: (Long) -> Unit = {},
     /** The Maps tab's controls: fullscreen, locate, the Layers sheet, basemap and icon cluster (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenMapControls]. Defaulted, as its nine fields were when they were parameters here. */
     mapControls: AvailabilityScreenMapControls = AvailabilityScreenMapControls(),
     /** The finds log's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenFindsLog]. Defaulted, as its 19 fields were when they were parameters here. */
@@ -568,6 +560,15 @@ fun AvailabilityScreen(
     val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
     val onThemeModeChanged = settings.onThemeModeChanged
     val onDistanceUnitSelected = settings.onDistanceUnitSelected
+    // Phase 2.1 (dispatch 2026-10-19-28): the offlineMaps bundle, unpacked under the parameter names it replaced.
+    val onOfflineMapLatChanged = offlineMaps.onOfflineMapLatChanged
+    val onOfflineMapLngChanged = offlineMaps.onOfflineMapLngChanged
+    val onOfflineMapRadiusChanged = offlineMaps.onOfflineMapRadiusChanged
+    val onOfflineMapNameChanged = offlineMaps.onOfflineMapNameChanged
+    val onOfflineMapsOpened = offlineMaps.onOfflineMapsOpened
+    val onDownloadOfflineMaps = offlineMaps.onDownloadOfflineMaps
+    val onDeleteOfflineRegion = offlineMaps.onDeleteOfflineRegion
+    val onDownloadAgain = offlineMaps.onDownloadAgain
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

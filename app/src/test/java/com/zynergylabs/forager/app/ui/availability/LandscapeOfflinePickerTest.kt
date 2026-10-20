@@ -99,14 +99,16 @@ class LandscapeOfflinePickerTest {
                 onPlaceTripPin = { _, _, _ -> },
                 onDeletePlannedTrip = {},
                 onRecentSearchSelected = {},
-                // As AvailabilityViewModel does: the confirmed pick becomes the two text fields.
-                onOfflineMapLatChanged = { latChanges++; uiState.value = uiState.value.copy(offlineMapLatText = it) },
-                onOfflineMapLngChanged = { uiState.value = uiState.value.copy(offlineMapLngText = it) },
-                onOfflineMapRadiusChanged = { uiState.value = uiState.value.copy(offlineMapRadiusKm = it, offlineMapRadiusTouched = true) },
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = { downloads++ },
-                onDeleteOfflineRegion = {},
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    // As AvailabilityViewModel does: the confirmed pick becomes the two text fields.
+                    onOfflineMapLatChanged = { latChanges++; uiState.value = uiState.value.copy(offlineMapLatText = it) },
+                    onOfflineMapLngChanged = { uiState.value = uiState.value.copy(offlineMapLngText = it) },
+                    onOfflineMapRadiusChanged = { uiState.value = uiState.value.copy(offlineMapRadiusKm = it, offlineMapRadiusTouched = true) },
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = { downloads++ },
+                    onDeleteOfflineRegion = {},
+                ),
                 settings = AvailabilityScreenSettings(
                     onNightModeMapsChanged = {},
                     onThemeModeChanged = {},
