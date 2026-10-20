@@ -299,6 +299,19 @@ class AvailabilityViewModel(
         reloadOfflineRegions = { offlineMaps.loadOfflineRegions() },
     )
 
+    /**
+     * Where the waypoint navigation is kept across the process, and whether the walker chose one here, moved
+     * to their own class by UI split Phase 2.4 PR 6. [onNavigateToWaypoint] and [onStopWaypointNavigation]
+     * stay in this class: they pause and resume the return. It writes this screen's state through the setter
+     * here and launches in this ViewModel's own scope.
+     */
+    private val waypointNavigationStore = AvailabilityWaypointNavigationStore(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        waypointNavigationRepository = waypointNavigationRepository,
+        errorLog = errorLog,
+    )
+
     init {
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
         // up front rather than waiting on a region the way sightings and trip windows do.
@@ -320,7 +333,7 @@ class AvailabilityViewModel(
         mapDisplay.loadMapLayerPreferences()
         mapDisplay.loadBasemapPreference()
         mapDisplay.loadMapIconClusterPlacement()
-        loadWaypointNavigation()
+        waypointNavigationStore.loadWaypointNavigation()
         // The compass strip's live coordinates are NOT started here any more. Construction-time
         // collection ran on viewModelScope, which cancels at onCleared() -- Activity destruction,
         // not stop -- so the OS listener stayed registered while the app was backgrounded and
@@ -1062,29 +1075,6 @@ class AvailabilityViewModel(
     fun onMapFullscreenChanged(fullscreen: Boolean) = settingsPrefs.onMapFullscreenChanged(fullscreen)
 
     /**
-     * Whether the walker has started or ended a waypoint navigation since this ViewModel was made. A kept
-     * navigation read after that ([loadWaypointNavigation]) is older than what they just did, so it is not
-     * applied over it.
-     */
-    private var waypointNavigationChosenHere = false
-
-    /**
-     * Picks the waypoint navigation back up when the app opens (dispatch 2026-09-28-502, Amendment 1, "Pick
-     * navigation back up"). A failed read is logged and nothing is resumed. Whether that waypoint still
-     * exists is the screen's to judge, once the waypoints have loaded (`waypointNavigationTarget`).
-     */
-    private fun loadWaypointNavigation() {
-        viewModelScope.launch {
-            waypointNavigationRepository.getCurrent().fold(
-                onSuccess = { kept ->
-                    if (kept != null && !waypointNavigationChosenHere) _uiState.update { it.copy(waypointNavigation = kept) }
-                },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the waypoint navigation to pick back up; none is resumed.", error) },
-            )
-        }
-    }
-
-    /**
      * "Navigate" on waypoint [waypointId] (dispatch 2026-09-28-502, plan tasks T8 and T9), with or without a
      * recording. A return under way is paused first (step 6: the waypoint overrules it while active) and
      * remembered, so [onStopWaypointNavigation] picks it back up; choosing another waypoint while navigating
@@ -1092,7 +1082,7 @@ class AvailabilityViewModel(
      * moment with neither on: no new start zoom (the planner's ruling).
      */
     fun onNavigateToWaypoint(waypointId: String) {
-        waypointNavigationChosenHere = true
+        waypointNavigationStore.waypointNavigationChosenHere = true
         val current = _uiState.value.waypointNavigation
         val resumesReturn = when {
             current != null -> current.resumesReturn
@@ -1104,7 +1094,7 @@ class AvailabilityViewModel(
         }
         val navigation = WaypointNavigation(waypointId, resumesReturn)
         _uiState.update { it.copy(waypointNavigation = navigation) }
-        keepWaypointNavigation(navigation)
+        waypointNavigationStore.keepWaypointNavigation(navigation)
     }
 
     /**
@@ -1113,20 +1103,11 @@ class AvailabilityViewModel(
      * ruling). Nothing to end does nothing.
      */
     fun onStopWaypointNavigation() {
-        waypointNavigationChosenHere = true
+        waypointNavigationStore.waypointNavigationChosenHere = true
         val ending = _uiState.value.waypointNavigation ?: return
         _uiState.update { it.copy(waypointNavigation = null) }
-        keepWaypointNavigation(null)
+        waypointNavigationStore.keepWaypointNavigation(null)
         if (ending.resumesReturn) returnLeg.resume()
-    }
-
-    /** Writes [navigation] to the store; a failure is logged, and the navigation on screen carries on regardless. */
-    private fun keepWaypointNavigation(navigation: WaypointNavigation?) {
-        viewModelScope.launch {
-            waypointNavigationRepository.setCurrent(navigation).onFailure { error ->
-                errorLog.w(TAG, "Couldn't keep the waypoint navigation; it will not be picked back up if the app is closed.", error)
-            }
-        }
     }
 
     /** See [AvailabilitySettingsPrefs.onThemeModeChanged]. */
