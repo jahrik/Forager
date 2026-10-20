@@ -117,6 +117,10 @@ internal fun MapDataRefresh(
                 .zoom(zoomForRadiusKm(region.radiusKm))
                 .build()
             state.lastAppliedCameraTarget = target
+        } else {
+            // Dispatch 2026-10-19-36: while following, the target is taken as applied (cameraTargetTakenAsApplied), so a
+            // gesture that ends following leaves no stale target for the next refresh, or a return, to move the camera to.
+            state.lastAppliedCameraTarget = cameraTargetTakenAsApplied(isGpsTracking, target, state.lastAppliedCameraTarget)
         }
     }
 }

@@ -41,6 +41,24 @@ internal fun shouldMoveCameraToTarget(
 ): Boolean = !isGpsTracking && target != lastAppliedCameraTarget
 
 /**
+ * Dispatch 2026-10-19-36 (RECORD -1468; the owner: "come back to Maps > the map is exactly where you left it, same place and
+ * same zoom; only a new search or a tap on locate moves it"): the target the data+camera refresh records as applied when it
+ * did not move the camera. While GPS tracking owns the camera, [target] is taken as applied: the puck is framing the user, so
+ * the region the refresh would have framed is moot. Not recording it left the applied target stale (a locate fix that
+ * changed while following), and once a gesture ended following, the next refresh, or the refresh after a return to the Maps
+ * tab (which restores this value from [MapCameraSnapshot.appliedTarget]), saw "not following, and the target differs" and
+ * moved the camera to the region at [zoomForRadiusKm]. Not tracking, nothing new is recorded: a target that changed then is
+ * one the refresh has not framed yet. Rejected: taking the returning map's target as applied on restore, which would also
+ * swallow a target that genuinely changed while the map was away (a search cleared on another tab) and leaves the same jump
+ * reachable without a tab change.
+ */
+internal fun cameraTargetTakenAsApplied(
+    isGpsTracking: Boolean,
+    target: Pair<Region, LatLng?>,
+    lastAppliedCameraTarget: Pair<Region, LatLng?>?,
+): Pair<Region, LatLng?>? = lastAppliedCameraTarget
+
+/**
  * Whether [request] moves the camera now: a request is applied once per id, and never while GPS
  * tracking owns the camera (the rule [shouldMoveCameraToTarget] follows).
  */
