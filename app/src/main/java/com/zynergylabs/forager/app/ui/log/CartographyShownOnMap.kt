@@ -30,7 +30,7 @@ internal class CartographyShownOnMap(
      * its later save carries the new value, since it is the open entry's own.
      *
      * A draft is never shown on the map (owner: "Saved entries only"): a call for one is refused and
-     * logged. So is an id this ViewModel has not loaded. A failed write changes nothing on screen and is
+     * logged. So is an id the ViewModel has not loaded. A failed write changes nothing on screen and is
      * logged, and sets its own [CartographyUiState.shownOnMapErrorMessage], exactly
      * [SHOWN_ON_MAP_FAILED_MESSAGE] (the owner, continuation `2026-09-28-65`: "Set it to "Changes not
      * applied. Try again.""), never [CartographyUiState.saveErrorMessage], which keeps its own text for

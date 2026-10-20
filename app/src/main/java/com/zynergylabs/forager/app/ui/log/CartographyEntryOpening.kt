@@ -36,7 +36,7 @@ internal class CartographyEntryOpening(
 
     /**
      * Starts a brand-new entry for [date], persists it immediately as a draft with every one of that
-     * day's *initial* candidates already kept, and opens it for curation. See this class's own doc
+     * day's *initial* candidates already kept, and opens it for curation. See [CartographyViewModel]'s own doc
      * comment for why only this one moment auto-decides candidates.
      */
     fun onStartEntry(date: LocalDate = LocalDate.now()) {
@@ -85,7 +85,7 @@ internal class CartographyEntryOpening(
 
     /**
      * Reopens an already-created entry (committed or draft) and reloads a fresh trip report for its
-     * day — see this class's own doc comment. The entry's own persisted decisions are untouched by
+     * day — see [CartographyViewModel]'s own doc comment. The entry's own persisted decisions are untouched by
      * this reload; only [CartographyUiState.candidatesForEditingEntry]/[CartographyUiState.candidateOfflineRegionsForEditingEntry]
      * (what the edit screen offers as *undecided*) come from it.
      */

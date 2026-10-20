@@ -189,7 +189,7 @@ internal class CartographyEntryExits(
     /**
      * Discards the currently-open **committed** entry's in-progress edits, by reloading it straight
      * from the database — never an in-memory revert (owner decision, device-check patch): a revert
-     * built from whatever this ViewModel remembers as "the last-saved shape" can drift from what's
+     * built from whatever the ViewModel remembers as "the last-saved shape" can drift from what's
      * actually stored, and the one thing that can't drift is the store itself. Closes the entry too,
      * the same as [onCloseEntry] — this is the leave-prompt's Discard option, not a "keep editing but
      * reset the fields" action, so it settles [CartographyUiState.entries] from the *reloaded* row
