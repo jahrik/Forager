@@ -27,7 +27,6 @@ import com.zynergylabs.forager.app.domain.LocationSampler
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.routeHome
-import com.zynergylabs.forager.app.domain.nextRouteLine
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.mayAct
 import com.zynergylabs.forager.app.domain.LocationTracker
@@ -234,8 +233,19 @@ class TrackRecordingViewModel(
 
     private var pollingJob: Job? = null
 
-    /** The route tick, running only while returning. See [beginRouteTicks]. */
-    private var routeJob: Job? = null
+    /**
+     * The route tick, running only while returning, moved to its own class by UI split Phase 2.7 PR 3. It
+     * launches in this ViewModel's own scope; [copyFromWatch], [stopReturn] and [clearRecordingState] start
+     * and stop it, synchronously, as they did.
+     */
+    private val routeTicks = TrackRecordingRouteTicks(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        lastPolledTrack = { lastPolledTrack },
+        lastGatedGpsFix = { lastGatedGpsFix },
+        findRouteHome = findRouteHome,
+    )
 
     /** The arrival hold's timer (RECORD -845), running only while [TrackRecordingUiState.isArrivalHeld]. See [holdArrival]. */
     private var arrivalHoldJob: Job? = null
@@ -407,9 +417,9 @@ class TrackRecordingViewModel(
         // The route tick runs exactly while this screen shows a return, whichever way the return
         // reached it: this screen's own Return, or a recording taken up mid-return.
         if (uiState.value.isReturning) {
-            if (routeJob == null) beginRouteTicks()
-        } else if (routeJob != null) {
-            endRouteTicks()
+            if (!routeTicks.isRunning) routeTicks.begin()
+        } else if (routeTicks.isRunning) {
+            routeTicks.end()
         }
     }
 
@@ -546,8 +556,7 @@ class TrackRecordingViewModel(
         endArrivalHold()
         pollingJob?.cancel()
         pollingJob = null
-        routeJob?.cancel()
-        routeJob = null
+        routeTicks.cancel()
         lastPolledTrack = null
         locationJob?.cancel()
         locationJob = null
@@ -908,7 +917,7 @@ class TrackRecordingViewModel(
         endArrivalHold()
         uiState.value.activeTrack?.let { returnWatch.stopReturn(it.trackId) }
         _uiState.update { it.copy(isReturning = false, isOffTrack = false) }
-        endRouteTicks()
+        routeTicks.end()
     }
 
     /**
@@ -917,33 +926,7 @@ class TrackRecordingViewModel(
      * (off the route), never for a track with no usable points.
      */
     fun retryRoute() {
-        updateRouteHome()
-    }
-
-    /**
-     * The route tick (dispatch 2026-09-28-423, plan task T6; decision D4, every 5 s): one route
-     * search per tick, at once and then every [ROUTE_TICK_MILLIS], while this screen shows a
-     * return ([copyFromWatch] starts and ends it). Its own job beside [beginPolling], not a branch
-     * inside it, because the two run at different rates. Like the poll it is unbounded, so its
-     * tests stop the recording inside the test body, in a `finally`
-     * (`TrackRecordingViewModelTest.runRecordingTest`); stopping the recording cancels it in
-     * [clearRecordingState], and [stopReturn] ends it.
-     */
-    private fun beginRouteTicks() {
-        routeJob?.cancel()
-        routeJob = viewModelScope.launch {
-            while (true) {
-                updateRouteHome()
-                delay(ROUTE_TICK_MILLIS)
-            }
-        }
-    }
-
-    /** Stops the route tick and clears its result: no return is shown, so there is no route. */
-    private fun endRouteTicks() {
-        routeJob?.cancel()
-        routeJob = null
-        _uiState.update { it.copy(routeHome = null, routeLine = null) }
+        routeTicks.updateRouteHome()
     }
 
     private fun beginPolling(trackId: String) {
@@ -967,37 +950,6 @@ class TrackRecordingViewModel(
                 delay(POLL_INTERVAL_MILLIS)
             }
         }
-    }
-
-    /**
-     * [TrackRecordingUiState.routeHome] from the track the poll last read and the last
-     * accuracy-gated fix, while returning ([endRouteTicks] clears it when the return ends). Before
-     * there is both a polled track and a gated fix it leaves the value as it is, `null` at the start
-     * of a return, which the HUD shows as a dash rather than a failure (the planner's ruling on
-     * question 3). The hop band is carried from the previous result, a withheld one included, as
-     * [RouteHome.Withheld.hopBand] asks (hysteresis, see [com.zynergylabs.forager.app.domain.pathHome],
-     * "The hop"); a new return starts at [HopBand.NONE].
-     *
-     * Runs on the tick's own coroutine, the main dispatcher, as the poll's path-home search did:
-     * about 19 ms on a desktop JVM at the four-hour HIGH_ACCURACY cap (the join dispatch's
-     * measurement, for the same search), now every 5 s instead of every 15 s. A device figure
-     * does not exist yet; if one says that is a visible stall, moving it off the main dispatcher is
-     * the recorded next step, not done here on an estimate. The gated fix, not any fix: the same
-     * accuracy rule that seeds the origin.
-     */
-    private fun updateRouteHome() {
-        val state = uiState.value
-        if (!state.isReturning) return
-        val track = lastPolledTrack ?: return
-        val current = lastGatedGpsFix ?: return
-        val previousHopBand = when (val previous = state.routeHome) {
-            is RouteHome.Ahead -> previous.hopBand
-            is RouteHome.Withheld -> previous.hopBand ?: HopBand.NONE
-            null -> HopBand.NONE
-        }
-        val next = findRouteHome(track, LatLng(current.lat, current.lng), state.originWaypoint, previousHopBand)
-        // Dispatch -497: the line the map draws moves with the route (nextRouteLine).
-        _uiState.update { it.copy(routeHome = next, routeLine = nextRouteLine(it.routeLine, next)) }
     }
 
     /**
