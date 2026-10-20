@@ -47,7 +47,6 @@ import com.zynergylabs.forager.app.domain.estimateServedOfflineTileCount
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
-import com.zynergylabs.forager.app.domain.model.defaultOfflineMapRadiusKm
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
@@ -55,14 +54,8 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
-import com.zynergylabs.forager.app.domain.ForecastAvailability
-import com.zynergylabs.forager.app.domain.isoWeekStart
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
-import com.zynergylabs.forager.app.ui.map.layers.LayerState
-import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
-import com.zynergylabs.forager.app.ui.map.layers.moveColourField
-import com.zynergylabs.forager.app.ui.map.layers.restoreMapLayersState
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -117,7 +110,7 @@ class AvailabilityViewModel(
      * already uses here, and `MushroomLogViewModel`'s `getPhotoEntryReferenceCount`. Defaulted so
      * the thirteen existing suites that construct this ViewModel and never touch this setting need
      * no stub apiece; `MainActivity` wires both to the real repository. `Result`-returning, so the
-     * read and write fold exactly the way [loadNightModePreferences] does.
+     * read and write fold exactly the way [AvailabilitySettingsPrefs.loadNightModePreferences] does.
      */
     private val getAutoSaveLocationToPhotos: suspend () -> Result<Boolean> = { Result.success(true) },
     private val setAutoSaveLocationToPhotos: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
@@ -238,6 +231,48 @@ class AvailabilityViewModel(
         errorLog = errorLog,
     )
 
+    /**
+     * The settings this screen stores, moved to their own class by UI split Phase 2.4 PR 2. It writes this
+     * screen's state through the setter here and launches in this ViewModel's own scope.
+     */
+    private val settingsPrefs = AvailabilitySettingsPrefs(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        mapPreferencesRepository = mapPreferencesRepository,
+        unitSystemPreferenceRepository = unitSystemPreferenceRepository,
+        appThemePreferenceRepository = appThemePreferenceRepository,
+        getAutoSaveLocationToPhotos = getAutoSaveLocationToPhotos,
+        setAutoSaveLocationToPhotos = setAutoSaveLocationToPhotos,
+        getSundownAlertsEnabled = getSundownAlertsEnabled,
+        setSundownAlertsEnabled = setSundownAlertsEnabled,
+        getDarknessMarginMinutes = getDarknessMarginMinutes,
+        setDarknessMarginMinutes = setDarknessMarginMinutes,
+        onDarknessMarginStored = onDarknessMarginStored,
+        getOffTrackReminderEnabled = getOffTrackReminderEnabled,
+        setOffTrackReminderEnabled = setOffTrackReminderEnabled,
+        getBatterySaverEnabled = getBatterySaverEnabled,
+        setBatterySaverEnabled = setBatterySaverEnabled,
+        errorLog = errorLog,
+    )
+
+    /**
+     * The Maps tab's records, layers, basemap and icon cluster placement, moved to their own class by UI
+     * split Phase 2.4 PR 3. It reads and writes this screen's state through the getter and setter here and
+     * launches in this ViewModel's own scope.
+     */
+    private val mapDisplay = AvailabilityMapDisplay(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        getMapRecords = getMapRecords,
+        forecastCellStore = forecastCellStore,
+        today = today,
+        mapLayerPreferencesRepository = mapLayerPreferencesRepository,
+        basemapPreferenceRepository = basemapPreferenceRepository,
+        mapIconClusterPlacementRepository = mapIconClusterPlacementRepository,
+        errorLog = errorLog,
+    )
+
     init {
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
         // up front rather than waiting on a region the way sightings and trip windows do.
@@ -248,17 +283,17 @@ class AvailabilityViewModel(
         loadRecentSearches()
         loadOfflineRegions()
         loadOfflineMapPreferences()
-        loadUnitSystemPreference()
-        loadNightModePreferences()
-        loadAutoSaveLocationToPhotos()
-        loadSundownPreferences()
-        loadOffTrackReminder()
-        loadBatterySaver()
-        loadMapFullscreenPreference()
-        loadThemeModePreference()
-        loadMapLayerPreferences()
-        loadBasemapPreference()
-        loadMapIconClusterPlacement()
+        settingsPrefs.loadUnitSystemPreference()
+        settingsPrefs.loadNightModePreferences()
+        settingsPrefs.loadAutoSaveLocationToPhotos()
+        settingsPrefs.loadSundownPreferences()
+        settingsPrefs.loadOffTrackReminder()
+        settingsPrefs.loadBatterySaver()
+        settingsPrefs.loadMapFullscreenPreference()
+        settingsPrefs.loadThemeModePreference()
+        mapDisplay.loadMapLayerPreferences()
+        mapDisplay.loadBasemapPreference()
+        mapDisplay.loadMapIconClusterPlacement()
         loadWaypointNavigation()
         // The compass strip's live coordinates are NOT started here any more. Construction-time
         // collection ran on viewModelScope, which cancels at onCleared() -- Activity destruction,
@@ -582,230 +617,29 @@ class AvailabilityViewModel(
         _uiState.update { it.copy(locateMeStatus = LocateMeStatus.PermissionDenied) }
     }
 
-    /**
-     * The Maps tab was shown (map layers L0b, B2 and B5): `AvailabilityScreen` calls this every time
-     * the tab comes into view, compact or wide, which is this data's freshness mechanism. It reloads
-     * every saved record the tab draws ([getMapRecords]), so a find saved on the Journal tab is on the
-     * map the next time the map is shown, and asks the forecast store which groups it has data for in
-     * this ISO week. A kind whose read failed is logged here and drawn as absent; the other kinds still
-     * draw (CLAUDE.md, Errors).
-     */
-    fun onMapShown() {
-        viewModelScope.launch { loadMapRecords() }
-        viewModelScope.launch {
-            val week = isoWeekStart(today())
-            val groups = when (val availability = forecastCellStore.availability(week)) {
-                ForecastAvailability.NoForecastData -> emptySet()
-                is ForecastAvailability.Groups -> availability.groups
-            }
-            _uiState.update { it.copy(forecastWeek = week, forecastGroups = groups) }
-        }
-    }
+    /** See [AvailabilityMapDisplay.onMapShown]. */
+    fun onMapShown() = mapDisplay.onMapShown()
 
-    /**
-     * A find's delete has finished (dispatch 2026-09-28-291): the map no longer holds it. The records are a
-     * snapshot taken when the tab was shown, and while the delete was pending the screen hid the find with a
-     * filter; once the delete commits that filter stops, so the snapshot itself must lose the find or it is
-     * drawn, and collected by a fan, again. Removed from the snapshot rather than re-read: the database row
-     * is already gone, so there is nothing to wait for and no read that could still see it.
-     */
-    fun onFindDeleted(id: String) {
-        _uiState.update { state ->
-            state.copy(mapRecords = state.mapRecords.copy(findMarkers = state.mapRecords.findMarkers.filterNot { it.recordId == id }))
-        }
-    }
+    /** See [AvailabilityMapDisplay.onFindDeleted]. */
+    fun onFindDeleted(id: String) = mapDisplay.onFindDeleted(id)
 
-    /**
-     * An album photo's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
-     * photo markers. Removed from the snapshot, not re-read, for the same reason.
-     */
-    fun onPhotoDeleted(id: String) {
-        _uiState.update { state ->
-            state.copy(mapRecords = state.mapRecords.copy(photoMarkers = state.mapRecords.photoMarkers.filterNot { it.recordId == id }))
-        }
-    }
+    /** See [AvailabilityMapDisplay.onPhotoDeleted]. */
+    fun onPhotoDeleted(id: String) = mapDisplay.onPhotoDeleted(id)
 
-    /**
-     * An offline region's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
-     * region circles. A record's id here is the region's id as a string, as [GetMapRecordsUseCase] makes it.
-     * Called from [commitOfflineRegionDelete]'s own success path, so no wiring through `MainActivity` is needed.
-     */
-    private fun dropOfflineRegionFromMapRecords(id: Long) {
-        _uiState.update { state ->
-            state.copy(
-                mapRecords = state.mapRecords.copy(
-                    offlineRegionCircles = state.mapRecords.offlineRegionCircles.filterNot { it.recordId == id.toString() },
-                ),
-            )
-        }
-    }
+    /** See [AvailabilityMapDisplay.onMapLayerVisibilityChanged]. */
+    fun onMapLayerVisibilityChanged(layerId: String, visible: Boolean) = mapDisplay.onMapLayerVisibilityChanged(layerId, visible)
 
-    /** The Maps tab's saved records, read now; the read [onMapShown] does and [reloadAfterRestore] repeats. */
-    private suspend fun loadMapRecords() {
-        val records = getMapRecords()
-        records.failures.forEach { failure ->
-            errorLog.w(TAG, "Couldn't load ${mapRecordKindLabel(failure.kind)} for the map.", failure.error)
-        }
-        _uiState.update { it.copy(mapRecords = records) }
-    }
+    /** See [AvailabilityMapDisplay.onMapLayerOpacityChanged]. */
+    fun onMapLayerOpacityChanged(layerId: String, opacity: Float) = mapDisplay.onMapLayerOpacityChanged(layerId, opacity)
 
-    /**
-     * The Layers sheet switched [layerId] (map layers L0b, B1 and B3): shown at once, then stored. A
-     * failed write is logged; the choice still holds for this session.
-     */
-    fun onMapLayerVisibilityChanged(layerId: String, visible: Boolean) {
-        _uiState.update { state ->
-            state.copy(mapLayers = state.mapLayers.withLayer(layerId) { it.copy(visible = visible) })
-        }
-        storeLayerChoice { mapLayerPreferencesRepository.setLayerVisible(layerId, visible) }
-    }
+    /** See [AvailabilityMapDisplay.onColourFieldMoved]. */
+    fun onColourFieldMoved(layerId: String, move: ColourFieldMove) = mapDisplay.onColourFieldMoved(layerId, move)
 
-    /**
-     * The Layers sheet's opacity slider moved for [layerId]: the L0a multiplier, 0 to 1. A value
-     * outside that range is refused and logged, never clamped (CLAUDE.md, Errors; `LayerState`'s own
-     * rule), and nothing is stored.
-     */
-    fun onMapLayerOpacityChanged(layerId: String, opacity: Float) {
-        if (!(opacity in 0f..1f)) {
-            errorLog.w(
-                TAG,
-                "Refused a map layer opacity of $opacity for $layerId: outside 0 to 1.",
-                IllegalArgumentException("opacity $opacity"),
-            )
-            return
-        }
-        _uiState.update { state ->
-            state.copy(mapLayers = state.mapLayers.withLayer(layerId) { it.copy(opacity = opacity) })
-        }
-        storeLayerChoice { mapLayerPreferencesRepository.setLayerOpacity(layerId, opacity) }
-    }
+    /** See [AvailabilityMapDisplay.onMapModeSelected]. */
+    fun onMapModeSelected(mode: MapMode) = mapDisplay.onMapModeSelected(mode)
 
-    /**
-     * The Layers sheet moved a colour field one place ("Move up", "Move down", or a step of its drag
-     * handle). The whole colour-field order is stored, bottom to top. A move past either end changes
-     * nothing and stores nothing. The map draws the new order at its next style load (terminal
-     * `2026-09-27-72`, Deviations 4).
-     */
-    fun onColourFieldMoved(layerId: String, move: ColourFieldMove) {
-        val before = _uiState.value.mapLayers
-        val after = moveColourField(before, MAP_LAYER_REGISTRY, layerId, move)
-        if (after == before) return
-        _uiState.update { it.copy(mapLayers = after) }
-        storeLayerChoice { mapLayerPreferencesRepository.setLayerOrder(after.reorderableOrder) }
-    }
-
-    private fun storeLayerChoice(write: suspend () -> Result<Unit>) {
-        viewModelScope.launch {
-            write().onFailure { error -> errorLog.w(TAG, "Couldn't store a map layer choice.", error) }
-        }
-    }
-
-    /**
-     * The stored layer choices, at start (map layers L0b, B3). Every stored choice the registry does
-     * not allow is refused, logged one by one, and left at its default (`restoreMapLayersState`); a
-     * failed read is logged and leaves every layer at its default ("On by default").
-     */
-    private fun loadMapLayerPreferences() {
-        viewModelScope.launch {
-            mapLayerPreferencesRepository.getMapLayerPreferences().fold(
-                onSuccess = { stored ->
-                    val restored = restoreMapLayersState(stored, MAP_LAYER_REGISTRY)
-                    restored.rejected.forEach { line ->
-                        errorLog.w(TAG, "Refused a stored map layer choice: $line", IllegalStateException(line))
-                    }
-                    _uiState.update { it.copy(mapLayers = restored.state) }
-                },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the map layer choices.", error) },
-            )
-        }
-    }
-
-    /**
-     * The Maps tab's basemap was picked, from the Layers sheet or the quick-fire picker (dispatch
-     * 2026-09-28-708): shown at once, then stored. A failed write is logged; the choice still holds
-     * for this session, as a layer choice's does ([storeLayerChoice]).
-     */
-    fun onMapModeSelected(mode: MapMode) {
-        _uiState.update { it.copy(mapMode = mode) }
-        storeBasemap(mode)
-    }
-
-    /**
-     * RECORD -711: a drag of the icon cluster ended, so its side and height (both orientations) are
-     * stored, and kept here so a recreated screen restores the latest rather than the launch value. A
-     * failed write is logged; the placement still holds for this session.
-     */
-    fun onMapIconClusterPlacementChanged(placement: MapIconClusterPlacement) {
-        _uiState.update { it.copy(mapIconClusterPlacement = placement) }
-        viewModelScope.launch {
-            mapIconClusterPlacementRepository.setMapIconClusterPlacement(placement)
-                .onFailure { error -> errorLog.w(TAG, "Couldn't store the map icon cluster's position.", error) }
-        }
-    }
-
-    /**
-     * The stored icon cluster placement, at start (RECORD -711). Nothing stored is
-     * [MapIconClusterPlacement.DEFAULT], where it always opened; a failed read is logged and also opens
-     * there, storing nothing. Either way [AvailabilityUiState.mapIconClusterPlacement] is set, which is what
-     * lets the screen draw the cluster. A drag that ended before the read landed wins over it.
-     */
-    private fun loadMapIconClusterPlacement() {
-        viewModelScope.launch {
-            val restored = mapIconClusterPlacementRepository.getMapIconClusterPlacement().fold(
-                onSuccess = { it ?: MapIconClusterPlacement.DEFAULT },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't read the map icon cluster's position; opening it where it always opened.", error)
-                    MapIconClusterPlacement.DEFAULT
-                },
-            )
-            _uiState.update { if (it.mapIconClusterPlacement == null) it.copy(mapIconClusterPlacement = restored) else it }
-        }
-    }
-
-    private fun storeBasemap(mode: MapMode) {
-        viewModelScope.launch {
-            basemapPreferenceRepository.setBasemapKey(mode.storageKey)
-                .onFailure { error -> errorLog.w(TAG, "Couldn't store the basemap choice.", error) }
-        }
-    }
-
-    /**
-     * The stored basemap, at start (dispatch 2026-09-28-708). Nothing stored opens on
-     * [MapMode.DEFAULT], as every launch did before the choice persisted. A stored key naming no map
-     * type (Satellite's, removed by the same dispatch, or anything else) opens on
-     * [MapMode.REPLACEMENT_FOR_UNKNOWN] (owner: "Topo (Recommended)"), is logged (CLAUDE.md: no unlogged
-     * fallback), and the replacement is stored, so the log line fires once, not on every launch. A
-     * failed read is logged and opens on [MapMode.DEFAULT], storing nothing: the stored value may be
-     * fine and the next launch may read it.
-     *
-     * Every outcome sets [AvailabilityUiState.mapMode], which is what releases the map's style gate,
-     * so it cannot hold the map blank. A pick made before the read lands wins over the read.
-     */
-    private fun loadBasemapPreference() {
-        viewModelScope.launch {
-            val restored = basemapPreferenceRepository.getBasemapKey().fold(
-                onSuccess = { key ->
-                    if (key == null) {
-                        MapMode.DEFAULT
-                    } else {
-                        MapMode.forStoredKey(key) ?: MapMode.REPLACEMENT_FOR_UNKNOWN.also { replacement ->
-                            errorLog.w(
-                                TAG,
-                                "The stored basemap \"$key\" names no map type; opening on ${replacement.label} and storing that.",
-                                IllegalStateException("unknown basemap key $key"),
-                            )
-                            storeBasemap(replacement)
-                        }
-                    }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't read the stored basemap; opening on ${MapMode.DEFAULT.label}.", error)
-                    MapMode.DEFAULT
-                },
-            )
-            _uiState.update { if (it.mapMode == null) it.copy(mapMode = restored) else it }
-        }
-    }
+    /** See [AvailabilityMapDisplay.onMapIconClusterPlacementChanged]. */
+    fun onMapIconClusterPlacementChanged(placement: MapIconClusterPlacement) = mapDisplay.onMapIconClusterPlacementChanged(placement)
 
     /**
      * Called when the map tab becomes visible. Sightings are fetched lazily, only for the
@@ -1216,7 +1050,7 @@ class AvailabilityViewModel(
     /**
      * Reads everything this ViewModel holds from the database again, after a restore, and returns when it is done:
      * the planned trips ([AvailabilityPlannedTrips.loadPlannedTrips]), the offline regions with their reference counts ([loadOfflineRegions]),
-     * and the Maps tab's records ([loadMapRecords]). The journal highlights are derived from those, the entries and the
+     * and the Maps tab's records ([AvailabilityMapDisplay.loadMapRecords]). The journal highlights are derived from those, the entries and the
      * waypoints, in the screen, so they follow. `loadRecentSearches` is not reloaded: the search cache is not restored.
      */
     suspend fun reloadAfterRestore() {
@@ -1224,7 +1058,7 @@ class AvailabilityViewModel(
         _uiState.update { it.copy(committedOfflineRegionDeleteIds = emptySet()) }
         plannedTrips.loadPlannedTrips().join()
         loadOfflineRegions().join()
-        loadMapRecords()
+        mapDisplay.loadMapRecords()
     }
 
     fun onOfflineMapsOpened() {
@@ -1322,187 +1156,26 @@ class AvailabilityViewModel(
         }
     }
 
-    /**
-     * Restores Settings' "Night Maps" checkbox — same read-failure treatment as
-     * [loadOfflineMapPreferences], plus the cold-launch gate (colour build C1): either way the read
-     * ends, [AvailabilityUiState.nightModeMapsLoaded] becomes `true` in the same update, so the map
-     * loads its first style knowing the answer. A failed read falls back to day, logged.
-     */
-    private fun loadNightModePreferences() {
-        viewModelScope.launch {
-            mapPreferencesRepository.getNightModeMaps().fold(
-                onSuccess = { night -> _uiState.update { it.copy(nightModeMaps = night, nightModeMapsLoaded = true) } },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't read the night-maps preference.", error)
-                    _uiState.update { it.copy(nightModeMaps = false, nightModeMapsLoaded = true) }
-                },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onAutoSaveLocationToPhotosChanged]. */
+    fun onAutoSaveLocationToPhotosChanged(enabled: Boolean) = settingsPrefs.onAutoSaveLocationToPhotosChanged(enabled)
 
-    /** Restores the "Automatically Save Location to Photos" preference — same read-failure treatment as [loadNightModePreferences]: log, and leave the on-by-default state alone. */
-    private fun loadAutoSaveLocationToPhotos() {
-        viewModelScope.launch {
-            getAutoSaveLocationToPhotos().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(autoSaveLocationToPhotos = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the photo-location preference.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onBatterySaverChanged]. */
+    fun onBatterySaverChanged(enabled: Boolean) = settingsPrefs.onBatterySaverChanged(enabled)
 
-    /**
-     * Settings' "Automatically Save Location to Photos" checkbox. Reflects the new value in state
-     * immediately and persists in the background, the same shape and the same
-     * not-essential-to-using-it failure treatment as [onNightModeMapsChanged] below.
-     *
-     * **The two ViewModels read this preference independently, on purpose.** This one holds it to
-     * render the checkbox; `MushroomLogViewModel` re-reads it from the same repository at the
-     * moment it is about to capture a position. Nothing is pushed from here to there, so there is
-     * no window in which the find path acts on a value this screen has already changed.
-     */
-    fun onAutoSaveLocationToPhotosChanged(enabled: Boolean) {
-        _uiState.update { it.copy(autoSaveLocationToPhotos = enabled) }
-        viewModelScope.launch {
-            setAutoSaveLocationToPhotos(enabled).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the photo-location preference.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onOffTrackReminderChanged]. */
+    fun onOffTrackReminderChanged(enabled: Boolean) = settingsPrefs.onOffTrackReminderChanged(enabled)
 
-    /** Restores the Sundown section's two settings; a failed read is logged and leaves the default (on, one hour) showing. */
-    private fun loadSundownPreferences() {
-        viewModelScope.launch {
-            getSundownAlertsEnabled().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(sundownAlertsEnabled = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether the sundown alerts are on; the default, on, is shown.", error) },
-            )
-            getDarknessMarginMinutes().fold(
-                onSuccess = { minutes -> _uiState.update { it.copy(darknessMarginMinutes = minutes) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the darkness margin; the default is shown.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onSundownAlertsEnabledChanged]. */
+    fun onSundownAlertsEnabledChanged(enabled: Boolean) = settingsPrefs.onSundownAlertsEnabledChanged(enabled)
 
-    /** Restores "Off-track reminder"; a failed read is logged and leaves the default, on, showing. */
-    private fun loadOffTrackReminder() {
-        viewModelScope.launch {
-            getOffTrackReminderEnabled().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(offTrackReminderEnabled = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether the off-track reminder is on; the default, on, is shown.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onDarknessMarginChanged]. */
+    fun onDarknessMarginChanged(minutes: Int) = settingsPrefs.onDarknessMarginChanged(minutes)
 
-    /** Restores "Battery saver"; a failed read is logged and leaves the default, off, showing. */
-    private fun loadBatterySaver() {
-        viewModelScope.launch {
-            getBatterySaverEnabled().fold(
-                onSuccess = { enabled -> _uiState.update { it.copy(batterySaverEnabled = enabled) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether Battery saver is on; the default, off, is shown.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onNightModeMapsChanged]. */
+    fun onNightModeMapsChanged(night: Boolean) = settingsPrefs.onNightModeMapsChanged(night)
 
-    /**
-     * The quick menu's "Battery saver" switch (dispatch 2026-09-28-767). Shown at once and stored in the
-     * background; storing it is what moves every fix request to the new interval, mid-recording included.
-     * A failed store is logged and the switch goes back to what is stored, so it never shows a rate the
-     * phone is not being asked at.
-     */
-    fun onBatterySaverChanged(enabled: Boolean) {
-        _uiState.update { it.copy(batterySaverEnabled = enabled) }
-        viewModelScope.launch {
-            setBatterySaverEnabled(enabled).onFailure { error ->
-                errorLog.w(TAG, "Couldn't store whether Battery saver is on; the switch shows what is stored.", error)
-                _uiState.update { it.copy(batterySaverEnabled = !enabled) }
-            }
-        }
-    }
-
-    /**
-     * Settings' "Off-track reminder" checkbox (dispatch 2026-09-28-626). Shown at once and stored in
-     * the background; the off-track rule reads the stored value when it next decides to alert.
-     */
-    fun onOffTrackReminderChanged(enabled: Boolean) {
-        _uiState.update { it.copy(offTrackReminderEnabled = enabled) }
-        viewModelScope.launch {
-            setOffTrackReminderEnabled(enabled).onFailure { error -> errorLog.w(TAG, "Couldn't store whether the off-track reminder is on.", error) }
-        }
-    }
-
-    /**
-     * Settings' "Sundown alerts" checkbox. Gates the notifications only: the sundown line stays
-     * (the owner's step path, RECORD -592). Shown at once and stored in the background, as
-     * [onAutoSaveLocationToPhotosChanged] is; the watch reads the stored value at its next tick.
-     */
-    fun onSundownAlertsEnabledChanged(enabled: Boolean) {
-        _uiState.update { it.copy(sundownAlertsEnabled = enabled) }
-        viewModelScope.launch {
-            setSundownAlertsEnabled(enabled).onFailure { error -> errorLog.w(TAG, "Couldn't store whether the sundown alerts are on.", error) }
-        }
-    }
-
-    /**
-     * Settings' "Dark under trees" choice. Shown at once; once stored, the sundown line is told
-     * ([onDarknessMarginStored]) so its start-back time moves at once (the owner's step path).
-     */
-    fun onDarknessMarginChanged(minutes: Int) {
-        _uiState.update { it.copy(darknessMarginMinutes = minutes) }
-        viewModelScope.launch {
-            setDarknessMarginMinutes(minutes).fold(
-                onSuccess = { onDarknessMarginStored(minutes) },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't store the darkness margin; the line and the alerts keep the one stored.", error) },
-            )
-        }
-    }
-
-    /**
-     * Settings' "Night Maps" checkbox. Updates [AvailabilityUiState.nightModeMaps] immediately —
-     * the map should not wait on a DataStore round-trip to reflect what was just checked — then
-     * persists in the background; a persist failure is logged but not surfaced, the same
-     * not-essential-to-using-it treatment [loadNightModePreferences] gives a read failure.
-     */
-    fun onNightModeMapsChanged(night: Boolean) {
-        _uiState.update { it.copy(nightModeMaps = night) }
-        viewModelScope.launch {
-            mapPreferencesRepository.setNightModeMaps(night).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the night-maps preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * Restores whether the Maps tab was left in fullscreen — same read-failure treatment as
-     * [loadNightModePreferences]: a failed read logs and leaves [AvailabilityUiState.persistedMapFullscreen]
-     * `null`, so the screen simply starts as it always did. See
-     * [com.zynergylabs.forager.app.domain.MapPreferencesRepository.getMapFullscreen] for the precedent this sets.
-     */
-    private fun loadMapFullscreenPreference() {
-        viewModelScope.launch {
-            mapPreferencesRepository.getMapFullscreen().fold(
-                onSuccess = { fullscreen -> _uiState.update { it.copy(persistedMapFullscreen = fullscreen) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the map-fullscreen preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * The screen entered or left fullscreen by a user action (the icon bar's toggle, system back,
-     * or leaving the Maps tab). Persists in the background; a persist failure is logged but not
-     * surfaced, the same treatment [onNightModeMapsChanged] gives. Deliberately does *not* update
-     * [AvailabilityUiState.persistedMapFullscreen]: that field is the launch-time value the screen
-     * applies once, and the screen's own live flag is the source of truth after that.
-     */
-    fun onMapFullscreenChanged(fullscreen: Boolean) {
-        viewModelScope.launch {
-            mapPreferencesRepository.setMapFullscreen(fullscreen).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the map-fullscreen preference.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onMapFullscreenChanged]. */
+    fun onMapFullscreenChanged(fullscreen: Boolean) = settingsPrefs.onMapFullscreenChanged(fullscreen)
 
     /**
      * Whether the walker has started or ended a waypoint navigation since this ViewModel was made. A kept
@@ -1572,76 +1245,11 @@ class AvailabilityViewModel(
         }
     }
 
-    /** Restores Settings' theme choice (Light/Dark/System Default) — same read-failure treatment as [loadOfflineMapPreferences]. */
-    private fun loadThemeModePreference() {
-        viewModelScope.launch {
-            appThemePreferenceRepository.getThemeMode().fold(
-                onSuccess = { mode -> _uiState.update { it.copy(themeMode = mode) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the app theme preference.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onThemeModeChanged]. */
+    fun onThemeModeChanged(mode: AppThemeMode) = settingsPrefs.onThemeModeChanged(mode)
 
-    /**
-     * Settings' theme choice — the app-wide theme [MainActivity][com.zynergylabs.forager.app.MainActivity]
-     * resolves and renders via [com.zynergylabs.forager.app.ui.theme.ForagerTheme]. Same immediate-update-then-
-     * persist shape as [onNightModeMapsChanged].
-     */
-    fun onThemeModeChanged(mode: AppThemeMode) {
-        _uiState.update { it.copy(themeMode = mode) }
-        viewModelScope.launch {
-            appThemePreferenceRepository.setThemeMode(mode).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't persist the app theme preference.", error) },
-            )
-        }
-    }
-
-    /**
-     * The one place the display unit changes, from the persisted read at startup and from Settings'
-     * toggle alike (radius-default dispatch, Item 2). Alongside the unit it applies the offline-map
-     * radius's per-unit default — [defaultOfflineMapRadiusKm]: 8 km, which displays as "5 mi", when
-     * the unit is miles; 10 km when it is kilometres — but only while the radius is still untouched
-     * ([AvailabilityUiState.offlineMapRadiusTouched]). Selected by the unit, never converted from
-     * one canonical value: a single stored default cannot be round in both units (15 km read as
-     * "9 mi"; 5 mi is 8.05 km). Re-applies on every unit change while untouched, so a user who has
-     * never set a radius and switches to kilometres gets 10 km, not a converted 8; once they have
-     * touched it, or a last-picked region restored it, it is theirs and never moves.
-     */
-    private fun applyUnitSystem(system: UnitSystem) {
-        _uiState.update {
-            it.copy(
-                unitSystem = system,
-                offlineMapRadiusKm = if (it.offlineMapRadiusTouched) it.offlineMapRadiusKm else defaultOfflineMapRadiusKm(system.distanceUnit),
-            )
-        }
-    }
-
-    /**
-     * Restores the persisted unit system at startup — see [AvailabilityUiState.unitSystem]'s own
-     * doc comment for the bug this fixes. A read failure keeps [AvailabilityUiState.unitSystem] at
-     * its default rather than surfacing an error the user never asked for, the same reasoning
-     * [loadOfflineMapPreferences] applies to its own reads; the throwable is still logged.
-     */
-    private fun loadUnitSystemPreference() {
-        viewModelScope.launch {
-            unitSystemPreferenceRepository.getUnitSystem().fold(
-                onSuccess = { system -> applyUnitSystem(system) },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the saved unit system.", error) },
-            )
-        }
-    }
-
-    /** The Settings panel's Metric/Imperial choice — updates the UI immediately and persists in the background. */
-    fun onUnitSystemSelected(system: UnitSystem) {
-        applyUnitSystem(system)
-        viewModelScope.launch {
-            unitSystemPreferenceRepository.setUnitSystem(system).fold(
-                onSuccess = {},
-                onFailure = { error -> errorLog.w(TAG, "Couldn't save the selected unit system.", error) },
-            )
-        }
-    }
+    /** See [AvailabilitySettingsPrefs.onUnitSystemSelected]. */
+    fun onUnitSystemSelected(system: UnitSystem) = settingsPrefs.onUnitSystemSelected(system)
 
     /**
      * The Settings control's existing callback, kept by name so `AvailabilityScreen.kt`'s plumbing
@@ -1809,7 +1417,7 @@ class AvailabilityViewModel(
         viewModelScope.launch {
             offlineMapRepository.deleteRegion(region.id).fold(
                 onSuccess = {
-                    dropOfflineRegionFromMapRecords(region.id)
+                    mapDisplay.dropOfflineRegionFromMapRecords(region.id)
                     loadOfflineRegions()
                 },
                 onFailure = { error ->
