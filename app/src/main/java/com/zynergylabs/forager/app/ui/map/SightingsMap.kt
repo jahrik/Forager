@@ -34,9 +34,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -1155,117 +1153,11 @@ fun SightingsMap(
     // The location dot (dispatch 2026-09-28-510) and the locate button: MapLocationDot.kt.
     MapLocationDot(sightingsMapState, appLocationEngine, mapPosition, positionLook, trackLiveLocation, resumeTrackingRequestId, context, appCompassEngine)
 
-    // Dispatch 2026-09-28-430 (plan task T22): the navigation view. Applied while navigating and
-    // following: on Return, on "Return to Route" or locate (restoreRequestId), when the facing
-    // changes (a stuck compass), after a style load or a tab's camera restore (loadedStyle), and when
-    // the map's height changes (the padding that puts the walker below the centre). Not while the
-    // user has moved away from it: the camera stays where they put it. When navigation stops, the
-    // map goes back to flat and north-up, still following if it was. Everything here is the SDK's
-    // tracking API, not a camera move: an API camera move ends MapLibre's tracking. What MapLibre
-    // then draws is device-only: a real MapView cannot run under Robolectric.
-    LaunchedEffect(mapLibreMap, loadedStyle, navigationView != null, navigationView?.following, navigationView?.facing, navigationView?.restoreRequestId, navigationView?.zoomOnStart, navigationMapHeightPx) {
-        val map = mapLibreMap ?: return@LaunchedEffect
-        if (loadedStyle == null || !trackLiveLocation) return@LaunchedEffect
-        val component = map.locationComponent
-        if (!component.isLocationComponentActivated) return@LaunchedEffect
-        val view = navigationView
-        if (view == null) {
-            if (navigationModeChange.gestureProtection) {
-                component.applyStyle(liveLocationComponentOptions(context, look = currentPositionLook))
-                navigationModeChange.gestureProtection = false
-            }
-            if (navigationModeChange.active) {
-                cameraMoveClassifier.markAppMove()
-                Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: nudge spring running=${nudgeElastic.springing}") // dispatch -470, Part A
-                navigationModeChange.leaveNavigation(map, navigationMaxZoom(basemap, navigating = false))
-            }
-            return@LaunchedEffect
-        }
-        // Dispatch -457, Parts B and C: nudge and pinch protection, on while navigating. Every
-        // activation (a style load, locate) applies the ordinary options and resets this.
-        if (!navigationModeChange.gestureProtection) {
-            component.applyStyle(liveLocationComponentOptions(context, navigating = true, look = currentPositionLook))
-            navigationModeChange.gestureProtection = true
-        }
-        // Dispatch -440, Amendment 1: the camera may reach the start zoom on every basemap while
-        // navigating. Set on every run, since a style load (line above, setMaxZoomPreference) puts
-        // the basemap's own cap back.
-        map.setMaxZoomPreference(navigationMaxZoom(basemap, navigating = true))
-        if (!view.following) return@LaunchedEffect
-        cameraMoveClassifier.markAppMove()
-        navigationModeChange.applyView(
-            map,
-            view.facing,
-            navigationViewTopPaddingPx(navigationMapHeightPx),
-            startZoom = if (view.zoomOnStart) NAVIGATION_VIEW_ZOOM else null,
-            onStartZoomApplied = view.onStartZoomApplied,
-        )
-    }
+    // Dispatch 2026-09-28-430 (plan task T22): the navigation view: MapNavigationView.kt.
+    MapNavigationView(sightingsMapState, navigationView, basemap, trackLiveLocation, context)
 
-    // Part 1 layout fixes, item 5 (Part 1's device check, flag 3; planner message 2026-09-28-98): MapLibre's
-    // attribution button ("i") keeps from the bottom what the always-visible caption keeps
-    // (bottomInset: the nav's measured height, which includes the system navigation bar, and in
-    // fullscreen the true edge, the caption's own treatment), and from its end edge the inset the host
-    // hands in (the overlaid rail in a short landscape window at the rotation that puts it on that
-    // edge). Without them it sat under the system navigation bar and the nav in portrait, and under
-    // the rail and the system bar at 90. What MapLibre draws is device-only: this map cannot run
-    // under Robolectric.
-    val layoutDirection = LocalLayoutDirection.current
-    val attributionBottomPx = with(LocalDensity.current) { (attributionBottomInset ?: bottomInset).roundToPx() }
-    // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): moved inboard of the landscape L, which the host
-    // hands over as its measured bounds, when the two would intersect. The map's own size is tracked for it in mapSizePx, above.
-    val attributionEndPx = with(LocalDensity.current) {
-        val defaults = attributionDefaultMargins
-        val endInsetPx = attributionEndInset.roundToPx()
-        if (defaults == null) {
-            endInsetPx
-        } else {
-            attributionEndInsetClearOf(
-                keepClear = attributionKeepClear,
-                mapWidthPx = mapSizePx.width,
-                mapHeightPx = mapSizePx.height,
-                defaults = defaults,
-                bottomInsetPx = attributionBottomPx,
-                endInsetPx = endInsetPx,
-                isRtl = layoutDirection == LayoutDirection.Rtl,
-                buttonPx = ATTRIBUTION_BUTTON_DP.dp.roundToPx(),
-                gapPx = ATTRIBUTION_CLEAR_GAP_DP.dp.roundToPx(),
-            )
-        }
-    }
-    // RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): in a short landscape window
-    // the button moves to the bottom start, just past the credit strip's measured end, its bottom on the strip's bottom. It is
-    // MapLibre's own attribution control, so it moves through the same two UiSettings calls as before (gravity and margins), not
-    // as a composable; it opens what it always opened. Portrait and every other map keep the bottom-end corner.
-    // The credit strip's laid-out width is creditWidthPx, above.
-    val besideCreditGapPx = with(LocalDensity.current) { ATTRIBUTION_BESIDE_CREDIT_GAP_DP.dp.roundToPx() }
-    val creditBottomPx = with(LocalDensity.current) { bottomInset.roundToPx() }
-    val logoBesideAttributionOffsetPx = with(LocalDensity.current) { (ATTRIBUTION_BUTTON_DP + LOGO_ATTRIBUTION_GAP_DP).dp.roundToPx() }
-    LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection, attributionBesideCredit, creditWidthPx, creditBottomPx) {
-        val map = mapLibreMap ?: return@LaunchedEffect
-        val defaults = attributionDefaultMargins ?: return@LaunchedEffect
-        val isRtl = layoutDirection == LayoutDirection.Rtl
-        val attributionGravity: Int
-        val attributionMargins: IntArray
-        if (attributionBesideCredit && creditWidthPx > 0) {
-            attributionGravity = Gravity.BOTTOM or Gravity.START
-            attributionMargins = attributionBesideCreditMarginsPx(defaults, creditWidthPx, besideCreditGapPx, creditBottomPx, isRtl)
-        } else {
-            attributionGravity = Gravity.BOTTOM or Gravity.END
-            attributionMargins = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = isRtl)
-        }
-        map.uiSettings.setAttributionGravity(attributionGravity)
-        val (left, top, right, bottom) = attributionMargins
-        map.uiSettings.setAttributionMargins(left, top, right, bottom)
-        // Dispatch 2026-10-18-07, RECORD -1309 and -1315 (the owner: "And yes have the maps Libre logo on the right"; then option
-        // 1, a row beside the "i" at the bottom end, accepting that it meets the end of the long Topo caption in portrait). The
-        // logo follows the "i" wherever the "i" goes, just past it on the side away from the edge (logoBesideAttribution).
-        // It was MapLibre's default until then, bottom-start at 4 dp, under the start of the caption. Kept visible.
-        val logo = logoBesideAttribution(attributionGravity, attributionMargins, logoBesideAttributionOffsetPx, isRtl)
-        map.uiSettings.setLogoGravity(logo.gravity)
-        val (logoLeft, logoTop, logoRight, logoBottom) = logo.margins
-        map.uiSettings.setLogoMargins(logoLeft, logoTop, logoRight, logoBottom)
-    }
+    // Part 1 layout fixes, item 5, and RECORD -954: MapLibre's attribution button and logo: MapAttributionInsets.kt.
+    MapAttributionInsets(sightingsMapState, attributionBottomInset, bottomInset, attributionEndInset, attributionKeepClear, attributionBesideCredit)
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
     // disabled above (see the DisposableEffect(mapView) block's own comment), so this is the only
