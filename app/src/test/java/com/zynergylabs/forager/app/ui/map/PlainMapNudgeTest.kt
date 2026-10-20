@@ -225,6 +225,15 @@ class PlainMapNudgeTest {
     }
 
     @Test
+    fun `locate while still following leaves the give to the spring`() {
+        // Locate tapped mid-spring, or while a finger holds a give: following is on and padding is shown.
+        cameraPadding = doubleArrayOf(40.0, 0.0, 0.0, 0.0)
+        mode = CameraMode.TRACKING
+        nudge.beforeLocate()
+        assertEquals("no camera move, which would end following", 0, clears)
+    }
+
+    @Test
     fun `locate with no padding on screen clears nothing`() {
         nudge.beforeLocate()
         assertEquals(0, clears)

@@ -178,10 +178,14 @@ internal class PlainMapNudge(
      * would centre the dot in the padded area, up to half the threshold off centre, so on the plain map any padding the
      * camera holds is cleared first, keeping the picture, and tracking then moves from there to the dot. The camera's own
      * padding is read, not the leftover's record, so every way the spring can be cut short is covered. Never while
-     * navigating: navigation applies its own padding.
+     * navigating: navigation applies its own padding. Only once following has ended (Sorrel's review of 2589c0d9): while it
+     * is still on (locate tapped mid-spring, or a finger holding a give), the clear's camera move would itself end
+     * following (MapLibreMap notifies its developer-animation listeners, which set NONE) and locate's transition would
+     * replace the spring; there the spring settles the padding at zero itself, and locate while following changes nothing,
+     * as before.
      */
     fun beforeLocate() {
-        if (!springBack() || navigating()) return
+        if (!springBack() || navigating() || map.cameraMode() != CameraMode.NONE) return
         if (map.paddingShown()) {
             Log.i(NAVIGATION_VIEW_LOG_TAG, "nudge: locate with a give left on screen; clearing it first")
             map.clearPaddingKeepingPicture()
