@@ -1,6 +1,11 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.runtime.MutableIntState
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import com.zynergylabs.forager.app.ui.log.ScreenEdge
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
+import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
  * The layout limits [CompactMapTab]'s children share, carried as one object so a spacing fix touches this file and the one child
@@ -40,4 +45,53 @@ internal class CompactMapLayoutState(
     var landscapeStripWidthPx: Int
         get() = landscapeStripWidthState.intValue
         set(value) { landscapeStripWidthState.intValue = value }
+
+    // The limits, worked out from the sizes above and from inputs that change every composition. Those inputs are arguments and
+    // never stored: the one-line clearance is remembered under the strip's text style and density, and the insets, the search
+    // bar's edge and the density come with each composition. [CompactMapTab] calls each of these where it always worked the limit
+    // out, so every state read stays in its body and the children are handed values, as before.
+
+    /**
+     * RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): what sits below the strip in portrait (the
+     * observation bubble's top, the icon bar's drag limit, the taxon and journal chips; the search dropdown, in the
+     * scaffold, through searchBarSlot) clears the strip's measured height, not one text line. Back by's three-dot button
+     * (dispatch 2026-09-28-645) gave the strip a 36 dp floor, twice that line, and its sundown and Back by lines grow it
+     * too. The one-line clearance stays the floor, and is what is used while the strip is not measured: before its first
+     * layout, while navigating (the display replaces it), and in a landscape window, where the strip sits in the other
+     * corner and is not measured. The comment above `compassStripClearance` in [CompactMapTab] records a regression from reading
+     * a measured height back for the bubble's minY; the strip's measured height was already read there for the search notice
+     * (searchBarSlot), and the test that caught that regression ("tapping elsewhere on the map dismisses the observation
+     * bubble") is @Ignore'd for an unrelated harness reason, so whether the regression returns is a device item.
+     */
+    fun stripBottomClearance(oneLineClearance: Dp, density: Density): Dp =
+        with(density) { compassStripHeightPx.toDp() }.coerceAtLeast(oneLineClearance)
+
+    /** The observation bubble's top: below the search bar and the strip. */
+    fun bubbleMinY(topInset: Dp, stripBottomClearance: Dp): Dp = topInset + stripBottomClearance
+
+    /**
+     * The icon cluster's top limit, in pixels: in a landscape window the search bar's settled bottom edge (not the animated top
+     * inset; see `searchBarBottom` on [CompactMapTab]), otherwise below the search bar and the strip.
+     */
+    fun clusterTopLimitPx(landscapeCluster: Boolean, searchBarBottom: Dp, topInset: Dp, stripBottomClearance: Dp, density: Density): Float =
+        with(density) { (if (landscapeCluster) searchBarBottom else topInset + stripBottomClearance).toPx() }
+
+    /** Owner's ruling (b), continuation 2026-09-28-172: 8 + the L's measured width + 8, as the legend makes room (legendEndPadding). */
+    fun noticeInsetDp(clusterWidthPx: Float, density: Density): Dp =
+        MAP_ICON_BAR_EDGE_INSET + with(density) { clusterWidthPx.toDp() } + Spacing.sm
+
+    /**
+     * Owner's ruling (b), continuation 2026-09-28-172: in the landscape L, a notice on the same side as the L is inset on that
+     * side by [noticeInsetDp], as the legend makes room (legendEndPadding). Elsewhere none. Takes the cluster itself, not its side,
+     * so the side is read only in a landscape window, as before: a side passed in would be read up front, and the tab's body would
+     * then read it in portrait too.
+     */
+    fun searchNoticeInset(landscapeCluster: Boolean, cluster: MapIconClusterState, punchHoleEdge: ScreenEdge?, insetDp: Dp): SearchNoticeInset {
+        val noticeAnchoredLeft = punchHoleEdge == ScreenEdge.Left
+        return when {
+            !landscapeCluster || cluster.isOnLeftSide != noticeAnchoredLeft -> SearchNoticeInset.None
+            cluster.isOnLeftSide -> SearchNoticeInset(left = insetDp)
+            else -> SearchNoticeInset(right = insetDp)
+        }
+    }
 }
