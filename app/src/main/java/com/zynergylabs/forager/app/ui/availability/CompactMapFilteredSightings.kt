@@ -7,9 +7,11 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 
 /**
  * The sightings the map plots. Sightings are only real once a search has actually run ([hasSearched]); before that the
- * viewport has nothing plotted on it. "View on Map" from a List-tab row — see MapTab's own doc comment on the identical
- * filteredSightings/mapTaxonFilterLabel pair for why this filters uiState.sightings
- * itself rather than trusting uiState.forecast's own observationCount.
+ * viewport has no sightings plotted on it. "View on Map" from a List-tab row: filtered against uiState.sightings itself
+ * (what the map actually draws), not against uiState.forecast's own observationCount — the two can legitimately disagree
+ * (the forecast is a separate historical query; the map only shows what actually loaded for this region), so the count
+ * in mapTaxonFilterLabel is what's really on screen. (That reason is the removed tablet MapTab's comment, verbatim but for one
+ * capital and its "below", as of 3e973bbc^, AvailabilityWideLayoutUi.kt:395-400.)
  */
 internal fun compactMapFilteredSightings(uiState: AvailabilityUiState, hasSearched: Boolean, taxonFilter: Long?): List<Sighting> = when {
     !hasSearched -> emptyList()
