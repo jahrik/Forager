@@ -111,6 +111,13 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
     /** RECORD -761: whether the map was ever handed `leavingTab` (the tab crossfade's outgoing side). */
     var mapLeavingSeen = false
 
+    /**
+     * The map's sighting-tap callback as handed on its latest composition: what the real map calls with a dot's screen position
+     * when it is tapped (LandscapeStripHeightTest opens the observation bubble through it at a chosen point).
+     */
+    var mapOnSightingTap: ((Sighting, Offset, Float) -> Unit)? = null
+        private set
+
     /** RECORD -752: every measure of the map slot, in order, with the remembered camera at that moment. */
     val mapMeasures = mutableListOf<MapMeasure>()
 
@@ -178,7 +185,8 @@ internal class RealSearchScreenRig(private val composeRule: AndroidComposeTestRu
             getTodaysForecast = GetTodaysForecastUseCase(RigNoWeather),
         )
         val vm = viewModel
-        val mapSlot: MapSlot = { region, content, renderMode, _, _, _, _, _, modifier ->
+        val mapSlot: MapSlot = { region, content, renderMode, _, _, _, onSightingTap, _, modifier ->
+            mapOnSightingTap = onSightingTap
             mapSightings = content.sightings
             mapRegion = region
             mapSearchFrameRequestId = content.searchFrameRequestId
