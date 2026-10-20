@@ -152,8 +152,10 @@ class LandscapeEntryReportTest {
                 mapSlot = recordingSlot,
                 cartographyUiState = CartographyUiState(entries = listOf(entry), editingEntry = editing),
                 onCloseCartographyEntry = { closes++; editing = null },
-                getCartographyEntryMapData = { _, _ -> mapData },
-                getCartographyEntryOfflineRegion = { _, _ -> region },
+                entryReportData = AvailabilityScreenEntryReportData(
+                    getCartographyEntryMapData = { _, _ -> mapData },
+                    getCartographyEntryOfflineRegion = { _, _ -> region },
+                ),
             )
             }
         }
