@@ -43,7 +43,7 @@ internal class AvailabilitySettingsPrefs(
 
     /**
      * Restores Settings' "Night Maps" checkbox — same read-failure treatment as
-     * [AvailabilityViewModel.loadOfflineMapPreferences], plus the cold-launch gate (colour build C1): either way the read
+     * [AvailabilityOfflineMaps.loadOfflineMapPreferences], plus the cold-launch gate (colour build C1): either way the read
      * ends, [AvailabilityUiState.nightModeMapsLoaded] becomes `true` in the same update, so the map
      * loads its first style knowing the answer. A failed read falls back to day, logged.
      */
@@ -223,7 +223,7 @@ internal class AvailabilitySettingsPrefs(
         }
     }
 
-    /** Restores Settings' theme choice (Light/Dark/System Default) — same read-failure treatment as [AvailabilityViewModel.loadOfflineMapPreferences]. */
+    /** Restores Settings' theme choice (Light/Dark/System Default) — same read-failure treatment as [AvailabilityOfflineMaps.loadOfflineMapPreferences]. */
     fun loadThemeModePreference() {
         scope().launch {
             appThemePreferenceRepository.getThemeMode().fold(
@@ -272,7 +272,7 @@ internal class AvailabilitySettingsPrefs(
      * Restores the persisted unit system at startup — see [AvailabilityUiState.unitSystem]'s own
      * doc comment for the bug this fixes. A read failure keeps [AvailabilityUiState.unitSystem] at
      * its default rather than surfacing an error the user never asked for, the same reasoning
-     * [AvailabilityViewModel.loadOfflineMapPreferences] applies to its own reads; the throwable is still logged.
+     * [AvailabilityOfflineMaps.loadOfflineMapPreferences] applies to its own reads; the throwable is still logged.
      */
     fun loadUnitSystemPreference() {
         scope().launch {
