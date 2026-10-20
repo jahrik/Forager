@@ -132,10 +132,11 @@ import kotlinx.coroutines.sync.withLock
  * committed pending delete ([MushroomLogPendingDeletes.commitGalleryPhotoDelete], in this class until
  * Phase 2.8 moved it) and the camera-capture fix patch (`requestAndPatchCaptureFix`, in
  * [MushroomLogCaptureLocation]) call [loadEntries] the same way, and [reloadAfterRestore] joins it
- * before taking its own lock. One call is made while holding the lock and leads to an acquisition:
- * [onAddPhoto] launches the capture fix follow-up, whose separate coroutine reaches
- * `promoteCaptureFixToFind`'s lock later. Nobody awaits that coroutine, so it queues behind the
- * holder rather than nesting (the planner's ruling in 2.8's verify-first; reasoning, not a test).
+ * before taking its own lock. One path is taken while holding the lock and leads to an acquisition:
+ * [onAddPhoto] → `patchCameraCaptureLocationIntoFind` (in [MushroomLogCaptureLocation]) launches a
+ * coroutine that later reaches `promoteCaptureFixToFind`'s lock. Nobody awaits that coroutine, so it
+ * queues behind the holder rather than nesting (the planner's ruling in 2.8's verify-first; Sorrel's
+ * review of #333; reasoning, not a test).
  * [onOpenEntryForEditing] below is deliberately its own critical section
  * with its own inline logic, not `withLock { onOpenEntry(id); onStartEditingEntry() }` calling the
  * two existing public methods — that shape would have this function's own lock acquisition wait on

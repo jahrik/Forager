@@ -96,7 +96,7 @@ internal class MushroomLogCaptureLocation(
 
     /**
      * Fire-and-forget: requests a live GPS fix and, only if one resolves, patches it onto the
-     * already-persisted gallery photo [photoId] — see this class's own "Camera-capture location"
+     * already-persisted gallery photo [photoId] — see [MushroomLogViewModel]'s own "Camera-capture location"
      * doc comment for the full reasoning. Launched from [MushroomLogViewModel.onAddPhoto]/[MushroomLogViewModel.onAddGalleryPhoto] without
      * being awaited, so this never delays the capture flow those functions already completed by the
      * time this runs. [LocationResult.PermissionDenied]/[LocationResult.LocationUnavailable] are
