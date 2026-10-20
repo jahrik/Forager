@@ -69,7 +69,6 @@ import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
 import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
-import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.location.modes.CameraMode
@@ -309,7 +308,6 @@ fun SightingsMap(
     val appLocationEngine = remember(mapPosition != null) { if (mapPosition != null) AppLocationEngine() else null }
     val positionLook = mapPosition?.let { position -> remember(position) { derivedStateOf { positionLookOf(position.shown.value, position.liveFix.value) } }.value } ?: PositionLook.PRECISE
     val currentPositionLookState = rememberUpdatedState(positionLook)
-    val currentPositionLook by currentPositionLookState
     // The look last handed to MapLibre, so an unchanged look is not re-applied on every style load.
     val appliedPositionLook = remember { arrayOf(PositionLook.PRECISE) }
     // The navigation view's own camera mode changes, marked so the tracking listener below does not
@@ -339,7 +337,6 @@ fun SightingsMap(
     // The map chrome's colour (the navigation bar's), read here because it follows the app's theme.
     val chromeColour = navigationBarContainerColor().toArgb()
     val currentChromeColourState = rememberUpdatedState(chromeColour)
-    val currentChromeColour by currentChromeColourState
     // The chrome colour the fan's circle image holds in the loaded style: set when the style loads (addFanOutLayers registers it), so the colour effect
     // below registers it again only for a real change of colour.
     val fanCircleColour = remember { arrayOfNulls<Int>(1) }
@@ -495,7 +492,6 @@ fun SightingsMap(
     // or offline switch is a deliberate, roughly once-per-outing action, not something that fires
     // on every recomposition.
     val appliedStyleState = remember { mutableStateOf<AppliedMapStyle?>(null) }
-    var appliedStyle by appliedStyleState
 
     // What the camera was last deliberately moved to by the data+camera refresh effect below —
     // *not* re-derived from mapLibreMap.cameraPosition, which changes continuously while GPS
@@ -508,7 +504,6 @@ fun SightingsMap(
     // frame): kept with the MapView, so a request arriving again on a later recomposition, after a
     // fullscreen switch or a find overlay's Back, does not move the camera the user has since moved.
     val lastAppliedCameraRequestIdState = remember { mutableStateOf<String?>(null) }
-    var lastAppliedCameraRequestId by lastAppliedCameraRequestIdState
 
     // RECORD -750, item 5: the last search frame this map applied, for a map with no camera memory; one with memory keeps it
     // there (MapCameraMemory.appliedSearchFrameId), so it outlives the MapView.
@@ -846,203 +841,41 @@ fun SightingsMap(
         onDispose { mapView.removeOnDidFinishRenderingFrameListener(frameLogger) }
     }
 
-    // Style swap: basemap, palette, the offline style (Stage 2e-ii), or effective night (colour
-    // build C1: nightMode is a key, and AppliedMapStyle.night is compared). Keyed on the inputs
-    // rather than driven from an AndroidView update block: setStyle is asynchronous (its callback
-    // is where the new style's sources/layers can actually be added), which the old synchronous
-    // update-block shape has no equivalent of.
-    //
-    // The offline branch loads OFFLINE_STYLE_URL by URI (see MapStyleSource's own doc comment for
-    // why by URI and never fromJson), the exact string every region was downloaded against, so
-    // MapLibre's offline database can serve the style document, its TileJSON and its tiles from
-    // the store. Nothing else about the swap differs from a basemap swap: initializeOverlayLayers
-    // re-adds every overlay in the callback exactly as it does for a basemap change, and the
-    // data+camera refresh effect below re-pushes their content keyed on loadedStyle. One thing
-    // deliberately left as the user will see it (owner ruling, 2e-ii: report, do not fix): the max
-    // zoom preference stays the *basemap's* (17 for OpenTopoMap) over a store that stops at zoom
-    // 15 — vector tiles overzoom cleanly, per OfflineMapRepository.MAX_ZOOM's doc comment, so the
-    // user can zoom past the data's own ceiling without a hard stop. 2e-ii also left night inert
-    // on the offline style; since colour build C1 it is applied by recolouring the loaded style's
-    // own layers in the setStyle callback below (mapStyleSourceFor's doc comment).
-    //
-    // A style that fails to load (offline with no region covering the camera, a worker URL that
-    // moved, a cold store) never reaches this callback, so appliedStyle and loadedStyle keep their
-    // previous values and the map shows MapLibre's own blank. That failure is logged by the
-    // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
-    // the user should be *told* in that state is a decision the pre-build report lists and this
-    // dispatch did not make.
-    LaunchedEffect(mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded) {
-        val map = mapLibreMap ?: return@LaunchedEffect
-        // null until the Night Maps preference has loaded (the cold-launch gate): the effect
-        // relaunches when nightModeLoaded turns true, and the first style it requests is then the
-        // right one. The map shows MapLibre's own blank until then.
-        val requested = requestedMapStyle(
-            basemap = basemap,
-            useOfflineTiles = useOfflineTiles,
-            nightMode = nightMode,
-            nightModeLoaded = nightModeLoaded,
-        ) ?: return@LaunchedEffect
-        if (!needsStyleReload(appliedStyle, requested)) return@LaunchedEffect
-        // Captured before setStyle below discards the LocationComponent entirely (see
-        // activateLiveLocationIfPermitted's own doc comment on why re-activation is needed at
-        // all) — null only the very first time this composable ever activates the puck;
-        // CameraMode.NONE if the user had already broken tracking by panning/zooming;
-        // CameraMode.TRACKING if they hadn't. Restoring exactly this, rather than always
-        // re-forcing TRACKING, is the fix for a real hardware report: switching basemap (or
-        // toggling night mode, which goes through this same style-swap path on every basemap)
-        // was recentering the
-        // map on the user's location even after they had deliberately panned away — the
-        // GPS/locate-me icon is the control for that, not this one.
-        val previousCameraMode = if (map.locationComponent.isLocationComponentActivated) {
-            map.locationComponent.cameraMode
-        } else {
-            null
-        }
-        // Part 1 layout fixes, item 4 (planner message 2026-09-28-98): a map that has left composition
-        // with its tab and come back is a new MapView, which would open where a fresh map does (the
-        // region move below, at zoomForRadiusKm, and the first activation's zoom-in). Its first style
-        // load restores the camera the user left instead: target, zoom, bearing and tilt, the region
-        // target taken as already applied (so the region move does not run, while a new search still
-        // does), and the tracking mode (so the zoom-in does not run). Only on this MapView's first
-        // style; a later style swap keeps its own camera, as before.
-        val cameraRestore = cameraRestoreFor(if (appliedStyle == null) currentCameraMemory?.saved else null, previousCameraMode)
-        cameraRestore?.let {
-            Log.i(MAPS_COMEBACK_LOG_TAG, "restore before the style: view=${mapView.width}x${mapView.height} to zoom=${it.zoom} target=${it.target} (camera was zoom=${map.cameraPosition.zoom})")
-            cameraMoveClassifier.markAppMove()
-            applyCameraRestore(map, it)
-        }
-        map.setMaxZoomPreference(basemap.maxZoom.toDouble())
-        val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
-            is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
-            is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
-        }
-        map.setStyle(builder) { style ->
-            // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
-            disableSymbolFade(style)
-            // Offline night (colour build C1 (d)): the offline style has no raster layer for
-            // NIGHT_RASTER_PAINT to act on, so its own layers are recoloured here, after it loads
-            // from its one URL and before the overlays are added, so the overlays' own line and
-            // fill layers are never touched. Day, or night off, restyles nothing: the style came
-            // fresh from its URI.
-            if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
-            initializeOverlayLayers(
-                style,
-                density = resources.displayMetrics.density,
-                palette = requested.palette,
-                drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState),
-                layersState = currentLayersState,
-                chromeColour = currentChromeColour,
-            )
-            fanCircleColour[0] = currentChromeColour
-            // Dispatch 2026-09-28-510: the approximate and last known dots, by name, before the dot is activated
-            // below; setStyle discards images with everything else, so on every style load.
-            if (appLocationEngine != null) addPositionLookImages(style, context)
-            // The data+camera refresh effect below re-pushes every source right after this, keyed
-            // on loadedStyle among other things — including the sighting source, with "selected"
-            // baked in from whatever focusedObservationId is current at that point. Nothing here
-            // needs to seed it separately.
-            // Item 4: again once the style has loaded, in case a style's own default camera replaced it,
-            // and the region target recorded before loadedStyle wakes the data+camera effect below.
-            cameraRestore?.let {
-                Log.i(MAPS_COMEBACK_LOG_TAG, "restore on the style load: view=${mapView.width}x${mapView.height}, camera was zoom=${map.cameraPosition.zoom} target=${map.cameraPosition.target}")
-                cameraMoveClassifier.markAppMove()
-                applyCameraRestore(map, it)
-                lastAppliedCameraTarget = it.appliedTarget
-            }
-            appliedStyle = requested
-            loadedStyle = style
-            // setStyle discards the previous style's LocationComponent state the same way it does
-            // this composable's own layers (see initializeOverlayLayers' own doc comment on why
-            // that function re-runs here) — so the live-location "puck" needs the same
-            // re-activate-on-every-new-style treatment. Guarded by trackLiveLocation — see that
-            // parameter's own doc comment for why a historical-place map instance must never seize
-            // the camera for the device's current location at all.
-            if (trackLiveLocation) {
-                cameraMoveClassifier.markAppMove() // activating (or re-activating, after a style swap) sets the camera mode and may ease the zoom
-                navigationModeChange.byTheApp {
-                    activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = currentPositionLook)
-                    appliedPositionLook[0] = currentPositionLook
-                    Log.i(POSITION_DOT_LOG_TAG, "activated on a style load with look $currentPositionLook")
-                }
-                navigationModeChange.listenTo(map) { currentNavigationView }
-                navigationModeChange.gestureProtection = false
-            }
-        }
-    }
+    // Style swap (Stage 2e-ii, colour build C1): MapStyleReload.kt.
+    MapStyleReload(
+        state = sightingsMapState,
+        basemap = basemap,
+        useOfflineTiles = useOfflineTiles,
+        nightMode = nightMode,
+        nightModeLoaded = nightModeLoaded,
+        trackLiveLocation = trackLiveLocation,
+        context = context,
+        resources = resources,
+        appCompassEngine = appCompassEngine,
+        appLocationEngine = appLocationEngine,
+    )
 
-    // Data + camera refresh. Runs on every relevant prop change *and* whenever a new style just
-    // finished loading (loadedStyle changing is what makes this re-populate a freshly blank style
-    // after a basemap swap) — the same "rebuild content every update, regardless of why the update
-    // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
-    // because MapLibre's own API separates "style ready" from "camera/property changed".
-    // Dispatch -497: the way back, pushed whenever it or the style changes (a new style starts empty).
-    LaunchedEffect(loadedStyle, route) {
-        loadedStyle?.let { updateRouteHomeLayers(it, route) }
-    }
-    LaunchedEffect(
-        loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
-        keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest, journalHighlights,
-        searchFrameRequestId,
-    ) {
-        val style = loadedStyle ?: return@LaunchedEffect
-        val map = mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(
-            style, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId,
-            keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, journalHighlights,
-        )
-
-        // Once the live-location "puck" is actively tracking (the default once permission is
-        // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its
-        // own internal update loop, independent of recomposition. Jumping the camera to the search
-        // region here too — on every sightings/breadcrumb update this effect already keys on,
-        // which includes roughly every 15s while a track is recording — would fight it, snapping the
-        // view back to the search center out from under a walker watching their live position. Once
-        // a pan/zoom/the CameraMode.NONE break in activateLiveLocationIfPermitted's own doc comment
-        // drops tracking, this resumes controlling the camera exactly as it did before that existed.
-        val isGpsTrackingBefore = map.locationComponent.isLocationComponentActivated &&
-            map.locationComponent.cameraMode != CameraMode.NONE
-        val target = region to focusOverride
-        // RECORD -750, item 5 (the owner: "Yes, fly to the search (Recommended)"): a new search's frame stops the camera
-        // following the GPS fix, which would otherwise block the move below, and frames the searched region. Once per id.
-        val appliedSearchFrameId = currentCameraMemory?.appliedSearchFrameId ?: localAppliedSearchFrameId[0]
-        val searchFrame = searchFrameMove(isGpsTrackingBefore, searchFrameRequestId, appliedSearchFrameId)
-        if (searchFrame != SearchFrameMove.NONE) {
-            cameraMoveClassifier.markAppMove()
-            if (searchFrame == SearchFrameMove.STOP_FOLLOWING_AND_FRAME) map.locationComponent.cameraMode = CameraMode.NONE
-            map.cameraPosition = CameraPosition.Builder()
-                .target(MapLibreLatLng(region.lat, region.lng))
-                .zoom(zoomForRadiusKm(region.radiusKm))
-                .build()
-            lastAppliedCameraTarget = target
-            localAppliedSearchFrameId[0] = searchFrameRequestId
-            currentCameraMemory?.appliedSearchFrameId = searchFrameRequestId
-            Log.i(SEARCH_FRAME_LOG_TAG, "search frame $searchFrameRequestId applied ($searchFrame) at ${region.lat}, ${region.lng}")
-            return@LaunchedEffect
-        }
-        val isGpsTracking = isGpsTrackingBefore
-        // A one-shot frame (the entry map's opening frame) stands in for this target's move: the
-        // target is recorded as applied too, so the region move below does not follow it and undo it.
-        // A later target change (a locate-me pan) still moves the camera, as before.
-        val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, lastAppliedCameraRequestId)
-        if (frameWanted) cameraMoveClassifier.markAppMove()
-        val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest.frame, resources.displayMetrics.density)
-        if (frameApplied) {
-            lastAppliedCameraRequestId = cameraRequest.id
-            lastAppliedCameraTarget = target
-        } else if (shouldMoveCameraToTarget(isGpsTracking, target, lastAppliedCameraTarget)) {
-            val center = MapLibreLatLng(region.lat, region.lng)
-            // focusOverride pans the camera without moving the search-location marker or the
-            // zoom-from-radius heuristic below, both of which stay anchored to region — see
-            // MapSlot's doc comment on this parameter for why the two are kept independent.
-            val cameraTarget = focusOverride?.let { MapLibreLatLng(it.lat, it.lng) } ?: center
-            cameraMoveClassifier.markAppMove()
-            map.cameraPosition = CameraPosition.Builder()
-                .target(cameraTarget)
-                .zoom(zoomForRadiusKm(region.radiusKm))
-                .build()
-            lastAppliedCameraTarget = target
-        }
-    }
+    // The way home (dispatch -497) and the data + camera refresh: MapDataRefresh.kt.
+    MapDataRefresh(
+        state = sightingsMapState,
+        route = route,
+        region = region,
+        sightings = sightings,
+        plannedTrips = plannedTrips,
+        focusOverride = focusOverride,
+        breadcrumbPoints = breadcrumbPoints,
+        waypoints = waypoints,
+        focusedObservationId = focusedObservationId,
+        keptTrackPolylines = keptTrackPolylines,
+        findMarkers = findMarkers,
+        photoMarkers = photoMarkers,
+        offlineRegionCircles = offlineRegionCircles,
+        showSearchCentre = showSearchCentre,
+        cameraRequest = cameraRequest,
+        journalHighlights = journalHighlights,
+        searchFrameRequestId = searchFrameRequestId,
+        resources = resources,
+    )
 
     // The marker fan's effects on the loaded style (dispatch 2026-09-28-197 and its follow-ups): MapFan.kt.
     MapFan(
