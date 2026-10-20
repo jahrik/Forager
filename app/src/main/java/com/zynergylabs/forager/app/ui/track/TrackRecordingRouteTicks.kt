@@ -41,7 +41,7 @@ internal class TrackRecordingRouteTicks(
     /**
      * The route tick (dispatch 2026-09-28-423, plan task T6; decision D4, every 5 s): one route
      * search per tick, at once and then every [ROUTE_TICK_MILLIS], while this screen shows a
-     * return ([TrackRecordingViewModel.copyFromWatch] starts and ends it). Its own job beside [TrackRecordingViewModel.beginPolling], not a branch
+     * return ([TrackRecordingViewModel.copyFromWatch] starts and ends it). Its own job beside [TrackRecordingPoller.begin], not a branch
      * inside it, because the two run at different rates. Like the poll it is unbounded, so its
      * tests stop the recording inside the test body, in a `finally`
      * (`TrackRecordingViewModelTest.runRecordingTest`); stopping the recording cancels it in
