@@ -165,32 +165,29 @@ internal fun MapChromeTestScreen(
         roles.Capture()
         AvailabilityScreen(
             uiState = state.ui,
-            onUseCurrentLocation = {},
-            onManualLatChanged = {},
-            onManualLngChanged = {},
-            onSearchManualCoordinates = {},
-            onRadiusChanged = {},
-            onMonthSelected = {},
-            onMapTabSelected = {},
-            onSeasonalTabSelected = {},
-            onTaxonSearchQueryChanged = { query ->
-                state.ui = state.ui.copy(taxonSearchQuery = query, taxonSearchHasNoResults = query.trim().length >= 3)
-            },
-            onTaxonSearchResultSelected = {},
-            onDismissTaxonSuggestions = { state.ui = state.ui.copy(taxonSearchHasNoResults = false) },
-            onReopenTaxonSuggestions = {},
-            onPlaceTripPin = { _, _, _ -> },
-            onDeletePlannedTrip = {},
-            onRecentSearchSelected = {},
-            onOfflineMapLatChanged = {},
-            onOfflineMapLngChanged = {},
-            onOfflineMapRadiusChanged = {},
-            onOfflineMapNameChanged = {},
-            onOfflineMapsOpened = {},
-            onDownloadOfflineMaps = {},
-            onDeleteOfflineRegion = {},
-            onNightModeMapsChanged = {},
-            onThemeModeChanged = {},
+            searchInputs = AvailabilityScreenSearchInputs(
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onTaxonSearchQueryChanged = { query ->
+                    state.ui = state.ui.copy(taxonSearchQuery = query, taxonSearchHasNoResults = query.trim().length >= 3)
+                },
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = { state.ui = state.ui.copy(taxonSearchHasNoResults = false) },
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+            ),
+            settings = AvailabilityScreenSettings(
+                onNightModeMapsChanged = {},
+                onThemeModeChanged = {},
+            ),
             mapSlot = mapSlotOverride ?: map.slot,
             records = AvailabilityScreenRecords(
                 waypoints = listOf(BUBBLE_WAYPOINT),
@@ -199,7 +196,9 @@ internal fun MapChromeTestScreen(
             navigation = AvailabilityScreenNavigation(
                 isReturning = state.isReturning,
             ),
-            tripStartWarning = state.tripStartWarning,
+            recording = AvailabilityScreenRecording(
+                tripStartWarning = state.tripStartWarning,
+            ),
             journalEntries = AvailabilityScreenJournalEntries(
                 cartographyUiState = state.cartography,
             ),
@@ -211,7 +210,16 @@ internal fun MapChromeTestScreen(
                 returnToMapRequest = state.returnToMapRequest,
                 openBackupRequest = state.openBackupRequest,
             ),
-            onDownloadAgain = { state.downloadedAgain += it },
+            offlineMaps = AvailabilityScreenOfflineMaps(
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+                onDownloadAgain = { state.downloadedAgain += it },
+            ),
         )
         overlay()
     }

@@ -38,7 +38,11 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFindsLog
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntries
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecording
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSearchInputs
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
@@ -522,47 +526,33 @@ class MainActivity : ComponentActivity() {
 
                 AvailabilityScreen(
                     uiState = uiState,
-                    onUseCurrentLocation = {
-                        pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
-                        requestLocationPermission.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            ),
-                        )
-                    },
-                    onManualLatChanged = viewModel::onManualLatChanged,
-                    onManualLngChanged = viewModel::onManualLngChanged,
-                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                    onRadiusChanged = viewModel::onRadiusChanged,
-                    onMonthSelected = viewModel::onMonthSelected,
-                    onMapTabSelected = viewModel::onMapTabSelected,
-                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                    onPlaceTripPin = viewModel::onPlaceTripPin,
-                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                    onClearSearch = viewModel::clearSearch,
+                    searchInputs = AvailabilityScreenSearchInputs(
+                        onUseCurrentLocation = {
+                            pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
+                            requestLocationPermission.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                ),
+                            )
+                        },
+                        onManualLatChanged = viewModel::onManualLatChanged,
+                        onManualLngChanged = viewModel::onManualLngChanged,
+                        onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                        onRadiusChanged = viewModel::onRadiusChanged,
+                        onMonthSelected = viewModel::onMonthSelected,
+                        onMapTabSelected = viewModel::onMapTabSelected,
+                        onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                        onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                        onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                        onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                        onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                        onPlaceTripPin = viewModel::onPlaceTripPin,
+                        onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                        onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                        onClearSearch = viewModel::clearSearch,
+                    ),
                     currentTime = container.currentTimeProvider,
-                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                    // Journal redesign J4: a region row's swipe asks for a pending delete; the
-                    // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
-                    onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
-                    onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
-                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                    onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
-                    onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
-                    onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
-                    onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
-                    onBatterySaverChanged = viewModel::onBatterySaverChanged,
                     backupAndImport = AvailabilityScreenBackupAndImport(
                         backup = backupViewModel.controls(backupUiState),
                         returnToMapRequest = backupUiState.returnToMapRequest,
@@ -571,10 +561,30 @@ class MainActivity : ComponentActivity() {
                         onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
                         onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
                     ),
-                    settingsResetNoticePending = settingsResetPending,
-                    onSettingsResetNoticeShown = container.settingsResetNotice::shown,
-                    onDownloadAgain = viewModel::onDownloadAgain,
-                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                    offlineMaps = AvailabilityScreenOfflineMaps(
+                        onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                        onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                        onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                        onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                        onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                        onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                        // Journal redesign J4: a region row's swipe asks for a pending delete; the
+                        // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
+                        onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
+                        onDownloadAgain = viewModel::onDownloadAgain,
+                    ),
+                    settings = AvailabilityScreenSettings(
+                        onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
+                        onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                        onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
+                        onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
+                        onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
+                        onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
+                        onBatterySaverChanged = viewModel::onBatterySaverChanged,
+                        settingsResetNoticePending = settingsResetPending,
+                        onSettingsResetNoticeShown = container.settingsResetNotice::shown,
+                        onThemeModeChanged = viewModel::onThemeModeChanged,
+                    ),
                     mapControls = AvailabilityScreenMapControls(
                         onLocateMe = {
                             pendingLocationAction = PendingLocationAction.LOCATE_ME
@@ -680,41 +690,43 @@ class MainActivity : ComponentActivity() {
                         getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                         getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
                     ),
-                    isRecording = trackUiState.isRecording,
-                    onToggleRecording = {
-                        if (trackUiState.isRecording) {
-                            trackRecordingViewModel.stopRecording()
-                        } else if (!hasLocationPermission(this@MainActivity)) {
-                            // Confirmed crash's primary fix: never even ask the ViewModel to start
-                            // (never creates the Track row, never sets activeTrack) when the
-                            // foreground service could not possibly start without crashing — see
-                            // the location-permission comment in this class.
-                            trackRecordingViewModel.onStartRecordingPermissionDenied(
-                                getString(R.string.track_recording_needs_location),
-                            )
-                        } else {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    recording = AvailabilityScreenRecording(
+                        isRecording = trackUiState.isRecording,
+                        onToggleRecording = {
+                            if (trackUiState.isRecording) {
+                                trackRecordingViewModel.stopRecording()
+                            } else if (!hasLocationPermission(this@MainActivity)) {
+                                // Confirmed crash's primary fix: never even ask the ViewModel to start
+                                // (never creates the Track row, never sets activeTrack) when the
+                                // foreground service could not possibly start without crashing — see
+                                // the location-permission comment in this class.
+                                trackRecordingViewModel.onStartRecordingPermissionDenied(
+                                    getString(R.string.track_recording_needs_location),
+                                )
+                            } else {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                                // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
+                                // too sparse to evaluate against a reference map app's own recording. Testers already
+                                // run that app concurrently, so the extra GPS draw is a cost already
+                                // committed either way — see startRecording()'s own default-parameter
+                                // doc comment for why this is an explicit override here rather than a
+                                // changed default: a future non-tester-build caller should still get
+                                // BALANCED unless it deliberately asks otherwise.
+                                trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
                             }
-                            // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
-                            // too sparse to evaluate against a reference map app's own recording. Testers already
-                            // run that app concurrently, so the extra GPS draw is a cost already
-                            // committed either way — see startRecording()'s own default-parameter
-                            // doc comment for why this is an explicit override here rather than a
-                            // changed default: a future non-tester-build caller should still get
-                            // BALANCED unless it deliberately asks otherwise.
-                            trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
-                        }
-                    },
-                    startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
-                    tripStartWarning = trackUiState.tripStartWarning,
-                    backgroundRunPrompt = trackUiState.backgroundRunPrompt,
-                    networkFixesNotice = trackUiState.networkFixesNotice,
-                    breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
-                    recordingSundownLine = trackUiState.sundownLine,
-                    recordingBackBy = trackUiState.backBy,
-                    onBackByChoice = trackRecordingViewModel::setBackBy,
-                    onClearBackBy = trackRecordingViewModel::clearBackBy,
+                        },
+                        startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
+                        tripStartWarning = trackUiState.tripStartWarning,
+                        backgroundRunPrompt = trackUiState.backgroundRunPrompt,
+                        networkFixesNotice = trackUiState.networkFixesNotice,
+                        breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
+                        recordingSundownLine = trackUiState.sundownLine,
+                        recordingBackBy = trackUiState.backBy,
+                        onBackByChoice = trackRecordingViewModel::setBackBy,
+                        onClearBackBy = trackRecordingViewModel::clearBackBy,
+                    ),
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigation = AvailabilityScreenNavigation(
