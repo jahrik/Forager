@@ -107,6 +107,14 @@ import kotlinx.coroutines.sync.withLock
  * disk-I/O-and-write critical section, so those critical sections run one at a time, in the order
  * the user's actions arrived (Kotlin's `Mutex` grants a contended lock to waiters in FIFO order).
  *
+ * **Where the critical sections live (UI split Phase 2.8, dispatch 2026-10-19-34).** Still this one
+ * `Mutex`, owned here and passed by reference, never copied, to the collaborators that now hold some of
+ * the critical sections: [MushroomLogPendingDeletes] (`requestDeleteEntry`, `commitFindDelete`),
+ * [MushroomLogCaptureLocation] (`promoteCaptureFixToFind`) and [MushroomLogEntryPhotos] (`onAddPhoto`,
+ * `onRemovePhoto`, `onPullPhoto`). The rest are in this class. [MushroomLogGallery] is not given it.
+ * The handler names below are this class's public functions, most of which now delegate to those
+ * collaborators.
+ *
  * **What's deliberately outside the lock:** [onEntryEdited]'s own *immediate* local reflection of a
  * keystroke (`_uiState.update` before its `launch`) — locking that too would add input lag to the
  * hottest path in this class for no correctness gain, since nothing else ever re-touches
@@ -118,9 +126,18 @@ import kotlinx.coroutines.sync.withLock
  * function call, not a nested acquisition, so it cannot deadlock.
  *
  * **No handler acquires [editingEntryMutex] while already holding it.** Checked directly, not
- * assumed: the one place a handler calls another editing-entry mutator
- * ([onDeleteGalleryPhoto] → [loadEntries]) is exactly the case above, where the caller never holds
- * the lock itself first. [onOpenEntryForEditing] below is deliberately its own critical section
+ * assumed: the places a handler calls another editing-entry mutator are all the case above, where the
+ * caller never holds the lock itself first. [onDeleteGalleryPhoto] → [loadEntries] was the first.
+ * Corrected 2026-10-20 (Sorrel's review of #332): it was never the only one. The album photo's
+ * committed pending delete ([MushroomLogPendingDeletes.commitGalleryPhotoDelete], in this class until
+ * Phase 2.8 moved it) and the camera-capture fix patch (`requestAndPatchCaptureFix`, in
+ * [MushroomLogCaptureLocation]) call [loadEntries] the same way, and [reloadAfterRestore] joins it
+ * before taking its own lock. One path is taken while holding the lock and leads to an acquisition:
+ * [onAddPhoto] → `patchCameraCaptureLocationIntoFind` (in [MushroomLogCaptureLocation]) launches a
+ * coroutine that later reaches `promoteCaptureFixToFind`'s lock. Nobody awaits that coroutine, so it
+ * queues behind the holder rather than nesting (the planner's ruling in 2.8's verify-first; Sorrel's
+ * review of #333; reasoning, not a test).
+ * [onOpenEntryForEditing] below is deliberately its own critical section
  * with its own inline logic, not `withLock { onOpenEntry(id); onStartEditingEntry() }` calling the
  * two existing public methods — that shape would have this function's own lock acquisition wait on
  * itself, a guaranteed deadlock on first use, since Kotlin's `Mutex` is not reentrant.
@@ -293,6 +310,26 @@ class MushroomLogViewModel(
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         reloadGalleryPhotos = { loadGalleryPhotos() },
         reloadEntries = { loadEntries() },
+    )
+
+    /**
+     * The open find's photos (attach, remove, pull from the album), moved to their own class by UI split
+     * Phase 2.8 PR 7. It reads and writes this screen's state through the getter and setter here,
+     * launches in this ViewModel's own scope, and is handed [editingEntryMutex] itself, by reference. It
+     * takes [gallery] and [captureLocation] as objects, so it must be declared after both. Declared above
+     * `init`, and must stay there, as they are.
+     */
+    private val entryPhotos = MushroomLogEntryPhotos(
+        uiState = { _uiState.value },
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        editingEntryMutex = editingEntryMutex,
+        addPhoto = addPhoto,
+        removePhoto = removePhoto,
+        pullPhotoIntoEntry = pullPhotoIntoEntry,
+        gallery = gallery,
+        captureLocation = captureLocation,
+        reloadGalleryPhotos = { loadGalleryPhotos() },
     )
 
     init {
@@ -689,84 +726,17 @@ class MushroomLogViewModel(
         }
     }
 
-    fun onAddPhoto(source: PhotoSource) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSavingPhoto = true) }
-            editingEntryMutex.withLock {
-                // Read fresh, inside the critical section — not before acquiring it. Two photo
-                // operations issued back to back must apply in the order issued: if this captured
-                // editingEntry at call time instead, a second operation queued behind this one would
-                // compute its own result from the *same* pre-this-operation snapshot, and its later
-                // apply would silently discard this one's photo when it lands. See this class's own
-                // "Serialized editing-entry mutations" doc comment — the same principle
-                // onStartEditingEntry's guard applies, extended to every photo mutator.
-                val entry = _uiState.value.editingEntry ?: return@withLock gallery.rescueCaptureWithNoEditingEntry(source)
-                addPhoto(entry, source).fold(
-                    onSuccess = { updated ->
-                        _uiState.update { it.copy(editingEntry = updated, isSavingPhoto = false, saveErrorMessage = null) }
-                        // A freshly added photo is a new gallery row the album's already-loaded
-                        // state doesn't know about yet — without this, it wouldn't appear there until
-                        // the ViewModel is recreated. Detach has no equivalent need: it never removes a
-                        // gallery row, only a reference nothing in this screen currently displays.
-                        loadGalleryPhotos()
-                        // Photo-geodata dispatch: see this class's own "Camera-capture location" doc
-                        // comment. The newly persisted photo is always the last element of updated's
-                        // photos list — AddPhotoToLogEntryUseCase's own entry.copy(photos = entry.photos + photo).
-                        // Find-location-at-creation dispatch, Fix 2: this branch, and only this
-                        // branch, also promotes the fix to the find's own foundAt when it has none.
-                        // GalleryImportPhotoSource never enters here (its location is EXIF, read in
-                        // FilePhotoStore, and can be from another place and year); onPullPhoto has
-                        // no location path at all.
-                        if (source is CameraCapturePhotoSource) {
-                            captureLocation.patchCameraCaptureLocationIntoFind(photoId = updated.photos.last().id, findId = entry.id)
-                        }
-                    },
-                    onFailure = { error ->
-                        Log.w(TAG, "Couldn't attach a photo to entry '${entry.id}'.", error)
-                        _uiState.update {
-                            it.copy(isSavingPhoto = false, saveErrorMessage = "Couldn't attach that photo.")
-                        }
-                    },
-                )
-            }
-        }
-    }
+    /** Attaches a new photo to the open find: see [MushroomLogEntryPhotos.onAddPhoto]. */
+    fun onAddPhoto(source: PhotoSource) = entryPhotos.onAddPhoto(source)
 
     /** The album's own Camera/Import: see [MushroomLogGallery.onAddGalleryPhoto]. */
     fun onAddGalleryPhoto(source: PhotoSource, onPersisted: (String) -> Unit = {}) = gallery.onAddGalleryPhoto(source, onPersisted)
 
-    fun onRemovePhoto(photo: LogPhoto) {
-        viewModelScope.launch {
-            editingEntryMutex.withLock {
-                // See onAddPhoto's own comment on reading fresh inside the lock — same reasoning.
-                val entry = _uiState.value.editingEntry ?: return@withLock
-                removePhoto(entry, photo).fold(
-                    onSuccess = { updated -> _uiState.update { it.copy(editingEntry = updated, saveErrorMessage = null) } },
-                    onFailure = { error ->
-                        Log.w(TAG, "Couldn't remove a photo from entry '${entry.id}'.", error)
-                        _uiState.update { it.copy(saveErrorMessage = "Couldn't remove that photo.") }
-                    },
-                )
-            }
-        }
-    }
+    /** Removes a photo from the open find: see [MushroomLogEntryPhotos.onRemovePhoto]. */
+    fun onRemovePhoto(photo: LogPhoto) = entryPhotos.onRemovePhoto(photo)
 
-    /** Workstream G3: references an existing gallery [photo] from the currently-editing entry — a reference only, never a new file (see [PullPhotoIntoEntryUseCase]'s own doc comment). */
-    fun onPullPhoto(photo: LogPhoto) {
-        viewModelScope.launch {
-            editingEntryMutex.withLock {
-                // See onAddPhoto's own comment on reading fresh inside the lock — same reasoning.
-                val entry = _uiState.value.editingEntry ?: return@withLock
-                pullPhotoIntoEntry(entry, photo).fold(
-                    onSuccess = { updated -> _uiState.update { it.copy(editingEntry = updated, saveErrorMessage = null) } },
-                    onFailure = { error ->
-                        Log.w(TAG, "Couldn't pull photo '${photo.id}' into entry '${entry.id}'.", error)
-                        _uiState.update { it.copy(saveErrorMessage = "Couldn't add that photo.") }
-                    },
-                )
-            }
-        }
-    }
+    /** References an album photo from the open find: see [MushroomLogEntryPhotos.onPullPhoto]. */
+    fun onPullPhoto(photo: LogPhoto) = entryPhotos.onPullPhoto(photo)
 
     /** Deletes a gallery photo at once, after its dialog: see [MushroomLogGallery.onDeleteGalleryPhoto]. */
     fun onDeleteGalleryPhoto(photo: GalleryPhoto) = gallery.onDeleteGalleryPhoto(photo)
