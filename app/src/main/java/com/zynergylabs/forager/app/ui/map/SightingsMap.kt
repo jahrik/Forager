@@ -42,7 +42,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.zynergylabs.forager.app.domain.fixOrNull
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
@@ -67,10 +66,7 @@ import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.TAP_BOX_DP
 import com.zynergylabs.forager.app.ui.map.layers.activeLayerCredits
-import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
-import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
-import com.zynergylabs.forager.app.domain.ForecastCellsResult
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
@@ -86,7 +82,6 @@ import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
-import org.maplibre.android.style.sources.GeoJsonSource
 
 /**
  * Shows the searched region as a map with a marker per real observation ([sightings]).
@@ -358,7 +353,6 @@ fun SightingsMap(
     // programmatic move with one reason, so each camera move this file makes marks itself here first, and the camera-idle listener clears the mark.
     val cameraMoveClassifier = remember { CameraMoveClassifier { task -> Handler(Looper.getMainLooper()).post(task) } }
     val currentForecastState = rememberUpdatedState(forecast)
-    val currentForecast by currentForecastState
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
     val cameraIdleCountState = remember { mutableIntStateOf(0) }
@@ -544,8 +538,7 @@ fun SightingsMap(
     // UI split Phase 2.2 (dispatch 2026-10-19-29): the map's state holder, over the very State objects remembered above, so
     // the effect groups can move to their own files and take it. Nothing is copied into it: each read is a getter and each
     // write a setter on the same State this function reads (SightingsMapState's own doc comment). Made once, for the life of
-    // this MapView, like every unkeyed remember above. Not read yet: the effect groups start taking it in the PRs that follow.
-    @Suppress("UNUSED_VARIABLE", "unused")
+    // this MapView, like every unkeyed remember above. The effect groups moved to their own files take it.
     val sightingsMapState = remember {
         SightingsMapState(
             mapView = mapView,
@@ -1156,110 +1149,11 @@ fun SightingsMap(
         }
     }
 
-    // Colour-field cells (map layers L0b, B5): each time the camera goes idle, and after every style
-    // load (a basemap change and a night-mode change both reload the style, which drops every source,
-    // and initializeOverlayLayers re-adds the cell sources empty), the store is asked for the blocks
-    // touching the visible area, per colour field the feed names, for the feed's week. That is the same
-    // path a downloaded store will use. Below MIN_FORECAST_ZOOM, or past the MAX_FORECAST_BLOCKS
-    // backstop, nothing is requested and each field draws empty (planner's ruling on Q9). A field the
-    // store has no data for draws empty too. What the drawn cells say about their dates goes back to
-    // the host for the legend (MapForecastFeed.onCellsShown). Keyed on the feed's store, week and
-    // groups rather than the feed itself, whose callback is a new lambda on every recomposition.
-    LaunchedEffect(loadedStyle, forecast?.store, forecast?.week, forecast?.groupsByLayer, cameraIdleCount) {
-        val style = loadedStyle ?: return@LaunchedEffect
-        val map = mapLibreMap ?: return@LaunchedEffect
-        val feed = forecast
-        val blocks = feed?.takeIf { it.groupsByLayer.isNotEmpty() }?.let {
-            val zoom = map.cameraPosition.zoom
-            val bounds = map.projection.visibleRegion.latLngBounds
-            forecastBlocksToRequest(zoom, bounds.latitudeSouth, bounds.longitudeWest, bounds.latitudeNorth, bounds.longitudeEast)
-                .also { requested ->
-                    if (requested == null && zoom >= MIN_FORECAST_ZOOM) {
-                        Log.w(SIGHTINGS_MAP_TAG, "The view touches more than $MAX_FORECAST_BLOCKS forecast blocks; no cells requested.")
-                    }
-                }
-        }
-        val shown = mutableMapOf<String, ForecastCellsShown>()
-        COLOUR_FIELDS.forEach { field ->
-            val group = feed?.groupsByLayer?.get(field.layerId)
-            val cells = if (feed == null || group == null || blocks == null) {
-                emptyList()
-            } else {
-                when (val result = feed.store.cells(group, feed.week, blocks)) {
-                    ForecastCellsResult.NoForecastData -> emptyList()
-                    is ForecastCellsResult.Cells -> {
-                        if (result.rejectedCount > 0) {
-                            Log.w(SIGHTINGS_MAP_TAG, "${result.rejectedCount} forecast feature(s) for $group were rejected and are not drawn.")
-                        }
-                        result.cells
-                    }
-                }
-            }
-            val source = style.getSourceAs<GeoJsonSource>(field.sourceId)
-            if (source == null) {
-                Log.w(SIGHTINGS_MAP_TAG, "The ${field.sourceId} source is not in the loaded style; its cells were not drawn.")
-            } else {
-                source.setGeoJson(forecastCellsFeatureCollection(cells))
-            }
-            forecastCellsShownOf(cells)?.let { shown[field.layerId] = it }
-        }
-        currentForecast?.onCellsShown?.invoke(shown)
-        // Data part C (dispatch -668): whether the legend should say "Zoom in to see the forecast".
-        // Only while there is a feed to draw; with none the legend is not shown at all.
-        currentForecast?.onZoomedOutChanged?.invoke(feed != null && isBelowForecastZoom(map.cameraPosition.zoom))
-    }
+    // Colour-field cells (map layers L0b, B5): MapForecastCells.kt.
+    MapForecastCells(sightingsMapState, forecast)
 
-    // Dispatch 2026-09-28-510: the app's position into the dot. A new fix of any kind is handed to
-    // MapLibre (AppLocationEngine drops repeats). Keyed on the map as before: the label it once also
-    // reported to went with dispatch 2026-09-28-535, and the key is kept so nothing else changes.
-    LaunchedEffect(appLocationEngine, mapPosition, mapLibreMap) {
-        val engine = appLocationEngine ?: return@LaunchedEffect
-        val position = mapPosition ?: return@LaunchedEffect
-        snapshotFlow { position.shown.value.fixOrNull }.collect { fix ->
-            engine.update(fix)
-        }
-    }
-
-    // Dispatch 2026-09-28-510: the dot's look when the kind of position changes (soft for approximate,
-    // grey for last known, MapLibre's own for GPS). Activation already applies the look current then;
-    // this catches a change after it. Navigation's own option swaps carry the look too (below), and this
-    // keeps navigation's gesture options, so the two never undo each other.
-    LaunchedEffect(mapLibreMap, loadedStyle, positionLook) {
-        val map = mapLibreMap
-        // Every run of this effect and what it decided, so `adb logcat -s ForagerDot` shows whether a look
-        // reached MapLibre. It is how the S22 desk step found the GPS look applied and still not drawn.
-        Log.i(POSITION_DOT_LOG_TAG, "look $positionLook: map=${map != null}, style=${loadedStyle != null}, track=$trackLiveLocation, engine=${appLocationEngine != null}, activated=${map?.locationComponent?.isLocationComponentActivated}, applied=${appliedPositionLook[0]}")
-        if (map == null) return@LaunchedEffect
-        if (loadedStyle == null || !trackLiveLocation || appLocationEngine == null) return@LaunchedEffect
-        val component = map.locationComponent
-        if (!component.isLocationComponentActivated || appliedPositionLook[0] == positionLook) return@LaunchedEffect
-        component.applyStyle(liveLocationComponentOptions(context, navigating = navigationModeChange.gestureProtection, look = positionLook))
-        appliedPositionLook[0] = positionLook
-        Log.i(POSITION_DOT_LOG_TAG, "applied look $positionLook")
-    }
-
-    // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
-    // either for its first activation or to resume tracking after a manual pan/zoom broke it (see
-    // activateLiveLocationIfPermitted's own doc comment on CameraMode.NONE). Also the natural retry
-    // point if the very first tap only triggered the OS permission dialog: MapOverlayContent's own
-    // doc comment on resumeTrackingRequestId covers why a second tap is what completes activation
-    // in that case, not an automatic one.
-    LaunchedEffect(resumeTrackingRequestId) {
-        if (!trackLiveLocation) return@LaunchedEffect
-        val map = mapLibreMap ?: return@LaunchedEffect
-        val style = loadedStyle ?: return@LaunchedEffect
-        // The user pressed locate: the move that follows is theirs, so it is marked before the mode changes and closes an open fan as before.
-        cameraMoveClassifier.markAppMove()
-        if (map.locationComponent.isLocationComponentActivated) {
-            map.locationComponent.cameraMode = CameraMode.TRACKING
-        } else {
-            navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = currentPositionLook) }
-            appliedPositionLook[0] = currentPositionLook
-            Log.i(POSITION_DOT_LOG_TAG, "activated by locate with look $currentPositionLook")
-            navigationModeChange.listenTo(map) { currentNavigationView }
-            navigationModeChange.gestureProtection = false
-        }
-    }
+    // The location dot (dispatch 2026-09-28-510) and the locate button: MapLocationDot.kt.
+    MapLocationDot(sightingsMapState, appLocationEngine, mapPosition, positionLook, trackLiveLocation, resumeTrackingRequestId, context, appCompassEngine)
 
     // Dispatch 2026-09-28-430 (plan task T22): the navigation view. Applied while navigating and
     // following: on Return, on "Return to Route" or locate (restoreRequestId), when the facing
