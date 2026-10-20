@@ -20,9 +20,7 @@ import com.zynergylabs.forager.app.domain.GetSightingsUseCase
 import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
 import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
-import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.NoLastKnownLocation
-import com.zynergylabs.forager.app.domain.acceptLiveFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
@@ -55,7 +53,6 @@ import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -170,15 +167,8 @@ class AvailabilityViewModel(
     val uiState: StateFlow<AvailabilityUiState> = _uiState.asStateFlow()
 
     /**
-     * The one live collection of [LocationTracker.fixes] feeding [AvailabilityUiState.liveFix] —
-     * see [collectLiveFixes]. Tracked so [onLocationPermissionGranted] can tell "still collecting"
-     * from "collected once, completed, nothing listening any more", which is the first-launch bug.
-     */
-    private var liveFixJob: Job? = null
-
-    /**
      * Whether the hosting Activity is between `ON_START` and `ON_STOP`. Gates every start of
-     * [collectLiveFixes] so a start cannot be triggered from the background — see
+     * [AvailabilityLiveLocation.begin] so a start cannot be triggered from the background — see
      * [onEnteredForeground].
      */
     private var isForegrounded: Boolean = false
@@ -285,7 +275,6 @@ class AvailabilityViewModel(
         errorLog = errorLog,
     )
 
-
     /**
      * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own
      * class by UI split Phase 2.4 PR 7. Whether a lookup starts, and each cancel, stay in this class's
@@ -298,7 +287,6 @@ class AvailabilityViewModel(
         searchTaxa = searchTaxa,
         errorLog = errorLog,
     )
-
 
     /**
      * The search's fetches and what they were fetched for, moved to their own class by UI split Phase 2.4 PR 8:
@@ -318,6 +306,19 @@ class AvailabilityViewModel(
         getSeasonalPattern = getSeasonalPattern,
         getTodaysForecast = getTodaysForecast,
         errorLog = errorLog,
+    )
+
+    /**
+     * The live fix: the one collection of [LocationTracker.fixes] and what it writes, moved to its own class by
+     * UI split Phase 2.4 PR 9. Whether it starts or stops stays in [onEnteredForeground], [onLeftForeground] and
+     * [onLocationPermissionGranted], gated by [isForegrounded] as before. It writes this screen's state through
+     * the setter here and launches in this ViewModel's own scope.
+     */
+    private val liveLocation = AvailabilityLiveLocation(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        locationTracker = locationTracker,
+        lastKnownLocation = lastKnownLocation,
     )
 
     init {
@@ -375,7 +376,7 @@ class AvailabilityViewModel(
      */
     fun onEnteredForeground() {
         isForegrounded = true
-        if (liveFixJob?.isActive != true) collectLiveFixes()
+        if (!liveLocation.isCollecting) liveLocation.begin()
     }
 
     /**
@@ -401,71 +402,14 @@ class AvailabilityViewModel(
      */
     fun onLeftForeground() {
         isForegrounded = false
-        liveFixJob?.cancel()
-        liveFixJob = null
-    }
-
-    /**
-     * Starts collecting [LocationTracker.fixes] into [AvailabilityUiState.liveFix].
-     *
-     * **First-launch dispatch (owner-found on device):** on a fresh install the app's very first
-     * collection of `fixes` happens here, at construction, *before* the OS permission dialog has
-     * been shown — and [LocationTracker.fixes]' own contract is to emit
-     * [LocationFix.PermissionDenied] once and **complete** when permission isn't held at
-     * collection start. The flow didn't go silent; it terminated. `collect` returned, this
-     * coroutine ended, and nothing collected again for the life of the process — so the compass
-     * strip read "Elevation unavailable · Coordinates unavailable" until a restart, whose
-     * construction-time collection then found the permission already held. Heading was fine
-     * (a different sensor, no permission), and the map's own puck was fine (MapLibre's activation
-     * is re-invoked from events, not subscribed once in an init block) — which is exactly the shape
-     * this ViewModel lacked. A denied/unsupported permission still just never emits an Update here;
-     * the strip's own "unavailable" text covers that honestly, unchanged.
-     */
-    private fun collectLiveFixes() {
-        liveFixJob = viewModelScope.launch {
-            readLastKnownLocation()
-            locationTracker.fixes.collect { fix ->
-                // Location-accuracy dispatch, item 1: the one place the live fix is gated. A fix
-                // worse than LIVE_FIX_MAX_ACCURACY_METERS is dropped and the previous one held —
-                // and a held fix ages into the HUD's stale display on purpose; see acceptLiveFix's
-                // own doc comment for the threshold, the null rule, and the alternative refused.
-                if (fix is LocationFix.Update && acceptLiveFix(fix)) {
-                    // The whole fix, accuracy and timestamp included — see
-                    // AvailabilityUiState.liveFix's own doc comment (HUD-foundations dispatch, Item 1).
-                    _uiState.update { it.copy(liveFix = fix) }
-                } else if (fix is LocationFix.Update) {
-                    onRefusedFix(fix)
-                }
-            }
-        }
-    }
-
-    /**
-     * Dispatch 2026-09-28-510: a fix the gate refused is still held, as the approximate reading, beside
-     * [AvailabilityUiState.liveFix] and never in it. The gate itself, and what "held" means for the
-     * gated fix, are unchanged: everything that acts reads [AvailabilityUiState.liveFix] alone, and the
-     * screen decides what to show from both ([com.zynergylabs.forager.app.domain.shownPosition]).
-     */
-    private fun onRefusedFix(fix: LocationFix.Update) {
-        _uiState.update { it.copy(approximateFix = fix) }
-    }
-
-    /**
-     * Dispatch 2026-09-28-510: the platform's own last known position, read each time collection starts
-     * (each foreground, and after a permission grant, when it may first be readable). Shown greyed until
-     * anything newer arrives; never moved into [AvailabilityUiState.liveFix]. None held is the ordinary
-     * case on a fresh phone and changes nothing.
-     */
-    private fun readLastKnownLocation() {
-        val known = lastKnownLocation.lastKnown() ?: return
-        _uiState.update { it.copy(lastKnownFix = known) }
+        liveLocation.cancel()
     }
 
     /**
      * The OS just granted location permission — `MainActivity`'s one permission launcher reports
      * this from its result callback, for either action it was launched for. Starts a fresh
      * collection of [LocationTracker.fixes] if the construction-time one has already completed
-     * (see [collectLiveFixes]: it completes, rather than idling, when permission wasn't held at
+     * (see [AvailabilityLiveLocation.begin]: it completes, rather than idling, when permission wasn't held at
      * its start). The tracker re-checks permission at every collection start, so the new
      * collection is the one that actually registers OS listeners.
      *
@@ -485,8 +429,8 @@ class AvailabilityViewModel(
         // path the grant arrives from a launcher callback while the app is visible, so this is
         // true; ON_START would start it anyway if it were not.
         if (!isForegrounded) return
-        if (liveFixJob?.isActive == true) return
-        collectLiveFixes()
+        if (liveLocation.isCollecting) return
+        liveLocation.begin()
     }
 
     /** The search radius slider: see [AvailabilitySpeciesLookup.onRadiusChanged]. */
@@ -731,7 +675,7 @@ class AvailabilityViewModel(
      * back to 'Search a location', and leaves recent searches untouched." The search's region and every result
      * fetched for it go: the map's sightings, the ranked list, rainfall, today's forecast, trip windows and the
      * seasonal pattern, so no tab goes on showing results for a search the bar says is not there. Fetches still
-     * running are cancelled first ([searchJobs]). Kept: recent searches, the month, the radius and the coordinate
+     * running are cancelled first ([AvailabilitySearchRuns.cancelRunning]). Kept: recent searches, the month, the radius and the coordinate
      * fields, which are the user's settings for the next search, not results.
      *
      * RECORD -750, item 3 (the owner: "simply reset the search panel back to default and clear the name"), replacing
