@@ -5,7 +5,6 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.NavigationFacing
@@ -21,8 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -118,14 +115,12 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
     quickSettings: MapQuickSettings?,
     sundownClock: SundownClock,
-    landscapeStripHeight: MutableIntState,
-    landscapeStripWidth: MutableIntState,
+    /** The landscape strip's measured size, read here; see [CompactMapLayoutState]. */
+    layout: CompactMapLayoutState,
 ) {
     val railPortEdge = landscape.railPortEdge ?: return
     val isNavigating = navigation.isNavigating
     val density = LocalDensity.current
-    val stripHeightPx by landscapeStripHeight
-    val stripWidthPx by landscapeStripWidth
     val (bottomEnter, bottomExit) = navigationChromeFromBottomTransitions()
     // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline: its top and rounded top corners and its side facing the
     // map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the screen's.
@@ -146,7 +141,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
     LaunchedEffect(Unit) { cluster.navigationDisplayBottomInRootPx = null }
     // Before the strip is first measured there is no width to take; nothing is drawn for that frame.
-    if (stripWidthPx <= 0 || stripHeightPx <= 0) return
+    if (layout.landscapeStripWidthPx <= 0 || layout.landscapeStripHeightPx <= 0) return
     // Motion Part 2, item 3: leaving, it takes no touch and gives up its keep-out at once. RECORD -691: no minimum touch target
     // while it leaves (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
     NoTouchTargetExpansion(active = !isNavigating) {
@@ -157,7 +152,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
         modifier = Modifier
             .align(if (railPortEdge == ScreenEdge.Left) Alignment.BottomStart else Alignment.BottomEnd)
             .padding(controlsPadding)
-            .width(with(density) { stripWidthPx.toDp() })
+            .width(with(density) { layout.landscapeStripWidthPx.toDp() })
             .clipToBounds()
             .leavingTakesNoTouches(leaving = !isNavigating),
     ) {

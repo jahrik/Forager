@@ -6,7 +6,6 @@ import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.map.MapPillColorLight
 import com.zynergylabs.forager.app.ui.map.MapPillColorDark
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
@@ -20,8 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
@@ -33,7 +30,7 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
 
 /**
  * The compass strip, its measured size and the landscape join, moved out of [CompactMapTab] unchanged (RECORD -741). The three
- * measured sizes are the tab's state, handed in.
+ * measured sizes are the tab's state, handed in ([CompactMapLayoutState] since UI split Phase 2.3).
  *
  * Dispatch 2026-10-12-08 (RECORD -948, -950, -951): the strip stays while navigating, in both orientations, exactly where it is
  * and at the size it is (the owner: "The compass strip stays exactly where it is in both modes"). Its line drops the north arrow
@@ -58,9 +55,8 @@ internal fun BoxScope.CompactMapTopStrip(
     trueHeading: State<TrueHeadingReading>,
     positionNote: State<PositionNote?>,
     sundownClock: SundownClock,
-    compassStripHeight: MutableIntState,
-    landscapeStripHeight: MutableIntState,
-    landscapeStripWidth: MutableIntState,
+    /** The three measured sizes, written here; see [CompactMapLayoutState]. */
+    layout: CompactMapLayoutState,
     /** Portrait only: the navigation info inside the strip's card, under its line (see this function's doc). */
     portraitNavigationInfo: @Composable () -> Unit,
 ) {
@@ -70,9 +66,6 @@ internal fun BoxScope.CompactMapTopStrip(
     val onLandscapeStripHeightMeasured = landscape.onLandscapeStripHeightMeasured
     val onLandscapeStripWidthMeasured = landscape.onLandscapeStripWidthMeasured
     val compassStripDensity = LocalDensity.current
-    var compassStripHeightPx by compassStripHeight
-    var landscapeStripHeightPx by landscapeStripHeight
-    var landscapeStripWidthPx by landscapeStripWidth
     // Dispatch 2026-10-12-06 (RECORD -932, -934): in portrait the strip is the rounded card tucked under the pill; none in
     // landscape, where the two sit side by side, or once the pill has slid away in fullscreen (mapCardTuck).
     val stripTuck = if (railPortEdge == null) mapCardTuck(topInset) else 0.dp
@@ -129,7 +122,7 @@ internal fun BoxScope.CompactMapTopStrip(
                 )
                 // RECORD -729: its measured height and width go up to the scaffold, which gives the bar that height and the rest
                 // of the room; since RECORD -951 navigating too, and the navigation card hangs under it at this width.
-                .onSizeChanged { landscapeStripHeightPx = it.height; landscapeStripWidthPx = it.width }
+                .onSizeChanged { layout.landscapeStripHeightPx = it.height; layout.landscapeStripWidthPx = it.width }
         } else {
             Modifier
                 .align(Alignment.TopCenter)
@@ -141,7 +134,7 @@ internal fun BoxScope.CompactMapTopStrip(
                 // The strip's own height (item 2), for what sits below it, as before only while not navigating: navigating, the
                 // card grows down by the navigation info, and what sat below the strip keeps the clearance it had while the
                 // navigation display replaced the strip (dispatch 2026-10-12-08 changes none of it).
-                .onSizeChanged { if (!isNavigating) compassStripHeightPx = it.height }
+                .onSizeChanged { if (!isNavigating) layout.compassStripHeightPx = it.height }
         }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
         contentWidth = false,
         // RECORD -735: the crossed-out compass for no compass or an unreliable one in a short landscape window; portrait keeps the
@@ -168,20 +161,20 @@ internal fun BoxScope.CompactMapTopStrip(
         // Dispatch 2026-10-13-02, RECORD -987: landscape, where the strip is sized for the wider coordinate form.
         coordinatesSizedForBothForms = railPortEdge != null,
     )
-    DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0; landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
+    DisposableEffect(Unit) { onDispose { layout.compassStripHeightPx = 0; layout.landscapeStripHeightPx = 0; layout.landscapeStripWidthPx = 0 } }
     // The portrait strip's measured height goes the moment navigation starts, as it did when the strip left then (see above).
-    LaunchedEffect(isNavigating) { if (isNavigating) compassStripHeightPx = 0 }
+    LaunchedEffect(isNavigating) { if (isNavigating) layout.compassStripHeightPx = 0 }
     // RECORD -754 (the owner's S26 on 1.0.3103: after a turn from portrait the bar kept a portrait-sized box, taller than the
     // strip and reaching the window's centre): out of landscape the landscape strip's measures go too. They are reported up only
     // when they change (below), and the scaffold zeroes its own copy whenever the bar stops meeting the strip, so a measure left
     // here from an earlier landscape turn was the same number on the next turn, was never reported again, and the bar stayed at
     // its own height and the half width it takes before the strip is measured. Found by a test turning into landscape twice
     // (LandscapeSearchFixesTest, "second turn"), not by reasoning.
-    LaunchedEffect(railPortEdge) { if (railPortEdge == null) { landscapeStripHeightPx = 0; landscapeStripWidthPx = 0 } }
+    LaunchedEffect(railPortEdge) { if (railPortEdge == null) { layout.landscapeStripHeightPx = 0; layout.landscapeStripWidthPx = 0 } }
     // RECORD -729: the landscape strip's measured height, up to the scaffold, which gives the search bar that height; 0 while it
     // is not measured (portrait, before its first layout), where the bar keeps its own.
-    LaunchedEffect(landscapeStripHeightPx) { onLandscapeStripHeightMeasured(with(compassStripDensity) { landscapeStripHeightPx.toDp() }) }
-    LaunchedEffect(landscapeStripWidthPx) { onLandscapeStripWidthMeasured(with(compassStripDensity) { landscapeStripWidthPx.toDp() }) }
+    LaunchedEffect(layout.landscapeStripHeightPx) { onLandscapeStripHeightMeasured(with(compassStripDensity) { layout.landscapeStripHeightPx.toDp() }) }
+    LaunchedEffect(layout.landscapeStripWidthPx) { onLandscapeStripWidthMeasured(with(compassStripDensity) { layout.landscapeStripWidthPx.toDp() }) }
     // RECORD -729, item 4 drew a 1 dp vertical line where the bar and the strip meet in landscape. Dispatch 2026-10-12-06
     // (RECORD -934, the owner's answer confirming "in landscape, the pill and card touch edge to edge (no join line)"): the
     // line is gone; the two meet square on their joined side and round on their outer sides (landscapeStripCorners, the bar's

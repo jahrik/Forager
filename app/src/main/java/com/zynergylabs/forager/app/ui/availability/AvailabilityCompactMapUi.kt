@@ -61,10 +61,8 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
@@ -78,7 +76,6 @@ import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
-import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
 /**
@@ -465,29 +462,23 @@ internal fun CompactMapTab(
             val compassStripDensity = LocalDensity.current
             // The strip's real height, measured on the strip itself where it is composed below (item 2). Not
             // compassStripClearance, which is one text line's height.
-            // RECORD -741: the three measured sizes are handed to CompactMapTopStrip as State objects.
+            // RECORD -741: the three measured sizes are remembered here as State objects (handed on through the holder below).
             val compassStripHeightState = remember { mutableIntStateOf(0) }
-            val compassStripHeightPx by compassStripHeightState
             // RECORD -729: the strip's measured height in a landscape window (the search bar is given it); 0 elsewhere.
             val landscapeStripHeightState = remember { mutableIntStateOf(0) }
             // RECORD -732: and its measured width (the scaffold gives the bar the rest of the room); 0 elsewhere.
             val landscapeStripWidthState = remember { mutableIntStateOf(0) }
+            // UI split Phase 2.3: the three sizes, read and written through one view over those States (see CompactMapLayoutState).
+            // Remembered unkeyed here, in this branch and straight after them, so it lives exactly as long as they do.
+            val layout = remember { CompactMapLayoutState(compassStripHeightState, landscapeStripHeightState, landscapeStripWidthState) }
             val compassStripClearance = remember(compassStripLabelStyle, compassStripDensity) {
                 with(compassStripDensity) {
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
                 }
             }
-            // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): what sits below the strip in portrait (the
-            // observation bubble's top, the icon bar's drag limit, the taxon and journal chips; the search dropdown, in the
-            // scaffold, through searchBarSlot) clears the strip's measured height, not one text line. Back by's three-dot button
-            // (dispatch 2026-09-28-645) gave the strip a 36 dp floor, twice that line, and its sundown and Back by lines grow it
-            // too. The one-line clearance stays the floor, and is what is used while the strip is not measured: before its first
-            // layout, while navigating (the display replaces it), and in a landscape window, where the strip sits in the other
-            // corner and is not measured. The comment above records a regression from reading a measured height back for the
-            // bubble's minY; the strip's measured height was already read here for the search notice (searchBarSlot), and the
-            // test that caught that regression ("tapping elsewhere on the map dismisses the observation bubble") is @Ignore'd
-            // for an unrelated harness reason, so whether the regression returns is a device item.
-            val compassStripBottomClearance = with(compassStripDensity) { compassStripHeightPx.toDp() }.coerceAtLeast(compassStripClearance)
+            // RECORD -709: what sits below the strip in portrait clears its measured height, the one-line clearance the floor (see
+            // CompactMapLayoutState.stripBottomClearance). Read here, in the body, and handed to the children as a value.
+            val compassStripBottomClearance = layout.stripBottomClearance(compassStripClearance, compassStripDensity)
             Box(
                 modifier = modifier
                     .fillMaxSize()
@@ -535,17 +526,12 @@ internal fun CompactMapTab(
                 // this Box) is what makes its translucency actually work.
                 // The strip's own measured height goes with it, so a notice in the slot can be placed below the strip
                 // (item 2). Zero while the strip is not composed.
-                // Owner's ruling (b), continuation 2026-09-28-172: in the landscape L, a notice on the same side as the L is inset on
-                // that side by 8 + the L's measured width + 8, as the legend makes room (legendEndPadding below). Elsewhere none.
-                val noticeAnchoredLeft = punchHoleEdge == ScreenEdge.Left
-                val noticeInsetDp = MAP_ICON_BAR_EDGE_INSET + with(compassStripDensity) { cluster.clusterWidthPx.toDp() } + Spacing.sm
-                val searchNoticeInset = when {
-                    !landscapeCluster || cluster.isOnLeftSide != noticeAnchoredLeft -> SearchNoticeInset.None
-                    cluster.isOnLeftSide -> SearchNoticeInset(left = noticeInsetDp)
-                    else -> SearchNoticeInset(right = noticeInsetDp)
-                }
+                // Owner's ruling (b), continuation 2026-09-28-172: a notice beside the landscape L is inset by the L (see
+                // CompactMapLayoutState.searchNoticeInset). Worked out here, in the body, as before.
+                val noticeInsetDp = layout.noticeInsetDp(cluster.clusterWidthPx, compassStripDensity)
+                val searchNoticeInset = layout.searchNoticeInset(landscapeCluster, cluster, punchHoleEdge, noticeInsetDp)
                 CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset) {
-                    searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
+                    searchBarSlot(with(compassStripDensity) { layout.compassStripHeightPx.toDp() })
                 }
                 // The tapped thing's bubble (RECORD -741: CompactMapBubble, moved out unchanged; its comments are there).
                 CompactMapBubble(
@@ -557,7 +543,7 @@ internal fun CompactMapTab(
                     controlsPadding = controlsPadding,
                     cluster = cluster,
                     noticeInsetDp = noticeInsetDp,
-                    minY = topInset + compassStripBottomClearance,
+                    minY = layout.bubbleMinY(topInset, compassStripBottomClearance),
                     // Fullscreen and the search dropdown are left out as the drawer and the menu states are (dispatch 2026-09-28-312,
                     // item 11): a bubble closes after anything opened after it, and their Back handlers were registered before the
                     // bubble layer's, so without these terms a bubble took the first Back and they the second. The dropdown's state
@@ -580,7 +566,7 @@ internal fun CompactMapTab(
                     mapMode = mapMode,
                     onOpenLayers = { showLayersSheet = true },
                     onOpenActionMenu = { showActionMenu = true },
-                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) searchBarBottom else topInset + compassStripBottomClearance).toPx() },
+                    topLimitPx = layout.clusterTopLimitPx(landscapeCluster, searchBarBottom, topInset, compassStripBottomClearance, compassStripDensity),
                     noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
                     controlsPadding = controlsPadding,
                 )
@@ -615,9 +601,7 @@ internal fun CompactMapTab(
                     trueHeading = trueHeading,
                     positionNote = positionNote,
                     sundownClock = sundownClock,
-                    compassStripHeight = compassStripHeightState,
-                    landscapeStripHeight = landscapeStripHeightState,
-                    landscapeStripWidth = landscapeStripWidthState,
+                    layout = layout,
                     portraitNavigationInfo = {
                         CompactMapPortraitNavigationInfo(
                             uiState = uiState,
@@ -650,8 +634,7 @@ internal fun CompactMapTab(
                     recordingSundownLine = recordingSundownLine,
                     quickSettings = quickSettings,
                     sundownClock = sundownClock,
-                    landscapeStripHeight = landscapeStripHeightState,
-                    landscapeStripWidth = landscapeStripWidthState,
+                    layout = layout,
                 )
 
                 // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;
