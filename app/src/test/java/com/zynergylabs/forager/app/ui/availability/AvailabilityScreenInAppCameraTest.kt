@@ -205,12 +205,14 @@ class AvailabilityScreenInAppCameraTest {
                         onAddLogPhoto = { logEntryPhotos += it },
                         onAddGalleryPhoto = { albumPhotos += it },
                     ),
-                    onAcquirePhotoForCartographyEntry = { cartographyPhotos += it },
-                    cartographyUiState = cartographyState,
-                    onStartCartographyEntry = { date ->
-                        val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
-                        cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
-                    },
+                    journalEntries = AvailabilityScreenJournalEntries(
+                        onAcquirePhotoForCartographyEntry = { cartographyPhotos += it },
+                        cartographyUiState = cartographyState,
+                        onStartCartographyEntry = { date ->
+                            val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
+                            cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
+                        },
+                    ),
                 )
             }
         }

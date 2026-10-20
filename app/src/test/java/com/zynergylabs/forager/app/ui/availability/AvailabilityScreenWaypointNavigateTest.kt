@@ -195,7 +195,9 @@ class AvailabilityScreenWaypointNavigateTest {
                 compassProvider = FixedCompass(0f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },
-                cartographyUiState = cartography,
+                journalEntries = AvailabilityScreenJournalEntries(
+                    cartographyUiState = cartography,
+                ),
                 entryReportData = AvailabilityScreenEntryReportData(
                     getCartographyEntryMapData = { _, _ -> entryMapData ?: CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()) },
                 ),

@@ -240,7 +240,6 @@ import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.NoTripWindowReason
-import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
@@ -266,7 +265,6 @@ import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
-import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.InAppCameraHost
 import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
 import com.zynergylabs.forager.app.ui.log.FindOverView
@@ -447,50 +445,8 @@ fun AvailabilityScreen(
     cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
     /** The in-app camera's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenCamera]. Defaulted, as its eight fields were when they were parameters here. */
     cameraInputs: AvailabilityScreenCamera = AvailabilityScreenCamera(),
-    /** Journal Stage 2b's new authored entity — see [com.zynergylabs.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
-    cartographyUiState: CartographyUiState = CartographyUiState(),
-    onOpenCartographyEntry: (String) -> Unit = {},
-    onStartCartographyEntry: (LocalDate) -> Unit = {},
-    onCloseCartographyEntry: () -> Unit = {},
-    onCartographyTextChanged: (String) -> Unit = {},
-    onCartographyTagsChanged: (List<String>) -> Unit = {},
-    onSetFindDecision: (String, Boolean) -> Unit = { _, _ -> },
-    onSetTrackDecision: (String, Boolean) -> Unit = { _, _ -> },
-    onSetWaypointDecision: (String, Boolean) -> Unit = { _, _ -> },
-    onSetOfflineRegionDecision: (Long, Boolean) -> Unit = { _, _ -> },
-    /** Data part A (dispatch 2026-09-28-667): a group switch in the entry editor's "In this entry" panel, `CartographyViewModel.onSetEntryGroupIncluded`. */
-    onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
-    onToggleKeptPhoto: (String) -> Unit = {},
-    /** Entry-photo-acquisition dispatch, Item 2. See [CartographyScreen]'s own doc comment on this same parameter. */
-    onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit = {},
-    onFinishCartographyEntry: () -> Unit = {},
-    /** Explicit Save for a committed Cartography entry — device-check patch, Item 1. Threaded straight through to CartographyScreen, whose own lifecycle observer also uses it for the backgrounding-return prompt's Commit option (pending-edit-and-fixes dispatch, Item 1). */
-    onSaveCartographyEntry: () -> Unit = {},
-    /** The leave-prompt's Discard option — device-check patch, Item 1. */
-    onDiscardCartographyEntryChanges: () -> Unit = {},
-    /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See CartographyScreen's own lifecycle-observer doc comment. */
-    onSaveCartographyEntryAsDraft: () -> Unit = {},
-    onDeleteCartographyEntry: (String) -> Unit = {},
-    /**
-     * An Entries card's swipe Delete (journal redesign J4b L2): a *pending* delete with Undo
-     * (`CartographyViewModel.requestDeleteEntry`), passed to `JournalTab`.
-     * `null` (the default) leaves the cards without the swipe.
-     */
-    onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
-    /**
-     * J8-3: shows or hides a saved entry on the Maps tab (`CartographyViewModel.onSetShownOnMap`): the
-     * entry report's "Show on map" and "Hide from map", and the Maps-tab chip's "Hide"
-     * and "Hide all". Defaulted, so the many tests of this screen that never show an entry are unchanged.
-     */
-    onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
-    /** Clears [cartographyUiState]'s `shownOnMapErrorMessage` once its Toast has shown (J8, continuation `2026-09-28-65`). */
-    onCartographyShownOnMapErrorDismissed: () -> Unit = {},
-    /**
-     * Clears [cartographyUiState]'s `saveErrorMessage` once its Toast has shown. That Toast is hosted
-     * by the Journal itself, [JournalTab], not here, so this is
-     * threaded to it (intent `2026-09-28-68`, continuation `2026-09-28-76`).
-     */
-    onCartographySaveErrorDismissed: () -> Unit = {},
+    /** Journal entries' state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenJournalEntries]. Defaulted, as its 22 fields were when they were parameters here. */
+    journalEntries: AvailabilityScreenJournalEntries = AvailabilityScreenJournalEntries(),
     /** The Journal's entry report and cards' readers (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenEntryReportData]. Defaulted, as its four fields were when they were parameters here. */
     entryReportData: AvailabilityScreenEntryReportData = AvailabilityScreenEntryReportData(),
     /**
@@ -716,6 +672,29 @@ fun AvailabilityScreen(
     val onAddGalleryPhoto = findsLog.onAddGalleryPhoto
     val onSaveLogErrorDismissed = findsLog.onSaveLogErrorDismissed
     val onRequestDeleteGalleryPhoto = findsLog.onRequestDeleteGalleryPhoto
+    // Phase 2.1 (dispatch 2026-10-19-28): the journalEntries bundle, unpacked under the parameter names it replaced.
+    val cartographyUiState = journalEntries.cartographyUiState
+    val onOpenCartographyEntry = journalEntries.onOpenCartographyEntry
+    val onStartCartographyEntry = journalEntries.onStartCartographyEntry
+    val onCloseCartographyEntry = journalEntries.onCloseCartographyEntry
+    val onCartographyTextChanged = journalEntries.onCartographyTextChanged
+    val onCartographyTagsChanged = journalEntries.onCartographyTagsChanged
+    val onSetFindDecision = journalEntries.onSetFindDecision
+    val onSetTrackDecision = journalEntries.onSetTrackDecision
+    val onSetWaypointDecision = journalEntries.onSetWaypointDecision
+    val onSetOfflineRegionDecision = journalEntries.onSetOfflineRegionDecision
+    val onSetEntryGroupIncluded = journalEntries.onSetEntryGroupIncluded
+    val onToggleKeptPhoto = journalEntries.onToggleKeptPhoto
+    val onAcquirePhotoForCartographyEntry = journalEntries.onAcquirePhotoForCartographyEntry
+    val onFinishCartographyEntry = journalEntries.onFinishCartographyEntry
+    val onSaveCartographyEntry = journalEntries.onSaveCartographyEntry
+    val onDiscardCartographyEntryChanges = journalEntries.onDiscardCartographyEntryChanges
+    val onSaveCartographyEntryAsDraft = journalEntries.onSaveCartographyEntryAsDraft
+    val onDeleteCartographyEntry = journalEntries.onDeleteCartographyEntry
+    val onRequestDeleteCartographyEntry = journalEntries.onRequestDeleteCartographyEntry
+    val onSetCartographyEntryShownOnMap = journalEntries.onSetCartographyEntryShownOnMap
+    val onCartographyShownOnMapErrorDismissed = journalEntries.onCartographyShownOnMapErrorDismissed
+    val onCartographySaveErrorDismissed = journalEntries.onCartographySaveErrorDismissed
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

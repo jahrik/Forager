@@ -144,7 +144,9 @@ internal fun LayoutFixesScreen(
         onNightModeMapsChanged = {},
         onThemeModeChanged = {},
         mapSlot = mapSlot,
-        cartographyUiState = cartographyUiState,
+        journalEntries = AvailabilityScreenJournalEntries(
+            cartographyUiState = cartographyUiState,
+        ),
     )
 }
 

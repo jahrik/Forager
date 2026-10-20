@@ -144,9 +144,11 @@ class TabletJournalLayoutTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
                 mapSlot = TABLET_STUB_MAP,
-                cartographyUiState = cartography,
-                onOpenCartographyEntry = { id -> cartography = cartography.copy(editingEntry = cartography.entries.first { it.id == id }) },
-                onCloseCartographyEntry = { cartography = cartography.copy(editingEntry = null) },
+                journalEntries = AvailabilityScreenJournalEntries(
+                    cartographyUiState = cartography,
+                    onOpenCartographyEntry = { id -> cartography = cartography.copy(editingEntry = cartography.entries.first { it.id == id }) },
+                    onCloseCartographyEntry = { cartography = cartography.copy(editingEntry = null) },
+                ),
                 entryReportData = AvailabilityScreenEntryReportData(
                     getCartographyEntryMapData = { _, _ -> TABLET_ENTRY_MAP_DATA },
                 ),

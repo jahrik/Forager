@@ -1023,10 +1023,12 @@ private fun ShortWindowScreenUnderTest(
         onNightModeMapsChanged = {},
         onThemeModeChanged = {},
         mapSlot = SHORT_STUB_MAP,
-        cartographyUiState = cartography,
-        onStartCartographyEntry = onStart,
-        onOpenCartographyEntry = onOpen,
-        onCloseCartographyEntry = onClose,
+        journalEntries = AvailabilityScreenJournalEntries(
+            cartographyUiState = cartography,
+            onStartCartographyEntry = onStart,
+            onOpenCartographyEntry = onOpen,
+            onCloseCartographyEntry = onClose,
+        ),
         waypoints = MANY_WAYPOINTS,
         cameraInputs = AvailabilityScreenCamera(onOpenCamera = onOpenCamera),
         findsLog = AvailabilityScreenFindsLog(

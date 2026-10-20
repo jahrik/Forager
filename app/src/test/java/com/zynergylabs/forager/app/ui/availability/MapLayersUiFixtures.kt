@@ -326,7 +326,9 @@ internal fun MapLayersTestScreen(
             onStartEditingLogEntry = onStartEditingLogEntry,
             onSaveLogEntry = onSaveLogEntry,
         ),
-        cartographyUiState = cartographyUiState,
+        journalEntries = AvailabilityScreenJournalEntries(
+            cartographyUiState = cartographyUiState,
+        ),
         entryReportData = AvailabilityScreenEntryReportData(
             getCartographyEntryMapData = getCartographyEntryMapData,
         ),
