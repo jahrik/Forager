@@ -7,7 +7,6 @@ import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository
-import com.zynergylabs.forager.app.domain.AvailabilitySearchResult
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -57,7 +56,6 @@ import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -170,29 +168,6 @@ class AvailabilityViewModel(
     // wait for (loadMapIconClusterPlacement), and the screen draws no cluster until it lands. See the field.
     private val _uiState = MutableStateFlow(AvailabilityUiState(mapIconClusterPlacement = null))
     val uiState: StateFlow<AvailabilityUiState> = _uiState.asStateFlow()
-
-    /** The region+month+filter the current [AvailabilityUiState.sightings] were fetched for, or null if none fetched yet. */
-    private var loadedSightingsQuery: Triple<Region, Int, TaxonFilter>? = null
-
-    /** The region+month+filter the current [AvailabilityUiState.seasonalPattern] was fetched for, or null if none fetched yet. */
-    private var loadedSeasonalPatternQuery: Triple<Region, Int, TaxonFilter>? = null
-
-    /**
-     * RECORD -723: the parent of every fetch a search starts (the ranked list, rainfall, today's forecast, trip
-     * windows, and the map's sightings and the seasonal pattern fetched for it), so [clearSearch] can cancel the
-     * ones still running; otherwise a fetch finishing after Clear would put the cleared search back. A child of
-     * the ViewModel's own scope, so it is cancelled with it; a supervisor, so one failed fetch cancels no other,
-     * as when each was launched on the scope directly.
-     */
-    private var searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
-
-    /**
-     * RECORD -725: the region, month and filter of the search last run ([refresh]), which the map's sightings and
-     * the seasonal pattern are fetched for. Read instead of the UI state's current values because picking a species
-     * suggestion now selects it without searching ("no search yet"); the map must go on showing the search that ran,
-     * not fetch the newly picked species for the old region. Null before any search and after [clearSearch].
-     */
-    private var activeSearch: Triple<Region, Int, TaxonFilter>? = null
 
     /**
      * The one live collection of [LocationTracker.fixes] feeding [AvailabilityUiState.liveFix] —
@@ -321,6 +296,27 @@ class AvailabilityViewModel(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         searchTaxa = searchTaxa,
+        errorLog = errorLog,
+    )
+
+
+    /**
+     * The search's fetches and what they were fetched for, moved to their own class by UI split Phase 2.4 PR 8:
+     * the parent job every search fetch runs in, the search last run, and the queries the map's sightings and
+     * the seasonal pattern were loaded for. Whether each fetch starts, and the cancel and renewal of the parent,
+     * stay in this class's functions: [refresh], [onMapTabSelected], [onSeasonalTabSelected] and [clearSearch].
+     * It writes this screen's state through the setter here and launches in this ViewModel's own scope.
+     */
+    private val searchRuns = AvailabilitySearchRuns(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        getAvailability = getAvailability,
+        loadRecentSearches = { loadRecentSearches() },
+        getSightings = getSightings,
+        getConditions = getConditions,
+        getTripWindows = getTripWindows,
+        getSeasonalPattern = getSeasonalPattern,
+        getTodaysForecast = getTodaysForecast,
         errorLog = errorLog,
     )
 
@@ -653,30 +649,11 @@ class AvailabilityViewModel(
      * map view the user never opens shouldn't cost an extra API call.
      */
     fun onMapTabSelected() {
-        val query = activeSearch ?: return
+        val query = searchRuns.activeSearch ?: return
         val (region, month, filter) = query
-        if (loadedSightingsQuery == query) return
+        if (searchRuns.loadedSightingsQuery == query) return
 
-        viewModelScope.launch(searchJobs) {
-            _uiState.update { it.copy(isLoadingSightings = true, sightingsErrorMessage = null) }
-            getSightings(region, month, filter).fold(
-                onSuccess = { page ->
-                    loadedSightingsQuery = query
-                    _uiState.update {
-                        it.copy(isLoadingSightings = false, sightings = page.sightings)
-                    }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't load sightings for the map.", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoadingSightings = false,
-                            sightingsErrorMessage = "Couldn't load sightings for the map.",
-                        )
-                    }
-                },
-            )
-        }
+        searchRuns.fetchSightings(query, region, month, filter)
     }
 
     /**
@@ -687,91 +664,19 @@ class AvailabilityViewModel(
      * repeat on every tab switch.
      */
     fun onSeasonalTabSelected() {
-        val query = activeSearch ?: return
+        val query = searchRuns.activeSearch ?: return
         val (region, month, filter) = query
-        if (loadedSeasonalPatternQuery == query) return
+        if (searchRuns.loadedSeasonalPatternQuery == query) return
 
-        viewModelScope.launch(searchJobs) {
-            _uiState.update { it.copy(isLoadingSeasonalPattern = true, seasonalPatternErrorMessage = null) }
-            getSeasonalPattern(region, month, filter).fold(
-                onSuccess = { distribution ->
-                    loadedSeasonalPatternQuery = query
-                    _uiState.update { it.copy(isLoadingSeasonalPattern = false, seasonalPattern = distribution) }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't load the seasonal pattern.", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoadingSeasonalPattern = false,
-                            seasonalPattern = null,
-                            seasonalPatternErrorMessage = "Couldn't load the seasonal pattern.",
-                        )
-                    }
-                },
-            )
-        }
+        searchRuns.fetchSeasonalPattern(query, region, month, filter)
     }
 
     private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
-        activeSearch = Triple(region, month, filter)
-        // A new search invalidates any sightings loaded for a previous region/month/filter.
-        loadedSightingsQuery = null
-        _uiState.update {
-            // searchSerial: so the screen fetches the sightings again even when this search is the one
-            // already showing (RECORD -723; see AvailabilityUiState.searchSerial).
-            it.copy(sightings = emptyList(), sightingsErrorMessage = null, searchSerial = it.searchSerial + 1)
-        }
-
-        // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.
-        loadedSeasonalPatternQuery = null
-        _uiState.update {
-            it.copy(seasonalPattern = null, seasonalPatternErrorMessage = null)
-        }
+        searchRuns.startNewSearch(region, month, filter)
 
         // Read now, while the selection is the one this search was started for.
         val speciesGroup = speciesGroupToStore(filter)
-        viewModelScope.launch(searchJobs) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            getAvailability(region, month, filter, speciesGroup).fold(
-                onSuccess = { result ->
-                    _uiState.update { state ->
-                        when (result) {
-                            is AvailabilitySearchResult.Live -> state.copy(
-                                isLoading = false,
-                                forecast = result.forecast,
-                                isShowingCachedResults = false,
-                                cachedResultsAsOfEpochMillis = null,
-                            )
-                            // Both fields set together, from one result, so the banner can never
-                            // be shown without the age it is supposed to state.
-                            is AvailabilitySearchResult.Cached -> state.copy(
-                                isLoading = false,
-                                forecast = result.forecast,
-                                isShowingCachedResults = true,
-                                cachedResultsAsOfEpochMillis = result.cachedAtEpochMillis,
-                            )
-                        }
-                    }
-                },
-                onFailure = { error ->
-                    // Live failed and nothing was cached for this exact search, so there are no
-                    // results on screen at all: the cached-results flags are cleared rather than
-                    // left over from a previous search the banner would then mislabel.
-                    errorLog.w(TAG, "Search failed.", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isShowingCachedResults = false,
-                            cachedResultsAsOfEpochMillis = null,
-                            errorMessage = "Request failed. Check your connection and try again.",
-                        )
-                    }
-                },
-            )
-            // Either outcome can have changed the cache: a live search writes a new entry (and may
-            // evict one), and a cache hit moves its entry to the front of the LRU order.
-            loadRecentSearches()
-        }
+        searchRuns.fetchAvailability(region, month, filter, speciesGroup)
 
         // Recent rainfall is only meaningful for the current month: searching "what's typical
         // in November" while it's April doesn't make today's rain relevant to that answer.
@@ -779,45 +684,12 @@ class AvailabilityViewModel(
             // Independent of the forecast fetch above: a conditions failure must not block or
             // fail the main forecast, same independence pattern as onMapTabSelected's sightings
             // fetch.
-            viewModelScope.launch(searchJobs) {
-                _uiState.update { it.copy(isLoadingConditions = true, conditionsErrorMessage = null) }
-                getConditions(region).fold(
-                    onSuccess = { conditions -> _uiState.update { it.copy(isLoadingConditions = false, conditions = conditions) } },
-                    onFailure = { error ->
-                        errorLog.w(TAG, "Couldn't load recent rainfall.", error)
-                        _uiState.update {
-                            it.copy(
-                                isLoadingConditions = false,
-                                conditions = null,
-                                // Not belief-changing — the user wanted rainfall data, not a report
-                                // on the network. See docs/error-presentation-spec.md's per-field
-                                // table: neutral "unavailable" wording, not "Couldn't load...".
-                                conditionsErrorMessage = "Rainfall data unavailable.",
-                            )
-                        }
-                    },
-                )
-            }
+            searchRuns.fetchConditions(region)
             // Independent fetch from the one above: a separate provider method (and, in
             // production, a separate identical-parameter request — see GetTodaysForecastUseCase's
             // own doc comment for why that duplication is accepted rather than threaded through
             // GetTripWindowsUseCase's unrelated, already-tested return type).
-            viewModelScope.launch(searchJobs) {
-                _uiState.update { it.copy(isLoadingTodaysForecast = true, todaysForecastErrorMessage = null) }
-                getTodaysForecast(region).fold(
-                    onSuccess = { forecast -> _uiState.update { it.copy(isLoadingTodaysForecast = false, todaysForecast = forecast) } },
-                    onFailure = { error ->
-                        errorLog.w(TAG, "Couldn't load today's forecast.", error)
-                        _uiState.update {
-                            it.copy(
-                                isLoadingTodaysForecast = false,
-                                todaysForecast = null,
-                                todaysForecastErrorMessage = "Forecast unavailable.",
-                            )
-                        }
-                    },
-                )
-            }
+            searchRuns.fetchTodaysForecast(region)
         } else {
             _uiState.update {
                 it.copy(
@@ -835,22 +707,7 @@ class AvailabilityViewModel(
         // conditions above they are fetched regardless of which month is selected for the ranked
         // list — browsing "what's typical in November" in August doesn't make this week's rain
         // and forecast irrelevant to planning a trip this week.
-        viewModelScope.launch(searchJobs) {
-            _uiState.update { it.copy(isLoadingTripWindows = true, tripWindowsErrorMessage = null) }
-            getTripWindows(region).fold(
-                onSuccess = { report -> _uiState.update { it.copy(isLoadingTripWindows = false, tripWindowReport = report) } },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Couldn't load trip-window weather.", error)
-                    _uiState.update {
-                        it.copy(
-                            isLoadingTripWindows = false,
-                            tripWindowReport = null,
-                            tripWindowsErrorMessage = "Couldn't load trip-window weather.",
-                        )
-                    }
-                },
-            )
-        }
+        searchRuns.fetchTripWindows(region)
     }
 
     /**
@@ -870,20 +727,6 @@ class AvailabilityViewModel(
     }
 
     /**
-     * Re-runs one of the drawer's recent searches: restores the region, month and filter it was
-     * made with, then goes through the ordinary [refresh] flow.
-     *
-     * Deliberately **not** a "load this from the cache" path. [refresh] already tries live first
-     * and falls back to the cache, so tapping a recent search while online returns fresh results
-     * for it rather than replaying a stored copy, and tapping the same one offline lands on the
-     * cached copy with the banner that says so. A separate cache-only path would have been a
-     * second way to reach results, with its own failure and staleness rules to keep in step.
-     *
-     * The radius and coordinate fields are restored alongside the search itself so the drawer's
-     * slider, the manual-coordinate boxes and the summary strip all describe the search that just
-     * ran — the same fields [useCurrentLocation] fills in for the same reason.
-     */
-    /**
      * RECORD -723, the search bar's Clear: "One tap removes the observations from the map, clears the bar's summary
      * back to 'Search a location', and leaves recent searches untouched." The search's region and every result
      * fetched for it go: the map's sightings, the ranked list, rainfall, today's forecast, trip windows and the
@@ -897,13 +740,11 @@ class AvailabilityViewModel(
      * suggestion was picked from, so the bar's summary reads its default again ("<month> · Search a location").
      */
     fun clearSearch() {
-        searchJobs.cancel()
+        searchRuns.cancelRunning()
         // RECORD -750, item 3: a species lookup still running would put its suggestions back over a reset field.
         speciesLookup.cancel()
-        searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
-        activeSearch = null
-        loadedSightingsQuery = null
-        loadedSeasonalPatternQuery = null
+        searchRuns.renewParent()
+        searchRuns.forgetSearch()
         _uiState.update {
             it.copy(
                 region = null,
@@ -940,6 +781,20 @@ class AvailabilityViewModel(
         }
     }
 
+    /**
+     * Re-runs one of the drawer's recent searches: restores the region, month and filter it was
+     * made with, then goes through the ordinary [refresh] flow.
+     *
+     * Deliberately **not** a "load this from the cache" path. [refresh] already tries live first
+     * and falls back to the cache, so tapping a recent search while online returns fresh results
+     * for it rather than replaying a stored copy, and tapping the same one offline lands on the
+     * cached copy with the banner that says so. A separate cache-only path would have been a
+     * second way to reach results, with its own failure and staleness rules to keep in step.
+     *
+     * The radius and coordinate fields are restored alongside the search itself so the drawer's
+     * slider, the manual-coordinate boxes and the summary strip all describe the search that just
+     * ran — the same fields [useCurrentLocation] fills in for the same reason.
+     */
     fun onRecentSearchSelected(summary: CachedSearchSummary) {
         val region = summary.region
         _uiState.update {
