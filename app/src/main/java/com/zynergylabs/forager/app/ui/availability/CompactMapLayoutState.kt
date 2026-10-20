@@ -29,8 +29,8 @@ internal class CompactMapLayoutState(
     private val landscapeStripWidthState: MutableIntState,
 ) {
     /**
-     * The portrait strip's measured height, written by [CompactMapTopStrip] while not navigating (0 while navigating, in a
-     * landscape window, and before its first layout). Not the one-line clearance, which is one text line's height.
+     * The portrait strip's measured height, written by [CompactMapTopStrip] while not navigating (0 while navigating and before
+     * its first layout; not measured in a landscape window). Not the one-line clearance, which is one text line's height.
      */
     var compassStripHeightPx: Int
         get() = compassStripHeightState.intValue
@@ -58,8 +58,9 @@ internal class CompactMapLayoutState(
      * (dispatch 2026-09-28-645) gave the strip a 36 dp floor, twice that line, and its sundown and Back by lines grow it
      * too. The one-line clearance stays the floor, and is what is used while the strip is not measured: before its first
      * layout, while navigating (the display replaces it), and in a landscape window, where the strip sits in the other
-     * corner and is not measured. The comment above `compassStripClearance` in [CompactMapTab] records a regression from reading
-     * a measured height back for the bubble's minY; the strip's measured height was already read there for the search notice
+     * corner and is not measured. The comment in [CompactMapTab] that begins 'A real clearance for "below the compass strip,"'
+     * (on the one-line clearance measured with `compassStripTextMeasurer`) records a regression from reading a measured height
+     * back for the bubble's minY; the strip's measured height was already read in that body for the search notice
      * (searchBarSlot), and the test that caught that regression ("tapping elsewhere on the map dismisses the observation
      * bubble") is @Ignore'd for an unrelated harness reason, so whether the regression returns is a device item.
      */
