@@ -192,8 +192,10 @@ internal fun MapChromeTestScreen(
             onNightModeMapsChanged = {},
             onThemeModeChanged = {},
             mapSlot = mapSlotOverride ?: map.slot,
-            waypoints = listOf(BUBBLE_WAYPOINT),
-            tracks = listOf(BUBBLE_TRACK),
+            records = AvailabilityScreenRecords(
+                waypoints = listOf(BUBBLE_WAYPOINT),
+                tracks = listOf(BUBBLE_TRACK),
+            ),
             isReturning = state.isReturning,
             tripStartWarning = state.tripStartWarning,
             journalEntries = AvailabilityScreenJournalEntries(

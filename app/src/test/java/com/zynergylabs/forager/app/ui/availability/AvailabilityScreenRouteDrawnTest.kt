@@ -103,7 +103,9 @@ class AvailabilityScreenRouteDrawnTest {
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
                 isReturning = returning,
-                waypoints = listOf(start),
+                records = AvailabilityScreenRecords(
+                    waypoints = listOf(start),
+                ),
                 navigationTarget = start,
                 returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 1_000.0),
                 routeLine = line,

@@ -178,28 +178,30 @@ class AvailabilityScreenWaypointFlowTest {
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                 onThemeModeChanged = viewModel::onThemeModeChanged,
-                waypoints = waypoints,
-                waypointsErrorMessage = waypointsErrorMessage,
-                onDropWaypoint = { location, name ->
-                    droppedWaypoints += location to name
-                    waypoints = waypoints + Waypoint(
-                        id = "waypoint-${waypoints.size + 1}",
-                        lat = location.lat,
-                        lng = location.lng,
-                        altitude = null,
-                        name = name,
-                        note = "",
-                        createdAtEpochMillis = 0L,
-                    )
-                },
-                onDeleteWaypoint = { id ->
-                    deletedWaypointIds += id
-                    pendingWaypoint = waypoints.firstOrNull { it.id == id }?.let { PendingDelete(it, entryReferenceCount = 0, token = deletedWaypointIds.size.toLong()) }
-                    waypoints = waypoints.filterNot { it.id == id }
-                },
                 mapSlot = TriggerableWaypointMapSlot,
-                pendingDeleteNotices = listOfNotNull(
-                    waypointDeleteNotice(pendingWaypoint, onUndo = { pendingWaypoint = null }, onCommit = { pendingWaypoint = null }),
+                records = AvailabilityScreenRecords(
+                    waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
+                    onDropWaypoint = { location, name ->
+                        droppedWaypoints += location to name
+                        waypoints = waypoints + Waypoint(
+                            id = "waypoint-${waypoints.size + 1}",
+                            lat = location.lat,
+                            lng = location.lng,
+                            altitude = null,
+                            name = name,
+                            note = "",
+                            createdAtEpochMillis = 0L,
+                        )
+                    },
+                    onDeleteWaypoint = { id ->
+                        deletedWaypointIds += id
+                        pendingWaypoint = waypoints.firstOrNull { it.id == id }?.let { PendingDelete(it, entryReferenceCount = 0, token = deletedWaypointIds.size.toLong()) }
+                        waypoints = waypoints.filterNot { it.id == id }
+                    },
+                    pendingDeleteNotices = listOfNotNull(
+                        waypointDeleteNotice(pendingWaypoint, onUndo = { pendingWaypoint = null }, onCommit = { pendingWaypoint = null }),
+                    ),
                 ),
             )
         }

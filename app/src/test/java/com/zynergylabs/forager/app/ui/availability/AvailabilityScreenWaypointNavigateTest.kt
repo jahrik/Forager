@@ -182,8 +182,10 @@ class AvailabilityScreenWaypointNavigateTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
                 mapSlot = map.slot,
-                waypoints = waypoints,
-                waypointsLoaded = waypointsLoaded,
+                records = AvailabilityScreenRecords(
+                    waypoints = waypoints,
+                    waypointsLoaded = waypointsLoaded,
+                ),
                 isRecording = recording,
                 isReturning = returning,
                 onToggleReturning = { returning = !returning },

@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.GpxCodec
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.io.File
@@ -146,10 +147,12 @@ class RecordDetailsSheetTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
                 mapSlot = DETAILS_STUB_MAP,
-                waypoints = waypoints,
-                waypointEntryReferenceCounts = waypointCounts,
-                onDeleteWaypoint = { id -> deletedWaypointIds += id },
-                tracks = DETAILS_TRACKS,
+                records = AvailabilityScreenRecords(
+                    waypoints = waypoints,
+                    waypointEntryReferenceCounts = waypointCounts,
+                    onDeleteWaypoint = { id -> deletedWaypointIds += id },
+                    tracks = DETAILS_TRACKS,
+                ),
                 currentTime = CurrentTimeProvider { NOW },
                 onNavigateToWaypoint = onNavigateToWaypoint,
             )

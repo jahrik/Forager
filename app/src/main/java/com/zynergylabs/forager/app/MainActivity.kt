@@ -37,6 +37,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenEntryReport
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFindsLog
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntries
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
@@ -709,14 +710,6 @@ class MainActivity : ComponentActivity() {
                     backgroundRunPrompt = trackUiState.backgroundRunPrompt,
                     networkFixesNotice = trackUiState.networkFixesNotice,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
-                    // Journal redesign J4: the visible list leaves out a waypoint whose delete is
-                    // pending (Undo snackbar up), everywhere this screen shows waypoints, the map
-                    // included; a row's swipe asks for that pending delete.
-                    waypoints = trackUiState.visibleWaypoints,
-                    waypointsErrorMessage = trackUiState.waypointsErrorMessage,
-                    waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
-                    onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
-                    onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
                     returnToStart = trackUiState.returnToStart,
                     isReturning = trackUiState.isReturning,
                     isArrivalHeld = trackUiState.isArrivalHeld,
@@ -738,45 +731,55 @@ class MainActivity : ComponentActivity() {
                     // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
                     onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
                     onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
-                    waypointsLoaded = trackUiState.waypointsLoaded,
-                    // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
-                    // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
-                    // pending delete, and never for a track that is still recording.
-                    tracks = trackUiState.visibleTracks,
-                    onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
-                    tracksErrorMessage = trackUiState.tracksErrorMessage,
-                    onTracksOpened = trackRecordingViewModel::loadTracks,
-                    getFullRecord = trackRecordingViewModel::getFullRecord,
-                    pendingDeleteNotices = listOfNotNull(
-                        waypointDeleteNotice(
-                            trackUiState.pendingWaypointDelete,
-                            onUndo = trackRecordingViewModel::undoRemoveWaypoint,
-                            onCommit = trackRecordingViewModel::commitRemoveWaypoint,
-                        ),
-                        trackDeleteNotice(
-                            trackUiState.pendingTrackDelete,
-                            onUndo = trackRecordingViewModel::undoRemoveTrack,
-                            onCommit = trackRecordingViewModel::commitRemoveTrack,
-                        ),
-                        offlineRegionDeleteNotice(
-                            uiState.pendingOfflineRegionDelete,
-                            onUndo = viewModel::undoDeleteOfflineRegion,
-                            onCommit = viewModel::commitDeleteOfflineRegion,
-                        ),
-                        findDeleteNotice(
-                            logUiState.pendingDelete,
-                            onUndo = mushroomLogViewModel::undoDeleteEntry,
-                            onCommit = mushroomLogViewModel::commitDeleteEntry,
-                        ),
-                        cartographyEntryDeleteNotice(
-                            cartographyUiState.pendingDelete,
-                            onUndo = cartographyViewModel::undoDeleteEntry,
-                            onCommit = cartographyViewModel::commitDeleteEntry,
-                        ),
-                        galleryPhotoDeleteNotice(
-                            logUiState.pendingPhotoDelete,
-                            onUndo = mushroomLogViewModel::undoDeleteGalleryPhoto,
-                            onCommit = mushroomLogViewModel::commitDeleteGalleryPhoto,
+                    records = AvailabilityScreenRecords(
+                        // Journal redesign J4: the visible list leaves out a waypoint whose delete is
+                        // pending (Undo snackbar up), everywhere this screen shows waypoints, the map
+                        // included; a row's swipe asks for that pending delete.
+                        waypoints = trackUiState.visibleWaypoints,
+                        waypointsErrorMessage = trackUiState.waypointsErrorMessage,
+                        waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
+                        onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
+                        onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
+                        waypointsLoaded = trackUiState.waypointsLoaded,
+                        // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
+                        // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
+                        // pending delete, and never for a track that is still recording.
+                        tracks = trackUiState.visibleTracks,
+                        onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
+                        tracksErrorMessage = trackUiState.tracksErrorMessage,
+                        onTracksOpened = trackRecordingViewModel::loadTracks,
+                        getFullRecord = trackRecordingViewModel::getFullRecord,
+                        pendingDeleteNotices = listOfNotNull(
+                            waypointDeleteNotice(
+                                trackUiState.pendingWaypointDelete,
+                                onUndo = trackRecordingViewModel::undoRemoveWaypoint,
+                                onCommit = trackRecordingViewModel::commitRemoveWaypoint,
+                            ),
+                            trackDeleteNotice(
+                                trackUiState.pendingTrackDelete,
+                                onUndo = trackRecordingViewModel::undoRemoveTrack,
+                                onCommit = trackRecordingViewModel::commitRemoveTrack,
+                            ),
+                            offlineRegionDeleteNotice(
+                                uiState.pendingOfflineRegionDelete,
+                                onUndo = viewModel::undoDeleteOfflineRegion,
+                                onCommit = viewModel::commitDeleteOfflineRegion,
+                            ),
+                            findDeleteNotice(
+                                logUiState.pendingDelete,
+                                onUndo = mushroomLogViewModel::undoDeleteEntry,
+                                onCommit = mushroomLogViewModel::commitDeleteEntry,
+                            ),
+                            cartographyEntryDeleteNotice(
+                                cartographyUiState.pendingDelete,
+                                onUndo = cartographyViewModel::undoDeleteEntry,
+                                onCommit = cartographyViewModel::commitDeleteEntry,
+                            ),
+                            galleryPhotoDeleteNotice(
+                                logUiState.pendingPhotoDelete,
+                                onUndo = mushroomLogViewModel::undoDeleteGalleryPhoto,
+                                onCommit = mushroomLogViewModel::commitDeleteGalleryPhoto,
+                            ),
                         ),
                     ),
                 )

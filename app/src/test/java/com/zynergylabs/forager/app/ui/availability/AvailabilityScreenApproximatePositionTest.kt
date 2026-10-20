@@ -143,8 +143,10 @@ class AvailabilityScreenApproximatePositionTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
                 mapSlot = map.slot,
-                waypoints = listOf(creek),
-                waypointsLoaded = true,
+                records = AvailabilityScreenRecords(
+                    waypoints = listOf(creek),
+                    waypointsLoaded = true,
+                ),
                 isRecording = recording,
                 isReturning = returning,
                 onToggleReturning = { returning = !returning },

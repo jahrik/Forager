@@ -157,8 +157,10 @@ class AvailabilityScreenSundownLineTest {
                     onNightModeMapsChanged = {},
                     onThemeModeChanged = {},
                     mapSlot = map,
-                    waypoints = listOf(creek),
-                    waypointsLoaded = true,
+                    records = AvailabilityScreenRecords(
+                        waypoints = listOf(creek),
+                        waypointsLoaded = true,
+                    ),
                     isRecording = recording,
                     isReturning = returning,
                     onToggleReturning = { returning = !returning },

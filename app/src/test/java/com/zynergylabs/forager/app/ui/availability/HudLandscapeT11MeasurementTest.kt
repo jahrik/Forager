@@ -204,8 +204,10 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
                     onNightModeMapsChanged = {},
                     onThemeModeChanged = {},
                     mapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) },
-                    waypoints = listOf(creek),
-                    waypointsLoaded = true,
+                    records = AvailabilityScreenRecords(
+                        waypoints = listOf(creek),
+                        waypointsLoaded = true,
+                    ),
                     isRecording = recording,
                     isReturning = returning,
                     onToggleReturning = { returning = !returning },

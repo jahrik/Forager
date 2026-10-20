@@ -1029,12 +1029,14 @@ private fun ShortWindowScreenUnderTest(
             onOpenCartographyEntry = onOpen,
             onCloseCartographyEntry = onClose,
         ),
-        waypoints = MANY_WAYPOINTS,
         cameraInputs = AvailabilityScreenCamera(onOpenCamera = onOpenCamera),
         findsLog = AvailabilityScreenFindsLog(
             logUiState = logState,
         ),
-        tracks = tracks,
+        records = AvailabilityScreenRecords(
+            waypoints = MANY_WAYPOINTS,
+            tracks = tracks,
+        ),
         entryReportData = AvailabilityScreenEntryReportData(
             getCartographyEntryMapData = { _, _ ->
                 entryMapData ?: com.zynergylabs.forager.app.domain.CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())

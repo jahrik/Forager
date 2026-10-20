@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.Instant
@@ -101,7 +102,9 @@ class TrackSheetDataTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
                 mapSlot = STUB_MAP,
-                tracks = listOf(HILL, FLAT),
+                records = AvailabilityScreenRecords(
+                    tracks = listOf(HILL, FLAT),
+                ),
                 currentTime = CurrentTimeProvider { NOW },
             )
         }

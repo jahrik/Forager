@@ -88,7 +88,9 @@ class AvailabilityScreenArrivalHoldTest {
                 isRecording = true,
                 isReturning = false,
                 isArrivalHeld = held,
-                waypoints = listOf(start),
+                records = AvailabilityScreenRecords(
+                    waypoints = listOf(start),
+                ),
                 navigationTarget = start,
                 // What MainActivity passes once the route tick has stopped and cleared its route.
                 returnRoute = ReturnRoute.Pending,
