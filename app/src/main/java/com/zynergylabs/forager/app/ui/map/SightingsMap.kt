@@ -287,12 +287,18 @@ fun SightingsMap(
     // Latest callbacks, read from inside listeners registered exactly once in the DisposableEffect
     // below — without this indirection, a listener registered once would keep calling whichever
     // onTap/onLongPress lambda instance was current at registration time, not the caller's latest.
-    val currentOnTap by rememberUpdatedState(onTap)
-    val currentOnSightingTap by rememberUpdatedState(onSightingTap)
-    val currentOnLongPress by rememberUpdatedState(onLongPress)
-    val currentOnCameraIdle by rememberUpdatedState(onCameraIdle)
-    val currentOnUserCameraGesture by rememberUpdatedState(onUserCameraGesture)
-    val currentNavigationView by rememberUpdatedState(navigationView)
+    val currentOnTapState = rememberUpdatedState(onTap)
+    val currentOnTap by currentOnTapState
+    val currentOnSightingTapState = rememberUpdatedState(onSightingTap)
+    val currentOnSightingTap by currentOnSightingTapState
+    val currentOnLongPressState = rememberUpdatedState(onLongPress)
+    val currentOnLongPress by currentOnLongPressState
+    val currentOnCameraIdleState = rememberUpdatedState(onCameraIdle)
+    val currentOnCameraIdle by currentOnCameraIdleState
+    val currentOnUserCameraGestureState = rememberUpdatedState(onUserCameraGesture)
+    val currentOnUserCameraGesture by currentOnUserCameraGestureState
+    val currentNavigationViewState = rememberUpdatedState(navigationView)
+    val currentNavigationView by currentNavigationViewState
     // Ruling A (continuation 2026-09-28-432): the puck, and a facing-up map, take the app's own true
     // heading, not MapLibre's magnetic one. The heading handed in, else one made here from the
     // screen's compass (LocalMapCompass), else none, and MapLibre's own engine stays. Which applies
@@ -313,16 +319,20 @@ fun SightingsMap(
     val mapPosition = LocalMapPosition.current
     val appLocationEngine = remember(mapPosition != null) { if (mapPosition != null) AppLocationEngine() else null }
     val positionLook = mapPosition?.let { position -> remember(position) { derivedStateOf { positionLookOf(position.shown.value, position.liveFix.value) } }.value } ?: PositionLook.PRECISE
-    val currentPositionLook by rememberUpdatedState(positionLook)
+    val currentPositionLookState = rememberUpdatedState(positionLook)
+    val currentPositionLook by currentPositionLookState
     // The look last handed to MapLibre, so an unchanged look is not re-applied on every style load.
     val appliedPositionLook = remember { arrayOf(PositionLook.PRECISE) }
     // The navigation view's own camera mode changes, marked so the tracking listener below does not
     // read them as the user moving away from the view; and the mode the view last asked for.
     val navigationModeChange = remember { NavigationModeChange() }
     // The map's height, for the padding that puts the walker below the centre; recomputed on resize (fullscreen, rotation).
-    var navigationMapHeightPx by remember { mutableIntStateOf(0) }
-    val currentOnFeatureTap by rememberUpdatedState(onFeatureTap)
-    val currentOnCloseBubble by rememberUpdatedState(onCloseBubble)
+    val navigationMapHeightPxState = remember { mutableIntStateOf(0) }
+    var navigationMapHeightPx by navigationMapHeightPxState
+    val currentOnFeatureTapState = rememberUpdatedState(onFeatureTap)
+    val currentOnFeatureTap by currentOnFeatureTapState
+    val currentOnCloseBubbleState = rememberUpdatedState(onCloseBubble)
+    val currentOnCloseBubble by currentOnCloseBubbleState
     // Read by the click listener (the draw order the tap precedence ranks against) and by each
     // style load (the order the layers are added in): both were registered or launched before a
     // later state change could otherwise reach them.
@@ -335,42 +345,56 @@ fun SightingsMap(
     val drawnLayersState = remember(layersState, forecast?.groupsByLayer) {
         withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty())
     }
-    val currentLayersState by rememberUpdatedState(drawnLayersState)
+    val currentLayersStateState = rememberUpdatedState(drawnLayersState)
+    val currentLayersState by currentLayersStateState
     // The map chrome's colour (the navigation bar's), read here because it follows the app's theme.
     val chromeColour = navigationBarContainerColor().toArgb()
-    val currentChromeColour by rememberUpdatedState(chromeColour)
+    val currentChromeColourState = rememberUpdatedState(chromeColour)
+    val currentChromeColour by currentChromeColourState
     // The chrome colour the fan's circle image holds in the loaded style: set when the style loads (addFanOutLayers registers it), so the colour effect
     // below registers it again only for a real change of colour.
     val fanCircleColour = remember { arrayOfNulls<Int>(1) }
     // Which camera moves are the location follower's and which are the user's or the app's own (dispatch 2026-09-28-380): MapLibre reports every
     // programmatic move with one reason, so each camera move this file makes marks itself here first, and the camera-idle listener clears the mark.
     val cameraMoveClassifier = remember { CameraMoveClassifier { task -> Handler(Looper.getMainLooper()).post(task) } }
-    val currentForecast by rememberUpdatedState(forecast)
+    val currentForecastState = rememberUpdatedState(forecast)
+    val currentForecast by currentForecastState
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
-    var cameraIdleCount by remember { mutableIntStateOf(0) }
+    val cameraIdleCountState = remember { mutableIntStateOf(0) }
+    var cameraIdleCount by cameraIdleCountState
     // Read inside the click listener below (registered once, see that DisposableEffect's own
     // comment) so a tapped dot resolves against whichever sightings list is current, not whichever
     // one was in scope the moment the listener was registered.
-    val currentSightings by rememberUpdatedState(sightings)
+    val currentSightingsState = rememberUpdatedState(sightings)
+    val currentSightings by currentSightingsState
     // See MapOverlayContent.focusedObservationId's own doc comment for the dismiss-then-reappear
     // bug this closes: read fresh on every camera-idle event rather than latched into a local var
     // at tap time, so a caller-side dismissal (which only ever changes this parameter, never reaches
     // the click listener below) is visible here too.
-    val currentFocusedObservationId by rememberUpdatedState(focusedObservationId)
+    val currentFocusedObservationIdState = rememberUpdatedState(focusedObservationId)
+    val currentFocusedObservationId by currentFocusedObservationIdState
     // M1 (F2): the point feature a caller's bubble is showing, and the lists it is looked up in, read
     // fresh on every camera idle for the reason currentFocusedObservationId is.
-    val currentFocusedFeature by rememberUpdatedState(focusedFeature)
+    val currentFocusedFeatureState = rememberUpdatedState(focusedFeature)
+    val currentFocusedFeature by currentFocusedFeatureState
     // Part 1 layout fixes, item 4: read by the camera-idle listener (registered once) and by the first
     // style load, for the reason the lines above give.
-    val currentCameraMemory by rememberUpdatedState(cameraMemory)
+    val currentCameraMemoryState = rememberUpdatedState(cameraMemory)
+    val currentCameraMemory by currentCameraMemoryState
     // Item 8: read by the camera-idle listener (registered once), for the reason the lines above give.
-    val currentReturnMemory by rememberUpdatedState(returnMemory)
-    val currentPlannedTrips by rememberUpdatedState(plannedTrips)
-    val currentWaypoints by rememberUpdatedState(waypoints)
-    val currentFindMarkers by rememberUpdatedState(findMarkers)
-    val currentPhotoMarkers by rememberUpdatedState(photoMarkers)
-    var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    val currentReturnMemoryState = rememberUpdatedState(returnMemory)
+    val currentReturnMemory by currentReturnMemoryState
+    val currentPlannedTripsState = rememberUpdatedState(plannedTrips)
+    val currentPlannedTrips by currentPlannedTripsState
+    val currentWaypointsState = rememberUpdatedState(waypoints)
+    val currentWaypoints by currentWaypointsState
+    val currentFindMarkersState = rememberUpdatedState(findMarkers)
+    val currentFindMarkers by currentFindMarkersState
+    val currentPhotoMarkersState = rememberUpdatedState(photoMarkers)
+    val currentPhotoMarkers by currentPhotoMarkersState
+    val mapLibreMapState = remember { mutableStateOf<MapLibreMap?>(null) }
+    var mapLibreMap by mapLibreMapState
     // Dispatch 2026-09-28-463: a nudge under the drag threshold gives, then springs back, while
     // navigating and following (see NudgeElastic.kt). Fed by the map view's touch listener below.
     val nudgeThresholdPx = NAVIGATION_NUDGE_THRESHOLD_DP * LocalDensity.current.density
@@ -414,7 +438,8 @@ fun SightingsMap(
     // The Style instance from the most recently completed setStyle callback. Distinct from
     // "which style is currently applied" (appliedStyle, below) because this is what the data
     // effect keys on: a new Style object means new (empty) sources that need their content pushed.
-    var loadedStyle by remember { mutableStateOf<Style?>(null) }
+    val loadedStyleState = remember { mutableStateOf<Style?>(null) }
+    var loadedStyle by loadedStyleState
 
     // RECORD -761 (the owner: "Picture cover, this build (Recommended)"): a map coming back to the Maps tab draws the picture the
     // leaving map took of itself over its own first frames, until it has drawn a full frame of its own (MapReturnCover.kt, whose
@@ -440,7 +465,8 @@ fun SightingsMap(
             null
         }
     }
-    var coverPhase by remember { mutableStateOf(if (coverPicture != null) CoverPhase.COVERING else CoverPhase.GONE) }
+    val coverPhaseState = remember { mutableStateOf(if (coverPicture != null) CoverPhase.COVERING else CoverPhase.GONE) }
+    var coverPhase by coverPhaseState
     LaunchedEffect(Unit) {
         if (coverPicture == null) return@LaunchedEffect
         delay(MAP_COVER_READY_CAP_MS)
@@ -480,18 +506,21 @@ fun SightingsMap(
     // activateLiveLocationIfPermitted has to run again below. Accepted because a basemap, palette
     // or offline switch is a deliberate, roughly once-per-outing action, not something that fires
     // on every recomposition.
-    var appliedStyle by remember { mutableStateOf<AppliedMapStyle?>(null) }
+    val appliedStyleState = remember { mutableStateOf<AppliedMapStyle?>(null) }
+    var appliedStyle by appliedStyleState
 
     // What the camera was last deliberately moved to by the data+camera refresh effect below —
     // *not* re-derived from mapLibreMap.cameraPosition, which changes continuously while GPS
     // tracking owns the camera and would make this comparison meaningless. See
     // shouldMoveCameraToTarget's own doc comment for the hardware-reported bug this closes.
-    var lastAppliedCameraTarget by remember { mutableStateOf<Pair<Region, LatLng?>?>(null) }
+    val lastAppliedCameraTargetState = remember { mutableStateOf<Pair<Region, LatLng?>?>(null) }
+    var lastAppliedCameraTarget by lastAppliedCameraTargetState
 
     // The id of the last MapRenderMode.cameraRequest this MapView applied (the entry map's opening
     // frame): kept with the MapView, so a request arriving again on a later recomposition, after a
     // fullscreen switch or a find overlay's Back, does not move the camera the user has since moved.
-    var lastAppliedCameraRequestId by remember { mutableStateOf<String?>(null) }
+    val lastAppliedCameraRequestIdState = remember { mutableStateOf<String?>(null) }
+    var lastAppliedCameraRequestId by lastAppliedCameraRequestIdState
 
     // RECORD -750, item 5: the last search frame this map applied, for a map with no camera memory; one with memory keeps it
     // there (MapCameraMemory.appliedSearchFrameId), so it outlives the MapView.
@@ -499,7 +528,73 @@ fun SightingsMap(
 
     // Part 1 layout fixes, item 5: MapLibre's own attribution margins, read once the map is ready, which
     // the caption's insets are added to below.
-    var attributionDefaultMargins by remember { mutableStateOf<IntArray?>(null) }
+    val attributionDefaultMarginsState = remember { mutableStateOf<IntArray?>(null) }
+    var attributionDefaultMargins by attributionDefaultMarginsState
+
+    // Item 1 (dispatch 2026-09-29-57, amendment -262): the map's own size, written by the layout below and read by the
+    // attribution placement. Declared here, with the holder's other states, since UI split Phase 2.2 (dispatch 2026-10-19-29);
+    // it was declared in the attribution block until then. A plain remember with a constant start, not an observer.
+    val mapSizePxState = remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    var mapSizePx by mapSizePxState
+    // RECORD -954: the credit strip's laid-out width, written by the layout below and read by the attribution placement.
+    // Moved up here for the same reason as mapSizePx.
+    val creditWidthPxState = remember { mutableIntStateOf(0) }
+    var creditWidthPx by creditWidthPxState
+
+    // UI split Phase 2.2 (dispatch 2026-10-19-29): the map's state holder, over the very State objects remembered above, so
+    // the effect groups can move to their own files and take it. Nothing is copied into it: each read is a getter and each
+    // write a setter on the same State this function reads (SightingsMapState's own doc comment). Made once, for the life of
+    // this MapView, like every unkeyed remember above. Not read yet: the effect groups start taking it in the PRs that follow.
+    @Suppress("UNUSED_VARIABLE", "unused")
+    val sightingsMapState = remember {
+        SightingsMapState(
+            mapView = mapView,
+            onTapState = currentOnTapState,
+            onSightingTapState = currentOnSightingTapState,
+            onLongPressState = currentOnLongPressState,
+            onCameraIdleState = currentOnCameraIdleState,
+            onUserCameraGestureState = currentOnUserCameraGestureState,
+            navigationViewState = currentNavigationViewState,
+            positionLookState = currentPositionLookState,
+            onFeatureTapState = currentOnFeatureTapState,
+            onCloseBubbleState = currentOnCloseBubbleState,
+            layersStateState = currentLayersStateState,
+            chromeColourState = currentChromeColourState,
+            forecastState = currentForecastState,
+            sightingsState = currentSightingsState,
+            focusedObservationIdState = currentFocusedObservationIdState,
+            focusedFeatureState = currentFocusedFeatureState,
+            cameraMemoryState = currentCameraMemoryState,
+            returnMemoryState = currentReturnMemoryState,
+            plannedTripsState = currentPlannedTripsState,
+            waypointsState = currentWaypointsState,
+            findMarkersState = currentFindMarkersState,
+            photoMarkersState = currentPhotoMarkersState,
+            mapLibreMapState = mapLibreMapState,
+            loadedStyleState = loadedStyleState,
+            appliedStyleState = appliedStyleState,
+            coverPhaseState = coverPhaseState,
+            lastAppliedCameraTargetState = lastAppliedCameraTargetState,
+            lastAppliedCameraRequestIdState = lastAppliedCameraRequestIdState,
+            attributionDefaultMarginsState = attributionDefaultMarginsState,
+            cameraIdleCountState = cameraIdleCountState,
+            navigationMapHeightPxState = navigationMapHeightPxState,
+            mapSizePxState = mapSizePxState,
+            creditWidthPxState = creditWidthPxState,
+            appliedPositionLook = appliedPositionLook,
+            navigationModeChange = navigationModeChange,
+            fanCircleColour = fanCircleColour,
+            cameraMoveClassifier = cameraMoveClassifier,
+            touchDownAt = touchDownAt,
+            nudgeFlingGuard = nudgeFlingGuard,
+            nudgeElastic = nudgeElastic,
+            coverPicture = coverPicture,
+            fanOut = fanOut,
+            tapHandlerRef = tapHandlerRef,
+            fanReopen = fanReopen,
+            localAppliedSearchFrameId = localAppliedSearchFrameId,
+        )
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -1224,8 +1319,7 @@ fun SightingsMap(
     val layoutDirection = LocalLayoutDirection.current
     val attributionBottomPx = with(LocalDensity.current) { (attributionBottomInset ?: bottomInset).roundToPx() }
     // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): moved inboard of the landscape L, which the host
-    // hands over as its measured bounds, when the two would intersect. The map's own size is tracked here for it.
-    var mapSizePx by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    // hands over as its measured bounds, when the two would intersect. The map's own size is tracked for it in mapSizePx, above.
     val attributionEndPx = with(LocalDensity.current) {
         val defaults = attributionDefaultMargins
         val endInsetPx = attributionEndInset.roundToPx()
@@ -1249,7 +1343,7 @@ fun SightingsMap(
     // the button moves to the bottom start, just past the credit strip's measured end, its bottom on the strip's bottom. It is
     // MapLibre's own attribution control, so it moves through the same two UiSettings calls as before (gravity and margins), not
     // as a composable; it opens what it always opened. Portrait and every other map keep the bottom-end corner.
-    var creditWidthPx by remember { mutableIntStateOf(0) }
+    // The credit strip's laid-out width is creditWidthPx, above.
     val besideCreditGapPx = with(LocalDensity.current) { ATTRIBUTION_BESIDE_CREDIT_GAP_DP.dp.roundToPx() }
     val creditBottomPx = with(LocalDensity.current) { bottomInset.roundToPx() }
     val logoBesideAttributionOffsetPx = with(LocalDensity.current) { (ATTRIBUTION_BUTTON_DP + LOGO_ATTRIBUTION_GAP_DP).dp.roundToPx() }
@@ -1447,14 +1541,6 @@ fun SightingsMap(
         )
     }
 }
-
-/** Holds the tap handler once the map is ready, for the listeners and effects that outlive one composition to reach it. */
-private class TapHandlerRef {
-    var handler: MapTapHandler? = null
-}
-
-/** RECORD -761: where a returning map's cover is. */
-private enum class CoverPhase { COVERING, HANDED_OVER, GONE }
 
 /** RECORD -752: logcat tag for a map's first frames and its camera restore on a return to Maps (logging only). */
 internal const val MAPS_COMEBACK_LOG_TAG = "ForagerMapsComeback"
