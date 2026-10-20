@@ -75,7 +75,9 @@ abstract class MapChromeOutlineTouchTests(private val rotation: Int?) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = navigating,
+                recording = AvailabilityScreenRecording(
+                    isRecording = navigating,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = navigating,
                     navigationTarget = if (navigating) start else null,

@@ -110,7 +110,9 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
             ForagerTheme(darkTheme = dark) {
                 AvailabilityScreen(
                     uiState = AvailabilityUiState(liveFix = fix),
-                    isRecording = navigating,
+                    recording = AvailabilityScreenRecording(
+                        isRecording = navigating,
+                    ),
                     navigation = AvailabilityScreenNavigation(
                         isReturning = navigating,
                         navigationTarget = if (navigating) start else null,

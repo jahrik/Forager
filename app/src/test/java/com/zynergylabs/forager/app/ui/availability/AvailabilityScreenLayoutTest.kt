@@ -280,7 +280,9 @@ abstract class AvailabilityScreenLayoutTest {
             AvailabilityScreen(
                 uiState = uiState,
                 onUseCurrentLocation = onUseCurrentLocation,
-                isRecording = isReturning.value,
+                recording = AvailabilityScreenRecording(
+                    isRecording = isReturning.value,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = isReturning.value,
                     navigationTarget = navigationTarget,

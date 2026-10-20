@@ -101,7 +101,9 @@ class AvailabilityScreenRouteDrawnTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = true,
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                ),
                 records = AvailabilityScreenRecords(
                     waypoints = listOf(start),
                 ),

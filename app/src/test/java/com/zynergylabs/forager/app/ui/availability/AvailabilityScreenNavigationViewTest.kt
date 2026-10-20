@@ -111,8 +111,10 @@ class AvailabilityScreenNavigationViewTest {
         set {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = true,
-                tripStartWarning = tripStartWarning,
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                    tripStartWarning = tripStartWarning,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = returning,
                     onToggleReturning = { returning = !returning },

@@ -86,7 +86,9 @@ abstract class NavigationRailEvenSpacingTests(private val widthDp: Int) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = false,
+                recording = AvailabilityScreenRecording(
+                    isRecording = false,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = false,
                     navigationTarget = null,

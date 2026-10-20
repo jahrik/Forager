@@ -81,7 +81,9 @@ abstract class IconBarFixedLeftTests(private val rotation: Int, private val land
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix, mapIconClusterPlacement = savedRight),
-                isRecording = true,
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                ),
                 navigation = AvailabilityScreenNavigation(
                     isReturning = returning,
                     navigationTarget = start,
