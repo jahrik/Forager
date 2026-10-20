@@ -41,7 +41,7 @@ internal fun MapStyleReload(
     // MapLibre's offline database can serve the style document, its TileJSON and its tiles from
     // the store. Nothing else about the swap differs from a basemap swap: initializeOverlayLayers
     // re-adds every overlay in the callback exactly as it does for a basemap change, and the
-    // data+camera refresh effect below re-pushes their content keyed on loadedStyle. One thing
+    // data+camera refresh effect (MapDataRefresh.kt, called right after this) re-pushes their content keyed on loadedStyle. One thing
     // deliberately left as the user will see it (owner ruling, 2e-ii: report, do not fix): the max
     // zoom preference stays the *basemap's* (17 for OpenTopoMap) over a store that stops at zoom
     // 15 — vector tiles overzoom cleanly, per OfflineMapRepository.MAX_ZOOM's doc comment, so the
@@ -121,12 +121,12 @@ internal fun MapStyleReload(
             // Dispatch 2026-09-28-510: the approximate and last known dots, by name, before the dot is activated
             // below; setStyle discards images with everything else, so on every style load.
             if (appLocationEngine != null) addPositionLookImages(style, context)
-            // The data+camera refresh effect below re-pushes every source right after this, keyed
+            // The data+camera refresh effect (MapDataRefresh.kt) re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
             // needs to seed it separately.
             // Item 4: again once the style has loaded, in case a style's own default camera replaced it,
-            // and the region target recorded before loadedStyle wakes the data+camera effect below.
+            // and the region target recorded before loadedStyle wakes the data+camera effect (MapDataRefresh.kt).
             cameraRestore?.let {
                 Log.i(MAPS_COMEBACK_LOG_TAG, "restore on the style load: view=${state.mapView.width}x${state.mapView.height}, camera was zoom=${map.cameraPosition.zoom} target=${map.cameraPosition.target}")
                 state.cameraMoveClassifier.markAppMove()

@@ -398,8 +398,8 @@ fun SightingsMap(
     }
     DisposableEffect(nudgeElastic) { onDispose { nudgeElastic.cancel() } }
     // The Style instance from the most recently completed setStyle callback. Distinct from
-    // "which style is currently applied" (appliedStyle, below) because this is what the data
-    // effect keys on: a new Style object means new (empty) sources that need their content pushed.
+    // "which style is currently applied" (appliedStyle, below; MapStyleReload.kt sets both) because this is what the data
+    // effect (MapDataRefresh.kt) keys on: a new Style object means new (empty) sources that need their content pushed.
     val loadedStyleState = remember { mutableStateOf<Style?>(null) }
     var loadedStyle by loadedStyleState
 
@@ -465,12 +465,12 @@ fun SightingsMap(
     // change is only visible after those layers are rebuilt.
     //
     // Restyling is not free -- setStyle discards the LocationComponent state, which is why
-    // activateLiveLocationIfPermitted has to run again below. Accepted because a basemap, palette
+    // activateLiveLocationIfPermitted has to run again in MapStyleReload.kt. Accepted because a basemap, palette
     // or offline switch is a deliberate, roughly once-per-outing action, not something that fires
     // on every recomposition.
     val appliedStyleState = remember { mutableStateOf<AppliedMapStyle?>(null) }
 
-    // What the camera was last deliberately moved to by the data+camera refresh effect below —
+    // What the camera was last deliberately moved to by the data+camera refresh effect (MapDataRefresh.kt) —
     // *not* re-derived from mapLibreMap.cameraPosition, which changes continuously while GPS
     // tracking owns the camera and would make this comparison meaningless. See
     // shouldMoveCameraToTarget's own doc comment for the hardware-reported bug this closes.
