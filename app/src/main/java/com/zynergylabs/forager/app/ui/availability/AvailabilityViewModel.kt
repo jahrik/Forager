@@ -58,7 +58,6 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -194,7 +193,6 @@ class AvailabilityViewModel(
      * not fetch the newly picked species for the old region. Null before any search and after [clearSearch].
      */
     private var activeSearch: Triple<Region, Int, TaxonFilter>? = null
-    private var taxonSearchJob: Job? = null
 
     /**
      * The one live collection of [LocationTracker.fixes] feeding [AvailabilityUiState.liveFix] —
@@ -309,6 +307,20 @@ class AvailabilityViewModel(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         waypointNavigationRepository = waypointNavigationRepository,
+        errorLog = errorLog,
+    )
+
+
+    /**
+     * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own
+     * class by UI split Phase 2.4 PR 7. Whether a lookup starts, and each cancel, stay in this class's
+     * functions: [onTaxonSearchQueryChanged], [onDismissTaxonSuggestions] and [clearSearch]. It writes this
+     * screen's state through the setter here and launches in this ViewModel's own scope.
+     */
+    private val speciesLookup = AvailabilitySpeciesLookup(
+        updateState = { transform -> _uiState.update(transform) },
+        scope = { viewModelScope },
+        searchTaxa = searchTaxa,
         errorLog = errorLog,
     )
 
@@ -481,9 +493,8 @@ class AvailabilityViewModel(
         collectLiveFixes()
     }
 
-    fun onRadiusChanged(radiusKm: Int) {
-        _uiState.update { it.copy(radiusKm = Region.clampRadiusKm(radiusKm)) }
-    }
+    /** The search radius slider: see [AvailabilitySpeciesLookup.onRadiusChanged]. */
+    fun onRadiusChanged(radiusKm: Int) = speciesLookup.onRadiusChanged(radiusKm)
 
     fun onMonthSelected(month: Int) {
         _uiState.update { it.copy(selectedMonth = month) }
@@ -492,39 +503,14 @@ class AvailabilityViewModel(
 
     fun onTaxonSearchQueryChanged(query: String) {
         _uiState.update { it.copy(taxonSearchQuery = query, taxonSearchHasNoResults = false) }
-        taxonSearchJob?.cancel()
+        speciesLookup.cancel()
 
         if (query.trim().length < SearchTaxaUseCase.MIN_QUERY_LENGTH) {
             _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false, taxonSearchErrorMessage = null) }
             return
         }
 
-        taxonSearchJob = viewModelScope.launch {
-            delay(SEARCH_DEBOUNCE_MS)
-            _uiState.update { it.copy(isSearchingTaxa = true, taxonSearchErrorMessage = null) }
-            searchTaxa(query).fold(
-                onSuccess = { results ->
-                    _uiState.update {
-                        it.copy(
-                            isSearchingTaxa = false,
-                            taxonSearchResults = results,
-                            taxonSearchHasNoResults = results.isEmpty(),
-                        )
-                    }
-                },
-                onFailure = { error ->
-                    errorLog.w(TAG, "Species search failed.", error)
-                    _uiState.update {
-                        it.copy(
-                            isSearchingTaxa = false,
-                            taxonSearchResults = emptyList(),
-                            taxonSearchHasNoResults = false,
-                            taxonSearchErrorMessage = "Species search failed.",
-                        )
-                    }
-                },
-            )
-        }
+        speciesLookup.beginLookup(query)
     }
 
     /**
@@ -536,29 +522,12 @@ class AvailabilityViewModel(
      * close.
      */
     fun onDismissTaxonSuggestions() {
-        taxonSearchJob?.cancel()
+        speciesLookup.cancel()
         _uiState.update { it.copy(taxonSearchResults = emptyList(), isSearchingTaxa = false, taxonSearchHasNoResults = false) }
     }
 
-    fun onTaxonSearchResultSelected(result: TaxonSearchResult) {
-        val filter = result.toFilter()
-        _uiState.update {
-            it.copy(
-                taxonFilter = filter,
-                foragingSelection = ForagingSelection.fromSearchResult(result),
-                // The query that produced the list [result] was picked from — remembered here,
-                // at the one point it's guaranteed non-blank (a result can't have been picked
-                // from an empty query), so it survives taxonSearchQuery being cleared right below.
-                lastTaxonSearchQuery = it.taxonSearchQuery,
-                taxonSearchQuery = "",
-                taxonSearchResults = emptyList(),
-                taxonSearchHasNoResults = false,
-            )
-        }
-        // RECORD -725, the owner: "instead of having it automatically search, just keep the keyboard open and fill
-        // it in, no search yet". The species is selected (the bar's summary names it) and nothing is fetched; the
-        // next search the user runs carries it. Before this, a region already searched was searched again here.
-    }
+    /** A species suggestion picked: see [AvailabilitySpeciesLookup.onTaxonSearchResultSelected]. */
+    fun onTaxonSearchResultSelected(result: TaxonSearchResult) = speciesLookup.onTaxonSearchResultSelected(result)
 
     /**
      * Reopens the suggestion dropdown for the last species search, so picking a different result
@@ -574,13 +543,11 @@ class AvailabilityViewModel(
         if (query.isNotBlank()) onTaxonSearchQueryChanged(query)
     }
 
-    fun onManualLatChanged(text: String) {
-        _uiState.update { it.copy(manualLatText = text) }
-    }
+    /** The manual latitude field: see [AvailabilitySpeciesLookup.onManualLatChanged]. */
+    fun onManualLatChanged(text: String) = speciesLookup.onManualLatChanged(text)
 
-    fun onManualLngChanged(text: String) {
-        _uiState.update { it.copy(manualLngText = text) }
-    }
+    /** The manual longitude field: see [AvailabilitySpeciesLookup.onManualLngChanged]. */
+    fun onManualLngChanged(text: String) = speciesLookup.onManualLngChanged(text)
 
     fun searchManualCoordinates() {
         val state = _uiState.value
@@ -932,7 +899,7 @@ class AvailabilityViewModel(
     fun clearSearch() {
         searchJobs.cancel()
         // RECORD -750, item 3: a species lookup still running would put its suggestions back over a reset field.
-        taxonSearchJob?.cancel()
+        speciesLookup.cancel()
         searchJobs = SupervisorJob(viewModelScope.coroutineContext[Job])
         activeSearch = null
         loadedSightingsQuery = null
