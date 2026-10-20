@@ -237,11 +237,8 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
-import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
-import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.NoTripWindowReason
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
@@ -279,7 +276,6 @@ import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
 import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
 import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
-import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.domain.GpxImportOutcome
 import com.zynergylabs.forager.app.importgpx.gpxImportMessage
@@ -446,46 +442,11 @@ fun AvailabilityScreen(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     /** The Maps tab's controls: fullscreen, locate, the Layers sheet, basemap and icon cluster (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenMapControls]. Defaulted, as its nine fields were when they were parameters here. */
     mapControls: AvailabilityScreenMapControls = AvailabilityScreenMapControls(),
-    /**
-     * The mushroom log's own state, read by the Journal tab ([JournalTab]).
-     * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
-     * to do with the log don't need to pass log-specific state and callbacks just to compile.
-     */
-    logUiState: MushroomLogUiState = MushroomLogUiState(),
+    /** The finds log's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenFindsLog]. Defaulted, as its 19 fields were when they were parameters here. */
+    findsLog: AvailabilityScreenFindsLog = AvailabilityScreenFindsLog(),
     cameraCaptureFiles: CameraCaptureFiles = CameraCaptureFiles(LocalContext.current),
     /** The in-app camera's state and callbacks (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenCamera]. Defaulted, as its eight fields were when they were parameters here. */
     cameraInputs: AvailabilityScreenCamera = AvailabilityScreenCamera(),
-    /** Starts and immediately opens a new log entry — the map's "Log a find" option is the only production caller; entries have no other creation path (see `docs/plans/mushroom-log.md`'s Navigation section). */
-    onStartLogEntry: (LatLng?, LocalDate) -> Unit = { _, _ -> },
-    onOpenLogEntry: (String) -> Unit = {},
-    onCloseLogEntry: () -> Unit = {},
-    onLogEntryChanged: (MushroomLogEntry) -> Unit = {},
-    /** Begins editing the currently-open (committed) entry — see [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onStartEditingEntry]'s own doc comment. A no-op if it's already a draft. */
-    onStartEditingLogEntry: () -> Unit = {},
-    /**
-     * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
-     * ViewModel operation ([com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onOpenEntryForEditing]),
-     * not [onOpenLogEntry] and [onStartEditingLogEntry] chained here. A find tile's long-press Edit
-     * in [JournalTab] calls it.
-     */
-    onOpenLogEntryForEditing: (String) -> Unit = {},
-    /** Save — commits the currently-open entry. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
-    onSaveLogEntry: () -> Unit = {},
-    /** Cancel — the only exit that discards anything. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onCancelEditing]'s own doc comment. */
-    onCancelLogEntryEditing: () -> Unit = {},
-    /** Leaving without answering — tab switch, backgrounding, back — persists the draft without committing. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onLeaveEditingIncidentally]'s own doc comment. */
-    onLeaveLogEntryEditingIncidentally: () -> Unit = {},
-    /** Discards a draft by id outright — the compact scaffold's "Discard" Snackbar action target, since by the time it's tapped [logUiState].editingEntry is already null. Same operation as [onDeleteLogEntry]. */
-    onDiscardLogDraft: (String) -> Unit = {},
-    onAddLogPhoto: (PhotoSource) -> Unit = {},
-    onRemoveLogPhoto: (LogPhoto) -> Unit = {},
-    onPullLogPhoto: (LogPhoto) -> Unit = {},
-    onDeleteLogEntry: (String) -> Unit = {},
-    onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
-    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — the album's own Camera/Import buttons (the Journal's Entries album). */
-    onAddGalleryPhoto: (PhotoSource) -> Unit = {},
-    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [JournalTab]'s identical parameter. */
-    onSaveLogErrorDismissed: () -> Unit = {},
     /** Journal Stage 2b's new authored entity — see [com.zynergylabs.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
     cartographyUiState: CartographyUiState = CartographyUiState(),
     onOpenCartographyEntry: (String) -> Unit = {},
@@ -530,12 +491,6 @@ fun AvailabilityScreen(
      * threaded to it (intent `2026-09-28-68`, continuation `2026-09-28-76`).
      */
     onCartographySaveErrorDismissed: () -> Unit = {},
-    /**
-     * An album photo's long-press Delete (J4b L3): a *pending* delete with Undo
-     * (`MushroomLogViewModel.requestDeleteGalleryPhoto`), for the compact tree's album only. `null`
-     * (the default) leaves the photos without the menu.
-     */
-    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
     /** The Journal's entry report and cards' readers (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenEntryReportData]. Defaulted, as its four fields were when they were parameters here. */
     entryReportData: AvailabilityScreenEntryReportData = AvailabilityScreenEntryReportData(),
     /**
@@ -741,6 +696,26 @@ fun AvailabilityScreen(
     val forecastCellStore = mapControls.forecastCellStore
     val onMapModeSelected = mapControls.onMapModeSelected
     val onMapIconClusterPlacementChanged = mapControls.onMapIconClusterPlacementChanged
+    // Phase 2.1 (dispatch 2026-10-19-28): the findsLog bundle, unpacked under the parameter names it replaced.
+    val logUiState = findsLog.logUiState
+    val onStartLogEntry = findsLog.onStartLogEntry
+    val onOpenLogEntry = findsLog.onOpenLogEntry
+    val onCloseLogEntry = findsLog.onCloseLogEntry
+    val onLogEntryChanged = findsLog.onLogEntryChanged
+    val onStartEditingLogEntry = findsLog.onStartEditingLogEntry
+    val onOpenLogEntryForEditing = findsLog.onOpenLogEntryForEditing
+    val onSaveLogEntry = findsLog.onSaveLogEntry
+    val onCancelLogEntryEditing = findsLog.onCancelLogEntryEditing
+    val onLeaveLogEntryEditingIncidentally = findsLog.onLeaveLogEntryEditingIncidentally
+    val onDiscardLogDraft = findsLog.onDiscardLogDraft
+    val onAddLogPhoto = findsLog.onAddLogPhoto
+    val onRemoveLogPhoto = findsLog.onRemoveLogPhoto
+    val onPullLogPhoto = findsLog.onPullLogPhoto
+    val onDeleteLogEntry = findsLog.onDeleteLogEntry
+    val onDeleteGalleryPhoto = findsLog.onDeleteGalleryPhoto
+    val onAddGalleryPhoto = findsLog.onAddGalleryPhoto
+    val onSaveLogErrorDismissed = findsLog.onSaveLogErrorDismissed
+    val onRequestDeleteGalleryPhoto = findsLog.onRequestDeleteGalleryPhoto
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

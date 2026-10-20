@@ -281,7 +281,6 @@ internal fun MapLayersTestScreen(
     val uiState = uiStateTransform(viewModelState)
     AvailabilityScreen(
         uiState = uiState,
-        logUiState = logUiState,
         onUseCurrentLocation = viewModel::useCurrentLocation,
         onManualLatChanged = viewModel::onManualLatChanged,
         onManualLngChanged = viewModel::onManualLngChanged,
@@ -319,11 +318,14 @@ internal fun MapLayersTestScreen(
         ),
         waypoints = waypoints,
         tracks = tracks,
-        onOpenLogEntry = onOpenLogEntry,
-        onCloseLogEntry = onCloseLogEntry,
-        onDeleteLogEntry = onDeleteLogEntry,
-        onStartEditingLogEntry = onStartEditingLogEntry,
-        onSaveLogEntry = onSaveLogEntry,
+        findsLog = AvailabilityScreenFindsLog(
+            logUiState = logUiState,
+            onOpenLogEntry = onOpenLogEntry,
+            onCloseLogEntry = onCloseLogEntry,
+            onDeleteLogEntry = onDeleteLogEntry,
+            onStartEditingLogEntry = onStartEditingLogEntry,
+            onSaveLogEntry = onSaveLogEntry,
+        ),
         cartographyUiState = cartographyUiState,
         entryReportData = AvailabilityScreenEntryReportData(
             getCartographyEntryMapData = getCartographyEntryMapData,

@@ -207,7 +207,9 @@ class AvailabilityScreenWideWindowLayoutTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
-                logUiState = logUiState,
+                findsLog = AvailabilityScreenFindsLog(
+                    logUiState = logUiState,
+                ),
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},

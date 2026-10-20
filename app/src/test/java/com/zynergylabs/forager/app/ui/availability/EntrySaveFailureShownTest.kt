@@ -233,7 +233,9 @@ internal abstract class EntrySaveFailureHarness {
             val cartographyUiState by cartographyViewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                logUiState = MushroomLogUiState(),
+                findsLog = AvailabilityScreenFindsLog(
+                    logUiState = MushroomLogUiState(),
+                ),
                 onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
                 onManualLatChanged = availabilityViewModel::onManualLatChanged,
                 onManualLngChanged = availabilityViewModel::onManualLngChanged,

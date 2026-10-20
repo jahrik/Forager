@@ -227,37 +227,39 @@ class AvailabilityScreenBackNavigationTest {
                 } else {
                     null
                 },
-                logUiState = logState,
-                onStartLogEntry = { location, date ->
-                    // Workstream L4b: a brand-new entry is a draft, never added to entries at
-                    // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
-                    // doc comment.
-                    logState = logState.copy(
-                        editingEntry = com.zynergylabs.forager.app.domain.model.MushroomLogEntry.draft(
-                            id = "started-entry",
-                            location = location,
-                            date = date,
-                        ),
-                    )
-                },
-                onOpenLogEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
-                onCloseLogEntry = { logState = logState.copy(editingEntry = null) },
-                onLeaveLogEntryEditingIncidentally = {
-                    // Workstream L4b: leaving without answering (the back arrow, here) auto-saves
-                    // and closes the entry — see MushroomLogViewModel.onLeaveEditingIncidentally's
-                    // own doc comment.
-                    logState.editingEntry?.let { current ->
-                        val committed = current.copy(isDraft = false)
+                findsLog = AvailabilityScreenFindsLog(
+                    logUiState = logState,
+                    onStartLogEntry = { location, date ->
+                        // Workstream L4b: a brand-new entry is a draft, never added to entries at
+                        // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
+                        // doc comment.
                         logState = logState.copy(
-                            entries = if (logState.entries.any { it.id == committed.id }) {
-                                logState.entries.map { if (it.id == committed.id) committed else it }
-                            } else {
-                                logState.entries + committed
-                            },
-                            editingEntry = null,
+                            editingEntry = com.zynergylabs.forager.app.domain.model.MushroomLogEntry.draft(
+                                id = "started-entry",
+                                location = location,
+                                date = date,
+                            ),
                         )
-                    }
-                },
+                    },
+                    onOpenLogEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
+                    onCloseLogEntry = { logState = logState.copy(editingEntry = null) },
+                    onLeaveLogEntryEditingIncidentally = {
+                        // Workstream L4b: leaving without answering (the back arrow, here) auto-saves
+                        // and closes the entry — see MushroomLogViewModel.onLeaveEditingIncidentally's
+                        // own doc comment.
+                        logState.editingEntry?.let { current ->
+                            val committed = current.copy(isDraft = false)
+                            logState = logState.copy(
+                                entries = if (logState.entries.any { it.id == committed.id }) {
+                                    logState.entries.map { if (it.id == committed.id) committed else it }
+                                } else {
+                                    logState.entries + committed
+                                },
+                                editingEntry = null,
+                            )
+                        }
+                    },
+                ),
                 cartographyUiState = cartographyState,
                 onOpenCartographyEntry = { id ->
                     cartographyState = cartographyState.copy(
