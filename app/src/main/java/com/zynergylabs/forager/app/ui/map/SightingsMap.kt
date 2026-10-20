@@ -1148,16 +1148,38 @@ fun SightingsMap(
     }
 
     // Colour-field cells (map layers L0b, B5): MapForecastCells.kt.
-    MapForecastCells(sightingsMapState, forecast)
+    MapForecastCells(state = sightingsMapState, forecast = forecast)
 
     // The location dot (dispatch 2026-09-28-510) and the locate button: MapLocationDot.kt.
-    MapLocationDot(sightingsMapState, appLocationEngine, mapPosition, positionLook, trackLiveLocation, resumeTrackingRequestId, context, appCompassEngine)
+    MapLocationDot(
+        state = sightingsMapState,
+        appLocationEngine = appLocationEngine,
+        mapPosition = mapPosition,
+        positionLook = positionLook,
+        trackLiveLocation = trackLiveLocation,
+        resumeTrackingRequestId = resumeTrackingRequestId,
+        context = context,
+        appCompassEngine = appCompassEngine,
+    )
 
     // Dispatch 2026-09-28-430 (plan task T22): the navigation view: MapNavigationView.kt.
-    MapNavigationView(sightingsMapState, navigationView, basemap, trackLiveLocation, context)
+    MapNavigationView(
+        state = sightingsMapState,
+        navigationView = navigationView,
+        basemap = basemap,
+        trackLiveLocation = trackLiveLocation,
+        context = context,
+    )
 
     // Part 1 layout fixes, item 5, and RECORD -954: MapLibre's attribution button and logo: MapAttributionInsets.kt.
-    MapAttributionInsets(sightingsMapState, attributionBottomInset, bottomInset, attributionEndInset, attributionKeepClear, attributionBesideCredit)
+    MapAttributionInsets(
+        state = sightingsMapState,
+        attributionBottomInset = attributionBottomInset,
+        bottomInset = bottomInset,
+        attributionEndInset = attributionEndInset,
+        attributionKeepClear = attributionKeepClear,
+        attributionBesideCredit = attributionBesideCredit,
+    )
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
     // disabled above (see the DisposableEffect(mapView) block's own comment), so this is the only

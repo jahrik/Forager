@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+
 /**
  * Where MapLibre's attribution button and logo sit: the pixel sizes worked out from the insets the host hands in, and
  * the effect that applies them. Moved whole from [SightingsMap] by UI split Phase 2.2 (dispatch 2026-10-19-29), called

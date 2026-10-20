@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+
 /**
  * The navigation view's effect, moved whole from [SightingsMap] by UI split Phase 2.2 (dispatch 2026-10-19-29), called
  * from the place it stood there and keyed exactly as it was. [navigationView], [basemap], [trackLiveLocation] and
