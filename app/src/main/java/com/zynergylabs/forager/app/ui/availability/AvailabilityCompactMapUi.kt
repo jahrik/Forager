@@ -717,8 +717,5 @@ internal fun CompactMapTab(
     }
 }
 
-/** Landscape B2 (S4): the navigation HUD's width cap in the rail-side top corner. */
-internal val LANDSCAPE_HUD_MAX_WIDTH = 360.dp
-
 /** Dispatch 2026-09-28-502: the tag this tab's one log line goes under. */
 private const val COMPACT_MAP_LOG_TAG = "CompactMapTab"
