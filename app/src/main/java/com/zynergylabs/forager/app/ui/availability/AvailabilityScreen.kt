@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowSearchEdgeFor
 import com.zynergylabs.forager.app.ui.adaptive.mainWindowRailEdgeFor
-import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
@@ -307,15 +306,12 @@ import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
 import com.zynergylabs.forager.app.ui.map.MapForecastFeed
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
-import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
-import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
@@ -448,14 +444,8 @@ fun AvailabilityScreen(
     onDownloadAgain: (Long) -> Unit = {},
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     onThemeModeChanged: (AppThemeMode) -> Unit,
-    /**
-     * The Maps tab entered or left fullscreen by a user action — persisted across restarts, see
-     * [AvailabilityUiState.persistedMapFullscreen]. Called only from the three user-driven
-     * mutation sites (the icon bar's toggle, system back, leaving the Maps tab), never from an
-     * effect on the flag — see `isMapFullscreen`'s own doc comment for why. Defaulted so callers
-     * that don't persist (tests) need not care.
-     */
-    onMapFullscreenChanged: (Boolean) -> Unit = {},
+    /** The Maps tab's controls: fullscreen, locate, the Layers sheet, basemap and icon cluster (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenMapControls]. Defaulted, as its nine fields were when they were parameters here. */
+    mapControls: AvailabilityScreenMapControls = AvailabilityScreenMapControls(),
     /**
      * The mushroom log's own state, read by the Journal tab ([JournalTab]).
      * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
@@ -548,12 +538,6 @@ fun AvailabilityScreen(
     onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
     /** The Journal's entry report and cards' readers (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenEntryReportData]. Defaulted, as its four fields were when they were parameters here. */
     entryReportData: AvailabilityScreenEntryReportData = AvailabilityScreenEntryReportData(),
-    /**
-     * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
-     * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
-     * Activity (see `MainActivity`'s `pendingLocationAction`) rather than requesting it here.
-     */
-    onLocateMe: () -> Unit = {},
     /**
      * Whether a track is currently being recorded, and [MapIconBar]'s start/stop toggle for it —
      * that bar's 5th row (fullscreen, orientation-reset, GPS/locate-me, map mode, **record**,
@@ -725,29 +709,6 @@ fun AvailabilityScreen(
      * [PendingDeleteSnackbarEffects]. Empty by default, so no other caller changes.
      */
     pendingDeleteNotices: List<PendingDeleteNotice> = emptyList(),
-    /**
-     * Map layers L0b. [onMapShown] runs every time the Maps tab comes into view (the Maps
-     * bottom-nav tab or rail item), which
-     * is how the saved records and the forecast availability stay fresh (the dispatch, B2:
-     * `AvailabilityViewModel.onMapShown`). The next three are the Layers sheet's changes, and
-     * [forecastCellStore] is where the Maps tab's colour fields read their cells (the app's one store,
-     * `AppContainer.forecastCellStore`). All defaulted, so no other caller changes.
-     */
-    onMapShown: () -> Unit = {},
-    onMapLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
-    onMapLayerOpacityChanged: (String, Float) -> Unit = { _, _ -> },
-    onColourFieldMoved: (String, ColourFieldMove) -> Unit = { _, _ -> },
-    forecastCellStore: ForecastCellStore = AbsentForecastCellStore,
-    /**
-     * Dispatch 2026-09-28-708: the Maps tab's basemap was picked, so the ViewModel can store it
-     * ([AvailabilityViewModel.onMapModeSelected]). Defaulted, so no other caller changes.
-     */
-    onMapModeSelected: (MapMode) -> Unit = {},
-    /**
-     * RECORD -711: a drag of the Maps tab's icon cluster ended, so the ViewModel can store its side and
-     * height ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). Defaulted, so no other caller changes.
-     */
-    onMapIconClusterPlacementChanged: (MapIconClusterPlacement) -> Unit = {},
 ) {
     // Phase 2.1 (dispatch 2026-10-19-28): the camera bundle, unpacked under the parameter names it replaced.
     val inAppCameraTarget = cameraInputs.inAppCameraTarget
@@ -770,6 +731,16 @@ fun AvailabilityScreen(
     val getCartographyEntryOfflineRegion = entryReportData.getCartographyEntryOfflineRegion
     val getSavedTrackPaths = entryReportData.getSavedTrackPaths
     val getCartographyEntryCurrentLocation = entryReportData.getCartographyEntryCurrentLocation
+    // Phase 2.1 (dispatch 2026-10-19-28): the map controls bundle, unpacked under the parameter names it replaced.
+    val onMapFullscreenChanged = mapControls.onMapFullscreenChanged
+    val onLocateMe = mapControls.onLocateMe
+    val onMapShown = mapControls.onMapShown
+    val onMapLayerVisibilityChanged = mapControls.onMapLayerVisibilityChanged
+    val onMapLayerOpacityChanged = mapControls.onMapLayerOpacityChanged
+    val onColourFieldMoved = mapControls.onColourFieldMoved
+    val forecastCellStore = mapControls.forecastCellStore
+    val onMapModeSelected = mapControls.onMapModeSelected
+    val onMapIconClusterPlacementChanged = mapControls.onMapIconClusterPlacementChanged
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

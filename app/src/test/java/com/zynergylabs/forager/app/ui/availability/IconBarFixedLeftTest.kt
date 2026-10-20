@@ -85,7 +85,9 @@ abstract class IconBarFixedLeftTests(private val rotation: Int, private val land
                 isReturning = returning,
                 navigationTarget = start,
                 returnRoute = ReturnRoute.Ahead(LatLng(45.525, -122.68), 900.0),
-                onMapIconClusterPlacementChanged = { writes += it },
+                mapControls = AvailabilityScreenMapControls(
+                    onMapIconClusterPlacementChanged = { writes += it },
+                ),
                 compassProvider = object : CompassProvider {
                     override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(45f, HeadingUncertainty.Estimated(2f), 0L))
                 },
