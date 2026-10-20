@@ -35,6 +35,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackupAndIm
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCamera
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenEntryReportData
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFindsLog
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntries
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
@@ -601,43 +602,45 @@ class MainActivity : ComponentActivity() {
                         cameraFormat = cameraFormat,
                         onCameraFormatChanged = cameraFormatViewModel::onCameraFormatChanged,
                     ),
-                    // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
-                    cartographyUiState = cartographyUiState.hidingPendingDelete(),
-                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
-                    onStartCartographyEntry = cartographyViewModel::onStartEntry,
-                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
-                    onCartographyTextChanged = cartographyViewModel::onTextChanged,
-                    onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
-                    onSetFindDecision = cartographyViewModel::onSetFindDecision,
-                    onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
-                    onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
-                    onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
-                    onSetEntryGroupIncluded = cartographyViewModel::onSetEntryGroupIncluded,
-                    onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
-                    // Entry-photo-acquisition dispatch, Item 2: composed here, the one place both
-                    // ViewModels are already visible, rather than giving CartographyViewModel its
-                    // own copy of AddPhotoToGalleryUseCase — see MushroomLogViewModel.onAddGalleryPhoto's
-                    // own doc comment on `onPersisted` for why that would leave
-                    // MushroomLogUiState.galleryPhotos stale. Persist (and, for a camera capture,
-                    // the GPS patch) is entirely MushroomLogViewModel's own existing, unmodified
-                    // pipeline; only the id comes back here, to attach it to whichever entry
-                    // CartographyViewModel currently has open.
-                    onAcquirePhotoForCartographyEntry = { source ->
-                        mushroomLogViewModel.onAddGalleryPhoto(source) { id -> cartographyViewModel.onToggleKeptPhoto(id) }
-                    },
-                    onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
-                    onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
-                    onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
-                    onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
-                    // Intent 2026-09-28-68: a failed entry save's Toast, hosted by the Journal, clears
-                    // the message once shown (continuation 2026-09-28-76).
-                    onCartographySaveErrorDismissed = cartographyViewModel::onSaveErrorDismissed,
-                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
-                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
-                    // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
-                    // all, and the Toast of a failed one (continuation 2026-09-28-65).
-                    onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
-                    onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
+                    journalEntries = AvailabilityScreenJournalEntries(
+                        // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
+                        cartographyUiState = cartographyUiState.hidingPendingDelete(),
+                        onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                        onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                        onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                        onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                        onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                        onSetFindDecision = cartographyViewModel::onSetFindDecision,
+                        onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
+                        onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
+                        onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                        onSetEntryGroupIncluded = cartographyViewModel::onSetEntryGroupIncluded,
+                        onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                        // Entry-photo-acquisition dispatch, Item 2: composed here, the one place both
+                        // ViewModels are already visible, rather than giving CartographyViewModel its
+                        // own copy of AddPhotoToGalleryUseCase — see MushroomLogViewModel.onAddGalleryPhoto's
+                        // own doc comment on `onPersisted` for why that would leave
+                        // MushroomLogUiState.galleryPhotos stale. Persist (and, for a camera capture,
+                        // the GPS patch) is entirely MushroomLogViewModel's own existing, unmodified
+                        // pipeline; only the id comes back here, to attach it to whichever entry
+                        // CartographyViewModel currently has open.
+                        onAcquirePhotoForCartographyEntry = { source ->
+                            mushroomLogViewModel.onAddGalleryPhoto(source) { id -> cartographyViewModel.onToggleKeptPhoto(id) }
+                        },
+                        onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                        onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
+                        onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                        onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                        // Intent 2026-09-28-68: a failed entry save's Toast, hosted by the Journal, clears
+                        // the message once shown (continuation 2026-09-28-76).
+                        onCartographySaveErrorDismissed = cartographyViewModel::onSaveErrorDismissed,
+                        onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                        onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                        // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
+                        // all, and the Toast of a failed one (continuation 2026-09-28-65).
+                        onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
+                        onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
+                    ),
                     findsLog = AvailabilityScreenFindsLog(
                         // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
                         // out of the lists the screen gets.

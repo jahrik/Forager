@@ -260,74 +260,76 @@ class AvailabilityScreenBackNavigationTest {
                         }
                     },
                 ),
-                cartographyUiState = cartographyState,
-                onOpenCartographyEntry = { id ->
-                    cartographyState = cartographyState.copy(
-                        editingEntry = cartographyState.entries.firstOrNull { it.id == id } ?: cartographyState.draftEntries.firstOrNull { it.id == id },
-                    )
-                },
-                onStartCartographyEntry = { date ->
-                    val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
-                    cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
-                },
-                onCloseCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
+                journalEntries = AvailabilityScreenJournalEntries(
+                    cartographyUiState = cartographyState,
+                    onOpenCartographyEntry = { id ->
                         cartographyState = cartographyState.copy(
-                            entries = if (!current.isDraft && cartographyState.entries.any { it.id == current.id }) {
-                                cartographyState.entries.map { if (it.id == current.id) current else it }
-                            } else {
-                                cartographyState.entries
-                            },
+                            editingEntry = cartographyState.entries.firstOrNull { it.id == id } ?: cartographyState.draftEntries.firstOrNull { it.id == id },
                         )
-                    }
-                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
-                },
-                onCartographyTextChanged = { text ->
-                    cartographyState.editingEntry?.let { current ->
-                        val edited = current.copy(text = text)
-                        cartographyState = cartographyState.copy(editingEntry = edited, hasUnsavedChanges = cartographyState.hasUnsavedChanges || !edited.isDraft)
-                    }
-                },
-                onFinishCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
-                        val committed = current.copy(isDraft = false)
+                    },
+                    onStartCartographyEntry = { date ->
+                        val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
+                        cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
+                    },
+                    onCloseCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            cartographyState = cartographyState.copy(
+                                entries = if (!current.isDraft && cartographyState.entries.any { it.id == current.id }) {
+                                    cartographyState.entries.map { if (it.id == current.id) current else it }
+                                } else {
+                                    cartographyState.entries
+                                },
+                            )
+                        }
+                        cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                    },
+                    onCartographyTextChanged = { text ->
+                        cartographyState.editingEntry?.let { current ->
+                            val edited = current.copy(text = text)
+                            cartographyState = cartographyState.copy(editingEntry = edited, hasUnsavedChanges = cartographyState.hasUnsavedChanges || !edited.isDraft)
+                        }
+                    },
+                    onFinishCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            val committed = current.copy(isDraft = false)
+                            cartographyState = cartographyState.copy(
+                                entries = cartographyState.entries + committed,
+                                draftEntries = cartographyState.draftEntries.filterNot { it.id == committed.id },
+                                editingEntry = committed,
+                            )
+                        }
+                    },
+                    onSaveCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            cartographyState = cartographyState.copy(
+                                entries = if (cartographyState.entries.any { it.id == current.id }) {
+                                    cartographyState.entries.map { if (it.id == current.id) current else it }
+                                } else {
+                                    cartographyState.entries + current
+                                },
+                                hasUnsavedChanges = false,
+                            )
+                        }
+                    },
+                    onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
+                    onSaveCartographyEntryAsDraft = {
+                        cartographyState.editingEntry?.let { current ->
+                            val demoted = current.copy(isDraft = true)
+                            cartographyState = cartographyState.copy(
+                                entries = cartographyState.entries.filterNot { it.id == demoted.id },
+                                draftEntries = cartographyState.draftEntries + demoted,
+                            )
+                        }
+                        cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                    },
+                    onDeleteCartographyEntry = { id ->
                         cartographyState = cartographyState.copy(
-                            entries = cartographyState.entries + committed,
-                            draftEntries = cartographyState.draftEntries.filterNot { it.id == committed.id },
-                            editingEntry = committed,
+                            entries = cartographyState.entries.filterNot { it.id == id },
+                            draftEntries = cartographyState.draftEntries.filterNot { it.id == id },
+                            editingEntry = null,
                         )
-                    }
-                },
-                onSaveCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
-                        cartographyState = cartographyState.copy(
-                            entries = if (cartographyState.entries.any { it.id == current.id }) {
-                                cartographyState.entries.map { if (it.id == current.id) current else it }
-                            } else {
-                                cartographyState.entries + current
-                            },
-                            hasUnsavedChanges = false,
-                        )
-                    }
-                },
-                onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
-                onSaveCartographyEntryAsDraft = {
-                    cartographyState.editingEntry?.let { current ->
-                        val demoted = current.copy(isDraft = true)
-                        cartographyState = cartographyState.copy(
-                            entries = cartographyState.entries.filterNot { it.id == demoted.id },
-                            draftEntries = cartographyState.draftEntries + demoted,
-                        )
-                    }
-                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
-                },
-                onDeleteCartographyEntry = { id ->
-                    cartographyState = cartographyState.copy(
-                        entries = cartographyState.entries.filterNot { it.id == id },
-                        draftEntries = cartographyState.draftEntries.filterNot { it.id == id },
-                        editingEntry = null,
-                    )
-                },
+                    },
+                ),
                 compassProvider = BackNavFakeCompassProvider,
                 mapSlot = BackNavStubMapSlot,
             )

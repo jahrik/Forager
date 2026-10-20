@@ -150,8 +150,10 @@ class LandscapeEntryReportTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
                 mapSlot = recordingSlot,
-                cartographyUiState = CartographyUiState(entries = listOf(entry), editingEntry = editing),
-                onCloseCartographyEntry = { closes++; editing = null },
+                journalEntries = AvailabilityScreenJournalEntries(
+                    cartographyUiState = CartographyUiState(entries = listOf(entry), editingEntry = editing),
+                    onCloseCartographyEntry = { closes++; editing = null },
+                ),
                 entryReportData = AvailabilityScreenEntryReportData(
                     getCartographyEntryMapData = { _, _ -> mapData },
                     getCartographyEntryOfflineRegion = { _, _ -> region },
