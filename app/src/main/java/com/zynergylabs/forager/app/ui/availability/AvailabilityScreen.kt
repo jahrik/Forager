@@ -780,52 +780,6 @@ fun AvailabilityScreen(
         if (!isNavigating) navigationZoomPending = false
         navigationWasOn = isNavigating
     }
-    // Dispatch -502: "Navigate" on a waypoint, from the Maps tab's bubble or its sheet, or from Records. The Maps tab comes
-    // up with the navigation view. Already navigating (a return, or another waypoint), isNavigating never goes false in
-    // between, so there is no new start zoom (the planner's ruling); a view the walker had moved away from is taken back,
-    // as "Return to Route" does.
-    val startWaypointNavigation: (WaypointNavigationOrigin) -> Unit = { origin ->
-        onNavigateToWaypoint?.let { navigate ->
-            val wasNavigating = isNavigating
-            waypointNavigationOrigin = origin
-            navigate(origin.waypointId)
-            compactTab = CompactTab.MAP
-            selectedTab = ResultsTab.MAP
-            if (wasNavigating && navigationFollowBroken) {
-                navigationFollowBroken = false
-                navigationViewRequestId++
-            }
-        }
-    }
-    // Dispatch -502: ends the waypoint navigation. With [retrace] (Back) the walker is put back where Navigate was tapped,
-    // one step, as the owner chose; the X-circle and the HUD's X end it where the walker is. A return it paused picks up
-    // again (the ViewModel's doing).
-    val endWaypointNavigation: (Boolean) -> Unit = { retrace ->
-        val origin = waypointNavigationOrigin
-        waypointNavigationOrigin = null
-        onStopWaypointNavigation()
-        if (retrace) {
-            when (origin) {
-                null -> Unit
-                is WaypointNavigationOrigin.MapBubble, is WaypointNavigationOrigin.MapDetails -> mapWaypointReopen = origin
-                is WaypointNavigationOrigin.RecordsRow, is WaypointNavigationOrigin.RecordsDetails -> {
-                    journalScreenState.topTab = JournalTopTab.RECORDS
-                    compactTab = CompactTab.JOURNAL
-                    if (origin is WaypointNavigationOrigin.RecordsDetails) recordsWaypointReopen = origin.waypointId
-                }
-                // RECORD -890: back to the journal entry whose map Navigate was tapped on. The entry is still the
-                // Journal's open one; the bubble is not reopened, as a Records row reopens nothing.
-                is WaypointNavigationOrigin.JournalEntryMap -> {
-                    journalScreenState.topTab = JournalTopTab.CARTOGRAPHY
-                    compactTab = CompactTab.JOURNAL
-                }
-            }
-        }
-    }
-    // The return control and the HUD's X: a waypoint navigation first, while there is one; otherwise the return, as before.
-    val onNavigationControl: () -> Unit = {
-        if (navigatingToWaypoint != null) endWaypointNavigation(false) else onToggleReturning()
-    }
     // Dispatch -502, the owner's choice at the S22 desk check ("Keep the last line, faded"): the dashed line to the
     // waypoint, and the one drawn last, which nextStraightLine keeps, faded, once the fix is lost. Held here, above the tab
     // switch, so a lost fix does not lose the line by a trip to the Journal; not across a restart, where there is no last
@@ -1017,6 +971,36 @@ fun AvailabilityScreen(
     // way (JournalTab consumes it, then RecordsTab selects the chip, a frame or two later), and not being there yet is not
     // the user moving on.
     var toolsReturnArrived by remember { mutableStateOf(false) }
+    // Phase 2.6, PR 1 (dispatch 2026-10-19-40): the holder the moved code reaches the body's state through (see
+    // AvailabilityScreenState), built here, after the last state it wraps; it is not remembered.
+    val screenState = AvailabilityScreenState(
+        compactTab = { compactTab },
+        setCompactTab = { compactTab = it },
+        selectedTab = { selectedTab },
+        setSelectedTab = { selectedTab = it },
+        journalScreenState = journalScreenState,
+        waypointNavigationOrigin = { waypointNavigationOrigin },
+        setWaypointNavigationOrigin = { waypointNavigationOrigin = it },
+        setMapWaypointReopen = { mapWaypointReopen = it },
+        setRecordsWaypointReopen = { recordsWaypointReopen = it },
+        navigationFollowBroken = { navigationFollowBroken },
+        setNavigationFollowBroken = { navigationFollowBroken = it },
+        navigationViewRequestId = { navigationViewRequestId },
+        setNavigationViewRequestId = { navigationViewRequestId = it },
+    )
+    // Dispatch -502: starting and ending a waypoint navigation, and the return control (AvailabilityScreenWaypointNavigation.kt).
+    // Built here, once the holder is; every reader of the three is below this line.
+    val waypointNavigation = waypointNavigationActions(
+        state = screenState,
+        isNavigating = isNavigating,
+        navigatingToWaypoint = navigatingToWaypoint,
+        onNavigateToWaypoint = onNavigateToWaypoint,
+        onStopWaypointNavigation = onStopWaypointNavigation,
+        onToggleReturning = onToggleReturning,
+    )
+    val startWaypointNavigation = waypointNavigation.start
+    val endWaypointNavigation = waypointNavigation.end
+    val onNavigationControl = waypointNavigation.onNavigationControl
     val openOfflineMapsFromTools: () -> Unit = {
         if (toolsReturn == null) {
             toolsReturn = ToolsOfflineMapsReturn(
