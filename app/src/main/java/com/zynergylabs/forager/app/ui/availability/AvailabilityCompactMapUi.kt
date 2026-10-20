@@ -465,13 +465,15 @@ internal fun CompactMapTab(
             val compassStripDensity = LocalDensity.current
             // The strip's real height, measured on the strip itself where it is composed below (item 2). Not
             // compassStripClearance, which is one text line's height.
-            // RECORD -741: the three measured sizes are handed to CompactMapTopStrip as State objects.
+            // RECORD -741: the three measured sizes are remembered here as State objects (handed on through the holder below).
             val compassStripHeightState = remember { mutableIntStateOf(0) }
-            val compassStripHeightPx by compassStripHeightState
             // RECORD -729: the strip's measured height in a landscape window (the search bar is given it); 0 elsewhere.
             val landscapeStripHeightState = remember { mutableIntStateOf(0) }
             // RECORD -732: and its measured width (the scaffold gives the bar the rest of the room); 0 elsewhere.
             val landscapeStripWidthState = remember { mutableIntStateOf(0) }
+            // UI split Phase 2.3: the three sizes, read and written through one view over those States (see CompactMapLayoutState).
+            // Remembered unkeyed here, in this branch and straight after them, so it lives exactly as long as they do.
+            val layout = remember { CompactMapLayoutState(compassStripHeightState, landscapeStripHeightState, landscapeStripWidthState) }
             val compassStripClearance = remember(compassStripLabelStyle, compassStripDensity) {
                 with(compassStripDensity) {
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
@@ -487,7 +489,7 @@ internal fun CompactMapTab(
             // bubble's minY; the strip's measured height was already read here for the search notice (searchBarSlot), and the
             // test that caught that regression ("tapping elsewhere on the map dismisses the observation bubble") is @Ignore'd
             // for an unrelated harness reason, so whether the regression returns is a device item.
-            val compassStripBottomClearance = with(compassStripDensity) { compassStripHeightPx.toDp() }.coerceAtLeast(compassStripClearance)
+            val compassStripBottomClearance = with(compassStripDensity) { layout.compassStripHeightPx.toDp() }.coerceAtLeast(compassStripClearance)
             Box(
                 modifier = modifier
                     .fillMaxSize()
@@ -545,7 +547,7 @@ internal fun CompactMapTab(
                     else -> SearchNoticeInset(right = noticeInsetDp)
                 }
                 CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset) {
-                    searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
+                    searchBarSlot(with(compassStripDensity) { layout.compassStripHeightPx.toDp() })
                 }
                 // The tapped thing's bubble (RECORD -741: CompactMapBubble, moved out unchanged; its comments are there).
                 CompactMapBubble(
@@ -615,9 +617,7 @@ internal fun CompactMapTab(
                     trueHeading = trueHeading,
                     positionNote = positionNote,
                     sundownClock = sundownClock,
-                    compassStripHeight = compassStripHeightState,
-                    landscapeStripHeight = landscapeStripHeightState,
-                    landscapeStripWidth = landscapeStripWidthState,
+                    layout = layout,
                     portraitNavigationInfo = {
                         CompactMapPortraitNavigationInfo(
                             uiState = uiState,
@@ -650,8 +650,7 @@ internal fun CompactMapTab(
                     recordingSundownLine = recordingSundownLine,
                     quickSettings = quickSettings,
                     sundownClock = sundownClock,
-                    landscapeStripHeight = landscapeStripHeightState,
-                    landscapeStripWidth = landscapeStripWidthState,
+                    layout = layout,
                 )
 
                 // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;
