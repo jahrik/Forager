@@ -53,7 +53,6 @@ import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
 import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
 import org.maplibre.android.camera.CameraUpdateFactory
-import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
@@ -332,7 +331,7 @@ fun SightingsMap(
     // the click listener in MapListeners.kt) is visible here too.
     val currentFocusedObservationIdState = rememberUpdatedState(focusedObservationId)
     // M1 (F2): the point feature a caller's bubble is showing, and the lists it is looked up in, read
-    // fresh on every camera idle for the reason currentFocusedObservationId is.
+    // fresh on every camera idle (MapListeners.kt) for the reason the focused observation id is, through its holder getter.
     val currentFocusedFeatureState = rememberUpdatedState(focusedFeature)
     val currentFocusedFeature by currentFocusedFeatureState
     // Part 1 layout fixes, item 4: read by the camera-idle listener (registered once) and by the first
