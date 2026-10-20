@@ -57,9 +57,7 @@ import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
-import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
-import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -79,9 +77,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -91,7 +87,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -104,7 +99,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.DividerDefaults
@@ -443,9 +437,11 @@ internal fun CompactMainScaffold(
         // has things follow the strip's measured bottom in portrait. Equal heights mean the bar's bottom is the strip's too.
         // 0 until the strip is measured, where the bar keeps its own height. Portrait never sets it. Since dispatch 2026-10-12-08
         // (RECORD -951) navigating too: the strip stays beside the bar, and nothing resizes when navigation starts.
-        var landscapeStripHeight by remember { mutableStateOf(0.dp) }
+        val landscapeStripHeightState = remember { mutableStateOf(0.dp) }
+        var landscapeStripHeight by landscapeStripHeightState
         // RECORD -732: the strip's measured width there; the bar takes the rest of the room. 0 until measured.
-        var landscapeStripWidth by remember { mutableStateOf(0.dp) }
+        val landscapeStripWidthState = remember { mutableStateOf(0.dp) }
+        var landscapeStripWidth by landscapeStripWidthState
         // Dispatch 2026-10-12-08 (RECORD -946, -950, -951): while navigating the compass strip stays beside the bar, the two still
         // the top bar, and nothing resizes when navigation starts (the owner: "Keep it exactly like this size. Exactly as we have
         // it today"; "Just rearrange it"). So the bar meets the strip navigating or not; it was "not navigating" only.
@@ -466,7 +462,8 @@ internal fun CompactMainScaffold(
         // below). The measured height is kept only for what that one line does not model, the strip's evening lines (sundown,
         // Back by); saveable, so a process restart in landscape keeps it. Was `lastMapsStripWidth` and this, both plain
         // `remember`, 0 until Maps was shown.
-        var lastMapsStripHeightDp by rememberSaveable { mutableFloatStateOf(0f) }
+        val lastMapsStripHeightDpState = rememberSaveable { mutableFloatStateOf(0f) }
+        var lastMapsStripHeightDp by lastMapsStripHeightDpState
         val lastMapsStripHeight = lastMapsStripHeightDp.dp
         LaunchedEffect(isLandscapeWindow) { if (!isLandscapeWindow) lastMapsStripHeightDp = 0f }
         // The same inputs CompactMapTab sizes its landscape strip from (landscapeStripFit), from the same state.
@@ -476,7 +473,8 @@ internal fun CompactMainScaffold(
         // RECORD -709 (the owner: "Follow the strip's real height (Recommended)"): the Maps tab's compass strip as measured,
         // handed up through searchBarSlot; 0 while it is not measured (before its first layout, while navigating, in a landscape
         // window), where the dropdown keeps the one-line clearance above. See CompactMapTab's compassStripBottomClearance.
-        var mapCompassStripHeight by remember { mutableStateOf(0.dp) }
+        val mapCompassStripHeightState = remember { mutableStateOf(0.dp) }
+        var mapCompassStripHeight by mapCompassStripHeightState
         // Fullscreen-fixes dispatch, Item 2 ("slide the chrome away instead of cutting it") —
         // animated rather than the raw if/else this used to be, so CompassElevationStrip (and the
         // observation bubble/TaxonMapFilterChip below it, both of which also read CompactMapTab's
@@ -500,7 +498,8 @@ internal fun CompactMainScaffold(
         val safeAnimatedTopInset = animatedTopInset.coerceAtLeast(0.dp)
         // Dispatch 2026-09-28-104, item 2: the search column's measured height (the bar, and the notice below the compass strip when
         // one shows). The Maps tab keeps the icon cluster below its bottom while a notice shows; nothing else reads it.
-        var searchChromeHeightPx by remember { mutableIntStateOf(0) }
+        val searchChromeHeightPxState = remember { mutableIntStateOf(0) }
+        var searchChromeHeightPx by searchChromeHeightPxState
         // "Set on map" (SearchDropdown's own Advanced Search section, dispatch C item 2) hands off to the exact same
         // pan-to-centre-pin-plus-confirm flow every other pin placement in this app uses
         // (CentrePinLocationPickerOverlay) rather than a second picker — see CompactMapTab's own
@@ -676,7 +675,8 @@ internal fun CompactMainScaffold(
         // drawn, the same reasoning mapIconClusterHeightPx already established in this file — read back
         // via bottomNavHeight below, needed in two places: the search-dropdown dismiss scrim and
         // its own SearchDropdown panel both need this same band excluded (their own doc comments).
-        var bottomNavHeightPx by remember { mutableFloatStateOf(0f) }
+        val bottomNavHeightPxState = remember { mutableFloatStateOf(0f) }
+        var bottomNavHeightPx by bottomNavHeightPxState
         val bottomNavDensity = LocalDensity.current
         // Landscape B1: in a short landscape window the bottom bar is replaced by a navigation
         // rail on the charger-port edge, so neither ForagerBottomNav call site renders. Two
@@ -707,7 +707,18 @@ internal fun CompactMainScaffold(
         // The Map tab's overlaid rail's real measured width, in px — the landscape counterpart of
         // bottomNavHeightPx above, measured for the same reason (it includes the system
         // navigation-bar inset the rail consumes, which Robolectric reports as zero).
-        var mapRailWidthPx by remember { mutableFloatStateOf(0f) }
+        val mapRailWidthPxState = remember { mutableFloatStateOf(0f) }
+        var mapRailWidthPx by mapRailWidthPxState
+        // UI split Phase 2.5: the frame's measured sizes, wrapped, not copied (ScaffoldMeasurements' doc comment).
+        val scaffoldMeasurements = ScaffoldMeasurements(
+            landscapeStripHeightState = landscapeStripHeightState,
+            landscapeStripWidthState = landscapeStripWidthState,
+            lastMapsStripHeightDpState = lastMapsStripHeightDpState,
+            mapCompassStripHeightState = mapCompassStripHeightState,
+            searchChromeHeightPxState = searchChromeHeightPxState,
+            bottomNavHeightPxState = bottomNavHeightPxState,
+            mapRailWidthPxState = mapRailWidthPxState,
+        )
         val mapRailWidth = with(bottomNavDensity) { mapRailWidthPx.toDp() }
         // What the Map tab's controls are padded by in a short landscape window, and never the
         // map itself (R12, R13, R17, all revised): the displayCutout inset on the sides, so no
@@ -1260,72 +1271,43 @@ internal fun CompactMainScaffold(
                                 onViewOnMap = onViewSpeciesOnMap,
                                 modifier = Modifier.fillMaxSize(),
                             )
-                            CompactTab.MAP -> CompactMapTab(
+                            CompactTab.MAP -> ScaffoldMapTabCall(
+                                tab = tab,
+                                compactTab = compactTab,
+                                isMapFullscreen = isMapFullscreen,
+                                isDrawerOpen = isDrawerOpen,
+                                mapMode = mapMode,
+                                mapTaxonFilter = mapTaxonFilter,
+                                dropdown = searchDropdownState,
+                                measurements = scaffoldMeasurements,
                                 uiState = uiState,
+                                distanceUnit = distanceUnit,
                                 mapSlot = mapSlot,
-                                clusterPosition = mapIconClusterPosition,
-                                cameraMemory = mapCameraMemory,
-                                returnMemory = mapReturnMemory,
-                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapLandscape).
-                                landscape = CompactMapLandscape(
-                                    // Landscape B1: in a short landscape window this tab overlays
-                                    // the rail on the port edge in place of its bottom bar, and pads
-                                    // its controls clear of it (showRail, mapControlsPadding).
-                                    railPortEdge = if (showRail) portEdge else null,
-                                    // Landscape B2: the punch-hole side, and the search bar's capped
-                                    // width there (the chip sits under it, within it).
-                                    punchHoleEdge = if (showRail) punchHoleEdge else null,
-                                    landscapeSearchWidth = landscapeSearchWidth,
-                                    onRailWidthMeasured = { mapRailWidthPx = it },
-                                    // RECORD -729: the landscape strip's height, which the bar takes (mapSearchBarHeight).
-                                    onLandscapeStripHeightMeasured = {
-                                        landscapeStripHeight = it
-                                        if (it > 0.dp) lastMapsStripHeightDp = it.value
-                                    },
-                                    // RECORD -732: and its width; the bar takes the rest of the room (landscapeSearchWidth).
-                                    onLandscapeStripWidthMeasured = {
-                                        landscapeStripWidth = it
-                                    },
-                                ),
-                                // Attribution must rise above the floating bottom nav while the nav
-                                // is there — fullscreen-fixes dispatch, Item 1 (third design) — and
-                                // follow it off screen while it isn't: safeAttributionBottomInset
-                                // (declared alongside bottomNavHeight above, own doc comment there)
-                                // animates between the nav's real measured height and the system
-                                // navigation-bar inset in lockstep with the nav's own slide. Safe to
-                                // change every animation frame: SightingsMapSlot destructures this
-                                // field at the boundary and the only consumer is the attribution
-                                // Text's own padding — no map effect keys on it or on renderMode as a
-                                // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
-                                // re-measures or re-fits the map.
-                                // backEnabled: while the Tools drawer, fullscreen or the search dropdown is open, its Back goes
-                                // first, so the fan's handler is not composed (dispatches 2026-09-28-293, -298 and -312;
-                                // MarkerFanOutBackHandler's doc comment). The add-action menu and the pin pickers are state of
-                                // CompactMapTab, which narrows this further at its own mapSlot call, and gates the bubble on the
-                                // same value. The dropdown is here as of -312: what is drawn on top closes first (the owner:
-                                // "Yes dropdown should go away first when hitting back ... I never said to have the fan close
-                                // before what's drawn on top"). Its term was held out under continuation -303 only while the
-                                // Robolectric harness reopened the dropdown after it closed, which the focus fix
-                                // (appClearFocusInProgress) ended. The taxon suggestions list is still not here.
-                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen() && !isMapFullscreen() && !showSearchDropdown, leavingTab = tab != compactTab()),
-                                mapMode = mapMode(),
-                                onMapModeSelected = { onMapModeChange(it) },
+                                mapIconClusterPosition = mapIconClusterPosition,
+                                mapCameraMemory = mapCameraMemory,
+                                mapReturnMemory = mapReturnMemory,
+                                showRail = showRail,
+                                portEdge = portEdge,
+                                punchHoleEdge = punchHoleEdge,
+                                landscapeSearchWidth = landscapeSearchWidth,
+                                landscapeSearchAlignment = landscapeSearchAlignment,
+                                barMeetsStrip = barMeetsStrip,
+                                mapSearchBarHeight = mapSearchBarHeight,
+                                safeAnimatedTopInset = safeAnimatedTopInset,
+                                safeAttributionBottomInset = safeAttributionBottomInset,
+                                safeAttributionEndInset = safeAttributionEndInset,
+                                attributionButtonBottomInset = attributionButtonBottomInset,
+                                mapControlsPadding = mapControlsPadding,
+                                journalSearchHeld = journalSearchHeld,
+                                mapRenderMode = mapRenderMode,
+                                onMapModeChange = onMapModeChange,
                                 mapLayers = mapLayers,
-                                bubbleSources = mapBubbleSources,
+                                mapBubbleSources = mapBubbleSources,
                                 onPlaceTripPin = onPlaceTripPin,
-                                // Opens straight to the log's edit form for the new entry, bypassing
-                                // Search — see DrawerPanel's own doc comment on why Log is reachable
-                                // both ways.
                                 onLogFindHere = onLogFindHere,
-                                isFullscreen = isMapFullscreen(),
-                                onToggleFullscreen = {
-                                    onIsMapFullscreenChange(!isMapFullscreen())
-                                    onMapFullscreenChanged(isMapFullscreen())
-                                },
-                                isDrawerOpen = isDrawerOpen(),
+                                onIsMapFullscreenChange = onIsMapFullscreenChange,
+                                onMapFullscreenChanged = onMapFullscreenChanged,
                                 onBottomNavTabSelected = onBottomNavTabSelected,
-                                onBottomNavHeightMeasured = { bottomNavHeightPx = it },
-                                controlsPadding = mapControlsPadding,
                                 onLocateMe = onLocateMe,
                                 // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapRecording).
                                 recording = CompactMapRecording(
@@ -1366,172 +1348,15 @@ internal fun CompactMainScaffold(
                                 showDecimalDegrees = showDecimalDegrees,
                                 onToggleCoordinateFormat = onToggleCoordinateFormat,
                                 currentTime = currentTime,
-                                taxonFilter = mapTaxonFilter(),
-                                onClearTaxonFilter = onClearMapTaxonFilter,
-                                // RECORD -739: grouped so CompactMapTab's signature stays small enough for ART (CompactMapSearchLocationPick).
-                                searchLocationPick = CompactMapSearchLocationPick(
-                                    // AdvancedSearchDropdown's own "Set on map" hands off to this same map's
-                                    // own CentrePinLocationPickerOverlay — see compactMainScaffold's own
-                                    // pickingSearchLocationOnMap doc comment.
-                                    pickingSearchLocation = pickingSearchLocationOnMap,
-                                    onSearchLocationPicked = { location ->
-                                        onManualLatChanged("%.4f".format(location.lat))
-                                        onManualLngChanged("%.4f".format(location.lng))
-                                        onSearchManualCoordinates()
-                                        pickingSearchLocationOnMap = false
-                                    },
-                                    onCancelSearchLocationPick = { pickingSearchLocationOnMap = false },
-                                ),
-                                // SearchEntryBar now overlays this tab directly (see searchBarSlot's
-                                // own doc comment below) rather than sitting above it in document
-                                // flow, so the strip/bubble/filter-chip positioning CompactMapTab
-                                // derives from compassStripClearance needs to start below the bar, not
-                                // at this Box's own true top edge. animatedTopInset (declared above,
-                                // own doc comment there — fullscreen-fixes dispatch, Item 2) animates
-                                // this down to 0.dp rather than jumping there the instant fullscreen
-                                // toggles: searchBarSlot below now slides its own content off-screen
-                                // instead of unmounting it outright, and the strip/bubble/chip need to
-                                // slide into the space it vacates in the same motion, not jump ahead of
-                                // it.
-                                topInset = safeAnimatedTopInset,
-                                // The L's top limit: the bar's bottom whether or not fullscreen is hiding it (Part B, A1 item 1).
-                                searchBarBottom = mapSearchBarHeight,
-                                // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
-                                searchNoticeBottom = if (searchNoticeMessage(uiState) != null && !isMapFullscreen()) {
-                                    with(LocalDensity.current) { searchChromeHeightPx.toDp() }
-                                } else {
-                                    0.dp
-                                },
-                                // Passed as a slot, not composed at this call site directly, so it
-                                // renders inside CompactMapTab's own Box — see that parameter's own
-                                // doc comment for why this specific nesting is load-bearing, not
-                                // cosmetic. Empty while isEditingJournalEntry on the Journal tab (the gate's
-                                // own comment below, intent 2026-09-28-17; until then unconditionally) —
-                                // matches the bar's own old `!isEditingJournalEntry` gate from when it
-                                // lived in this scaffold's outer Column, now reproduced here since the
-                                // slot is CompactMapTab's to show or not. This is a real, device-
-                                // confirmed bug fix (the search field silently regaining focus after
-                                // backgrounding, opening its dropdown over the user's Journal entry) —
-                                // an instant, unconditional unmount, deliberately NOT animated, since
-                                // an animated exit would leave the field mounted (and re-focusable) for
-                                // the duration of the slide, reopening the exact race this closes.
-                                // isMapFullscreen, by contrast, drives an AnimatedVisibility inside the
-                                // branch below rather than a second unmount condition here — fullscreen-
-                                // fixes dispatch, Item 2: "slide the chrome away instead of cutting it."
-                                // SearchEntryBar composes as a translucent overlay directly inside
-                                // CompactMapTab's own Box (this same doc comment's own next paragraph),
-                                // never a layout sibling whose position or presence participates in
-                                // measuring the map — confirmed by reading every modifier in the chain,
-                                // not assumed — so sliding it is a pure translation with zero effect on
-                                // the map's own measurement, the same as the already-passing "fullscreen
-                                // does not change the map's own measured height" test already covers.
-                                // Intent 2026-09-28-17 (owner, "Keep entry, fix the bar (Recommended)"):
-                                // an open entry stays open across a tab change, since nothing on the
-                                // bottom nav or rail closes a Cartography entry, so "an entry is open"
-                                // alone left the Maps tab with no search bar after the user tapped Maps
-                                // from an open day entry. The gate is now "an entry is open and the
-                                // Journal tab is the one showing"; on Maps the bar shows normally. This
-                                // slot composes only in this MAP branch, where the second half is false,
-                                // so here the conjunction always resolves to the bar; it is written out
-                                // so that the rule reads as the owner decided it, not as its consequence.
-                                // Motion Part 2, item 1: since the tabs crossfade, this branch is also drawn while Maps fades out,
-                                // when compactTab() is already the next tab. The bar is then not composed at all (`tab !=
-                                // compactTab()`), so it still leaves at once and no field stays focusable through the fade: the
-                                // scout's recorded "appears and vanishes on purpose" item stays instant, and the gate above still
-                                // reads compactTab(), so leaving Maps for an open entry unmounts the bar at once, as before.
-                                searchBarSlot = if ((journalSearchHeld && compactTab() == CompactTab.JOURNAL) || tab != compactTab()) {
-                                    { _ -> }
-                                } else {
-                                    { compassStripHeight ->
-                                        LaunchedEffect(compassStripHeight) { mapCompassStripHeight = compassStripHeight }
-                                        // Fullscreen-slide-out-fixes dispatch, Item 1: the slide distance
-                                        // is the bar's own height PLUS the real status-bar inset, not
-                                        // fullHeight alone. This bar's top edge is the content area's
-                                        // top, which is the status bar's *bottom* edge (the Scaffold
-                                        // consumes the top inset as padding on the Map tab — see its
-                                        // contentWindowInsets), so a translation of exactly fullHeight
-                                        // lands the bar's bottom at the status bar's bottom: its entire
-                                        // travel and end position is the status-bar band, nothing clips
-                                        // it, and edge-to-edge makes that band transparent — confirmed on
-                                        // device as the bar's text drawn over the clock. Device-only by
-                                        // construction: Robolectric reports this inset as 0, so this is
-                                        // a no-op in every test here and deliberately has none.
-                                        val statusBarTopPx = WindowInsets.statusBars.getTop(LocalDensity.current)
-                                        androidx.compose.animation.AnimatedVisibility(
-                                            visible = !isMapFullscreen(),
-                                            enter = slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
-                                            exit = slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
-                                            // Landscape B1: clear of the overlaid rail and the
-                                            // cut-out band (mapControlsPadding); zero in portrait.
-                                            // Landscape B2 (S2): capped and on the punch-hole side.
-                                            modifier = if (landscapeSearchWidth != null && barMeetsStrip && landscapeStripWidth > 0.dp) {
-                                                // RECORD -732: the rest of the room, by the strip's measured width as padding on the
-                                                // rail's side, so the bar ends on the strip's own first pixel whatever the rounding
-                                                // (the rounding fix of -729, carried over).
-                                                Modifier
-                                                    .padding(mapControlsPadding)
-                                                    .absolutePadding(
-                                                        left = if (portEdge == ScreenEdge.Left) landscapeStripWidth else 0.dp,
-                                                        right = if (portEdge == ScreenEdge.Right) landscapeStripWidth else 0.dp,
-                                                    )
-                                                    .fillMaxWidth()
-                                            } else if (landscapeSearchWidth != null) {
-                                                Modifier
-                                                    .padding(mapControlsPadding)
-                                                    .fillMaxWidth()
-                                                    .wrapContentWidth(landscapeSearchAlignment)
-                                                    .width(landscapeSearchWidth)
-                                            } else {
-                                                Modifier.padding(mapControlsPadding)
-                                            },
-                                        ) {
-                                        Column(modifier = Modifier.mapKeepOut(MapKeepOutIds.SEARCH_BAR).onSizeChanged { searchChromeHeightPx = it.height }) {
-                                            SearchEntryBar(
-                                                uiState = uiState,
-                                                distanceUnit = distanceUnit,
-                                                onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                                                onTaxonSearchResultSelected = { result ->
-                                                    // RECORD -725/-726, the owner: "just keep the keyboard open and fill it in, no search yet"; "The
-                                                    // keyboard and the search bar". Only the suggestion list closes (the ViewModel empties it); the
-                                                    // dropdown, the field's focus and the keyboard stay. It closed the dropdown here before.
-                                                    onTaxonSearchResultSelected(result)
-                                                },
-                                                onClearSearch = onClearSearch,
-                                                onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                                                onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
-                                                // The Maps tab's own bar, over its map (map chrome at 80%;
-                                                // owner, "1 A": its suggestions stack over the 0.8 panel).
-                                                overMap = true,
-                                                // RECORD -729: the strip's height in landscape, not navigating; null keeps the bar's own.
-                                                landscapeHeight = mapSearchBarHeight.takeIf { barMeetsStrip && landscapeStripHeight > 0.dp },
-                                                // Dispatch 2026-10-12-06: the rounded pill. Beside the landscape strip it rounds its outer side
-                                                // only and meets the strip square, edge to edge (RECORD -934; its "no join line" is replaced by
-                                                // -967's one line, the pill's outline, below).
-                                                pillCorners = if (landscapeSearchWidth != null && barMeetsStrip && landscapeStripWidth > 0.dp) {
-                                                    MapCardCorners.outerSide(if (portEdge == ScreenEdge.Left) ScreenEdge.Right else ScreenEdge.Left)
-                                                } else {
-                                                    MapCardCorners.ALL
-                                                },
-                                                // Dispatch 2026-10-13-02: the pill's outline, all the way round in both orientations. Portrait:
-                                                // RECORD -976 (the owner: "In portrait mode: Have the outlines follow the entire pill at top").
-                                                // Landscape: RECORD -988 (the owner: "The pill in landscape isn't fully outlined"), replacing
-                                                // -967's "no line on the screen's own edge" there; its join with the strip is still the one line
-                                                // between them, drawn by the pill (the strip leaves that side open). Until -988 landscape drew
-                                                // only its bottom, its join and a side with room beside it, never its top.
-                                                pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
-                                            )
-                                            // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
-                                            // bar's bottom over this column, so the notice starts where the strip's own measured height ends.
-                                            // In a short landscape window the strip is in the other corner and the notice stays under the bar.
-                                            if (searchNoticeMessage(uiState) != null && !showRail) {
-                                                Spacer(Modifier.height(compassStripHeight))
-                                            }
-                                            SearchNotice(uiState, overMap = true)
-                                        }
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxSize(),
+                                onClearMapTaxonFilter = onClearMapTaxonFilter,
+                                onManualLatChanged = onManualLatChanged,
+                                onManualLngChanged = onManualLngChanged,
+                                onSearchManualCoordinates = onSearchManualCoordinates,
+                                appClearFocusInProgress = appClearFocusInProgress,
+                                onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
+                                onTaxonSearchResultSelected = onTaxonSearchResultSelected,
+                                onClearSearch = onClearSearch,
+                                onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                             )
                             CompactTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.fillMaxSize())
                             CompactTab.JOURNAL -> CompositionLocalProvider(LocalLeavingPages provides journalLeavingPages, LocalJournalSearchPillRoom provides journalSearchPillRoom.takeIf { railBeside }) { JournalTab(
