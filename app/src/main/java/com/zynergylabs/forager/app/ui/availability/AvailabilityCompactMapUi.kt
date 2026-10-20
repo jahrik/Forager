@@ -38,30 +38,20 @@ import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.MapBubbleKind
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
-import com.zynergylabs.forager.app.ui.log.RecordDetailsTarget
-import com.zynergylabs.forager.app.ui.map.RouteOnMap
-import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.map.rememberNavigationFacing
-import com.zynergylabs.forager.app.ui.map.NavigationViewRequest
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -74,10 +64,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -91,55 +79,40 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.JournalEntriesMapChip
-import kotlinx.coroutines.launch
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CompassProvider
-import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
-import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
-import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
-import com.zynergylabs.forager.app.ui.map.mapIconChromeFillColor
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
-import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
-import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
 import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
-import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
-import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
 import com.zynergylabs.forager.app.ui.map.MAPS_TAB_OVERLAYS
@@ -150,22 +123,18 @@ import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
-import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapBubbleTarget
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.TappedMapThing
-import com.zynergylabs.forager.app.ui.map.focusedFeature
-import com.zynergylabs.forager.app.ui.map.focusedObservationId
 import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.draw.clipToBounds
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
@@ -179,116 +148,6 @@ import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerPopUp
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
-import kotlin.math.roundToInt
-import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KProperty
-
-/**
- * The icon cluster's position on the compact Map tab, as one holder so it can live *above*
- * [CompactMapTab] — in `compactMainScaffold`, which persists across tab changes — rather than in
- * the tab's own `remember`s, which are disposed with it on every tab switch. Direct owner request:
- * "switching between tabs resets the icon position; have it remember positions when switching in
- * and out of maps." That reversed the icon-bar-position-memory dispatch's working rule that
- * nothing survives a tab change, and the owner then made the general principle explicit —
- * CLAUDE.md, "UX defaults": user-set state survives navigating away and back by default, and an
- * unrequested reset is a bug unless the exception is stated for the case. Persisting across app
- * restarts was a separate per-case decision; since RECORD -711 the side and height persist (below),
- * and the minimised flags do not.
- *
- * Holds the cluster's user-set state: [userChosenOffsetPx] (the single source of truth, written
- * only by drags), [displayedOffsetPx] (the Animatable that is always the clamp of it under the
- * bounds in force — kept too, so returning to the tab does not glide in from zero),
- * [isOnLeftSide], and [isMinimized] (the fullscreen-fixes dispatch's "minimising resets when the
- * user leaves the Map tab" was a planner rule with no owner exception behind it, so the default
- * applies). The cluster's measurements (heights, the bar's centre) are not here — they are re-measured
- * on every mount and mean nothing across one. On return, the tab's bounds-change effect re-clamps
- * the memory under the bounds then in force (the tab change also exited fullscreen), so a position
- * chosen low in fullscreen comes back above the nav, and re-entering fullscreen glides it down
- * again — the same behaviour a fullscreen exit already has, now also across a tab change.
- *
- * **Side and height persist across restarts since RECORD -711** (the owner: "have the map icon bar persist
- * between restarts so left handed users don't need to change it every time they open the app", then
- * "Side and height (Recommended)"); the minimised flags stay session-only. [placement] reads the four
- * stored values out, [applyPlacement] puts a stored set back once at launch, and [settledCount] counts
- * the drags that have ended, which is what `AvailabilityScreen` stores on. Until [placementApplied] is
- * true the cluster is not drawn at all (`MapIconCluster` returns early), so a restored left side is never
- * preceded by a frame on the right. A holder made with nothing to wait for starts applied.
- */
-internal class MapIconClusterPositionState(awaitingPlacement: Boolean = false) {
-    var userChosenOffsetPx by mutableFloatStateOf(0f)
-    val displayedOffsetPx = Animatable(0f)
-    var isOnLeftSide by mutableStateOf(false)
-    var isMinimized by mutableStateOf(false)
-
-    // Landscape B2 (S6): a short landscape window's own cluster position, separate from the
-    // portrait one above so that turning the phone neither carries a portrait drag into landscape
-    // nor loses it on the way back. The side is stored as port or punch-hole, not left or right,
-    // and translated to a window side from the current port edge where the cluster is anchored,
-    // so turning between ROTATION_90 and ROTATION_270 keeps the cluster on the same device edge.
-    // Defaults to the punch-hole side. Side and height persist like the portrait ones (RECORD -711); minimised does not.
-    var landscapeOnPortSide by mutableStateOf(false)
-    var landscapeUserChosenOffsetPx by mutableFloatStateOf(0f)
-    val landscapeDisplayedOffsetPx = Animatable(0f)
-    var landscapeIsMinimized by mutableStateOf(false)
-
-    /** False until a stored placement has been applied; the cluster is not drawn before. See the class doc. */
-    var placementApplied by mutableStateOf(!awaitingPlacement)
-        private set
-
-    /** Increments each time a drag of the cluster ends (or is cancelled after moving it): the moment its side and height are stored. */
-    var settledCount by mutableIntStateOf(0)
-        private set
-
-    fun onDragSettled() {
-        settledCount++
-    }
-
-    /**
-     * Set by [applyPlacement] for each orientation, cleared by the cluster once it has clamped that
-     * orientation's restored height against measured bounds: the first fit of a restored height is a
-     * snap, not the glide a bounds change gets, so a height stored in a taller window does not visibly
-     * slide in from beyond the current one's limits.
-     */
-    var snapRestoredPortrait = false
-    var snapRestoredLandscape = false
-
-    /** The side and height of both orientations as stored values, the heights in dp. */
-    fun placement(density: Density): MapIconClusterPlacement = with(density) {
-        MapIconClusterPlacement(
-            portraitOnLeft = isOnLeftSide,
-            portraitOffsetDp = userChosenOffsetPx.toDp().value,
-            landscapeOnPortSide = landscapeOnPortSide,
-            landscapeOffsetDp = landscapeUserChosenOffsetPx.toDp().value,
-        )
-    }
-
-    /**
-     * Puts a stored [placement] back, once: the sides as stored, the heights as the user-chosen memory and
-     * as what is drawn. The heights are not clamped here, because no bounds are measured yet; the cluster
-     * clamps what it draws against the window it is in (`MapIconCluster`'s bounds effect), with a snap the
-     * first time ([snapRestoredPortrait]). The memory keeps the stored height, as it keeps a drag's height
-     * through a fullscreen change, so a larger window later gets it back. Does nothing once applied.
-     */
-    suspend fun applyPlacement(placement: MapIconClusterPlacement, density: Density) {
-        if (placementApplied) return
-        val portraitPx = with(density) { placement.portraitOffsetDp.dp.toPx() }
-        val landscapePx = with(density) { placement.landscapeOffsetDp.dp.toPx() }
-        isOnLeftSide = placement.portraitOnLeft
-        userChosenOffsetPx = portraitPx
-        displayedOffsetPx.snapTo(portraitPx)
-        landscapeOnPortSide = placement.landscapeOnPortSide
-        landscapeUserChosenOffsetPx = landscapePx
-        landscapeDisplayedOffsetPx.snapTo(landscapePx)
-        snapRestoredPortrait = true
-        snapRestoredLandscape = true
-        placementApplied = true
-    }
-}
-
-/** [awaitingPlacement]: `true` only for a host that will apply a stored placement (`AvailabilityScreen`); see [MapIconClusterPositionState]. */
-@Composable
-internal fun rememberMapIconClusterPositionState(awaitingPlacement: Boolean = false): MapIconClusterPositionState =
-    remember { MapIconClusterPositionState(awaitingPlacement) }
 
 /**
  * The Maps tab in its full-bleed, compact-only form — decision #2 in `docs/plans/map-redesign.md`:
@@ -926,118 +785,6 @@ internal fun CompactMapTab(
     }
 }
 
-/** The map itself ([mapSlot] and what it draws), moved out of [CompactMapTab] unchanged (RECORD -741); [fanBackEnabled] is worked out there. */
-@Composable
-private fun CompactMapMapSlot(
-    mapSlot: MapSlot,
-    displayRegion: Region,
-    filteredSightings: List<Sighting>,
-    uiState: AvailabilityUiState,
-    recording: CompactMapRecording,
-    navigation: CompactMapNavigation,
-    arrivedAt: LatLng?,
-    resumeTrackingRequestId: Int,
-    resetOrientationRequestId: Int,
-    tapped: TappedMapThing?,
-    onTapped: (TappedMapThing) -> Unit,
-    mapLayers: MapLayersControls,
-    renderMode: MapRenderMode,
-    fanBackEnabled: Boolean,
-    onFeatureTap: (MapFeatureTap) -> Unit,
-    onCloseBubble: () -> Unit,
-    cameraMemory: MapCameraMemory,
-    returnMemory: MapReturnMemory,
-    navigationFacing: NavigationFacing,
-    onLeftView: () -> Unit,
-    onStartZoomApplied: () -> Unit,
-    trueHeading: State<TrueHeadingReading>,
-    cluster: MapIconClusterState,
-    focusOverride: LatLng?,
-    isFullscreen: Boolean,
-    onToggleFullscreen: () -> Unit,
-    onCameraIdle: (LatLng) -> Unit,
-) {
-    val breadcrumbPoints = recording.breadcrumbPoints
-    val waypoints = recording.waypoints
-    val isNavigating = navigation.isNavigating
-    val navigationTarget = navigation.navigationTarget
-    val routeLine = navigation.routeLine
-    val waypointStraightLine = navigation.waypointStraightLine
-    val navigationFollowing = navigation.navigationFollowing
-    val navigationViewRequestId = navigation.navigationViewRequestId
-    val navigationZoomPending = navigation.navigationZoomPending
-    val landscapeCluster = cluster.landscape
-    mapSlot(
-        displayRegion,
-        MapOverlayContent(
-            sightings = filteredSightings,
-            plannedTrips = uiState.plannedTrips,
-            breadcrumbPoints = breadcrumbPoints,
-            // Dispatch -497: once arrived, the start's pin is left out and the arrival
-            // ring drawn in its place (RouteHomeLayers.kt), so the start changes form.
-            waypoints = if (arrivedAt != null) waypoints.filterNot { it.id == navigationTarget?.id } else waypoints,
-            // Dispatch -502: a waypoint navigation's dashed line beside the return's way back. There is no way back to
-            // draw meanwhile: the return the waypoint overrules is paused, and pausing it clears its line
-            // (TrackRecordingViewModel.stopReturn), so nothing here has to hide it.
-            route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true, waypointStraightLine?.isOffline ?: false) else null,
-            resumeTrackingRequestId = resumeTrackingRequestId,
-            // RECORD -750, item 5: each location search frames its region, following or not.
-            searchFrameRequestId = uiState.searchFrameSerial,
-            resetOrientationRequestId = resetOrientationRequestId,
-            focusedObservationId = tapped.focusedObservationId,
-            focusedFeature = tapped.focusedFeature,
-            // Map layers L0b, B2 (owner: "Every saved record"): every saved find with a
-            // location, every ended track, every located album photo and every offline
-            // region, pending deletes left out, each visible by default.
-            keptTrackPolylines = mapLayers.records.trackPolylines,
-            findMarkers = mapLayers.records.findMarkers,
-            photoMarkers = mapLayers.records.photoMarkers,
-            offlineRegionCircles = mapLayers.records.offlineRegionCircles,
-            // J8-2: the shown entries' kept records, highlighted under their own glyphs.
-            journalHighlights = mapLayers.journalHighlights,
-        ),
-        renderMode.copy(
-            // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298):
-            // their handler above is the one asked while they are up. Kept apart from the bubble's gate
-            // below, which is the bubble's own.
-            backEnabled = fanBackEnabled,
-            onFeatureTap = onFeatureTap,
-            onCloseBubble = onCloseBubble,
-            cameraMemory = cameraMemory,
-            returnMemory = returnMemory,
-            // Dispatch 2026-09-28-430: the navigation view while navigating, and the one
-            // true heading for the puck and a facing-up map (ruling A).
-            navigationView = if (isNavigating) NavigationViewRequest(navigationFacing, navigationFollowing, navigationViewRequestId, onLeftView, navigationZoomPending, onStartZoomApplied) else null,
-            trueHeading = trueHeading,
-            // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
-            // pixels, for MapLibre's attribution button to keep clear of. The L keeps its bottom limit at the nav inset; the
-            // button moves (SightingsMap, attributionEndInsetClearOf). Only the landscape L: portrait is unchanged.
-            attributionKeepClear = if (landscapeCluster) {
-                cluster.clusterBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx)
-            } else {
-                null
-            },
-            // RECORD -954: in a short landscape window the "i" sits beside the map credit strip (SightingsMap).
-            attributionBesideCredit = landscapeCluster,
-        ),
-        focusOverride,
-        {},
-        // Tapping the map restores chrome while fullscreen — decision #5 — AND dismisses
-        // the bubble below regardless of fullscreen state (a plain tap on empty map is
-        // its dismiss gesture). Since M1 a tap on a glyph is not a plain tap (owner's
-        // ruling 1, "Bubble only"), so it opens its bubble and does neither.
-        {
-            if (isFullscreen) onToggleFullscreen()
-            onCloseBubble()
-        },
-        { sighting, screenPosition, bearingDeg ->
-            onTapped(TappedMapThing(MapBubbleTarget.SightingTarget(sighting), screenPosition, bearingDeg))
-        },
-        onCameraIdle,
-        Modifier.fillMaxSize(),
-    )
-}
-
 /**
  * RECORD -955, C: the highest the landscape card's top may reach, in the root: the walker's dot's bottom, and, where the L is in the
  * card's columns, the bottom of Reset north (the L's second row). `null` before the map is measured.
@@ -1073,204 +820,6 @@ private fun navigationChromeFromBottomTransitions(): Pair<EnterTransition, ExitT
     val enter = if (reduceMotion) fadeIn(animationSpec = reducedFade) else slideInVertically(animationSpec = slide) { fullHeight -> fullHeight } + fadeIn(animationSpec = timedFade)
     val exit = if (reduceMotion) fadeOut(animationSpec = reducedFade) else slideOutVertically(animationSpec = slide) { fullHeight -> fullHeight } + fadeOut(animationSpec = timedFade)
     return enter to exit
-}
-
-/**
- * The tapped thing's bubble, moved out of [CompactMapTab] unchanged (RECORD -741): see that function's comments where it is called.
- * Its [minY] and [backEnabled] are worked out there, from state the tab owns.
- */
-@Composable
-private fun BoxScope.CompactMapBubble(
-    tapped: TappedMapThing?,
-    onCloseBubble: () -> Unit,
-    bubbleSources: MapRecordSources,
-    returnMemory: MapReturnMemory,
-    renderMode: MapRenderMode,
-    controlsPadding: PaddingValues,
-    cluster: MapIconClusterState,
-    noticeInsetDp: Dp,
-    minY: Dp,
-    backEnabled: Boolean,
-    navigation: CompactMapNavigation,
-) {
-    val context = LocalContext.current
-    val landscapeCluster = cluster.landscape
-    val waypointReopen = navigation.waypointReopen
-    val onWaypointReopenConsumed = navigation.onWaypointReopenConsumed
-    // Dispatch 2026-09-28-535 (RECORD -534): no label under the dot. The owner: "the bubble message is
-    // repeating what the strip says. One has to go, and my vote is for the bubble message." The strip
-    // below, or the HUD while navigating, carries the words.
-    // minY = compassStripClearance, a real measurement of the strip's own type style: the
-    // strip is composed after this in the same Box (so its own controls win any overlap)
-    // and is full-width against the map's top edge, so a glyph tapped near the top would
-    // otherwise anchor a bubble under that strip's band, where its taps (the close button's
-    // included) would never reach it (CLAUDE.md, the Surface pitfall). See
-    // compassStripClearance's own comment for why it is a one-time text measurement.
-    //
-    // Back closes the bubble (M1), except while something above the map owns Back: the
-    // Tools drawer (intent 2026-09-28-28's precedence), the add menu or a picker.
-    // The bubble's clamp box stops short of the rail (the measured width, in controlsPadding) and, on its
-    // side, of the L: the value already worked out for the search notice above, 8 + the L's measured width + 8,
-    // and inside the rail's own padding because the L is (MapIconCluster applies controlsPadding first).
-    // Only in the landscape L; portrait's cluster is a column at the edge and keeps the old clamp.
-    val bubbleLayoutDirection = LocalLayoutDirection.current
-    val bubbleClusterInset = if (landscapeCluster) noticeInsetDp else 0.dp
-    val bubbleInsetLeft = controlsPadding.calculateLeftPadding(bubbleLayoutDirection) + if (cluster.isOnLeftSide) bubbleClusterInset else 0.dp
-    val bubbleInsetRight = controlsPadding.calculateRightPadding(bubbleLayoutDirection) + if (cluster.isOnLeftSide) 0.dp else bubbleClusterInset
-    MapBubbleLayer(
-        tapped = tapped,
-        onDismiss = onCloseBubble,
-        // Item 8: "Open in Journal" remembers where the find was opened from (its id, the fan open then, the bubble's
-        // anchor) before the screen switches to the Journal. `tapped` is read here, in composition, so the closure holds
-        // the bubble that is showing, not the null the dismissal inside the layer leaves behind.
-        sources = bubbleSources.copy(
-            onOpenFind = bubbleSources.onOpenFind?.let { open ->
-                val shown = tapped
-                val remembering: (String) -> Unit = { id ->
-                    returnMemory.remember(id, shown?.anchorPx ?: Offset.Zero, shown?.bearingDeg ?: 0f)
-                    open(id)
-                }
-                remembering
-            },
-            // Part B of dispatch 2026-09-28-387: a bubble's "kept in" line remembers the bubble it was tapped in, and the fan open then, before it opens the entry.
-            onOpenEntry = bubbleSources.onOpenEntry?.let { open ->
-                val shown = tapped
-                val remembering: (String) -> Unit = { entryId ->
-                    if (shown != null) returnMemory.rememberEntryOpen(entryId, shown)
-                    open(entryId)
-                }
-                remembering
-            },
-        ),
-        forecast = renderMode.forecast,
-        onViewSightingOnINaturalist = { sighting ->
-            launchINaturalistObservation(context, sighting.observationId)
-            onCloseBubble()
-        },
-        minY = minY,
-        backEnabled = backEnabled,
-        insetLeft = bubbleInsetLeft,
-        insetRight = bubbleInsetRight,
-        // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in the waypoint's details sheet here.
-        reopenDetails = (waypointReopen as? WaypointNavigationOrigin.MapDetails)?.let { RecordDetailsTarget.WaypointDetails(it.waypointId) },
-        onReopenDetailsConsumed = onWaypointReopenConsumed,
-    )
-}
-
-/** The icon cluster, moved out of [CompactMapTab] unchanged (RECORD -741). [topLimitPx] and [noticeBottomPx] are worked out there. */
-@Composable
-private fun BoxScope.CompactMapIconCluster(
-    cluster: MapIconClusterState,
-    uiState: AvailabilityUiState,
-    navigation: CompactMapNavigation,
-    recording: CompactMapRecording,
-    isFullscreen: Boolean,
-    onToggleFullscreen: () -> Unit,
-    onLocateMe: () -> Unit,
-    onResumeTracking: () -> Unit,
-    onResetOrientation: () -> Unit,
-    mapMode: MapMode,
-    onOpenLayers: () -> Unit,
-    onOpenActionMenu: () -> Unit,
-    topLimitPx: Float,
-    noticeBottomPx: Float,
-    controlsPadding: PaddingValues,
-) {
-    val isNavigating = navigation.isNavigating
-    val onReturnToRoute = navigation.onReturnToRoute
-    val returnToStart = navigation.returnToStart
-    val isReturning = navigation.isReturning
-    val isOffTrack = navigation.isOffTrack
-    val onToggleReturning = navigation.onToggleReturning
-    val isRecording = recording.isRecording
-    val onToggleRecording = recording.onToggleRecording
-    // The icon cluster (the bar and the record | return pill, their handles, drag, snap and clamps):
-    // MapIconCluster, shared with the tablet's map (J6c). Composed *before* CompassElevationStrip,
-    // not after: composition order is paint and hit-test order for overlapping siblings in this
-    // Box, and MapIconBar's Surface intercepts touches across its full bounds, which on a short
-    // viewport reach up into the strip's row; the strip's own control must win any overlap
-    // (AvailabilityScreenMapIconStackTest's touch-interaction test on a w360dp-h640dp viewport).
-    val phoneBar: @Composable (Modifier, Color, Dp, Boolean) -> Unit = { barModifier, barFill, barRowSpacing, barFullSquareHits ->
-        MapIconBar(
-            isFullscreen = isFullscreen,
-            onToggleFullscreen = onToggleFullscreen,
-            onLocateMe = {
-                // Ruling D: while navigating, locate brings the navigation view back, as
-                // "Return to Route" does; plain tracking would drop the compass follow.
-                if (isNavigating) onReturnToRoute() else onResumeTracking()
-                onLocateMe()
-            },
-            onResetOrientation = onResetOrientation,
-            mapMode = mapMode,
-            onOpenLayers = onOpenLayers,
-            onAdd = {
-                // No location to grab any more — the button just opens
-                // the menu; the location comes from
-                // CentrePinLocationPickerOverlay's own camera tracking
-                // once a choice is made. See this function's own doc
-                // comment.
-                onOpenActionMenu()
-            },
-            fillColor = barFill,
-            rowSpacing = barRowSpacing,
-            fullSquareHits = barFullSquareHits,
-            modifier = barModifier,
-        )
-    }
-    MapIconCluster(
-        state = cluster,
-        isFullscreen = isFullscreen,
-        // The cluster cannot rise above where SearchDropdown itself starts: topInset (about the
-        // search bar's height) plus the strip's own clearance (icon-bar-drag-refinements, Item 4).
-        // Owner's ruling (a), continuation 2026-09-28-172 ("never above the search bar's bottom"): in the landscape L the limit is
-        // searchBarBottom, the search bar's own bottom (settled, not animated), without the strip clearance (the compass strip is in the other corner there,
-        // nothing else is drawn in that band beside the notice and the chips, which make room for the L, and the SearchDropdown
-        // starts below it); the L pushes down to it as well as up. Portrait keeps topInset + the clearance.
-        topLimitPx = topLimitPx,
-        noticeBottomPx = noticeBottomPx,
-        controlsPadding = controlsPadding,
-        bar = { barModifier -> phoneBar(barModifier, mapIconClusterChildColor(), Spacing.xs, false) },
-        // Landscape L: the bar's rows 48 dp apart with no end padding (240 dp), one layer at the standing 0.8 fill, every row
-        // taking touches across its full 48 x 48 square (owner's "A" and ruling (d), continuations -160 and -172).
-        landscapeBar = { barModifier -> phoneBar(barModifier, Color.Unspecified, MAP_ICON_BAR_LANDSCAPE_ROW_SPACING, true) },
-        pill = { onLeftSide ->
-            // Composed whenever MapIconBar is (regardless of isRecording — record start/stop must
-            // stay reachable before the first recording starts; isRecording flows in as a plain
-            // parameter, see TrailheadControls' own doc comment, not a presence check).
-            TrailheadControls(
-                isRecording = isRecording,
-                onToggleRecording = onToggleRecording,
-                returnToStart = returnToStart,
-                isReturning = isReturning,
-                isOffTrack = isOffTrack,
-                onToggleReturning = onToggleReturning,
-                distanceUnit = uiState.distanceUnit,
-                onLeftSide = onLeftSide,
-                // Dispatch -502: the X-circle for either navigation, a waypoint's included.
-                isNavigating = isNavigating,
-            )
-        },
-        // Landscape L: the pill turned horizontal (record under the bar's column, return inboard, 96 x 48), one layer at the
-        // standing 0.8 fill, both buttons taking touches across their full 48 x 48 squares.
-        landscapePill = { onLeftSide ->
-            TrailheadControls(
-                isRecording = isRecording,
-                onToggleRecording = onToggleRecording,
-                returnToStart = returnToStart,
-                isReturning = isReturning,
-                isOffTrack = isOffTrack,
-                onToggleReturning = onToggleReturning,
-                distanceUnit = uiState.distanceUnit,
-                onLeftSide = onLeftSide,
-                horizontal = true,
-                fillColor = mapIconChromeFillColor(),
-                rowSpacing = MAP_ICON_BAR_LANDSCAPE_ROW_SPACING,
-                isNavigating = isNavigating,
-            )
-        },
-        // T11 fixes (RECORD -766, P4): the L slides below the navigation display while navigating on its side.
-        isNavigating = isNavigating,
-    )
 }
 
 /**
