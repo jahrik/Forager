@@ -254,9 +254,11 @@ class AvailabilityScreenMapIconStackTest {
                 onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
                 onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                 onThemeModeChanged = viewModel::onThemeModeChanged,
-                onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                 onStartLogEntry = onStartLogEntry,
-                onLocateMe = onLocateMe,
+                mapControls = AvailabilityScreenMapControls(
+                    onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
+                    onLocateMe = onLocateMe,
+                ),
                 isRecording = isRecording,
                 tripStartWarning = tripStartWarning,
                 networkFixesNotice = networkFixesNotice,

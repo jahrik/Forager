@@ -204,13 +204,15 @@ abstract class HudLandscapeT11Fixes {
                         isReturning = returning,
                         // Counted only: the test decides when navigation starts and ends.
                         onToggleReturning = { returnToggles++ },
-                        onLocateMe = { locates++ },
                         navigationTarget = origin,
                         returnRoute = route,
                         onRetryRoute = { retries++ },
                         recordingSundownLine = line,
                         recordingBackBy = backBy,
-                        onMapIconClusterPlacementChanged = { placementWrites += it },
+                        mapControls = AvailabilityScreenMapControls(
+                            onLocateMe = { locates++ },
+                            onMapIconClusterPlacementChanged = { placementWrites += it },
+                        ),
                         compassProvider = object : CompassProvider {
                             override val heading: Flow<CompassReading?> = MutableStateFlow(CompassReading(281f, HeadingUncertainty.Estimated(2f), 0L))
                         },

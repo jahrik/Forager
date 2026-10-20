@@ -34,6 +34,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackupAndImport
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCamera
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenEntryReportData
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
@@ -526,15 +527,6 @@ class MainActivity : ComponentActivity() {
                             ),
                         )
                     },
-                    onLocateMe = {
-                        pendingLocationAction = PendingLocationAction.LOCATE_ME
-                        requestLocationPermission.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            ),
-                        )
-                    },
                     onManualLatChanged = viewModel::onManualLatChanged,
                     onManualLngChanged = viewModel::onManualLngChanged,
                     onSearchManualCoordinates = viewModel::searchManualCoordinates,
@@ -579,14 +571,25 @@ class MainActivity : ComponentActivity() {
                     onSettingsResetNoticeShown = container.settingsResetNotice::shown,
                     onDownloadAgain = viewModel::onDownloadAgain,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
-                    onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
-                    onMapShown = viewModel::onMapShown,
-                    onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
-                    onMapModeSelected = viewModel::onMapModeSelected,
-                    onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
-                    onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
-                    onColourFieldMoved = viewModel::onColourFieldMoved,
-                    forecastCellStore = container.forecastCellStore,
+                    mapControls = AvailabilityScreenMapControls(
+                        onLocateMe = {
+                            pendingLocationAction = PendingLocationAction.LOCATE_ME
+                            requestLocationPermission.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                ),
+                            )
+                        },
+                        onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
+                        onMapShown = viewModel::onMapShown,
+                        onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
+                        onMapModeSelected = viewModel::onMapModeSelected,
+                        onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
+                        onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
+                        onColourFieldMoved = viewModel::onColourFieldMoved,
+                        forecastCellStore = container.forecastCellStore,
+                    ),
                     // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
                     // out of the lists the screen gets.
                     logUiState = logUiState.hidingPendingDelete(),
