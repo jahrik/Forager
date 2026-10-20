@@ -44,7 +44,7 @@ internal class CartographyEntryEdits(
         persist(entry.copy(tags = tags))
     }
 
-    /** Sets (or changes) the decision on find [findId] to [kept] — see this class's own doc comment on why this takes an explicit target rather than toggling. */
+    /** Sets (or changes) the decision on find [findId] to [kept] — see [CartographyViewModel]'s own doc comment on why this takes an explicit target rather than toggling. */
     fun onSetFindDecision(findId: String, kept: Boolean) {
         val state = uiState()
         val entry = state.editingEntry ?: return
