@@ -273,7 +273,6 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
-import com.zynergylabs.forager.app.ui.backup.BackupControls
 import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.InAppCameraHost
@@ -288,7 +287,6 @@ import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.domain.GpxImportOutcome
-import com.zynergylabs.forager.app.importgpx.GpxImportNotice
 import com.zynergylabs.forager.app.importgpx.gpxImportMessage
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.OPEN_IN_JOURNAL_LABEL
@@ -441,15 +439,8 @@ fun AvailabilityScreen(
     onOffTrackReminderChanged: (Boolean) -> Unit = {},
     /** The quick menu's "Battery saver" (dispatch 2026-09-28-767) — see [AvailabilityUiState.batterySaverEnabled]. */
     onBatterySaverChanged: (Boolean) -> Unit = {},
-    /**
-     * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127): its state and callbacks.
-     * Defaulted, so a caller with no backup still composes the section, inert.
-     */
-    backup: BackupControls = BackupControls(),
-    /** Counts up when the person taps Done on the restore page: go to the Maps tab and close the drawer. */
-    returnToMapRequest: Int = 0,
-    /** Counts up when a backup notification is tapped: open the Backup section in Tools, then Settings. */
-    openBackupRequest: Int = 0,
+    /** Settings' Backup section, the backup and restore requests, and the GPX import's notice and picker (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenBackupAndImport]. Defaulted, as its six fields were when they were parameters here. */
+    backupAndImport: AvailabilityScreenBackupAndImport = AvailabilityScreenBackupAndImport(),
     /**
      * RECORD -660/-661: a settings file was found corrupt and reset, and the one-time message is owed.
      * Shown as a snackbar that stays until dismissed, with a "Settings" action that opens Settings;
@@ -457,16 +448,6 @@ fun AvailabilityScreen(
      */
     settingsResetNoticePending: Boolean = false,
     onSettingsResetNoticeShown: () -> Unit = {},
-    /**
-     * Plan T16: a finished GPX import to show, from the in-app "Import GPX" or from Open with or Share.
-     * The screen goes to Journal > Records > Tracks with the first new track's details open, and says the
-     * outcome's message ([gpxImportMessage]) as a Toast, then calls [onGpxImportNoticeShown] with its seq.
-     * `null` (the default) is nothing pending.
-     */
-    gpxImportNotice: GpxImportNotice? = null,
-    onGpxImportNoticeShown: (Long) -> Unit = {},
-    /** Plan T16: Records > Tracks > "Import GPX", given the picked file. `null` (the default) shows no button. */
-    onGpxFilePicked: ((android.net.Uri) -> Unit)? = null,
     /** "Download again" on a restored offline region. */
     onDownloadAgain: (Long) -> Unit = {},
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
@@ -803,6 +784,13 @@ fun AvailabilityScreen(
     val onCameraGridModeChanged = cameraInputs.onCameraGridModeChanged
     val cameraFormat = cameraInputs.cameraFormat
     val onCameraFormatChanged = cameraInputs.onCameraFormatChanged
+    // Phase 2.1 (dispatch 2026-10-19-28): the backup and import bundle, unpacked under the parameter names it replaced.
+    val backup = backupAndImport.backup
+    val returnToMapRequest = backupAndImport.returnToMapRequest
+    val openBackupRequest = backupAndImport.openBackupRequest
+    val gpxImportNotice = backupAndImport.gpxImportNotice
+    val onGpxImportNoticeShown = backupAndImport.onGpxImportNoticeShown
+    val onGpxFilePicked = backupAndImport.onGpxFilePicked
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //
