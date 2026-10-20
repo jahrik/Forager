@@ -275,7 +275,6 @@ class AvailabilityViewModel(
         errorLog = errorLog,
     )
 
-
     /**
      * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own
      * class by UI split Phase 2.4 PR 7. Whether a lookup starts, and each cancel, stay in this class's
@@ -288,7 +287,6 @@ class AvailabilityViewModel(
         searchTaxa = searchTaxa,
         errorLog = errorLog,
     )
-
 
     /**
      * The search's fetches and what they were fetched for, moved to their own class by UI split Phase 2.4 PR 8:
@@ -309,7 +307,6 @@ class AvailabilityViewModel(
         getTodaysForecast = getTodaysForecast,
         errorLog = errorLog,
     )
-
 
     /**
      * The live fix: the one collection of [LocationTracker.fixes] and what it writes, moved to its own class by
@@ -678,7 +675,7 @@ class AvailabilityViewModel(
      * back to 'Search a location', and leaves recent searches untouched." The search's region and every result
      * fetched for it go: the map's sightings, the ranked list, rainfall, today's forecast, trip windows and the
      * seasonal pattern, so no tab goes on showing results for a search the bar says is not there. Fetches still
-     * running are cancelled first ([searchJobs]). Kept: recent searches, the month, the radius and the coordinate
+     * running are cancelled first ([AvailabilitySearchRuns.cancelRunning]). Kept: recent searches, the month, the radius and the coordinate
      * fields, which are the user's settings for the next search, not results.
      *
      * RECORD -750, item 3 (the owner: "simply reset the search panel back to default and clear the name"), replacing
