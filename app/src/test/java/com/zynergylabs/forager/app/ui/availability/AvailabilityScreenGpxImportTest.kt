@@ -138,8 +138,10 @@ private fun GpxImportScreenUnderTest(tracks: List<Track>, notice: GpxImportNotic
         onThemeModeChanged = {},
         mapSlot = GPX_IMPORT_STUB_MAP,
         tracks = tracks,
-        gpxImportNotice = notice,
-        onGpxImportNoticeShown = onShown,
-        onGpxFilePicked = {},
+        backupAndImport = AvailabilityScreenBackupAndImport(
+            gpxImportNotice = notice,
+            onGpxImportNoticeShown = onShown,
+            onGpxFilePicked = {},
+        ),
     )
 }

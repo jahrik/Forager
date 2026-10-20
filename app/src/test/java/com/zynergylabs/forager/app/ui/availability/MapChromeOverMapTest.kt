@@ -198,9 +198,11 @@ internal fun MapChromeTestScreen(
             tripStartWarning = state.tripStartWarning,
             cartographyUiState = state.cartography,
             getCartographyEntryMapData = { _, _ -> state.entryMapData },
-            backup = state.backup,
-            returnToMapRequest = state.returnToMapRequest,
-            openBackupRequest = state.openBackupRequest,
+            backupAndImport = AvailabilityScreenBackupAndImport(
+                backup = state.backup,
+                returnToMapRequest = state.returnToMapRequest,
+                openBackupRequest = state.openBackupRequest,
+            ),
             onDownloadAgain = { state.downloadedAgain += it },
         )
         overlay()

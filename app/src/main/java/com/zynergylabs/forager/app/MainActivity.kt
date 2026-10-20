@@ -31,6 +31,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackupAndImport
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCamera
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
@@ -565,14 +566,16 @@ class MainActivity : ComponentActivity() {
                     onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
                     onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
                     onBatterySaverChanged = viewModel::onBatterySaverChanged,
-                    backup = backupViewModel.controls(backupUiState),
-                    returnToMapRequest = backupUiState.returnToMapRequest,
-                    openBackupRequest = openBackupRequest,
+                    backupAndImport = AvailabilityScreenBackupAndImport(
+                        backup = backupViewModel.controls(backupUiState),
+                        returnToMapRequest = backupUiState.returnToMapRequest,
+                        openBackupRequest = openBackupRequest,
+                        gpxImportNotice = gpxImportNotice,
+                        onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
+                        onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
+                    ),
                     settingsResetNoticePending = settingsResetPending,
                     onSettingsResetNoticeShown = container.settingsResetNotice::shown,
-                    gpxImportNotice = gpxImportNotice,
-                    onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
-                    onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
                     onDownloadAgain = viewModel::onDownloadAgain,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,

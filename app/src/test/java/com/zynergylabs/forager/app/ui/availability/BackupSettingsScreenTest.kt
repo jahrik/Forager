@@ -124,7 +124,7 @@ abstract class BackupSettingsScreenTests {
                     onNightModeMapsChanged = {},
                     onThemeModeChanged = {},
                     mapSlot = { _, _, _, _, _, _, _, _, modifier -> androidx.compose.foundation.layout.Box(modifier) },
-                    backup = vm.controls(state),
+                    backupAndImport = AvailabilityScreenBackupAndImport(backup = vm.controls(state)),
                 )
             }
         }
