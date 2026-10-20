@@ -311,7 +311,7 @@ class AvailabilityViewModel(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         getAvailability = getAvailability,
-        getRecentSearches = getRecentSearches,
+        loadRecentSearches = { loadRecentSearches() },
         getSightings = getSightings,
         getConditions = getConditions,
         getTripWindows = getTripWindows,
@@ -327,7 +327,7 @@ class AvailabilityViewModel(
         // Same reasoning, and the reason it matters more here: the picker is how somebody with no
         // connection gets back to a result at all, so it has to be populated before the first
         // search rather than as a side effect of one.
-        searchRuns.loadRecentSearches()
+        loadRecentSearches()
         offlineMaps.loadOfflineRegions()
         offlineMaps.loadOfflineMapPreferences()
         settingsPrefs.loadUnitSystemPreference()
@@ -719,6 +719,12 @@ class AvailabilityViewModel(
         _uiState.value.foragingSelection
             .takeIf { filter is TaxonFilter.SpecificTaxon && it.filter == filter }
             ?.iconicTaxonName
+
+    private fun loadRecentSearches() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(recentSearches = getRecentSearches()) }
+        }
+    }
 
     /**
      * RECORD -723, the search bar's Clear: "One tap removes the observations from the map, clears the bar's summary

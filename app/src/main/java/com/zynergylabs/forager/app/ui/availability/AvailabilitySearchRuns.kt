@@ -4,7 +4,6 @@ import com.zynergylabs.forager.app.domain.AvailabilitySearchResult
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
-import com.zynergylabs.forager.app.domain.GetRecentSearchesUseCase
 import com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCase
 import com.zynergylabs.forager.app.domain.GetSightingsUseCase
 import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
@@ -21,7 +20,7 @@ import kotlinx.coroutines.launch
  * The search runs of [AvailabilityViewModel] (UI split Phase 2.4, PR 8, dispatch 2026-10-19-33, RECORD
  * -1453), moved out of the ViewModel unchanged: [searchJobs], the parent every search fetch runs in; the
  * search last run ([activeSearch]); the queries the map's sightings and the seasonal pattern were loaded
- * for; the launch bodies of the six fetches; and the recent-searches read. Every write to the screen's
+ * for; and the launch bodies of the six fetches. Every write to the screen's
  * state goes through [updateState], and every launch goes through [scope], the ViewModel's own
  * `viewModelScope`, read each time rather than kept.
  *
@@ -34,7 +33,8 @@ internal class AvailabilitySearchRuns(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
     private val scope: () -> CoroutineScope,
     private val getAvailability: GetAvailabilityUseCase,
-    private val getRecentSearches: GetRecentSearchesUseCase,
+    /** The ViewModel's `loadRecentSearches`, called where the ranked-list fetch called it. */
+    private val loadRecentSearches: () -> Unit,
     private val getSightings: GetSightingsUseCase,
     private val getConditions: GetConditionsUseCase,
     private val getTripWindows: GetTripWindowsUseCase,
@@ -240,12 +240,6 @@ internal class AvailabilitySearchRuns(
                     }
                 },
             )
-        }
-    }
-
-    fun loadRecentSearches() {
-        scope().launch {
-            updateState { it.copy(recentSearches = getRecentSearches()) }
         }
     }
 
