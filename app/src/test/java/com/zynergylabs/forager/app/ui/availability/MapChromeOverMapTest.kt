@@ -197,7 +197,9 @@ internal fun MapChromeTestScreen(
             isReturning = state.isReturning,
             tripStartWarning = state.tripStartWarning,
             cartographyUiState = state.cartography,
-            getCartographyEntryMapData = { _, _ -> state.entryMapData },
+            entryReportData = AvailabilityScreenEntryReportData(
+                getCartographyEntryMapData = { _, _ -> state.entryMapData },
+            ),
             backupAndImport = AvailabilityScreenBackupAndImport(
                 backup = state.backup,
                 returnToMapRequest = state.returnToMapRequest,

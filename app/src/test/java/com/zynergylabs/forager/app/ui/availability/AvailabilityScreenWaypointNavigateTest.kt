@@ -196,7 +196,9 @@ class AvailabilityScreenWaypointNavigateTest {
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },
                 cartographyUiState = cartography,
-                getCartographyEntryMapData = { _, _ -> entryMapData ?: CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()) },
+                entryReportData = AvailabilityScreenEntryReportData(
+                    getCartographyEntryMapData = { _, _ -> entryMapData ?: CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()) },
+                ),
             )
         }
         composeRule.waitForIdle()

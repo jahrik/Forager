@@ -218,22 +218,18 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.BuildConfig
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
-import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ForagingSelection
 import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
-import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
-import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
-import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
 import com.zynergylabs.forager.app.domain.model.DailyWeather
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -550,30 +546,8 @@ fun AvailabilityScreen(
      * (the default) leaves the photos without the menu.
      */
     onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
-    /**
-     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
-     * composable's doc comment. Defaulted to always report nothing resolved, same reasoning as
-     * [logUiState]: the many existing tests of this screen that never open a Cartography entry
-     * don't need to pass a real resolver just to compile.
-     */
-    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = { _, _ ->
-        CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
-    },
-    /**
-     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i —
-     * see that composable's doc comment. Defaulted for the same reason [getCartographyEntryMapData]
-     * is: the many existing tests of this screen that never open a Cartography entry don't need a
-     * real resolver just to compile.
-     */
-    getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = { _, _ -> null },
-    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. Defaulted like [getCartographyEntryMapData]. */
-    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
-    /**
-     * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own fullscreen recenter button —
-     * fullscreen-maps dispatch, see that composable's own doc comment, "Fullscreen." Defaulted for
-     * the same reason [getCartographyEntryMapData] is.
-     */
-    getCartographyEntryCurrentLocation: suspend () -> LocationResult = { LocationResult.LocationUnavailable },
+    /** The Journal's entry report and cards' readers (Phase 2.1, dispatch 2026-10-19-28): see [AvailabilityScreenEntryReportData]. Defaulted, as its four fields were when they were parameters here. */
+    entryReportData: AvailabilityScreenEntryReportData = AvailabilityScreenEntryReportData(),
     /**
      * The compact map icon stack's GPS/locate-me button. Distinct from [onUseCurrentLocation] —
      * see [LocateMeStatus]'s doc comment — and, like it, defers the OS permission dialog to the
@@ -791,6 +765,11 @@ fun AvailabilityScreen(
     val gpxImportNotice = backupAndImport.gpxImportNotice
     val onGpxImportNoticeShown = backupAndImport.onGpxImportNoticeShown
     val onGpxFilePicked = backupAndImport.onGpxFilePicked
+    // Phase 2.1 (dispatch 2026-10-19-28): the entry report data bundle, unpacked under the parameter names it replaced.
+    val getCartographyEntryMapData = entryReportData.getCartographyEntryMapData
+    val getCartographyEntryOfflineRegion = entryReportData.getCartographyEntryOfflineRegion
+    val getSavedTrackPaths = entryReportData.getSavedTrackPaths
+    val getCartographyEntryCurrentLocation = entryReportData.getCartographyEntryCurrentLocation
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

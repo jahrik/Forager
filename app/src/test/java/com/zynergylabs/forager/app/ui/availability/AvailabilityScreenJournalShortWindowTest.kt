@@ -1031,8 +1031,10 @@ private fun ShortWindowScreenUnderTest(
         cameraInputs = AvailabilityScreenCamera(onOpenCamera = onOpenCamera),
         logUiState = logState,
         tracks = tracks,
-        getCartographyEntryMapData = { _, _ ->
-            entryMapData ?: com.zynergylabs.forager.app.domain.CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
-        },
+        entryReportData = AvailabilityScreenEntryReportData(
+            getCartographyEntryMapData = { _, _ ->
+                entryMapData ?: com.zynergylabs.forager.app.domain.CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+            },
+        ),
     )
 }

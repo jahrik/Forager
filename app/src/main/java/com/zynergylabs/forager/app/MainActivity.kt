@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackupAndImport
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCamera
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenEntryReportData
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
@@ -656,16 +657,18 @@ class MainActivity : ComponentActivity() {
                     onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
                     onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
                     onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
-                    getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
-                    // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
-                    getSavedTrackPaths = { entryId ->
-                        container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
-                            androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
-                            emptyMap()
-                        }
-                    },
-                    getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
-                    getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
+                    entryReportData = AvailabilityScreenEntryReportData(
+                        getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
+                        // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
+                        getSavedTrackPaths = { entryId ->
+                            container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
+                                androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
+                                emptyMap()
+                            }
+                        },
+                        getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
+                        getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
+                    ),
                     isRecording = trackUiState.isRecording,
                     onToggleRecording = {
                         if (trackUiState.isRecording) {

@@ -147,7 +147,9 @@ class TabletJournalLayoutTest {
                 cartographyUiState = cartography,
                 onOpenCartographyEntry = { id -> cartography = cartography.copy(editingEntry = cartography.entries.first { it.id == id }) },
                 onCloseCartographyEntry = { cartography = cartography.copy(editingEntry = null) },
-                getCartographyEntryMapData = { _, _ -> TABLET_ENTRY_MAP_DATA },
+                entryReportData = AvailabilityScreenEntryReportData(
+                    getCartographyEntryMapData = { _, _ -> TABLET_ENTRY_MAP_DATA },
+                ),
             )
         }
         settle()
