@@ -22,7 +22,6 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -259,7 +258,6 @@ import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
 import com.zynergylabs.forager.app.ui.log.FindOverView
 import com.zynergylabs.forager.app.ui.log.JournalEntryMode
 import com.zynergylabs.forager.app.ui.log.JournalTab
-import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
 import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
@@ -962,6 +960,12 @@ fun AvailabilityScreen(
         setPendingJournalDestination = { pendingJournalDestination = it },
         setPendingJournalFindId = { pendingJournalFindId = it },
         setPendingJournalEntryId = { pendingJournalEntryId = it },
+        isMapFullscreen = { isMapFullscreen },
+        setIsMapFullscreen = { isMapFullscreen = it },
+        setIsDrawerOpen = { isDrawerOpen = it },
+        toolsReturn = { toolsReturn },
+        setToolsReturn = { toolsReturn = it },
+        setToolsReturnArrived = { toolsReturnArrived = it },
     )
     // Dispatch -502: starting and ending a waypoint navigation, and the return control (AvailabilityScreenWaypointNavigation.kt).
     // Built here, once the holder is; every reader of the three is below this line.
@@ -997,25 +1001,8 @@ fun AvailabilityScreen(
         drawnMapLayers = drawnMapLayers,
         forecastFeed = forecastFeed,
     )
-    val openOfflineMapsFromTools: () -> Unit = {
-        if (toolsReturn == null) {
-            toolsReturn = ToolsOfflineMapsReturn(
-                compactTab = compactTab,
-                selectedTab = selectedTab,
-                journalTopTab = journalScreenState.topTab,
-                recordsFilter = journalScreenState.recordsFilter,
-                mapFullscreen = isMapFullscreen,
-            )
-            toolsReturnArrived = false
-        }
-        isDrawerOpen = false
-        if (isMapFullscreen) {
-            isMapFullscreen = false
-            onMapFullscreenChanged(false)
-        }
-        pendingJournalDestination = PendingJournalDestination.VIEW_OFFLINE_MAPS
-        compactTab = CompactTab.JOURNAL
-    }
+    // Phase 2.6, PR 3: the Tools drawer's "Offline maps" row, built in AvailabilityScreenJournalReturn.kt.
+    val openOfflineMapsFromTools = buildOpenOfflineMapsFromTools(state = screenState, onMapFullscreenChanged = onMapFullscreenChanged)
     LaunchedEffect(toolsReturn != null) {
         if (toolsReturn == null) return@LaunchedEffect
         snapshotFlow { Triple(compactTab, journalScreenState.topTab, journalScreenState.recordsFilter) }.collect { (tab, top, filter) ->
@@ -1284,27 +1271,15 @@ fun AvailabilityScreen(
     // new find's draft saved while the snackbar is still up is committed under the same id, and a
     // Discard then would delete it.
     val latestLogUiState by rememberUpdatedState(logUiState)
-    val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
-        val left = logUiState.editingEntry
-        val keptDraftId = left?.takeIf { leaveKeepsDraft(it, logUiState.entries) }?.id
-        onLeaveLogEntryEditingIncidentally()
-        if (keptDraftId != null) {
-            logDraftSnackbarScope.launch {
-                val result = logDraftSnackbarHostState.showSnackbar(
-                    message = "Saved to Drafts",
-                    actionLabel = "Discard",
-                    duration = SnackbarDuration.Short,
-                )
-                if (result == SnackbarResult.ActionPerformed) {
-                    if (latestLogUiState.draftEntries.any { it.id == keptDraftId }) {
-                        onDiscardLogDraft(keptDraftId)
-                    } else {
-                        Log.w("AvailabilityScreen", "Discard on \"Saved to Drafts\" ignored: '$keptDraftId' is no longer a draft.")
-                    }
-                }
-            }
-        }
-    }
+    // Phase 2.6, PR 3: built in AvailabilityScreenJournalReturn.kt; the remembered latest state above is read through a getter.
+    val leaveLogEntryEditingOfferingDiscard = buildLeaveLogEntryEditingOfferingDiscard(
+        logUiState = logUiState,
+        latestLogUiState = { latestLogUiState },
+        onLeaveLogEntryEditingIncidentally = onLeaveLogEntryEditingIncidentally,
+        onDiscardLogDraft = onDiscardLogDraft,
+        logDraftSnackbarScope = logDraftSnackbarScope,
+        logDraftSnackbarHostState = logDraftSnackbarHostState,
+    )
     // Item 8: leaving the find that was opened from the Maps tab with Back, its own arrow, or a delete returns to the Maps tab,
     // where the bubble (and the fan) reopen; any other way of leaving it (another bottom tab, an edit, another record) forgets
     // the origin, and Back does what it did before. The origin is forgotten on a tab change here; the edit and the other
@@ -1312,26 +1287,11 @@ fun AvailabilityScreen(
     LaunchedEffect(compactTab) {
         if (compactTab != CompactTab.JOURNAL) mapReturnMemory.forget()
     }
-    val onFindReportClosed: (String?) -> Unit = { closing ->
-        if (closing != null && mapReturnMemory.onFindClosed(closing)) {
-            compactTab = CompactTab.MAP
-            selectedTab = ResultsTab.MAP
-        }
-    }
-    // Dispatch 2026-09-28-387, Part B: an entry opened from a bubble's "kept in" line returns to the Maps tab, with that bubble and the fan, when it is left from its
-    // report; the Maps tab it comes back to is built with them (MapReturnMemory.takeEntryBubble, takeFanKeys).
-    val onEntryClosed: (String, Boolean) -> Unit = { entryId, fromReport ->
-        if (mapReturnMemory.onEntryClosed(entryId, fromReport)) {
-            compactTab = CompactTab.MAP
-            selectedTab = ResultsTab.MAP
-        }
-    }
-    val onFindDeleted: (String) -> Unit = { deleted ->
-        if (mapReturnMemory.onFindDeleted(deleted)) {
-            compactTab = CompactTab.MAP
-            selectedTab = ResultsTab.MAP
-        }
-    }
+    // Phase 2.6, PR 3: the three returns to the Maps tab, built in AvailabilityScreenJournalReturn.kt (Part B's notes are there).
+    val mapReturn = mapReturnCallbacks(state = screenState, mapReturnMemory = mapReturnMemory)
+    val onFindReportClosed = mapReturn.onFindReportClosed
+    val onEntryClosed = mapReturn.onEntryClosed
+    val onFindDeleted = mapReturn.onFindDeleted
     // Declared after leaveLogEntryEditingOfferingDiscard, which its onOpenFind calls (F3).
     // Phase 2.6, PR 2: the Maps tab's bubbles' sources, built in AvailabilityScreenMapInputs.kt (its doc comment carries M1's notes).
     val mapBubbleSources = availabilityMapBubbleSources(
