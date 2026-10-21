@@ -1,8 +1,8 @@
 package com.zynergylabs.forager.app.ui.availability
 
 // UI split Phase 2.6, PR 2 (dispatch 2026-10-19-40): what AvailabilityScreen hands the Maps tab's map, moved out of the body
-// as plain functions. Not composable, so composition is unchanged; the body calls each where it builds the holder, and
-// every state they read is read there, during the same composition, through the holder's getters.
+// as plain functions. Not composable, so composition is unchanged; the body calls each below the holder, and every state
+// they read is read at that call, during the same composition, through the holder's getters.
 
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights

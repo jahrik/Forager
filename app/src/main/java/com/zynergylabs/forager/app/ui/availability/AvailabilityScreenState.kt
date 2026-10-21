@@ -42,4 +42,11 @@ internal class AvailabilityScreenState(
     val setPendingJournalDestination: (PendingJournalDestination?) -> Unit,
     val setPendingJournalFindId: (String?) -> Unit,
     val setPendingJournalEntryId: (String?) -> Unit,
+    // Phase 2.6, PR 3: what the journal-return code reads and writes (AvailabilityScreenJournalReturn.kt).
+    val isMapFullscreen: () -> Boolean,
+    val setIsMapFullscreen: (Boolean) -> Unit,
+    val setIsDrawerOpen: (Boolean) -> Unit,
+    val toolsReturn: () -> ToolsOfflineMapsReturn?,
+    val setToolsReturn: (ToolsOfflineMapsReturn?) -> Unit,
+    val setToolsReturnArrived: (Boolean) -> Unit,
 )
