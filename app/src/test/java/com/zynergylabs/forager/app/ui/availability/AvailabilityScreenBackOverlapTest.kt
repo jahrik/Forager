@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -159,9 +160,9 @@ class AvailabilityScreenBackOverlapTest {
 
     private fun navSelected(label: String): Boolean = runCatching { navItem(label).assertIsSelected() }.isSuccess
 
-    private fun drawerIsOpen(): Boolean =
-        composeRule.onAllNodes(hasTestTag(TOOLS_DRAWER_SHEET_TAG)).fetchSemanticsNodes().isNotEmpty() &&
-            runCatching { navItem("Tools").assertIsSelected() }.isSuccess
+    // The sheet on screen, not the Tools nav item selected: in fullscreen the bottom nav is off the screen and out of the tree,
+    // so a check on the nav item reads "closed" there whatever the drawer does (the first run of case (b) read it that way).
+    private fun drawerIsOpen(): Boolean = runCatching { composeRule.onNode(hasTestTag(TOOLS_DRAWER_SHEET_TAG)).assertIsDisplayed() }.isSuccess
 
     private fun isFullscreen(): Boolean =
         composeRule.onAllNodes(hasContentDescription("Exit fullscreen")).fetchSemanticsNodes().isNotEmpty()
