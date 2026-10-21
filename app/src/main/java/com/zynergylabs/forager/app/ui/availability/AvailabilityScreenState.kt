@@ -51,4 +51,6 @@ internal class AvailabilityScreenState(
     val setToolsReturnArrived: (Boolean) -> Unit,
     // Phase 2.6, PR 4: what the drawer host reads (AvailabilityScreenDrawerHost.kt).
     val openSettingsOnlyRequest: () -> Int,
+    // Phase 2.6, D: what the notices' triggers write (AvailabilityScreenNotices.kt).
+    val setOpenSettingsOnlyRequest: (Int) -> Unit,
 )

@@ -74,7 +74,7 @@ internal fun AvailabilityScreenDrawerHost(
         // drag are gated on this flag (`if (gesturesEnabled && ...)` and
         // `anchoredDraggable(enabled = gesturesEnabled)`), so with it off neither a scrim tap
         // nor swipe-to-close worked. While open it also re-enables swipe-to-close; while
-        // closed it stays false, so swipe-to-open stays off. See the pre-build report above.
+        // closed it stays false, so swipe-to-open stays off. See docs/audits/2026-09-27-landscape-b3-prebuild-report.md.
         gesturesEnabled = drawerState.isOpen,
         // Dispatch 2026-10-18-08 Amendment 1, RECORD -1313 (the owner: "When opening it, there should be no coloring of the
         // app", then "Portrait too" and "yes same behavior, just no added color"): no tint over the app behind the open drawer.
