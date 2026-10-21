@@ -52,6 +52,10 @@ package com.zynergylabs.forager.app.ui.availability
 // "Build 2: the scaffold extraction on its own, reviewed and tested separately, still no intended
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
+//
+// 2026-10-21, Phase 2.6 B (dispatch 2026-10-19-40): 78 of those parameters, each a field the screen passed through unchanged, now
+// arrive as the screen's own seven bundles (findsLog, journalEntries, entryReportData, offlineMaps, records, searchInputs,
+// recording) and are unpacked at the top of the body under the same names and types, so the body below is unchanged.
 
 import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import com.zynergylabs.forager.app.domain.EntryGroup
@@ -168,9 +172,7 @@ internal fun CompactMainScaffold(
     appClearFocusInProgress: BooleanArray,
     keyboardController: SoftwareKeyboardController?,
     compactTab: () -> CompactTab,
-    logUiState: MushroomLogUiState,
     logPhotoAcquisitionInFlight: () -> Boolean,
-    cartographyUiState: CartographyUiState,
     isDrawerOpen: () -> Boolean,
     /**
      * RECORD -871: whether Back is to retrace the Tools drawer's "Offline maps" row (`AvailabilityScreen`'s Tools return
@@ -193,8 +195,6 @@ internal fun CompactMainScaffold(
     pendingJournalTrackId: () -> String? = { null },
     /** Plan T16: Records > Tracks > "Import GPX"; threaded to [JournalTab]. `null` shows no button. */
     onGpxFilePicked: ((android.net.Uri) -> Unit)? = null,
-    /** J8-3: the entry report's "Show on map" and "Hide from map"; threaded to [JournalTab]. */
-    onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
     /** M1: what the Maps tab's glyph bubbles look records up in; threaded to [CompactMapTab]. */
     mapBubbleSources: MapRecordSources = MapRecordSources(),
     /** Dispatch 2026-09-28-502: navigating to a chosen waypoint, threaded to [CompactMapTab] and [JournalTab]; see [WaypointNavigateControls]. */
@@ -223,9 +223,6 @@ internal fun CompactMainScaffold(
     mapLayers: MapLayersControls,
     mapMode: () -> MapMode,
     isNightMode: Boolean,
-    isRecording: Boolean,
-    startRecordingErrorMessage: String?,
-    breadcrumbPoints: List<LatLng>,
     mapWaypoints: List<Waypoint>,
     returnToStart: ReturnToStartInfo?,
     isReturning: Boolean,
@@ -233,8 +230,6 @@ internal fun CompactMainScaffold(
     /** See [AvailabilityScreen]'s own `isArrivalHeld` doc comment (RECORD -845). */
     isArrivalHeld: Boolean,
     isOffTrack: Boolean,
-    /** See [AvailabilityScreen]'s own `recordingSundownLine` doc comment. */
-    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
     /** See [CompactMapTab]'s own `quickSettings` doc comment (dispatch 2026-09-28-645). */
     quickSettings: MapQuickSettings?,
     compassProvider: CompassProvider,
@@ -253,100 +248,20 @@ internal fun CompactMainScaffold(
     onNavigationZoomApplied: () -> Unit,
     mapTaxonFilter: () -> Long?,
     basemap: Basemap,
-    tracks: List<Track>,
-    waypoints: List<Waypoint>,
-    waypointsErrorMessage: String?,
-    waypointEntryReferenceCounts: Map<String, Int>,
     onLocateMe: () -> Unit,
-    onLeaveLogEntryEditingIncidentally: () -> Unit,
     leaveLogEntryEditingOfferingDiscard: () -> Unit,
-    onDismissTaxonSuggestions: () -> Unit,
     onIsDrawerOpenChange: (Boolean) -> Unit,
     onIsMapFullscreenChange: (Boolean) -> Unit,
     onMapFullscreenChanged: (Boolean) -> Unit,
     onCompactTabChange: (CompactTab) -> Unit,
     onSelectedTabChange: (ResultsTab) -> Unit,
-    onUseCurrentLocation: () -> Unit,
-    onTaxonSearchQueryChanged: (String) -> Unit,
-    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onPendingJournalDestinationChange: (PendingJournalDestination?) -> Unit,
-    onStartLogEntry: (LatLng?, LocalDate) -> Unit,
     onViewSpeciesOnMap: (Long) -> Unit,
     onMapModeChange: (MapMode) -> Unit,
-    onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
-    onToggleRecording: () -> Unit,
-    onDropWaypoint: (LatLng, String) -> Unit,
     onToggleReturning: () -> Unit,
     onClearMapTaxonFilter: () -> Unit,
-    onManualLatChanged: (String) -> Unit,
-    onManualLngChanged: (String) -> Unit,
-    onSearchManualCoordinates: () -> Unit,
     onOpenCamera: (InAppCameraTarget) -> Unit,
-    onOpenLogEntry: (String) -> Unit,
-    onCloseLogEntry: () -> Unit,
-    onLogEntryChanged: (MushroomLogEntry) -> Unit,
-    onStartEditingLogEntry: () -> Unit,
-    onSaveLogEntry: () -> Unit,
-    onCancelLogEntryEditing: () -> Unit,
     onLogPhotoAcquisitionInFlightChange: (Boolean) -> Unit,
-    onAddLogPhoto: (PhotoSource) -> Unit,
-    onRemoveLogPhoto: (LogPhoto) -> Unit,
-    onPullLogPhoto: (LogPhoto) -> Unit,
-    onDeleteLogEntry: (String) -> Unit,
-    onSaveLogErrorDismissed: () -> Unit,
-    onDeleteGalleryPhoto: (GalleryPhoto) -> Unit,
-    onAddGalleryPhoto: (PhotoSource) -> Unit,
-    onOpenCartographyEntry: (String) -> Unit,
-    onStartCartographyEntry: (LocalDate) -> Unit,
-    onCloseCartographyEntry: () -> Unit,
-    onCartographyTextChanged: (String) -> Unit,
-    onCartographyTagsChanged: (List<String>) -> Unit,
-    onSetFindDecision: (String, Boolean) -> Unit,
-    onSetTrackDecision: (String, Boolean) -> Unit,
-    onSetWaypointDecision: (String, Boolean) -> Unit,
-    onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
-    /** Data part A (dispatch 2026-09-28-667): a group switch in the entry editor's "In this entry" panel. */
-    onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit,
-    onToggleKeptPhoto: (String) -> Unit,
-    onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit,
-    onFinishCartographyEntry: () -> Unit,
-    onSaveCartographyEntry: () -> Unit,
-    onDiscardCartographyEntryChanges: () -> Unit,
-    onSaveCartographyEntryAsDraft: () -> Unit,
-    /** Clears `CartographyUiState.saveErrorMessage` once [JournalTab]'s Toast of it has shown (intent `2026-09-28-68`). */
-    onCartographySaveErrorDismissed: () -> Unit,
-    onDeleteCartographyEntry: (String) -> Unit,
-    /** J4b L2: an Entries card's swipe Delete (pending, with Undo); see [JournalTab]. */
-    onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
-    /** J4b L3: an album photo's long-press Delete (pending, with Undo); see [JournalTab]. */
-    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
-    /** J4b L1: a find tile's long-press Edit (`MushroomLogViewModel.onOpenEntryForEditing`); see [JournalTab]. */
-    onOpenLogEntryForEditing: ((String) -> Unit)? = null,
-    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
-    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. */
-    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
-    getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
-    getCartographyEntryCurrentLocation: suspend () -> LocationResult,
-    onOfflineMapLatChanged: (String) -> Unit,
-    onOfflineMapLngChanged: (String) -> Unit,
-    onOfflineMapRadiusChanged: (Int) -> Unit,
-    onOfflineMapNameChanged: (String) -> Unit,
-    onOfflineMapsOpened: () -> Unit,
-    onDownloadOfflineMaps: () -> Unit,
-    onDeleteOfflineRegion: (Long) -> Unit,
-    onDownloadAgain: (Long) -> Unit = {},
-    onTracksOpened: () -> Unit,
-    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
-    onDeleteWaypoint: (String) -> Unit,
-    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
-    onDeleteTrack: ((String) -> Unit)? = null,
-    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
-    tracksErrorMessage: String? = null,
-    onRecentSearchSelected: (CachedSearchSummary) -> Unit,
-    /** RECORD -723: the search bar's Clear; see AvailabilityScreen's own parameter. */
-    onClearSearch: () -> Unit,
-    onRadiusChanged: (Int) -> Unit,
-    onMonthSelected: (Int) -> Unit,
     /**
      * Journal redesign J1, S1: the Journal's hoisted, saveable UI state, created in
      * `AvailabilityScreen` beside `compactTab` and handed to [JournalTab] below. Added after the
@@ -364,7 +279,113 @@ internal fun CompactMainScaffold(
     /** Intent 2026-09-28-44, F3: an open find's mode and M1's find over the view, handed to [JournalTab]; see its parameters. Not among the 109. */
     findEntryModeState: MutableState<JournalEntryMode>,
     findOverViewState: MutableState<FindOverView?>,
+    /** Phase 2.6 B (dispatch 2026-10-19-40): the screen's own bundles, passed straight down and unpacked at the top of the body under the names they replaced. */
+    findsLog: AvailabilityScreenFindsLog,
+    journalEntries: AvailabilityScreenJournalEntries,
+    entryReportData: AvailabilityScreenEntryReportData,
+    offlineMaps: AvailabilityScreenOfflineMaps,
+    records: AvailabilityScreenRecords,
+    searchInputs: AvailabilityScreenSearchInputs,
+    recording: AvailabilityScreenRecording,
 ) {
+        // Phase 2.6 B (dispatch 2026-10-19-40): the screen's bundles, unpacked under the parameter names they replaced, with those parameters' types and
+        // comments, so nothing below this block changed. Each is a field the screen passed through unchanged; none is a getter.
+        // AvailabilityScreenFindsLog.
+        val logUiState: MushroomLogUiState = findsLog.logUiState
+        val onLeaveLogEntryEditingIncidentally: () -> Unit = findsLog.onLeaveLogEntryEditingIncidentally
+        val onStartLogEntry: (LatLng?, LocalDate) -> Unit = findsLog.onStartLogEntry
+        val onOpenLogEntry: (String) -> Unit = findsLog.onOpenLogEntry
+        val onCloseLogEntry: () -> Unit = findsLog.onCloseLogEntry
+        val onLogEntryChanged: (MushroomLogEntry) -> Unit = findsLog.onLogEntryChanged
+        val onStartEditingLogEntry: () -> Unit = findsLog.onStartEditingLogEntry
+        val onSaveLogEntry: () -> Unit = findsLog.onSaveLogEntry
+        val onCancelLogEntryEditing: () -> Unit = findsLog.onCancelLogEntryEditing
+        val onAddLogPhoto: (PhotoSource) -> Unit = findsLog.onAddLogPhoto
+        val onRemoveLogPhoto: (LogPhoto) -> Unit = findsLog.onRemoveLogPhoto
+        val onPullLogPhoto: (LogPhoto) -> Unit = findsLog.onPullLogPhoto
+        val onDeleteLogEntry: (String) -> Unit = findsLog.onDeleteLogEntry
+        val onSaveLogErrorDismissed: () -> Unit = findsLog.onSaveLogErrorDismissed
+        val onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = findsLog.onDeleteGalleryPhoto
+        val onAddGalleryPhoto: (PhotoSource) -> Unit = findsLog.onAddGalleryPhoto
+        /** J4b L3: an album photo's long-press Delete (pending, with Undo); see [JournalTab]. */
+        val onRequestDeleteGalleryPhoto: ((String) -> Unit)? = findsLog.onRequestDeleteGalleryPhoto
+        /** J4b L1: a find tile's long-press Edit (`MushroomLogViewModel.onOpenEntryForEditing`); see [JournalTab]. */
+        val onOpenLogEntryForEditing: ((String) -> Unit)? = findsLog.onOpenLogEntryForEditing
+        // AvailabilityScreenJournalEntries.
+        val cartographyUiState: CartographyUiState = journalEntries.cartographyUiState
+        /** J8-3: the entry report's "Show on map" and "Hide from map"; threaded to [JournalTab]. */
+        val onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = journalEntries.onSetCartographyEntryShownOnMap
+        val onOpenCartographyEntry: (String) -> Unit = journalEntries.onOpenCartographyEntry
+        val onStartCartographyEntry: (LocalDate) -> Unit = journalEntries.onStartCartographyEntry
+        val onCloseCartographyEntry: () -> Unit = journalEntries.onCloseCartographyEntry
+        val onCartographyTextChanged: (String) -> Unit = journalEntries.onCartographyTextChanged
+        val onCartographyTagsChanged: (List<String>) -> Unit = journalEntries.onCartographyTagsChanged
+        val onSetFindDecision: (String, Boolean) -> Unit = journalEntries.onSetFindDecision
+        val onSetTrackDecision: (String, Boolean) -> Unit = journalEntries.onSetTrackDecision
+        val onSetWaypointDecision: (String, Boolean) -> Unit = journalEntries.onSetWaypointDecision
+        val onSetOfflineRegionDecision: (Long, Boolean) -> Unit = journalEntries.onSetOfflineRegionDecision
+        /** Data part A (dispatch 2026-09-28-667): a group switch in the entry editor's "In this entry" panel. */
+        val onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = journalEntries.onSetEntryGroupIncluded
+        val onToggleKeptPhoto: (String) -> Unit = journalEntries.onToggleKeptPhoto
+        val onAcquirePhotoForCartographyEntry: (PhotoSource) -> Unit = journalEntries.onAcquirePhotoForCartographyEntry
+        val onFinishCartographyEntry: () -> Unit = journalEntries.onFinishCartographyEntry
+        val onSaveCartographyEntry: () -> Unit = journalEntries.onSaveCartographyEntry
+        val onDiscardCartographyEntryChanges: () -> Unit = journalEntries.onDiscardCartographyEntryChanges
+        val onSaveCartographyEntryAsDraft: () -> Unit = journalEntries.onSaveCartographyEntryAsDraft
+        /** Clears `CartographyUiState.saveErrorMessage` once [JournalTab]'s Toast of it has shown (intent `2026-09-28-68`). */
+        val onCartographySaveErrorDismissed: () -> Unit = journalEntries.onCartographySaveErrorDismissed
+        val onDeleteCartographyEntry: (String) -> Unit = journalEntries.onDeleteCartographyEntry
+        /** J4b L2: an Entries card's swipe Delete (pending, with Undo); see [JournalTab]. */
+        val onRequestDeleteCartographyEntry: ((String) -> Unit)? = journalEntries.onRequestDeleteCartographyEntry
+        // AvailabilityScreenEntryReportData.
+        val getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = entryReportData.getCartographyEntryMapData
+        /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. */
+        val getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = entryReportData.getSavedTrackPaths
+        val getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = entryReportData.getCartographyEntryOfflineRegion
+        val getCartographyEntryCurrentLocation: suspend () -> LocationResult = entryReportData.getCartographyEntryCurrentLocation
+        // AvailabilityScreenOfflineMaps.
+        val onOfflineMapLatChanged: (String) -> Unit = offlineMaps.onOfflineMapLatChanged
+        val onOfflineMapLngChanged: (String) -> Unit = offlineMaps.onOfflineMapLngChanged
+        val onOfflineMapRadiusChanged: (Int) -> Unit = offlineMaps.onOfflineMapRadiusChanged
+        val onOfflineMapNameChanged: (String) -> Unit = offlineMaps.onOfflineMapNameChanged
+        val onOfflineMapsOpened: () -> Unit = offlineMaps.onOfflineMapsOpened
+        val onDownloadOfflineMaps: () -> Unit = offlineMaps.onDownloadOfflineMaps
+        val onDeleteOfflineRegion: (Long) -> Unit = offlineMaps.onDeleteOfflineRegion
+        val onDownloadAgain: (Long) -> Unit = offlineMaps.onDownloadAgain
+        // AvailabilityScreenRecords.
+        val tracks: List<Track> = records.tracks
+        val waypoints: List<Waypoint> = records.waypoints
+        val waypointsErrorMessage: String? = records.waypointsErrorMessage
+        val waypointEntryReferenceCounts: Map<String, Int> = records.waypointEntryReferenceCounts
+        val onDropWaypoint: (LatLng, String) -> Unit = records.onDropWaypoint
+        val onTracksOpened: () -> Unit = records.onTracksOpened
+        val getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = records.getFullRecord
+        val onDeleteWaypoint: (String) -> Unit = records.onDeleteWaypoint
+        /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
+        val onDeleteTrack: ((String) -> Unit)? = records.onDeleteTrack
+        /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
+        val tracksErrorMessage: String? = records.tracksErrorMessage
+        // AvailabilityScreenSearchInputs.
+        val onDismissTaxonSuggestions: () -> Unit = searchInputs.onDismissTaxonSuggestions
+        val onUseCurrentLocation: () -> Unit = searchInputs.onUseCurrentLocation
+        val onTaxonSearchQueryChanged: (String) -> Unit = searchInputs.onTaxonSearchQueryChanged
+        val onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit = searchInputs.onTaxonSearchResultSelected
+        val onPlaceTripPin: (LatLng, LocalDate, String) -> Unit = searchInputs.onPlaceTripPin
+        val onManualLatChanged: (String) -> Unit = searchInputs.onManualLatChanged
+        val onManualLngChanged: (String) -> Unit = searchInputs.onManualLngChanged
+        val onSearchManualCoordinates: () -> Unit = searchInputs.onSearchManualCoordinates
+        val onRecentSearchSelected: (CachedSearchSummary) -> Unit = searchInputs.onRecentSearchSelected
+        /** RECORD -723: the search bar's Clear; see AvailabilityScreen's own parameter. */
+        val onClearSearch: () -> Unit = searchInputs.onClearSearch
+        val onRadiusChanged: (Int) -> Unit = searchInputs.onRadiusChanged
+        val onMonthSelected: (Int) -> Unit = searchInputs.onMonthSelected
+        // AvailabilityScreenRecording.
+        val isRecording: Boolean = recording.isRecording
+        val startRecordingErrorMessage: String? = recording.startRecordingErrorMessage
+        val breadcrumbPoints: List<LatLng> = recording.breadcrumbPoints
+        /** See [AvailabilityScreen]'s own `recordingSundownLine` doc comment. */
+        val recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine? = recording.recordingSundownLine
+        val onToggleRecording: () -> Unit = recording.onToggleRecording
         // SearchDropdown, under ActiveSearchSummary — see that composable's own onToggleSearch doc
         // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
         // display decision the ViewModel has no part in, same reasoning as mapMode/drawerPanel above.

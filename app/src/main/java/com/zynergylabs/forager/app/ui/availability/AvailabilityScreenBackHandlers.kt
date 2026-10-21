@@ -5,7 +5,8 @@ package com.zynergylabs.forager.app.ui.availability
 // register in the same order at the same point, before the frame's nested handlers; the order is the Back order. It returns
 // the exit-navigation prompt's state, remembered here at its old position, because the prompt itself is composed in the body.
 // A composable that returns a value is not a restart scope of its own, so what these handlers read is read in the body's
-// scope, as before. AvailabilityScreenBackOverlapTest pins the four places where two of them can be enabled at once.
+// scope, as before; in the dex it emits no group of its own, so the handlers' slots sit in the body's group exactly as before
+// (Sorrel's reading on #352). AvailabilityScreenBackOverlapTest pins the four places where two of them can be enabled at once.
 
 import android.app.Activity
 import android.content.Context
@@ -65,7 +66,7 @@ internal fun AvailabilityScreenBackHandlers(
         state.setIsMapFullscreen(false)
         onMapFullscreenChanged(false)
     }
-    // RECORD -871: Back from Records reached by the Tools drawer's "Offline maps" row (see toolsReturn above). The page the
+    // RECORD -871: Back from Records reached by the Tools drawer's "Offline maps" row (see toolsReturn in AvailabilityScreen.kt). The page the
     // user came from goes back under the drawer, its tab and, when it was the Journal, its top tab and chip, and fullscreen if
     // the map was fullscreen, and the drawer reopens; the next Back is the drawer's own handler, above, which closes it on
     // that page. The Journal's own handlers are off while this is pending (JournalTab's backEnabled, through
@@ -138,7 +139,7 @@ internal fun AvailabilityScreenBackHandlers(
     LaunchedEffect(isNavigating) {
         if (!isNavigating) showExitNavigationPrompt = false
     }
-    // The prompt itself is composed below, once the window's tree is known (map chrome at 80%).
+    // The prompt itself is composed in AvailabilityScreen.kt, after this call, once the window's tree is known (map chrome at 80%).
 
     // "Home": drawer closed, chrome visible, Maps tab selected, not navigating. A second back
     // press within the window actually exits; a lone press just warns. This is a single-Activity

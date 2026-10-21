@@ -379,6 +379,8 @@ fun AvailabilityScreen(
      */
     mapSlot: MapSlot = SightingsMapSlot,
 ) {
+    // Phase 2.6 B (dispatch 2026-10-19-40): the unpacks below are the fields this body still reads; the frame unpacks the rest of
+    // findsLog, journalEntries, records, recording and searchInputs, and all of entryReportData and offlineMaps, itself.
     // Phase 2.1 (dispatch 2026-10-19-28): the camera bundle, unpacked under the parameter names it replaced.
     val inAppCameraTarget = cameraInputs.inAppCameraTarget
     val onOpenCamera = cameraInputs.onOpenCamera
@@ -395,11 +397,6 @@ fun AvailabilityScreen(
     val gpxImportNotice = backupAndImport.gpxImportNotice
     val onGpxImportNoticeShown = backupAndImport.onGpxImportNoticeShown
     val onGpxFilePicked = backupAndImport.onGpxFilePicked
-    // Phase 2.1 (dispatch 2026-10-19-28): the entry report data bundle, unpacked under the parameter names it replaced.
-    val getCartographyEntryMapData = entryReportData.getCartographyEntryMapData
-    val getCartographyEntryOfflineRegion = entryReportData.getCartographyEntryOfflineRegion
-    val getSavedTrackPaths = entryReportData.getSavedTrackPaths
-    val getCartographyEntryCurrentLocation = entryReportData.getCartographyEntryCurrentLocation
     // Phase 2.1 (dispatch 2026-10-19-28): the map controls bundle, unpacked under the parameter names it replaced.
     val onMapFullscreenChanged = mapControls.onMapFullscreenChanged
     val onLocateMe = mapControls.onLocateMe
@@ -412,58 +409,21 @@ fun AvailabilityScreen(
     val onMapIconClusterPlacementChanged = mapControls.onMapIconClusterPlacementChanged
     // Phase 2.1 (dispatch 2026-10-19-28): the findsLog bundle, unpacked under the parameter names it replaced.
     val logUiState = findsLog.logUiState
-    val onStartLogEntry = findsLog.onStartLogEntry
     val onOpenLogEntry = findsLog.onOpenLogEntry
-    val onCloseLogEntry = findsLog.onCloseLogEntry
-    val onLogEntryChanged = findsLog.onLogEntryChanged
-    val onStartEditingLogEntry = findsLog.onStartEditingLogEntry
-    val onOpenLogEntryForEditing = findsLog.onOpenLogEntryForEditing
-    val onSaveLogEntry = findsLog.onSaveLogEntry
-    val onCancelLogEntryEditing = findsLog.onCancelLogEntryEditing
     val onLeaveLogEntryEditingIncidentally = findsLog.onLeaveLogEntryEditingIncidentally
     val onDiscardLogDraft = findsLog.onDiscardLogDraft
     val onAddLogPhoto = findsLog.onAddLogPhoto
-    val onRemoveLogPhoto = findsLog.onRemoveLogPhoto
-    val onPullLogPhoto = findsLog.onPullLogPhoto
-    val onDeleteLogEntry = findsLog.onDeleteLogEntry
-    val onDeleteGalleryPhoto = findsLog.onDeleteGalleryPhoto
     val onAddGalleryPhoto = findsLog.onAddGalleryPhoto
-    val onSaveLogErrorDismissed = findsLog.onSaveLogErrorDismissed
-    val onRequestDeleteGalleryPhoto = findsLog.onRequestDeleteGalleryPhoto
     // Phase 2.1 (dispatch 2026-10-19-28): the journalEntries bundle, unpacked under the parameter names it replaced.
     val cartographyUiState = journalEntries.cartographyUiState
-    val onOpenCartographyEntry = journalEntries.onOpenCartographyEntry
-    val onStartCartographyEntry = journalEntries.onStartCartographyEntry
-    val onCloseCartographyEntry = journalEntries.onCloseCartographyEntry
-    val onCartographyTextChanged = journalEntries.onCartographyTextChanged
-    val onCartographyTagsChanged = journalEntries.onCartographyTagsChanged
-    val onSetFindDecision = journalEntries.onSetFindDecision
-    val onSetTrackDecision = journalEntries.onSetTrackDecision
-    val onSetWaypointDecision = journalEntries.onSetWaypointDecision
-    val onSetOfflineRegionDecision = journalEntries.onSetOfflineRegionDecision
-    val onSetEntryGroupIncluded = journalEntries.onSetEntryGroupIncluded
-    val onToggleKeptPhoto = journalEntries.onToggleKeptPhoto
     val onAcquirePhotoForCartographyEntry = journalEntries.onAcquirePhotoForCartographyEntry
-    val onFinishCartographyEntry = journalEntries.onFinishCartographyEntry
-    val onSaveCartographyEntry = journalEntries.onSaveCartographyEntry
-    val onDiscardCartographyEntryChanges = journalEntries.onDiscardCartographyEntryChanges
-    val onSaveCartographyEntryAsDraft = journalEntries.onSaveCartographyEntryAsDraft
-    val onDeleteCartographyEntry = journalEntries.onDeleteCartographyEntry
-    val onRequestDeleteCartographyEntry = journalEntries.onRequestDeleteCartographyEntry
     val onSetCartographyEntryShownOnMap = journalEntries.onSetCartographyEntryShownOnMap
     val onCartographyShownOnMapErrorDismissed = journalEntries.onCartographyShownOnMapErrorDismissed
-    val onCartographySaveErrorDismissed = journalEntries.onCartographySaveErrorDismissed
     // Phase 2.1 (dispatch 2026-10-19-28): the records bundle, unpacked under the parameter names it replaced.
     val waypoints = records.waypoints
-    val waypointsErrorMessage = records.waypointsErrorMessage
     val waypointEntryReferenceCounts = records.waypointEntryReferenceCounts
-    val onDropWaypoint = records.onDropWaypoint
-    val onDeleteWaypoint = records.onDeleteWaypoint
-    val onDeleteTrack = records.onDeleteTrack
-    val tracksErrorMessage = records.tracksErrorMessage
     val waypointsLoaded = records.waypointsLoaded
     val tracks = records.tracks
-    val onTracksOpened = records.onTracksOpened
     val getFullRecord = records.getFullRecord
     val pendingDeleteNotices = records.pendingDeleteNotices
     // Phase 2.1 (dispatch 2026-10-19-28): the navigation bundle, unpacked under the parameter names it replaced.
@@ -480,13 +440,9 @@ fun AvailabilityScreen(
     val onStopWaypointNavigation = navigation.onStopWaypointNavigation
     // Phase 2.1 (dispatch 2026-10-19-28): the recording bundle, unpacked under the parameter names it replaced.
     val isRecording = recording.isRecording
-    val onToggleRecording = recording.onToggleRecording
-    val startRecordingErrorMessage = recording.startRecordingErrorMessage
     val tripStartWarning = recording.tripStartWarning
     val networkFixesNotice = recording.networkFixesNotice
     val backgroundRunPrompt = recording.backgroundRunPrompt
-    val breadcrumbPoints = recording.breadcrumbPoints
-    val recordingSundownLine = recording.recordingSundownLine
     val recordingBackBy = recording.recordingBackBy
     val onBackByChoice = recording.onBackByChoice
     val onClearBackBy = recording.onClearBackBy
@@ -501,32 +457,11 @@ fun AvailabilityScreen(
     val onSettingsResetNoticeShown = settings.onSettingsResetNoticeShown
     val onThemeModeChanged = settings.onThemeModeChanged
     val onDistanceUnitSelected = settings.onDistanceUnitSelected
-    // Phase 2.1 (dispatch 2026-10-19-28): the offlineMaps bundle, unpacked under the parameter names it replaced.
-    val onOfflineMapLatChanged = offlineMaps.onOfflineMapLatChanged
-    val onOfflineMapLngChanged = offlineMaps.onOfflineMapLngChanged
-    val onOfflineMapRadiusChanged = offlineMaps.onOfflineMapRadiusChanged
-    val onOfflineMapNameChanged = offlineMaps.onOfflineMapNameChanged
-    val onOfflineMapsOpened = offlineMaps.onOfflineMapsOpened
-    val onDownloadOfflineMaps = offlineMaps.onDownloadOfflineMaps
-    val onDeleteOfflineRegion = offlineMaps.onDeleteOfflineRegion
-    val onDownloadAgain = offlineMaps.onDownloadAgain
     // Phase 2.1 (dispatch 2026-10-19-28): the searchInputs bundle, unpacked under the parameter names it replaced.
-    val onUseCurrentLocation = searchInputs.onUseCurrentLocation
-    val onManualLatChanged = searchInputs.onManualLatChanged
-    val onManualLngChanged = searchInputs.onManualLngChanged
-    val onSearchManualCoordinates = searchInputs.onSearchManualCoordinates
-    val onRadiusChanged = searchInputs.onRadiusChanged
-    val onMonthSelected = searchInputs.onMonthSelected
     val onMapTabSelected = searchInputs.onMapTabSelected
     val onSeasonalTabSelected = searchInputs.onSeasonalTabSelected
-    val onTaxonSearchQueryChanged = searchInputs.onTaxonSearchQueryChanged
-    val onTaxonSearchResultSelected = searchInputs.onTaxonSearchResultSelected
-    val onDismissTaxonSuggestions = searchInputs.onDismissTaxonSuggestions
     val onReopenTaxonSuggestions = searchInputs.onReopenTaxonSuggestions
-    val onPlaceTripPin = searchInputs.onPlaceTripPin
     val onDeletePlannedTrip = searchInputs.onDeletePlannedTrip
-    val onRecentSearchSelected = searchInputs.onRecentSearchSelected
-    val onClearSearch = searchInputs.onClearSearch
 
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //
@@ -1159,9 +1094,7 @@ fun AvailabilityScreen(
             appClearFocusInProgress = appClearFocusInProgress,
             keyboardController = keyboardController,
             compactTab = { compactTab },
-            logUiState = logUiState,
             logPhotoAcquisitionInFlight = { logPhotoAcquisitionInFlight },
-            cartographyUiState = cartographyUiState,
             isDrawerOpen = { isDrawerOpen },
             toolsReturnPending = { toolsReturn != null },
             isLandscapeWindow = isLandscapeWindow,
@@ -1186,16 +1119,12 @@ fun AvailabilityScreen(
             mapLayers = mapLayersControls,
             mapMode = { mapMode },
             isNightMode = isNightMode,
-            isRecording = isRecording,
-            startRecordingErrorMessage = startRecordingErrorMessage,
-            breadcrumbPoints = breadcrumbPoints,
             mapWaypoints = mapWaypoints,
             returnToStart = returnToStart,
             isReturning = isReturning,
             isNavigating = isNavigating,
             isArrivalHeld = isArrivalHeld,
             isOffTrack = isOffTrack,
-            recordingSundownLine = recordingSundownLine,
             // Dispatch 2026-09-28-645: the map's quick settings. Its sundown and off-track rows are
             // the Tools drawer's own values and callbacks (the same two classes its Sundown section is given below).
             quickSettings = MapQuickSettings(
@@ -1247,22 +1176,13 @@ fun AvailabilityScreen(
             onNavigationZoomApplied = { navigationZoomPending = false },
             mapTaxonFilter = { mapTaxonFilter },
             basemap = basemap,
-            tracks = tracks,
-            waypoints = waypoints,
-            waypointsErrorMessage = waypointsErrorMessage,
-            waypointEntryReferenceCounts = waypointEntryReferenceCounts,
             onLocateMe = onLocateMe,
-            onLeaveLogEntryEditingIncidentally = onLeaveLogEntryEditingIncidentally,
             leaveLogEntryEditingOfferingDiscard = leaveLogEntryEditingOfferingDiscard,
-            onDismissTaxonSuggestions = onDismissTaxonSuggestions,
             onIsDrawerOpenChange = { isDrawerOpen = it },
             onIsMapFullscreenChange = { isMapFullscreen = it },
             onMapFullscreenChanged = onMapFullscreenChanged,
             onCompactTabChange = { compactTab = it },
             onSelectedTabChange = { selectedTab = it },
-            onUseCurrentLocation = onUseCurrentLocation,
-            onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-            onTaxonSearchResultSelected = onTaxonSearchResultSelected,
             onPendingJournalDestinationChange = {
                 pendingJournalDestination = it
                 if (it == null) {
@@ -1273,86 +1193,30 @@ fun AvailabilityScreen(
             },
             pendingJournalFindId = { pendingJournalFindId },
             pendingJournalEntryId = { pendingJournalEntryId },
-            onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
             mapBubbleSources = mapBubbleSources,
-            onStartLogEntry = onStartLogEntry,
             onViewSpeciesOnMap = onViewSpeciesOnMap,
             onMapModeChange = {
                 chosenMapMode = it
                 onMapModeSelected(it)
             },
-            onPlaceTripPin = onPlaceTripPin,
-            onToggleRecording = onToggleRecording,
-            onDropWaypoint = onDropWaypoint,
             // Dispatch -502: the return control and the HUD's X end a waypoint navigation first, while there is one.
             onToggleReturning = onNavigationControl,
             onClearMapTaxonFilter = onClearMapTaxonFilter,
-            onManualLatChanged = onManualLatChanged,
-            onManualLngChanged = onManualLngChanged,
-            onSearchManualCoordinates = onSearchManualCoordinates,
             onOpenCamera = onOpenCamera,
-            onOpenLogEntry = onOpenLogEntry,
-            onCloseLogEntry = onCloseLogEntry,
-            onLogEntryChanged = onLogEntryChanged,
-            onStartEditingLogEntry = onStartEditingLogEntry,
-            onSaveLogEntry = onSaveLogEntry,
-            onCancelLogEntryEditing = onCancelLogEntryEditing,
             onLogPhotoAcquisitionInFlightChange = { logPhotoAcquisitionInFlight = it },
-            onAddLogPhoto = onAddLogPhoto,
-            onRemoveLogPhoto = onRemoveLogPhoto,
-            onPullLogPhoto = onPullLogPhoto,
-            onDeleteLogEntry = onDeleteLogEntry,
-            onSaveLogErrorDismissed = onSaveLogErrorDismissed,
-            onDeleteGalleryPhoto = onDeleteGalleryPhoto,
-            onAddGalleryPhoto = onAddGalleryPhoto,
-            onOpenCartographyEntry = onOpenCartographyEntry,
-            onStartCartographyEntry = onStartCartographyEntry,
-            onCloseCartographyEntry = onCloseCartographyEntry,
-            onCartographyTextChanged = onCartographyTextChanged,
-            onCartographyTagsChanged = onCartographyTagsChanged,
-            onSetFindDecision = onSetFindDecision,
-            onSetTrackDecision = onSetTrackDecision,
-            onSetWaypointDecision = onSetWaypointDecision,
-            onSetOfflineRegionDecision = onSetOfflineRegionDecision,
-            onSetEntryGroupIncluded = onSetEntryGroupIncluded,
-            onToggleKeptPhoto = onToggleKeptPhoto,
-            onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
-            onFinishCartographyEntry = onFinishCartographyEntry,
-            onSaveCartographyEntry = onSaveCartographyEntry,
-            onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
-            onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
-            onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
-            onDeleteCartographyEntry = onDeleteCartographyEntry,
-            onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
-            onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
-            // J4b L1: a find tile's long-press Edit uses the one open-and-edit call.
-            onOpenLogEntryForEditing = onOpenLogEntryForEditing,
-            getCartographyEntryMapData = getCartographyEntryMapData,
-            getSavedTrackPaths = getSavedTrackPaths,
-            getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
-            getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
-            onOfflineMapLatChanged = onOfflineMapLatChanged,
-            onOfflineMapLngChanged = onOfflineMapLngChanged,
-            onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-            onOfflineMapNameChanged = onOfflineMapNameChanged,
-            onOfflineMapsOpened = onOfflineMapsOpened,
-            onDownloadOfflineMaps = onDownloadOfflineMaps,
-            onDeleteOfflineRegion = onDeleteOfflineRegion,
-            onDownloadAgain = onDownloadAgain,
-            onTracksOpened = onTracksOpened,
-            getFullRecord = getFullRecord,
-            onDeleteWaypoint = onDeleteWaypoint,
-            onDeleteTrack = onDeleteTrack,
-            tracksErrorMessage = tracksErrorMessage,
-            onRecentSearchSelected = onRecentSearchSelected,
-            onClearSearch = onClearSearch,
-            onRadiusChanged = onRadiusChanged,
-            onMonthSelected = onMonthSelected,
             journalScreenState = journalScreenState,
             cartographyEntryModeState = cartographyEntryModeState,
             cartographyOpenEntryGroupsState = cartographyOpenEntryGroupsState,
             findEntryModeState = findEntryModeState,
             findOverViewState = findOverViewState,
+            // Phase 2.6 B: the screen's own bundles, passed straight down (the frame unpacks them).
+            findsLog = findsLog,
+            journalEntries = journalEntries,
+            entryReportData = entryReportData,
+            offlineMaps = offlineMaps,
+            records = records,
+            searchInputs = searchInputs,
+            recording = recording,
         )
     }
 
