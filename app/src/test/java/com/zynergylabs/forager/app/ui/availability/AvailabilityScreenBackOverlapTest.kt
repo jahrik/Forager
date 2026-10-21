@@ -204,7 +204,7 @@ class AvailabilityScreenBackOverlapTest {
         touchCentre(navItem("Journal"))
         settle()
         assertTrue(
-            "control: Journal opened on Records' Offline maps chip, so the Offline maps row's request (and its return) was still pending",
+            "control: Journal opened on Records' Offline maps chip, so the Offline maps row's request was still pending (and with it the return, which clears only after the Journal arrives)",
             runCatching { composeRule.onNode(hasTestTag(recordsFilterChipTestTag(RecordsSubTab.OFFLINE_MAPS))).assertIsSelected() }.isSuccess,
         )
     }
