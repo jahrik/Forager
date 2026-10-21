@@ -75,3 +75,16 @@ These are the plan of record's constraints, unchanged:
 - attribution stays visible;
 - every figure is provisional, and a walk tests it;
 - map chrome sits at 80% opacity.
+
+## The owner's answers, 2026-10-21 (RECORD -1498)
+
+1. **Route data:** "Cut to the area (Recommended)". About 1 MB extra per area, cut by the Pi.
+2. **Hills:** "Flat first, size elevation in parallel (Recommended)". Trail routing ships flat. A read-only check sizes the elevation work (sources, licences, conversion, Pi time) so it can follow soon after, without blocking.
+3. **The way back:** "Yes, as sketched (Recommended)". The line follows the walker's own track back to where they left the trail, then the trail route home, with no straight-line shortcut.
+4. **The walk-back time:** "The route shown (Recommended)".
+5. **Naming:** "Rename the current button to Re-center like it does on Google maps, and use the Return to Route for the Off trail notice." The exact wording comes back as a step path before stage 7 is built.
+6. **Waypoint:** "Follow trails, quiet off-trail (Recommended)". The same treatment as the way home.
+7. **Stages H and I:** "Fold H and I in, later (Recommended)". They come after the reference layer; G, J and K stay in the Navigator plan.
+8. **Wrong turn:** "Named trails/roads only (Recommended)". Unnamed paths fall under the quiet off-trail behaviour.
+
+The order above stands. Elevation becomes a parallel sizing check, not a step. H and I are added as steps 10 and 11, after the walks.
