@@ -11,11 +11,7 @@ import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOriginSaver
 import com.zynergylabs.forager.app.ui.map.MapCompass
 import com.zynergylabs.forager.app.ui.map.MapPosition
-import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.rememberShownPosition
-import com.zynergylabs.forager.app.ui.map.LocalMapCompass
-import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
-import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
 import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -50,7 +46,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -128,12 +123,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -157,8 +148,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.State
-import androidx.compose.runtime.CompositionLocalProvider
-import com.zynergylabs.forager.app.ui.log.LocalTrackDetailsFold
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -186,7 +175,6 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
@@ -196,7 +184,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontStyle
@@ -277,9 +264,6 @@ import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
 import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
-import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
-import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
-import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
@@ -966,6 +950,7 @@ fun AvailabilityScreen(
         toolsReturn = { toolsReturn },
         setToolsReturn = { toolsReturn = it },
         setToolsReturnArrived = { toolsReturnArrived = it },
+        openSettingsOnlyRequest = { openSettingsOnlyRequest },
     )
     // Dispatch -502: starting and ending a waypoint navigation, and the return control (AvailabilityScreenWaypointNavigation.kt).
     // Built here, once the holder is; every reader of the three is below this line.
@@ -1587,79 +1572,32 @@ fun AvailabilityScreen(
     // draws its dot at, the same way the compass reaches them.
     val shownPosition = rememberShownPosition(uiState.liveFix, uiState.approximateFix, uiState.lastKnownFix, currentTime)
     val mapPosition = remember(shownPosition, liveFixForMaps) { MapPosition(shownPosition, liveFixForMaps) }
-    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass, LocalMapPosition provides mapPosition, LocalTrackDetailsFold provides trackDetailsFoldOpen) {
-    ModalNavigationDrawer(
+    // Phase 2.6, PR 4: the composition locals, the Tools drawer and the frame it slides over (AvailabilityScreenDrawerHost.kt),
+    // composed here, unconditionally, at the line this tree was; InAppCameraHost stays below it.
+    AvailabilityScreenDrawerHost(
+        state = screenState,
         drawerState = drawerState,
-        // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
-        // pannable map, and a horizontal drag there means "pan", not "open the drawer". Tools
-        // is the way in. Gestures are on only while the drawer is open, which is what lets a
-        // scrim tap close it: in material3 1.5.0-alpha26 both the scrim's dismiss and the
-        // drag are gated on this flag (`if (gesturesEnabled && ...)` and
-        // `anchoredDraggable(enabled = gesturesEnabled)`), so with it off neither a scrim tap
-        // nor swipe-to-close worked. While open it also re-enables swipe-to-close; while
-        // closed it stays false, so swipe-to-open stays off. See the pre-build report above.
-        gesturesEnabled = drawerState.isOpen,
-        // Dispatch 2026-10-18-08 Amendment 1, RECORD -1313 (the owner: "When opening it, there should be no coloring of the
-        // app", then "Portrait too" and "yes same behavior, just no added color"): no tint over the app behind the open drawer.
-        // Transparent, not Color.Unspecified: material3 1.5.0-alpha26's Scrim (Scrim.kt) draws, and takes the tap that closes
-        // the drawer, only `if (color.isSpecified)`, so Unspecified would also drop the tap-outside close. Transparent keeps the
-        // scrim's full-screen tap target and its "Close drawer" semantics and draws nothing. Until -1313 the default,
-        // DrawerDefaults.scrimColor (ScrimTokens' colour at ScrimTokens.ContainerOpacity).
-        scrimColor = Color.Transparent,
-        drawerContent = {
-            // The sheet itself stays in drawerDirection, so its rounded edge faces the
-            // content and its start-side inset padding lands on the window edge it sits on.
-            // Only what is inside it goes back to the ambient direction.
-            // Material3's own default container role for a modal drawer, passed explicitly, and
-            // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
-            // role exactly; see `MapLayersSheet`).
-            // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
-            // (Recommended)"; planner message -77, Q4); solid over the other tabs.
-            val drawerColor = mapChromeFill(navigationBarContainerColor(), compactTab == CompactTab.MAP)
-            val drawerContentColor = contentColorFor(navigationBarContainerColor())
-            ModalDrawerSheet(
-                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
-                drawerContainerColor = drawerColor,
-                drawerContentColor = drawerContentColor,
-            ) {
-                CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
-                Box(modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) {
-                CompactToolsDrawerContent(
-                    uiState = uiState,
-                    distanceUnit = distanceUnit,
-                    onDistanceUnitSelected = onDistanceUnitSelected,
-                    onClose = { isDrawerOpen = false },
-                    onDeletePlannedTrip = onDeletePlannedTrip,
-                    isNightMode = isNightMode,
-                    onNightModeMapsChanged = onNightModeMapsChanged,
-                    themeMode = uiState.themeMode,
-                    onThemeModeChanged = onThemeModeChanged,
-                    backup = backup,
-                    openSettingsRequest = openBackupRequest,
-                    openSettingsOnlyRequest = openSettingsOnlyRequest,
-                    sundown = SundownSettings(
-                        alertsEnabled = uiState.sundownAlertsEnabled,
-                        darknessMarginMinutes = uiState.darknessMarginMinutes,
-                        onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
-                        onDarknessMarginChanged = onDarknessMarginChanged,
-                    ),
-                    offTrackReminder = OffTrackReminderSettings(
-                        enabled = uiState.offTrackReminderEnabled,
-                        onEnabledChanged = onOffTrackReminderChanged,
-                    ),
-                    onOpenOfflineMaps = openOfflineMapsFromTools,
-                )
-                }
-                }
-            }
-        },
-        content = {
-            CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
-                compactMainScaffold()
-            }
-        },
+        drawerDirection = drawerDirection,
+        ambientDirection = ambientDirection,
+        mapKeepOuts = mapKeepOuts,
+        mapCompass = mapCompass,
+        mapPosition = mapPosition,
+        trackDetailsFoldOpen = trackDetailsFoldOpen,
+        uiState = uiState,
+        distanceUnit = distanceUnit,
+        onDistanceUnitSelected = onDistanceUnitSelected,
+        onDeletePlannedTrip = onDeletePlannedTrip,
+        isNightMode = isNightMode,
+        onNightModeMapsChanged = onNightModeMapsChanged,
+        onThemeModeChanged = onThemeModeChanged,
+        backup = backup,
+        openBackupRequest = openBackupRequest,
+        onSundownAlertsEnabledChanged = onSundownAlertsEnabledChanged,
+        onDarknessMarginChanged = onDarknessMarginChanged,
+        onOffTrackReminderChanged = onOffTrackReminderChanged,
+        openOfflineMapsFromTools = openOfflineMapsFromTools,
+        compactMainScaffold = compactMainScaffold,
     )
-    }
     // The in-app camera, once, after the tree above. Its own open flag lives in InAppCameraViewModel,
     // which survives a recreation. See InAppCameraHost for both mechanisms and the owner's decision.
     // Until dispatch 2026-09-28-245 a window crossing 600 dp flipped between two trees, which is why
