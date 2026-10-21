@@ -46,6 +46,8 @@ internal class AvailabilityScreenState(
     val isMapFullscreen: () -> Boolean,
     val setIsMapFullscreen: (Boolean) -> Unit,
     val setIsDrawerOpen: (Boolean) -> Unit,
+    // Phase 2.6, E2: the Back handlers read it (AvailabilityScreenBackHandlers.kt).
+    val isDrawerOpen: () -> Boolean,
     val toolsReturn: () -> ToolsOfflineMapsReturn?,
     val setToolsReturn: (ToolsOfflineMapsReturn?) -> Unit,
     val setToolsReturnArrived: (Boolean) -> Unit,
